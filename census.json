@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T04:00:41.503Z",
+  "generatedAt": "2026-08-16T07:30:03.204Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -485,9 +485,13 @@
     "floor:coverage:packages/worklet-core:branches": 28.86,
     "floor:coverage:packages/worklet-core:functions": 36.76,
     "floor:coverage:packages/worklet-core:statements": 35.52,
+    "floor:mutation:packages/cas-256t": 69.51,
     "floor:mutation:packages/effects": 52.08,
+    "floor:mutation:packages/host-core": 48.52,
+    "floor:mutation:packages/lxmf-ts": 49.4,
     "floor:mutation:packages/protocol": 71.7,
-    "floor:mutation:score": 70.06,
+    "floor:mutation:packages/reticulum-ts": 46.39,
+    "floor:mutation:score": 62.6,
     "floor:sansio:protocol-roots": 5,
     "gates:nightly": 11,
     "gates:pr": 41,
@@ -534,7 +538,7 @@
     "tests:apps/handbook": 34,
     "tests:apps/harness-mobile": 16,
     "tests:apps/host-desktop": 24,
-    "tests:conformance/checks": 135,
+    "tests:conformance/checks": 144,
     "tests:conformance/cookbook": 58,
     "tests:conformance/cross-device-dev": 5,
     "tests:conformance/desktop": 4,
@@ -567,7 +571,7 @@
     "tests:packages/widget-renderer-headless": 70,
     "tests:packages/widget-renderer-rn": 44,
     "tests:packages/worklet-core": 112,
-    "tests:total": 2828,
+    "tests:total": 2837,
     "waivers:live": 0
   },
   "delta": {

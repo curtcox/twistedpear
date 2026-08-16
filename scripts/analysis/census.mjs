@@ -88,9 +88,42 @@ if (write) {
   process.exit(0);
 }
 
+/**
+ * Keys whose loss was deliberately recorded, and still matches what was recorded.
+ *
+ * Without this, `--reason` cannot actually clear the gate. Re-baselining writes
+ * the reason into `history` and satisfies the floor comparison, but the *base
+ * branch* still holds the old number, so `againstBase` re-reports the same
+ * measurement and the gate stays red until the change merges — which it cannot
+ * do while red. The escape hatch the error message points at was unusable for
+ * any regression visible against `main`.
+ *
+ * The suppression is narrow on purpose. It covers only keys named in the most
+ * recent history entry, and only while the current measurement still equals the
+ * floor recorded alongside that reason: drift further down after the fact
+ * regresses against the floor and fails, and an older entry cannot excuse a new
+ * loss.
+ */
+function excusedByHistory() {
+  const latest = recorded?.history?.at(-1);
+  if (!latest) return new Set();
+  const keys = (latest.regressions ?? [])
+    .map((finding) => finding.split(":").slice(0, -1).join(":").trim())
+    .filter((key) => recorded.floors?.[key] === current.counts[key]);
+  return new Set(keys);
+}
+
+const excused = excusedByHistory();
 const ref = baseRef(ROOT, "CENSUS_BASE_REF");
 const base = ref ? jsonAtRef(ROOT, ref, "census.json") : null;
-const againstBase = base ? regressions(base, current, `${ref}`) : [];
+const againstBase = (base ? regressions(base, current, `${ref}`) : []).filter(
+  (finding) => !excused.has(finding.split(":").slice(0, -1).join(":").trim()),
+);
+for (const key of excused) {
+  console.warn(
+    `Census: ${key} is below ${ref} deliberately — see the latest history entry in census-ratchet.json.`,
+  );
+}
 const againstFloor = recorded
   ? regressions(
       { members: recorded.required, counts: recorded.floors },

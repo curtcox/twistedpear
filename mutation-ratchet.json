@@ -1,9 +1,13 @@
 {
   "version": 1,
   "description": "Mutation score floors: one per mutated package, plus the combined figure across all of them. All may only rise. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries 25040 of the 27321 mutants, so packages/effects could fall 22 points and move the combined score by under two. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes.",
-  "combined": 70.06,
+  "combined": 62.6,
   "packages": {
+    "packages/cas-256t": 69.51,
     "packages/effects": 52.08,
-    "packages/protocol": 71.7
+    "packages/host-core": 48.52,
+    "packages/lxmf-ts": 49.4,
+    "packages/protocol": 71.7,
+    "packages/reticulum-ts": 46.39
   }
 }

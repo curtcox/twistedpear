@@ -18,6 +18,7 @@ import {
   comparePolicy,
   packageOf,
   scoresFrom,
+  unflooredPackages,
 } from "../../scripts/analysis/mutation.mjs";
 
 const mutants = (killed, survived) => [
@@ -157,6 +158,77 @@ describe("compareScores", () => {
   });
 });
 
+describe("compareScores tolerance", () => {
+  const scored = (score) => ({
+    packages: { "packages/protocol": { score, killed: 1, survived: 1 } },
+    combined: score,
+  });
+
+  it("absorbs the survey noise that a strict comparison would fail on", () => {
+    // Two surveys of an unchanged packages/protocol measured 71.70 and 71.66 —
+    // about ten mutants out of 25 074 — because Timeout counts as killed and
+    // how many time out depends on machine load. With no tolerance that is a
+    // gate going red for reasons found nowhere in the diff.
+    const baseline = {
+      combined: 71.7,
+      packages: { "packages/protocol": 71.7 },
+    };
+    expect(compareScores(scored(71.66), baseline)).toEqual([]);
+  });
+
+  it("still fails a drop larger than the tolerance", () => {
+    // The scope is unchanged here, so the combined floor is judged too and both
+    // report — the tolerance widens the band, it does not remove the check.
+    const baseline = {
+      combined: 71.7,
+      packages: { "packages/protocol": 71.7 },
+    };
+    expect(compareScores(scored(70.5), baseline)).toEqual([
+      "packages/protocol: 70.5% is below its 71.7% floor",
+      "combined: 70.5% is below the 71.7% floor",
+    ]);
+  });
+
+  it("fails a mutated package that has no recorded floor", () => {
+    // The whole reason per-package floors exist: a package added to the survey
+    // must not enter at whatever it happens to score.
+    expect(
+      compareScores(scored(46.39), { combined: 0, packages: {} })[0],
+    ).toContain("no recorded floor");
+  });
+});
+
+describe("unflooredPackages", () => {
+  it("names only the packages with no floor yet", () => {
+    // Initialising a floor is not a regression. Conflating the two meant every
+    // scope widening needed --allow-regressions, which re-recorded every
+    // existing floor at whatever that run measured — dropping protocol from
+    // 71.70 to 71.66 on noise while adding four packages.
+    const scores = {
+      combined: 60,
+      packages: {
+        "packages/protocol": { score: 71.66, killed: 1, survived: 1 },
+        "packages/reticulum-ts": { score: 46.39, killed: 1, survived: 1 },
+      },
+    };
+    expect(
+      unflooredPackages(scores, { packages: { "packages/protocol": 71.7 } }),
+    ).toEqual(["packages/reticulum-ts"]);
+  });
+
+  it("is empty when every mutated package already has a floor", () => {
+    const scores = {
+      combined: 71.7,
+      packages: {
+        "packages/protocol": { score: 71.7, killed: 1, survived: 1 },
+      },
+    };
+    expect(
+      unflooredPackages(scores, { packages: { "packages/protocol": 71.7 } }),
+    ).toEqual([]);
+  });
+});
+
 describe("comparePolicy", () => {
   const current = {
     combined: 70,
@@ -203,5 +275,73 @@ describe("comparePolicy", () => {
 
   it("has nothing to say when there is no base branch to compare against", () => {
     expect(comparePolicy(current, null)).toEqual([]);
+  });
+
+  it("allows the combined figure to fall when the mutated scope grew", () => {
+    // The combined figure is a mutant-weighted average, so it is a statement
+    // about one set of packages and is not comparable across two. Adding four
+    // packages moved it from 70.06 to 62.62 without anything regressing:
+    // 13 573 new mutants around 47% against protocol's 25 040 at 71.7%.
+    // Failing that would mean the ratchet punishes measuring more.
+    const widened = {
+      combined: 62.62,
+      packages: {
+        "packages/cas-256t": 69.51,
+        "packages/effects": 52.08,
+        "packages/host-core": 48.52,
+        "packages/lxmf-ts": 49.4,
+        "packages/protocol": 71.7,
+        "packages/reticulum-ts": 46.39,
+      },
+    };
+    expect(
+      comparePolicy(widened, {
+        combined: 70.06,
+        packages: { "packages/effects": 52.08, "packages/protocol": 71.7 },
+      }),
+    ).toEqual([]);
+  });
+
+  it("still holds every retained package to its own floor when the scope grows", () => {
+    // The exception is only about the combined average. Widening the scope must
+    // not become a way to smuggle a per-package regression through with it.
+    const widened = {
+      combined: 62.62,
+      packages: {
+        "packages/effects": 40,
+        "packages/host-core": 48.52,
+        "packages/protocol": 71.7,
+      },
+    };
+    expect(
+      comparePolicy(widened, {
+        combined: 70.06,
+        packages: { "packages/effects": 52.08, "packages/protocol": 71.7 },
+      }),
+    ).toEqual(["packages/effects: floor lowered 52.08 -> 40"]);
+  });
+
+  it("catches a combined drop when the scope is unchanged", () => {
+    // Without this the scope exception would swallow every combined regression.
+    expect(
+      comparePolicy(
+        { combined: 60, packages: { "packages/effects": 50 } },
+        { combined: 70, packages: { "packages/effects": 50 } },
+      ),
+    ).toEqual(["combined floor lowered 70 -> 60"]);
+  });
+
+  it("calls dropping a package a regression even though it shrinks the scope", () => {
+    // Removing the weakest package is the one edit that makes the combined
+    // figure rise by measuring less, so it can never be free.
+    expect(
+      comparePolicy(
+        { combined: 71.7, packages: { "packages/protocol": 71.7 } },
+        {
+          combined: 70.06,
+          packages: { "packages/effects": 52.08, "packages/protocol": 71.7 },
+        },
+      ),
+    ).toEqual(["packages/effects: floor removed"]);
   });
 });

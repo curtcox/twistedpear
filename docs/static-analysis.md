@@ -443,7 +443,7 @@ but enabling it at the same time as introducing the gate would mix two signals i
 the first result. It is a one-line change now that the unshuffled baseline is known
 to be empty.
 
-## Other source languages and nightly mutation testing
+## Other source languages
 
 Independent Rust, shell, Python, Kotlin, and Swift entries run the pinned external tools
 documented in CI. Rust runs format, Clippy with warnings denied, and cargo-deny for each
@@ -473,29 +473,9 @@ has no version selector, so the macOS recipes for the Python tools go through pi
 pinned Linux download commands. `npm run check:all` prints a skip instead of failing when
 an optional local tool is absent.
 
-Nightly Stryker analysis is limited to `packages/protocol` and `packages/effects`, ignores
-static mutants that would exceed the CI time budget, and writes
-`reports/mutation/mutation.json`. `mutation-ratchet.json` holds one floor per mutated
-package plus the combined figure, and the cheap `mutation-policy` PR gate prevents any of
-them from decreasing.
-
-It was a single number until 2026-08-15, which is the wrong shape twice over. A package
-added to `stryker.config.mjs` came in at whatever it happened to score, averaged against
-the ones that already scored well, so it could sit at zero unnoticed — the gate now fails
-on a mutated package with no recorded floor. And `packages/protocol` contributes 25 040 of
-the 27 321 mutants, so a regression in `packages/effects` was cancelled by the weight of
-the other: effects could fall from 52% to 30% and move the combined figure by under two
-points, inside the noise anyone would put down to a survey rerun. Decomposing the number
-showed what it had been hiding — protocol scores 71.7% and effects 52.08% against a single
-recorded floor of 69.16% that effects had never met.
-
-The combined floor is kept alongside the per-package ones rather than replaced. Per-package
-floors alone would let the overall score drift down as the mix of mutants changes without
-any one package regressing, so the two together are strictly stronger than either. The
-comparison logic is exported and unit-tested by `conformance/checks/mutation-floors.test.mjs`,
-because a ~70 minute nightly gate is otherwise exercised once a day and only on the happy
-path. `npm run ratchets:rank` now names the weakest package instead of reporting the floor
-as "not rankable".
+Mutation testing has its own document: [mutation testing](mutation-testing.md). It is
+nightly, it covers six packages, and the reasoning about floors, tolerance, and scope
+changes is long enough that keeping it here pushed this file past its size threshold.
 
 ## Published metrics
 

@@ -33,7 +33,7 @@ const write = process.argv.includes("--write");
 const allowRegressions = process.argv.includes("--allow-regressions");
 
 const DESCRIPTION =
-  "Mutation score floors: one per mutated package, plus the combined figure across all of them. All may only rise. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries 25040 of the 27321 mutants, so packages/effects could fall 22 points and move the combined score by under two. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes.";
+  "Mutation score floors: one per mutated package, plus the combined figure across all of them. Per-package floors may only rise, compared with a 0.5 point tolerance because Timeout counts as killed and how many mutants time out depends on machine load. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries 25074 of the 41374 mutants, so packages/reticulum-ts could collapse and move the combined score by a few points. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes; it is the one figure a change of scope may lower, since it is a mutant-weighted average and is not comparable across two different package sets.";
 
 function runSurvey() {
   // Stryker runs the vitest suite once per mutant, and vitest's GitHub Actions
@@ -127,7 +127,44 @@ export function scoresFrom(report) {
  * @param {{combined?: number, packages?: Record<string, number>}} baseline
  * @returns {string[]}
  */
-export function compareScores(scores, baseline) {
+/**
+ * Percentage points a measurement may sit below its floor without failing.
+ *
+ * The same 0.5 the coverage ratchet uses, and needed here for a stronger
+ * reason. Mutation scores are not deterministic: this repository classifies a
+ * `Timeout` as killed, and how many mutants time out depends on how loaded the
+ * machine is. Two surveys of an unchanged `packages/protocol` measured 71.70%
+ * and 71.66% — about ten mutants out of 25 074 — which with no tolerance at all
+ * is a gate that goes red for reasons found nowhere in the diff.
+ *
+ * It applies only to a *measurement* against a floor. Floor-against-floor
+ * comparison in `comparePolicy` stays exact, because a tolerance there would
+ * let someone walk a floor down half a point per pull request.
+ */
+export const TOLERANCE = 0.5;
+
+/**
+ * Packages this survey mutated that have no recorded floor.
+ *
+ * Reported separately from regressions because they are not the same event.
+ * `compareScores` fails the *gate* on them — a package can never be mutated
+ * without a floor, or it could sit at zero unnoticed — but a baseline *write*
+ * can initialise one, since adding a floor where none existed does not loosen
+ * anything. Conflating the two meant every scope widening needed
+ * `--allow-regressions`, which in turn re-recorded every existing floor at
+ * whatever the current run measured: adding four packages would have quietly
+ * dropped `packages/protocol` from 71.70 to 71.66 on survey noise alone.
+ *
+ * @returns {string[]} package names
+ */
+export function unflooredPackages(scores, baseline) {
+  const floors = baseline.packages ?? {};
+  return Object.keys(scores.packages).filter(
+    (name) => floors[name] === undefined,
+  );
+}
+
+export function compareScores(scores, baseline, tolerance = TOLERANCE) {
   const floors = baseline.packages ?? {};
   const failures = [];
 
@@ -135,9 +172,9 @@ export function compareScores(scores, baseline) {
     const floor = floors[name];
     if (floor === undefined) {
       failures.push(
-        `${name}: mutated but has no recorded floor (scored ${measured.score}%) — record it with npm run mutation:baseline -- --allow-regressions`,
+        `${name}: mutated but has no recorded floor (scored ${measured.score}%) — record it with npm run mutation:baseline`,
       );
-    } else if (measured.score < floor) {
+    } else if (measured.score + tolerance < floor) {
       failures.push(`${name}: ${measured.score}% is below its ${floor}% floor`);
     }
   }
@@ -151,7 +188,12 @@ export function compareScores(scores, baseline) {
   }
 
   const combinedFloor = baseline.combined ?? 0;
-  if (scores.combined < combinedFloor) {
+  // The combined floor is only comparable when the package set is the same;
+  // see `comparePolicy` for why a scope change moves it by arithmetic alone.
+  if (
+    scopeOf(scores) === scopeOf(baseline) &&
+    scores.combined + tolerance < combinedFloor
+  ) {
     failures.push(
       `combined: ${scores.combined}% is below the ${combinedFloor}% floor`,
     );
@@ -160,13 +202,31 @@ export function compareScores(scores, baseline) {
   return failures;
 }
 
+/** The mutated packages a baseline describes, as a stable sorted key. */
+export function scopeOf(baseline) {
+  return Object.keys(baseline?.packages ?? {})
+    .sort()
+    .join(",");
+}
+
 /**
  * Whether a committed baseline was lowered relative to the PR's base branch.
  *
  * The PR-tier gate cannot re-measure — the survey is nightly — so what it can
- * check is that nobody quietly edited a floor downwards. It now has to check
- * every floor, not one: lowering `packages/effects` alone would otherwise have
- * been free.
+ * check is that nobody quietly edited a floor downwards. It has to check every
+ * floor, not one: lowering `packages/effects` alone would otherwise be free.
+ *
+ * The combined figure is the exception, and only when the **scope** changes.
+ * It is a mutant-weighted average, so it is a statement about one set of
+ * packages and is not comparable across two different sets. Adding
+ * `reticulum-ts`, `lxmf-ts`, `cas-256t`, and `host-core` moved it from 70.06%
+ * to 62.62% without a single package regressing — 13 573 new mutants scoring
+ * around 47% against protocol's 25 040 at 71.7%. Failing that would mean the
+ * ratchet punishes measuring more of the repository, which is the opposite of
+ * what it is for; treating it as free would let a real combined regression hide
+ * behind a scope change. So a combined drop is allowed only when the package
+ * set actually differs, and every package present in both is still held to its
+ * own floor — which is the comparison that stays meaningful either way.
  *
  * @param {{combined?: number, packages?: Record<string, number>}} current
  * @param {{score?: number, combined?: number, packages?: Record<string, number>}|null} previous
@@ -179,7 +239,12 @@ export function comparePolicy(current, previous) {
   // it, and the combined floor is its successor, so it is compared against that
   // rather than ignored — otherwise the split itself would be a free lowering.
   const previousCombined = previous.combined ?? previous.score;
-  if (previousCombined != null && (current.combined ?? 0) < previousCombined) {
+  const scopeChanged = scopeOf(current) !== scopeOf(previous);
+  if (
+    previousCombined != null &&
+    !scopeChanged &&
+    (current.combined ?? 0) < previousCombined
+  ) {
     failures.push(
       `combined floor lowered ${previousCombined} -> ${current.combined}`,
     );
@@ -187,6 +252,9 @@ export function comparePolicy(current, previous) {
   for (const [name, floor] of Object.entries(previous.packages ?? {})) {
     const now = current.packages?.[name];
     if (now === undefined) {
+      // Dropping a package from the survey is always a regression, scope change
+      // or not: it is the one edit that makes the combined figure rise by
+      // measuring less.
       failures.push(`${name}: floor removed`);
     } else if (now < floor) {
       failures.push(`${name}: floor lowered ${floor} -> ${now}`);
@@ -236,22 +304,49 @@ function main() {
       );
       process.exit(1);
     }
-    const failures = compareScores(scores, baseline);
+    // Initialising a floor for a newly mutated package is not a regression, so
+    // those findings are filtered out of the write-time check; anything left is
+    // a genuine lowering and still needs --allow-regressions.
+    const initialising = new Set(unflooredPackages(scores, baseline));
+    for (const name of initialising) {
+      console.log(
+        `Mutation ratchet: recording a first floor for ${name} at ${scores.packages[name].score}%.`,
+      );
+    }
+    const failures = compareScores(scores, baseline).filter(
+      (failure) => !initialising.has(failure.split(":")[0]),
+    );
     if (failures.length > 0 && !allowRegressions) {
       console.error("Refusing to record a baseline that lowers a floor:");
       for (const failure of failures) console.error(`  ${failure}`);
       process.exit(1);
     }
+    // A floor may only rise, exactly as in the coverage ratchet: recording the
+    // raw measurement would let one survey run under load walk every floor
+    // downwards, which is a ratchet that turns whichever way the noise went.
+    // `--allow-regressions` is the deliberate override.
+    const keep = (name, measured) =>
+      allowRegressions
+        ? measured
+        : Math.max(baseline.packages?.[name] ?? 0, measured);
+    const packages = Object.fromEntries(
+      Object.entries(scores.packages).map(([name, value]) => [
+        name,
+        keep(name, value.score),
+      ]),
+    );
+    // The combined figure is the one number a scope change legitimately lowers,
+    // so it is taken as measured when the package set differs and held to the
+    // usual may-only-rise rule when it does not.
+    const scopeChanged = scopeOf(scores) !== scopeOf(baseline);
     writeJson(baselineFile, {
       version: 1,
       description: DESCRIPTION,
-      combined: scores.combined,
-      packages: Object.fromEntries(
-        Object.entries(scores.packages).map(([name, value]) => [
-          name,
-          value.score,
-        ]),
-      ),
+      combined:
+        scopeChanged || allowRegressions
+          ? scores.combined
+          : Math.max(baseline.combined ?? 0, scores.combined),
+      packages,
     });
     console.log(
       `Mutation ratchet: wrote combined ${scores.combined} and ${Object.keys(scores.packages).length} package floor(s).`,
