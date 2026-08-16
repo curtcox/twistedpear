@@ -13,5 +13,11 @@
     "branches": 45,
     "functions": 60,
     "exempt": {}
+  },
+  "changedLine": {
+    "description": "Floors for executable statements and branch arms whose source locations intersect lines changed since the PR base. This closes the aggregate-ratchet hole for edits to existing low-coverage files. A metric with no changed executable locations is reported as unmeasured rather than passed.",
+    "statements": 80,
+    "branches": 70,
+    "exempt": {}
   }
 }

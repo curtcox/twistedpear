@@ -5,6 +5,11 @@ import { fileURLToPath } from "node:url";
 import { baseRef, jsonAtRef, readJson, writeJson } from "./ratchet/lib.mjs";
 import { isGeneratedPath } from "./analysis/generated-paths.mjs";
 import {
+  changedCoverage,
+  changedCoverageFindings,
+  changedLinesFromDiff,
+} from "./analysis/coverage-changed-lines.mjs";
+import {
   newFileFindings,
   selectNewFiles,
 } from "./analysis/coverage-new-files.mjs";
@@ -110,6 +115,51 @@ function addedSince(ref) {
   );
   if (result.status !== 0) return [];
   return result.stdout.split("\n").filter(Boolean);
+}
+
+function diffSince(ref) {
+  if (!ref) return "";
+  const result = spawnSync(
+    "git",
+    [
+      "diff",
+      "--unified=0",
+      "--no-ext-diff",
+      `${ref}...HEAD`,
+      "--",
+      "packages",
+      "apps",
+    ],
+    { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  return result.status === 0 ? result.stdout : "";
+}
+
+function checkChangedLines(ref) {
+  const rules = RULES.changedLine;
+  if (!rules || !ref) return false;
+  const changed = changedLinesFromDiff(diffSince(ref));
+  if (changed.size === 0) return false;
+  const coverage = readJson(path.join(ROOT, "coverage", "coverage-final.json"));
+  const scores = changedCoverage(
+    changed,
+    coverage,
+    ROOT,
+    isGeneratedPath,
+    rules.exempt ?? {},
+  );
+  const findings = changedCoverageFindings(scores, rules, tolerance);
+  for (const finding of findings)
+    console.error(
+      `${finding.path} changed ${finding.metric}: ${finding.value} (${finding.covered}/${finding.total}) < floor ${finding.floor}`,
+    );
+  const measured = scores.filter(
+    (score) => score.statements.total > 0 || score.branches.total > 0,
+  );
+  console.log(
+    `Coverage changed-line floor: ${measured.length} file(s) with changed executable locations checked against ${ref}.`,
+  );
+  return findings.length > 0;
 }
 
 /**
@@ -225,6 +275,7 @@ for (const [pkg, floors] of Object.entries(existing.packages ?? {})) {
   }
 }
 if (checkNewFiles(ref, perFile())) failed = true;
+if (checkChangedLines(ref)) failed = true;
 
 console.log(
   `Coverage ratchet: ${Object.keys(current).length} packages measured${ref ? `; baseline checked against ${ref}` : ""}.`,

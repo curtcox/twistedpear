@@ -100,7 +100,7 @@ intentionally loosen a baseline.
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
 
-### The new-file coverage floor
+### New-file and changed-line coverage floors
 
 The coverage ratchet is a per-workspace aggregate, and an aggregate cannot see a new
 file arrive untested. Four hundred uncovered lines added to a package sitting at 74%
@@ -125,6 +125,15 @@ number would have to pick which of those two mistakes to make. The decision logi
 lives in `scripts/analysis/coverage-new-files.mjs` and is tested directly by
 `conformance/checks/coverage-new-files.test.mjs`, because the branch otherwise runs
 only on commits that happen to add a file.
+
+The aggregate has the same blind spot when an existing low-coverage file changes.
+`changedLine` therefore holds executable statements and branch arms whose Istanbul
+source locations intersect the new-side lines of the pull-request diff to 80% and 70%
+respectively. It reads `coverage/coverage-final.json`; a metric with no executable
+location on a changed line is unmeasured rather than credited with 100%. Generated
+files and reasoned `changedLine.exempt` entries are excluded. The diff parser and
+location policy live in `scripts/analysis/coverage-changed-lines.mjs` and are exercised
+without a full coverage run by `conformance/checks/coverage-changed-lines.test.mjs`.
 
 The last three arrived on 2026-08-15 from the survey, which measures them but by
 design never fails on findings — the trending system that was to consume

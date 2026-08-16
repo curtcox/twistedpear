@@ -452,6 +452,13 @@
         "conformance/devstudio-loop/run.mjs"
       ]
     },
+    "QL-ASSURANCE-GAPS": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run check:ci-base",
+      "added": "2026-08-16",
+      "notes": "Implements the 2026-08-16 code-quality audit recommendations as separate reviewable commits; platform/tool-specific gates carry their own registry verification."
+    },
     "QL-COMPLEXITY-COMPLEXITY": {
       "type": "quality",
       "requires": [],

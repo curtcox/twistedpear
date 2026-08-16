@@ -111,7 +111,11 @@ export const gates = [
     "coverage:check",
     "pr",
     ["node"],
-    ["coverage/coverage-summary.json", "coverage-ratchet.json"],
+    [
+      "coverage/coverage-summary.json",
+      "coverage/coverage-final.json",
+      "coverage-ratchet.json",
+    ],
     "coverage",
   ),
   gate(

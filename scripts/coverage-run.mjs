@@ -27,6 +27,10 @@ const vitestArgs = [
   "--exclude=conformance/**",
   "--coverage.reporter=text",
   "--coverage.reporter=json-summary",
+  // The summary can only say whether a whole file was exercised. The JSON
+  // report retains statement and branch locations, which lets the ratchet ask
+  // the more useful PR question: did the executable code changed here run?
+  "--coverage.reporter=json",
   "--coverage.reportsDirectory=coverage",
 ];
 // Baseline writes run the complete package/app unit workspace. The ratchet
