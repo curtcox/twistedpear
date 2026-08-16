@@ -31,6 +31,7 @@ import {
 } from "../../packages/cli/dist/commands/index.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 import { soakProgress } from "../soak-progress.mjs";
+import { soakResources } from "../soak-resources.mjs";
 
 const fixtureAppSource = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -339,8 +340,17 @@ async function main() {
   }
 }
 
+// Sampling starts at module load so the warm-up window covers process
+// startup rather than beginning partway through it.
+const resources = soakResources({ id: "mixed-network-soak" });
+
 main()
-  .then(() => process.exit(0))
+  .then(() => {
+    // The resource verdict is part of the soak's result, not a note
+    // beside it: a run that finished its cycles while leaking has not
+    // passed.
+    process.exit(resources.finish().status === "fail" ? 1 : 0);
+  })
   .catch((error) => {
     console.error(error);
     process.exit(1);

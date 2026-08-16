@@ -34,6 +34,7 @@ import {
 } from "../../packages/cli/dist/seed/register.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 import { soakProgress } from "../soak-progress.mjs";
+import { soakResources } from "../soak-resources.mjs";
 
 const fixtureAppSource = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -310,8 +311,17 @@ async function main() {
   }
 }
 
+// Sampling starts at module load so the warm-up window covers process
+// startup rather than beginning partway through it.
+const resources = soakResources({ id: "dist-soak" });
+
 main()
-  .then(() => process.exit(0))
+  .then(() => {
+    // The resource verdict is part of the soak's result, not a note
+    // beside it: a run that finished its cycles while leaking has not
+    // passed.
+    process.exit(resources.finish().status === "fail" ? 1 : 0);
+  })
   .catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`::error::dist-soak failed: ${message.split("\n")[0]}`);

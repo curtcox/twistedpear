@@ -48,6 +48,45 @@ detailed phase-by-phase reference; `docs/ci-policy.md` records CI and nightly co
   simulators, or local data stores. Verify cleanup on failure.
 - Soak and release runners are operational workflows, not ordinary tests.
 
+## Soaks assert resource growth, not just survival
+
+Until 2026-08-15 the soak fleet asserted exactly one thing: that it had not
+crashed. Nothing under `conformance/` sampled memory — `grep -rlE
+"heapUsed|memoryUsage" conformance` returned nothing — so a run that burned three
+days could not catch the class of bug soaks exist for: a leak, an unbounded queue,
+a routing table that never evicts, a listener added per reconnect. All of those
+keep working right up until they don't.
+
+`conformance/soak-resources.mjs` is the sibling of `soak-progress.mjs`: start it at
+module load, call `finish()` on the way out, and let its verdict decide the exit
+code. It is wired into `dist-soak`, `miniapp-soak`, `mixed-network-soak`, and
+`transport-node-soak` — the four that do their work in-process. `web-soak` and
+`integration-soak` drive child processes, where sampling the parent would measure
+the harness rather than the system.
+
+Three things about the measurement are worth knowing before changing it:
+
+- **The slope of the floor, not the peak.** Absolute memory is a property of the
+  machine, the Node build, and when the GC last ran. What is fitted is the
+  per-bucket _minimum_ — the post-collection baseline a leak pushes up and
+  ordinary churn does not. Regressing raw samples does not work: the first trial
+  reported `miniapp-soak` leaking 4.7 MB/min while its RSS fell 130 MB/min, one
+  process described as leaking and shrinking at once, because each slope was
+  fitted across a different part of one GC cycle.
+- **Handles are counted too.** A socket or timer retained per reconnect can sit
+  almost entirely outside the JS heap, so it is the leak memory does not show. Its
+  limit is the tightest of the three because handle counts do not fluctuate the
+  way bytes do.
+- **A short run is `inconclusive`, never `pass`.** A verdict needs 120 post-warmup
+  samples _and_ five minutes of wall clock, so the 15-second CI tier records
+  numbers without judging them. Calling that a pass would be the same failure as a
+  benchmark comparing against a baseline of zeros. Nightly and plan-duration runs
+  set `SOAK_DURATION_MS` high enough to get a verdict.
+
+Thresholds and the reasoning behind each live in `soak-rules.json`; the statistic
+is tested against synthetic traces in `conformance/checks/soak-resources.test.mjs`,
+because on real data it is not obvious when it is wrong.
+
 ## Runner toolkit (`conformance/lib/`)
 
 New and touched `run.mjs` runners should import shared helpers from

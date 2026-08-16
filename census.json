@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T03:46:26.612Z",
+  "generatedAt": "2026-08-16T04:00:41.503Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -497,7 +497,7 @@
     "test-files:apps/handbook": 2,
     "test-files:apps/harness-mobile": 3,
     "test-files:apps/host-desktop": 3,
-    "test-files:conformance/checks": 11,
+    "test-files:conformance/checks": 12,
     "test-files:conformance/cookbook": 1,
     "test-files:conformance/cross-device-dev": 2,
     "test-files:conformance/desktop": 1,
@@ -530,11 +530,11 @@
     "test-files:packages/widget-renderer-headless": 3,
     "test-files:packages/widget-renderer-rn": 2,
     "test-files:packages/worklet-core": 9,
-    "test-files:total": 355,
+    "test-files:total": 356,
     "tests:apps/handbook": 34,
     "tests:apps/harness-mobile": 16,
     "tests:apps/host-desktop": 24,
-    "tests:conformance/checks": 124,
+    "tests:conformance/checks": 135,
     "tests:conformance/cookbook": 58,
     "tests:conformance/cross-device-dev": 5,
     "tests:conformance/desktop": 4,
@@ -567,7 +567,7 @@
     "tests:packages/widget-renderer-headless": 70,
     "tests:packages/widget-renderer-rn": 44,
     "tests:packages/worklet-core": 112,
-    "tests:total": 2817,
+    "tests:total": 2828,
     "waivers:live": 0
   },
   "delta": {

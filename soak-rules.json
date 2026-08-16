@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "description": "Policy for the resource-growth assertions the soak fleet makes. Before these existed, nothing under conformance/ sampled memory at all: the soaks ran for hours and asserted only that they had not crashed, which cannot catch a leak, an unbounded queue, a routing table that never evicts, or a listener added per reconnect — all of which keep working right up until they do not.",
+  "growth": {
+    "sampleIntervalMs": 1000,
+    "warmupMs": 60000,
+    "minJudgingSamples": 120,
+    "minJudgingMinutes": 5,
+    "buckets": 12,
+    "maxHeapGrowthBytesPerMinute": 2000000,
+    "maxRssGrowthBytesPerMinute": 4000000,
+    "maxHandleGrowthPerMinute": 2
+  },
+  "rationale": {
+    "slopeNotPeak": "Absolute memory is a property of the machine, the Node version, and when the GC last ran; a ceiling would either sit so high it never fires or fail on the next runner with different heap sizing. Sustained growth over a long run is both the signal that means something and the one an absolute threshold cannot see.",
+    "bucketFloor": "The slope is fitted over the per-bucket MINIMUM, not over raw samples. Regressing raw heapUsed measures where the sawtooth was sampled rather than whether it is climbing: the first 60-second trial of this check reported miniapp-soak's heap growing 4.7 MB/min while its RSS fell 130 MB/min — one process described as leaking and shrinking at once, because each slope was fitted across a different part of one GC cycle. The floor is the post-collection baseline that a leak pushes upward and ordinary allocation churn does not, and taking a minimum per bucket approximates it without needing --expose-gc.",
+    "warmup": "The first minute is excluded. Caches fill, JIT tiers up, and pools reach their working size during startup, and that is growth by design rather than a leak.",
+    "window": "A verdict needs both 120 post-warmup samples and five minutes of wall clock. Samples alone make the fit meaningful; wall clock is what makes it about a leak rather than about a single collection cycle.",
+    "thresholds": "2 MB/min of heap over a 72-hour run is 8.6 GB, so the limit is far above noise and far below anything survivable — it is sized to catch a leak, not to police allocation. RSS is allowed more room than heap because it includes buffers and native allocations that legitimately plateau higher. The handle limit is the tightest of the three at 2/min, because handles do not fluctuate the way bytes do: a steady climb is a socket or timer that is not being released.",
+    "inconclusive": "Too few post-warmup samples yields `inconclusive`, never `pass`. The CI tier runs these soaks for fifteen seconds, which cannot measure a leak, and calling that a pass would be the same failure as a benchmark comparing against a baseline of zeros. Only the nightly plan-duration runs, where SOAK_DURATION_MS is set high, produce a verdict."
+  }
+}

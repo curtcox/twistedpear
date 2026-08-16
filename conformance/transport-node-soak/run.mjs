@@ -26,6 +26,7 @@ import {
   TRANSPORT_HUB_PORT,
 } from "../scenarios/ts/harness.mjs";
 import { soakProgress } from "../soak-progress.mjs";
+import { soakResources } from "../soak-resources.mjs";
 
 if (!interopReady()) {
   console.log("transport-node-soak: skipped (set INTEROP=1 with docker)");
@@ -211,8 +212,17 @@ async function main() {
   }
 }
 
+// Sampling starts at module load so the warm-up window covers process
+// startup rather than beginning partway through it.
+const resources = soakResources({ id: "transport-node-soak" });
+
 main()
-  .then(() => process.exit(0))
+  .then(() => {
+    // The resource verdict is part of the soak's result, not a note
+    // beside it: a run that finished its cycles while leaking has not
+    // passed.
+    process.exit(resources.finish().status === "fail" ? 1 : 0);
+  })
   .catch((error) => {
     console.error(error);
     process.exit(1);
