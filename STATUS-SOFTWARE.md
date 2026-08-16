@@ -50,16 +50,16 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID                | Status | Item                                                                           | Evidence | Verify                                                                      |
-| ----------------- | ------ | ------------------------------------------------------------------------------ | -------- | --------------------------------------------------------------------------- |
-| WORK-UNATTENDED   | open   | Distinguish unattended work from hands-on work in work:next                    | —        | `npx vitest run conformance/doc-audit/work-ranking.test.mjs`                |
-| ID-ROSTER         | open   | Installation roster, pairing, and linked-mode announce                         | —        | `npx vitest run packages/host-core/test/linked-installation-roster.test.ts` |
-| ID-JOURNAL        | open   | Encrypted append-only account journal over certified installation destinations | —        | `npx vitest run packages/host-core/test/account-journal.test.ts`            |
-| ID-LINKED-MODE    | open   | One-way linked-mode switch with both hashes shown before confirmation          | —        | `npx vitest run packages/host-core/test/linked-mode-switch.test.ts`         |
-| ID-SIBLING-CHROME | open   | Chrome and store wiring for held sibling decisions                             | —        | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts`   |
-| DOC-SUPPLY-CHAIN  | open   | Split docs/static-analysis.md before the next gate is documented               | —        | `npm run sizes`                                                             |
-| LINT-RUFF-CONFIG  | open   | Make the lint:python gate actually read .config/ruff.toml                      | —        | `npm run lint:python`                                                       |
-| GEN-WORKLET-FRESH | open   | Gate the freshness of apps/host-desktop/worklet/worklet.bundle                 | —        | `npm run build --workspace=host-desktop`                                    |
+| ID                | Status | Item                                                                           | Evidence | Verify                                                                                                    |
+| ----------------- | ------ | ------------------------------------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------- |
+| WORK-UNATTENDED   | open   | Distinguish unattended work from hands-on work in work:next                    | —        | `npx vitest run conformance/doc-audit/work-ranking.test.mjs`                                              |
+| ID-ROSTER         | open   | Installation roster, pairing, and linked-mode announce                         | —        | `npx vitest run packages/host-core/test/linked-installation-roster.test.ts`                               |
+| ID-JOURNAL        | open   | Encrypted append-only account journal over certified installation destinations | —        | `npx vitest run packages/host-core/test/account-journal.test.ts`                                          |
+| ID-LINKED-MODE    | open   | One-way linked-mode switch with both hashes shown before confirmation          | —        | `npx vitest run packages/host-core/test/linked-mode-switch.test.ts`                                       |
+| ID-SIBLING-CHROME | open   | Chrome and store wiring for held sibling decisions                             | —        | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts`                                 |
+| DOC-SUPPLY-CHAIN  | open   | Split docs/static-analysis.md before the next gate is documented               | —        | `npm run sizes`                                                                                           |
+| LINT-RUFF-CONFIG  | open   | Make the lint:python gate actually read .config/ruff.toml                      | —        | `npm run lint:python`                                                                                     |
+| GEN-WORKLET-FRESH | open   | Gate the freshness of apps/host-desktop/worklet/worklet.bundle                 | —        | `npm run build --workspace=host-desktop && git diff --exit-code apps/host-desktop/worklet/worklet.bundle` |
 
 ## Optional and non-blocking backlog
 
