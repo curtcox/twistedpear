@@ -183,6 +183,36 @@ function workflowInventory(root) {
 }
 
 /**
+ * The mutation floors, one per mutated package plus the overall figure.
+ *
+ * Counting only the overall number would let a per-package floor be deleted
+ * without the census noticing, which is the same hole splitting the floor was
+ * made to close.
+ *
+ * The overall figure keeps the key `floor:mutation:score` even though the field
+ * it reads is now `combined`. The key is a census identifier, not a field path,
+ * and it names the same measurement it always did — renaming it would report the
+ * floor as "no longer measured at all" against every branch cut before the
+ * split, for a measurement that did not go anywhere.
+ *
+ * Its own function because folding it into `baselineInventory` took that to
+ * cyclomatic complexity 18 against a limit of 15, and the multi-language gate
+ * was right: a function that reads six baseline files is already at its budget.
+ *
+ * @param {string} root
+ * @returns {Record<string, number>}
+ */
+function mutationFloors(root) {
+  const counts = {};
+  const mutation = readJson(path.join(root, "mutation-ratchet.json"), {});
+  const overall = mutation.combined ?? mutation.score;
+  if (overall !== undefined) counts["floor:mutation:score"] = overall;
+  for (const [pkg, floor] of Object.entries(mutation.packages ?? {}))
+    counts[`floor:mutation:${pkg}`] = floor;
+  return counts;
+}
+
+/**
  * Floors the ratchets are currently holding, and the size of every
  * allowed-finding baseline.
  *
@@ -194,20 +224,7 @@ function baselineInventory(root) {
   for (const [pkg, metrics] of Object.entries(coverage.packages ?? {}))
     for (const [metric, value] of Object.entries(metrics))
       counts[`floor:coverage:${pkg}:${metric}`] = value;
-  // One count per package floor as well as the overall one. Counting only the
-  // overall figure would let a per-package floor be deleted without the census
-  // noticing, which is the same hole splitting the floor was made to close.
-  //
-  // The overall figure keeps the key `floor:mutation:score` even though the
-  // field it reads is now `combined`. The key is a census identifier, not a
-  // field path, and it names the same measurement it always did — renaming it
-  // would report the floor as "no longer measured at all" against every branch
-  // cut before the split, for a measurement that did not go anywhere.
-  const mutation = readJson(path.join(root, "mutation-ratchet.json"), {});
-  const overall = mutation.combined ?? mutation.score;
-  if (overall !== undefined) counts["floor:mutation:score"] = overall;
-  for (const [pkg, floor] of Object.entries(mutation.packages ?? {}))
-    counts[`floor:mutation:${pkg}`] = floor;
+  Object.assign(counts, mutationFloors(root));
   const sizes = readJson(path.join(root, "size-ratchet.json"), {});
   if (sizes.maxExcessLines !== undefined)
     counts["budget:size:excess-lines"] = sizes.maxExcessLines;

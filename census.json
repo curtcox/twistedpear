@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-15T23:48:46.710Z",
+  "generatedAt": "2026-08-16T00:02:44.044Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
