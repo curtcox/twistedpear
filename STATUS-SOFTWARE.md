@@ -59,7 +59,7 @@ and `npm run work:next` picks the next item from this table. See
 | ID-SIBLING-CHROME | open   | Chrome and store wiring for held sibling decisions                             | —        | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts`   |
 | DOC-SUPPLY-CHAIN  | open   | Split docs/static-analysis.md before the next gate is documented               | —        | `npm run sizes`                                                             |
 | LINT-RUFF-CONFIG  | open   | Make the lint:python gate actually read .config/ruff.toml                      | —        | `npm run lint:python`                                                       |
-| GEN-WORKLET-FRESH | open   | Gate the freshness of apps/host-desktop/worklet/worklet.bundle                 | —        | `npm run build --workspace=host-desktop`                                    |
+| GEN-WORKLET-FRESH | open   | Gate the freshness of apps/host-desktop/worklet/worklet.bundle                 | —        | `npm run build --workspace=host-desktop && git diff --exit-code apps/host-desktop/worklet/worklet.bundle` |
 
 ## Optional and non-blocking backlog
 
