@@ -24,7 +24,18 @@
  * 3. Neither published anything. A pass/fail against a cliff says nothing until
  *    the day it fires, by which point the regression could be in any of a
  *    hundred commits.
+ *
+ * `gateAgainstBaseline` finishes the factoring the third point started. Both
+ * runners were given the same twenty lines of load-baseline, publish-artifact,
+ * print-offenders, decide-pass, and they were copied rather than shared — which
+ * `jscpd` then reported as a clone pair. Sharing them means the two benchmarks
+ * cannot drift into publishing subtly different artifacts, which is the whole
+ * point of publishing them.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { readJson, writeJson } from "../ratchet/lib.mjs";
 
 /** @typedef {{ metric: string, kind: "latency" | "throughput" }} MetricSpec */
 /** @typedef {{ metric: string, value: number, baseline: number, ratio: number | null, status: string }} Result */
@@ -114,4 +125,68 @@ export function countByStatus(results) {
 /** @param {Result[]} results */
 export function anyFailed(results) {
   return results.some((result) => FAILING.has(result.status));
+}
+
+/**
+ * Compare a run against its recorded reference, publish the artifact, print
+ * whatever is not `ok`, and say whether the gate failed.
+ *
+ * `identity` is the handful of fields that describe *what was measured* and
+ * differ per benchmark — the peer for link, the platform and backend for
+ * miniapp. They are spread ahead of the common fields so the published
+ * artifacts keep the field order they already had.
+ *
+ * `unit` is appended to both sides of a printed comparison. link measures only
+ * milliseconds and says so; miniapp mixes latency with a throughput rate, where
+ * a single suffix would be wrong for at least one metric, so it passes none.
+ *
+ * @param {{
+ *   name: string,
+ *   root: string,
+ *   measuredPath: string,
+ *   summary: Record<string, unknown>,
+ *   specs: MetricSpec[],
+ *   identity?: Record<string, unknown>,
+ *   unit?: string,
+ * }} options
+ * @returns {boolean} whether any result failed
+ */
+export function gateAgainstBaseline({
+  name,
+  root,
+  measuredPath,
+  summary,
+  specs,
+  identity = {},
+  unit = "",
+}) {
+  const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
+  const rules = readJson(join(root, "benchmark-rules.json")).endToEnd;
+  const results = compareLatency(summary, baseline, specs, rules);
+  const counts = countByStatus(results);
+
+  writeJson(join(root, `artifacts/benchmark/${name}.json`), {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    ...identity,
+    iterations: summary.iterations,
+    baselineMeasuredAt: baseline.measuredAt,
+    failAboveRatio: rules.failAboveRatio,
+    warnAboveRatio: rules.warnAboveRatio,
+    counts,
+    results,
+  });
+
+  for (const result of results) {
+    if (result.status === "ok") continue;
+    const line = `${result.metric}: ${result.value}${unit} vs baseline ${result.baseline}${unit}${result.ratio === null ? "" : ` (${result.ratio}x worse)`}`;
+    if (result.status === "warn") console.warn(`  warn ${line}`);
+    else console.error(`  ${result.status.toUpperCase()} ${line}`);
+  }
+
+  const failed = anyFailed(results);
+  console.log(
+    `${name}: ${failed ? "FAIL" : "PASS"}; ${counts.ok} ok, ${counts.warn} warn, ${counts.fail} fail, ${counts.missing} missing, ${counts.unrecorded} unrecorded (fail above ${rules.failAboveRatio}x).`,
+  );
+  return failed;
 }

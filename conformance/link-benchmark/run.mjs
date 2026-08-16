@@ -24,12 +24,7 @@ import {
   LINK_ECHO_PORT,
   waitForReadyLine,
 } from "../scenarios/ts/harness.mjs";
-import {
-  anyFailed,
-  compareLatency,
-  countByStatus,
-} from "../../scripts/analysis/latency-benchmark.mjs";
-import { readJson, writeJson } from "../../scripts/ratchet/lib.mjs";
+import { gateAgainstBaseline } from "../../scripts/analysis/latency-benchmark.mjs";
 
 /**
  * Every metric this benchmark records.
@@ -191,34 +186,15 @@ async function main() {
       return;
     }
 
-    const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
-    const rules = readJson(join(repoRoot, "benchmark-rules.json")).endToEnd;
-    const results = compareLatency(summary, baseline, METRICS, rules);
-
-    writeJson(join(repoRoot, "artifacts/benchmark/link-benchmark.json"), {
-      version: 1,
-      generatedAt: new Date().toISOString(),
-      peer: summary.peer,
-      iterations: summary.iterations,
-      baselineMeasuredAt: baseline.measuredAt,
-      failAboveRatio: rules.failAboveRatio,
-      warnAboveRatio: rules.warnAboveRatio,
-      counts: countByStatus(results),
-      results,
+    const failed = gateAgainstBaseline({
+      name: "link-benchmark",
+      root: repoRoot,
+      measuredPath,
+      summary,
+      specs: METRICS,
+      identity: { peer: summary.peer },
+      unit: "ms",
     });
-
-    for (const result of results) {
-      if (result.status === "ok") continue;
-      const line = `${result.metric}: ${result.value}ms vs baseline ${result.baseline}ms${result.ratio === null ? "" : ` (${result.ratio}x worse)`}`;
-      if (result.status === "warn") console.warn(`  warn ${line}`);
-      else console.error(`  ${result.status.toUpperCase()} ${line}`);
-    }
-
-    const failed = anyFailed(results);
-    const counts = countByStatus(results);
-    console.log(
-      `link-benchmark: ${failed ? "FAIL" : "PASS"}; ${counts.ok} ok, ${counts.warn} warn, ${counts.fail} fail, ${counts.missing} missing, ${counts.unrecorded} unrecorded (fail above ${rules.failAboveRatio}x).`,
-    );
     if (failed) process.exitCode = 1;
   });
 }

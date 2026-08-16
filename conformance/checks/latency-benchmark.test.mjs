@@ -12,10 +12,15 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import {
   anyFailed,
   compareLatency,
   countByStatus,
+  gateAgainstBaseline,
   worseRatio,
 } from "../../scripts/analysis/latency-benchmark.mjs";
 
@@ -144,5 +149,108 @@ describe("compareLatency", () => {
     );
     expect(results).toHaveLength(3);
     expect(countByStatus(results)).toMatchObject({ ok: 2, fail: 1 });
+  });
+});
+
+/**
+ * `gateAgainstBaseline` is the part both runners used to hold a copy of, so it
+ * is the part with two chances to drift and no daytime coverage at all. The
+ * artifact it publishes is the only durable record either benchmark leaves, so
+ * the fields are asserted rather than the verdict alone.
+ */
+describe("gateAgainstBaseline", () => {
+  /** A throwaway repository root: benchmark rules, a reference, nothing else. */
+  function withRoot(baseline, run) {
+    const root = mkdtempSync(join(tmpdir(), "tp-latency-benchmark-"));
+    try {
+      writeFileSync(
+        join(root, "benchmark-rules.json"),
+        JSON.stringify({ endToEnd: RULES }),
+      );
+      const measuredPath = join(root, "measured.json");
+      writeFileSync(measuredPath, JSON.stringify(baseline));
+      return run({ root, measuredPath });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  const REFERENCE = { measuredAt: "2026-07-07", setupP95Ms: 16 };
+
+  it("publishes the run alongside the thresholds it was judged against", () => {
+    const published = withRoot(REFERENCE, ({ root, measuredPath }) => {
+      const failed = gateAgainstBaseline({
+        name: "example-benchmark",
+        root,
+        measuredPath,
+        summary: { iterations: 20, setupP95Ms: 17 },
+        specs: LATENCY,
+        identity: { peer: "127.0.0.1:4244" },
+        unit: "ms",
+      });
+      expect(failed).toBe(false);
+      return JSON.parse(
+        readFileSync(
+          join(root, "artifacts/benchmark/example-benchmark.json"),
+          "utf8",
+        ),
+      );
+    });
+
+    expect(published).toMatchObject({
+      version: 1,
+      peer: "127.0.0.1:4244",
+      iterations: 20,
+      baselineMeasuredAt: "2026-07-07",
+      failAboveRatio: 2,
+      warnAboveRatio: 1.4,
+      counts: { ok: 1, warn: 0, fail: 0, missing: 0, unrecorded: 0 },
+    });
+    // The identity fields describe what was measured, so they belong ahead of
+    // the numbers rather than appended wherever the caller happened to add one.
+    expect(Object.keys(published).indexOf("peer")).toBeLessThan(
+      Object.keys(published).indexOf("iterations"),
+    );
+  });
+
+  it("fails the gate on a regression and says so in the artifact", () => {
+    const published = withRoot(REFERENCE, ({ root, measuredPath }) => {
+      const failed = gateAgainstBaseline({
+        name: "example-benchmark",
+        root,
+        measuredPath,
+        summary: { iterations: 20, setupP95Ms: 48 },
+        specs: LATENCY,
+      });
+      expect(failed).toBe(true);
+      return JSON.parse(
+        readFileSync(
+          join(root, "artifacts/benchmark/example-benchmark.json"),
+          "utf8",
+        ),
+      );
+    });
+
+    expect(published.counts).toMatchObject({ ok: 0, fail: 1 });
+    expect(published.results[0]).toMatchObject({
+      metric: "setupP95Ms",
+      value: 48,
+      baseline: 16,
+      status: "fail",
+    });
+  });
+
+  it("fails when the reference was never recorded", () => {
+    // The state link-benchmark shipped in: a baseline of zeros read as a pass.
+    withRoot({ measuredAt: "2026-07-07", setupP95Ms: 0 }, (paths) => {
+      expect(
+        gateAgainstBaseline({
+          name: "example-benchmark",
+          ...paths,
+          summary: { iterations: 20, setupP95Ms: 12 },
+          specs: LATENCY,
+        }),
+      ).toBe(true);
+    });
   });
 });

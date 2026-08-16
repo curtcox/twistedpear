@@ -4,19 +4,14 @@
  * Records spawn latency, kill latency, broker round-trip throughput, and busy-loop killability.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   MiniappLifecycle,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
-import {
-  anyFailed,
-  compareLatency,
-  countByStatus,
-} from "../../scripts/analysis/latency-benchmark.mjs";
-import { readJson, writeJson } from "../../scripts/ratchet/lib.mjs";
+import { gateAgainstBaseline } from "../../scripts/analysis/latency-benchmark.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const measuredPath = join(
@@ -220,35 +215,14 @@ async function main() {
     return;
   }
 
-  const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
-  const rules = readJson(join(repoRoot, "benchmark-rules.json")).endToEnd;
-  const results = compareLatency(summary, baseline, METRICS, rules);
-
-  writeJson(join(repoRoot, "artifacts/benchmark/miniapp-benchmark.json"), {
-    version: 1,
-    generatedAt: new Date().toISOString(),
-    platform: summary.platform,
-    backend: summary.backend,
-    iterations: summary.iterations,
-    baselineMeasuredAt: baseline.measuredAt,
-    failAboveRatio: rules.failAboveRatio,
-    warnAboveRatio: rules.warnAboveRatio,
-    counts: countByStatus(results),
-    results,
+  const failed = gateAgainstBaseline({
+    name: "miniapp-benchmark",
+    root: repoRoot,
+    measuredPath,
+    summary,
+    specs: METRICS,
+    identity: { platform: summary.platform, backend: summary.backend },
   });
-
-  for (const result of results) {
-    if (result.status === "ok") continue;
-    const line = `${result.metric}: ${result.value} vs baseline ${result.baseline}${result.ratio === null ? "" : ` (${result.ratio}x worse)`}`;
-    if (result.status === "warn") console.warn(`  warn ${line}`);
-    else console.error(`  ${result.status.toUpperCase()} ${line}`);
-  }
-
-  const failed = anyFailed(results);
-  const counts = countByStatus(results);
-  console.log(
-    `miniapp-benchmark: ${failed ? "FAIL" : "PASS"}; ${counts.ok} ok, ${counts.warn} warn, ${counts.fail} fail, ${counts.missing} missing, ${counts.unrecorded} unrecorded (fail above ${rules.failAboveRatio}x).`,
-  );
   if (failed) process.exitCode = 1;
 }
 

@@ -312,9 +312,6 @@
     "scripts/doc-audit/paths.mjs::looksLikePathToken": {
       "ccn": 24
     },
-    "scripts/languages/check.mjs::tracked": {
-      "ccn": 32
-    },
     "scripts/peers.mjs::commandStatus": {
       "ccn": 19
     },

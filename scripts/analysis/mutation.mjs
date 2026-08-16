@@ -286,80 +286,96 @@ if (!executedDirectly) {
   main();
 }
 
-function main() {
-  if (run) runSurvey();
-
+/**
+ * The committed floors, and what the last survey measured against them.
+ *
+ * `scores` is null whenever there is no usable report, which the two callers
+ * read in opposite directions: a write has nothing to record, while a check
+ * still has floor-against-floor comparison to do.
+ */
+function measurement() {
   const report = readJson(
     path.join(ROOT, "reports/mutation/mutation.json"),
     null,
   );
   const baselineFile = path.join(ROOT, "mutation-ratchet.json");
-  const baseline = readJson(baselineFile);
-  const scores = scoresFrom(report);
+  return {
+    baselineFile,
+    baseline: readJson(baselineFile),
+    scores: scoresFrom(report),
+  };
+}
 
-  if (write) {
-    if (scores === null) {
-      console.error(
-        "Mutation ratchet: no usable report at reports/mutation/mutation.json — run npm run mutation first.",
-      );
-      process.exit(1);
-    }
-    // Initialising a floor for a newly mutated package is not a regression, so
-    // those findings are filtered out of the write-time check; anything left is
-    // a genuine lowering and still needs --allow-regressions.
-    const initialising = new Set(unflooredPackages(scores, baseline));
-    for (const name of initialising) {
-      console.log(
-        `Mutation ratchet: recording a first floor for ${name} at ${scores.packages[name].score}%.`,
-      );
-    }
-    const failures = compareScores(scores, baseline).filter(
-      (failure) => !initialising.has(failure.split(":")[0]),
-    );
-    if (failures.length > 0 && !allowRegressions) {
-      console.error("Refusing to record a baseline that lowers a floor:");
-      for (const failure of failures) console.error(`  ${failure}`);
-      process.exit(1);
-    }
-    // A floor may only rise, exactly as in the coverage ratchet: recording the
-    // raw measurement would let one survey run under load walk every floor
-    // downwards, which is a ratchet that turns whichever way the noise went.
-    // `--allow-regressions` is the deliberate override.
-    const keep = (name, measured) =>
-      allowRegressions
-        ? measured
-        : Math.max(baseline.packages?.[name] ?? 0, measured);
-    const packages = Object.fromEntries(
+/**
+ * The floors a write would record.
+ *
+ * A floor may only rise, exactly as in the coverage ratchet: recording the raw
+ * measurement would let one survey run under load walk every floor downwards,
+ * which is a ratchet that turns whichever way the noise went.
+ * `--allow-regressions` is the deliberate override.
+ *
+ * The combined figure is the one number a scope change legitimately lowers, so
+ * it is taken as measured when the package set differs and held to the usual
+ * may-only-rise rule when it does not.
+ */
+function nextFloors(scores, baseline) {
+  const keep = (name, measured) =>
+    allowRegressions
+      ? measured
+      : Math.max(baseline.packages?.[name] ?? 0, measured);
+  const scopeChanged = scopeOf(scores) !== scopeOf(baseline);
+  return {
+    combined:
+      scopeChanged || allowRegressions
+        ? scores.combined
+        : Math.max(baseline.combined ?? 0, scores.combined),
+    packages: Object.fromEntries(
       Object.entries(scores.packages).map(([name, value]) => [
         name,
         keep(name, value.score),
       ]),
+    ),
+  };
+}
+
+/** Record a new baseline, refusing to lower a floor without being told to. */
+function writeBaseline(scores, baseline, baselineFile) {
+  if (scores === null) {
+    console.error(
+      "Mutation ratchet: no usable report at reports/mutation/mutation.json — run npm run mutation first.",
     );
-    // The combined figure is the one number a scope change legitimately lowers,
-    // so it is taken as measured when the package set differs and held to the
-    // usual may-only-rise rule when it does not.
-    const scopeChanged = scopeOf(scores) !== scopeOf(baseline);
-    writeJson(baselineFile, {
-      version: 1,
-      description: DESCRIPTION,
-      combined:
-        scopeChanged || allowRegressions
-          ? scores.combined
-          : Math.max(baseline.combined ?? 0, scores.combined),
-      packages,
-    });
-    console.log(
-      `Mutation ratchet: wrote combined ${scores.combined} and ${Object.keys(scores.packages).length} package floor(s).`,
-    );
-    process.exit(0);
+    process.exit(1);
   }
+  // Initialising a floor for a newly mutated package is not a regression, so
+  // those findings are filtered out of the write-time check; anything left is
+  // a genuine lowering and still needs --allow-regressions.
+  const initialising = new Set(unflooredPackages(scores, baseline));
+  for (const name of initialising) {
+    console.log(
+      `Mutation ratchet: recording a first floor for ${name} at ${scores.packages[name].score}%.`,
+    );
+  }
+  const failures = compareScores(scores, baseline).filter(
+    (failure) => !initialising.has(failure.split(":")[0]),
+  );
+  if (failures.length > 0 && !allowRegressions) {
+    console.error("Refusing to record a baseline that lowers a floor:");
+    for (const failure of failures) console.error(`  ${failure}`);
+    process.exit(1);
+  }
+  const floors = nextFloors(scores, baseline);
+  writeJson(baselineFile, {
+    version: 1,
+    description: DESCRIPTION,
+    ...floors,
+  });
+  console.log(
+    `Mutation ratchet: wrote combined ${scores.combined} and ${Object.keys(floors.packages).length} package floor(s).`,
+  );
+}
 
-  const failures = scores === null ? [] : compareScores(scores, baseline);
-
-  const ref = baseRef(ROOT, "MUTATION_RATCHET_BASE_REF");
-  const previous = ref ? jsonAtRef(ROOT, ref, "mutation-ratchet.json") : null;
-  failures.push(...comparePolicy(baseline, previous));
-
+/** What the run measured, or the floors it could not measure against. */
+function report(scores, baseline) {
   if (scores === null) {
     console.log(
       `Mutation ratchet: no survey report; floors are combined ${baseline.combined}%, ${Object.entries(
@@ -368,24 +384,41 @@ function main() {
         .map(([name, floor]) => `${name} ${floor}%`)
         .join(", ")}.`,
     );
-  } else {
-    console.log(
-      `Mutation ratchet: combined ${scores.combined}% against a ${baseline.combined}% floor.`,
-    );
-    for (const [name, value] of Object.entries(scores.packages)) {
-      console.log(
-        `  ${name}: ${value.score}% against ${
-          baseline.packages?.[name] === undefined
-            ? "no recorded"
-            : `${baseline.packages[name]}%`
-        } floor; ${value.killed} killed, ${value.survived} survived/no-coverage.`,
-      );
-    }
+    return;
   }
+  console.log(
+    `Mutation ratchet: combined ${scores.combined}% against a ${baseline.combined}% floor.`,
+  );
+  for (const [name, value] of Object.entries(scores.packages)) {
+    console.log(
+      `  ${name}: ${value.score}% against ${
+        baseline.packages?.[name] === undefined
+          ? "no recorded"
+          : `${baseline.packages[name]}%`
+      } floor; ${value.killed} killed, ${value.survived} survived/no-coverage.`,
+    );
+  }
+}
+
+/** The gate proper: measurement against floors, and floors against the base. */
+function checkFloors(scores, baseline) {
+  const failures = scores === null ? [] : compareScores(scores, baseline);
+  const ref = baseRef(ROOT, "MUTATION_RATCHET_BASE_REF");
+  const previous = ref ? jsonAtRef(ROOT, ref, "mutation-ratchet.json") : null;
+  failures.push(...comparePolicy(baseline, previous));
+
+  report(scores, baseline);
 
   if (failures.length > 0) {
     console.error("");
     for (const failure of failures) console.error(`  ${failure}`);
     process.exit(1);
   }
+}
+
+function main() {
+  if (run) runSurvey();
+  const { baselineFile, baseline, scores } = measurement();
+  if (write) writeBaseline(scores, baseline, baselineFile);
+  else checkFloors(scores, baseline);
 }
