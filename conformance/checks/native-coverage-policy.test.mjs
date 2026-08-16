@@ -3,6 +3,7 @@ import {
   coverageFindings,
   percentage,
 } from "../../scripts/languages/native-coverage-policy.mjs";
+import { ownedPercentages } from "../../scripts/languages/coverage.mjs";
 
 describe("native coverage policy", () => {
   it("computes a one-decimal percentage", () => {
@@ -23,5 +24,27 @@ describe("native coverage policy", () => {
       "missing: has a recorded floor but was not measured",
       "newcomer: measured without a floor",
     ]);
+  });
+
+  it("excludes toolchain sources from Rust crate coverage", () => {
+    const metrics = (count, covered) => ({
+      lines: { count, covered },
+      functions: { count, covered },
+      regions: { count, covered },
+    });
+    expect(
+      ownedPercentages(
+        {
+          files: [
+            {
+              filename: "/workspace/crate/src/lib.rs",
+              summary: metrics(10, 8),
+            },
+            { filename: "/toolchain/std/thread.rs", summary: metrics(100, 0) },
+          ],
+        },
+        "/workspace/crate",
+      ),
+    ).toEqual({ lines: 80, functions: 80, regions: 80 });
   });
 });

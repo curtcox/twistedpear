@@ -49,11 +49,6 @@ const METRICS = ["lines", "functions", "regions"];
  */
 const FUZZ_CRATE = "conformance/fuzz/rust/Cargo.toml";
 
-if (language !== "rust") {
-  console.error(`Unknown language: ${language}. Expected rust.`);
-  process.exit(2);
-}
-
 const RATCHET = path.join(
   ROOT,
   "language-ratchets",
@@ -70,6 +65,41 @@ function manifests() {
     .split(/\r?\n/)
     .filter(Boolean)
     .filter((manifest) => manifest !== FUZZ_CRATE);
+}
+
+/**
+ * Aggregate llvm-cov metrics for files owned by one crate.
+ *
+ * @param {{files: {filename: string; summary: Record<string, {count: number; covered: number}>}[]}} report
+ * @param {string} crateRoot
+ * @returns {Record<string, number>}
+ */
+export function ownedPercentages(report, crateRoot) {
+  const owned = report.files.filter((file) => {
+    const filename = path.resolve(file.filename);
+    return (
+      filename === crateRoot || filename.startsWith(`${crateRoot}${path.sep}`)
+    );
+  });
+  if (owned.length === 0) {
+    throw new Error(
+      `cargo llvm-cov reported no owned files under ${crateRoot}`,
+    );
+  }
+  return Object.fromEntries(
+    METRICS.map((metric) => {
+      const counts = owned.reduce(
+        (sum, file) => ({
+          count: sum.count + file.summary[metric].count,
+          covered: sum.covered + file.summary[metric].covered,
+        }),
+        { count: 0, covered: 0 },
+      );
+      const percent =
+        counts.count === 0 ? 100 : (100 * counts.covered) / counts.count;
+      return [metric, Math.round(percent * 10) / 10];
+    }),
+  );
 }
 
 /**
@@ -107,13 +137,15 @@ function measure(manifest) {
       `cargo llvm-cov failed for ${manifest} (exit ${result.status}). A crate that will not measure is not a crate at 0%; it is a crate with no floor.`,
     );
   }
-  const totals = JSON.parse(result.stdout).data[0].totals;
-  return Object.fromEntries(
-    METRICS.map((metric) => [
-      metric,
-      Math.round(totals[metric].percent * 10) / 10,
-    ]),
-  );
+  const report = JSON.parse(result.stdout).data[0];
+  const crateRoot = path.resolve(ROOT, path.dirname(manifest));
+  // Macro expansion can attribute regions to Rust's own standard-library
+  // sources (the Freenet contract macro currently pulls in thread-local
+  // support). Whether those sources are installed is a host/toolchain detail,
+  // so using llvm-cov's whole-report totals makes the same crate score
+  // differently on otherwise identical machines. Aggregate only files owned
+  // by the crate whose floor we are enforcing.
+  return ownedPercentages(report, crateRoot);
 }
 
 /**
@@ -172,6 +204,10 @@ function shortfalls(measured, floors, tolerance) {
 }
 
 function main() {
+  if (language !== "rust") {
+    console.error(`Unknown language: ${language}. Expected rust.`);
+    return 2;
+  }
   const recorded = readJson(RATCHET, { crates: {}, tolerance: 0.5 });
   const tolerance = recorded.tolerance ?? 0.5;
   const measured = {};
@@ -231,4 +267,6 @@ function main() {
   return findings.length === 0 ? 0 : 1;
 }
 
-process.exit(main());
+if (import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+  process.exit(main());
+}
