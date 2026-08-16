@@ -1,0 +1,1062 @@
+
+> twistedpear@0.0.0 check:ci-base
+> node scripts/checks/run.mjs --tier=pr --requires=node
+
+
+==> TypeScript and Sans-IO lint (lint)
+
+> twistedpear@0.0.0 lint
+> npm run typecheck && npm run sansio:eslint
+
+
+> twistedpear@0.0.0 typecheck
+> tsc -b --pretty false
+
+
+> twistedpear@0.0.0 sansio:eslint
+> node scripts/sansio-eslint.mjs
+
+
+==> Harness-mobile typecheck (harness-mobile-typecheck)
+
+> twistedpear@0.0.0 harness-mobile:typecheck
+> npm run typecheck --workspace=harness-mobile
+
+
+> harness-mobile@0.2.0 typecheck
+> tsc --noEmit
+
+
+==> TypeScript strictness parity (tsconfig-parity)
+
+> twistedpear@0.0.0 tsconfig:check
+> node scripts/analysis/tsconfig-parity.mjs
+
+tsconfig-parity: PASS; 20 project(s), 9 base flag(s), 0 exempt.
+
+==> Unit tests (unit-tests)
+
+> twistedpear@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+BUILD SUCCESSFUL
+BUILD SUCCESSFUL
+
+ Test Files  365 passed | 3 skipped (368)
+      Tests  2882 passed | 8 skipped | 22 todo (2912)
+   Start at  13:45:58
+   Duration  42.63s (transform 23.56s, setup 1.18s, import 116.66s, tests 134.58s, environment 25ms)
+
+
+Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0')
+  Searched in the following repositories:
+    MavenRepo
+    Google
+    Gradle Central Plugin Repository
+
+Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0')
+  Searched in the following repositories:
+    MavenRepo
+    Google
+    Gradle Central Plugin Repository
+
+Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0')
+  Searched in the following repositories:
+    MavenRepo
+    Google
+    Gradle Central Plugin Repository
+
+Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0')
+  Searched in the following repositories:
+    MavenRepo
+    Google
+    Gradle Central Plugin Repository
+
+> Task :twistedpear-ble-bridge:testDebugUnitTest FAILED
+
+BleBridgeTest > encodes an advertisement FAILED
+    org.opentest4j.AssertionFailedError: expected: <3> but was: <4>
+
+==> File-size ratchet (file-sizes)
+
+> twistedpear@0.0.0 sizes
+> node scripts/size-ratchet.mjs
+
+File-size ratchet: 1936 files classified, 359 warn, 0 danger, 0 excess lines (ceiling 0), 0 grandfathered, 0 unlisted, 0 grown, 0 stale
+Baseline growth checked against origin/main.
+
+==> Release harness (release-harness)
+
+> twistedpear@0.0.0 test:release-harness
+> vitest run conformance/release-harness/release-harness.test.mjs
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  30 passed (30)
+   Start at  13:46:42
+   Duration  4.71s (transform 56ms, setup 0ms, import 77ms, tests 4.55s, environment 0ms)
+
+
+==> Documentation audit (doc-audit)
+
+> twistedpear@0.0.0 test:doc-audit
+> vitest run conformance/doc-audit
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  20 passed (20)
+      Tests  220 passed (220)
+   Start at  13:46:47
+   Duration  5.52s (transform 897ms, setup 0ms, import 2.70s, tests 20.50s, environment 1ms)
+
+
+==> Prose spelling (spelling)
+
+> twistedpear@0.0.0 spelling:check
+> node scripts/analysis/spelling.mjs
+
+spelling: PASS; 179 files, 146 dictionary words, 0 unknown word(s).
+
+==> Authored simulation replay (sim-authored-replay)
+
+> twistedpear@0.0.0 test:sim-authored-replay
+> npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/replay.mjs
+
+
+> @twistedpear/sim-adversaries@0.0.0 build
+> tsc -b
+
+model-free authored replay passed: /Users/curt/me/twistedpear/conformance/sim-author/fixtures/model-authored-duplicate.json
+
+==> On-disk store compatibility (state-migration)
+
+> twistedpear@0.0.0 test:state-migration
+> npm run build && node conformance/state-migration/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+state-migration: PASS; 6/6 format(s) read, 0 finding(s).
+
+==> GitHub Actions pinned to commit SHAs (actions-pinned)
+
+> twistedpear@0.0.0 actions:check
+> node scripts/security/actions-pinned.mjs
+
+actions-pinned: PASS; 228 pinned, 0 local, 0 unpinned.
+
+==> Coverage ratchet (coverage)
+
+> twistedpear@0.0.0 coverage:check
+> node scripts/coverage-run.mjs
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+      Coverage enabled with v8
+
+BUILD SUCCESSFUL
+BUILD SUCCESSFUL
+
+ Test Files  365 passed | 3 skipped (368)
+      Tests  2882 passed | 8 skipped | 22 todo (2912)
+   Start at  13:46:58
+   Duration  187.43s (transform 26.55s, setup 1.57s, import 145.09s, tests 456.06s, environment 25ms)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   61.86 |     55.4 |   71.57 |   62.64 |                   
+ apps/handbook/src |   16.32 |    18.04 |   27.27 |   16.18 |                   
+  ...me-applets.js |    0.51 |        0 |    6.66 |    0.52 | 13-396            
+  ...-devstudio.js |       0 |      100 |       0 |       0 | 3-8               
+  ...ime-render.js |   38.84 |    37.63 |      50 |   38.97 | ...33-505,588-742 
+  runtime.js       |       0 |        0 |       0 |       0 | 2-373             
+ ...harness-mobile |       0 |        0 |       0 |       0 |                   
+  App.tsx          |       0 |      100 |       0 |       0 | 4-5               
+  App.web.tsx      |       0 |      100 |       0 |       0 | 4-5               
+  ...vice-media.ts |       0 |        0 |       0 |       0 | 20-209            
+  ...r-messages.ts |       0 |        0 |       0 |       0 | 12-463            
+  ...ller-state.ts |       0 |        0 |       0 |       0 | 86-284            
+  ...er-worklet.ts |       0 |        0 |       0 |       0 | 76-414            
+  ...ontroller.tsx |       0 |        0 |       0 |       0 | 33-472            
+  ...ve-shared.tsx |       0 |        0 |       0 |       0 | 26-339            
+  ...ew-part-1.tsx |       0 |        0 |       0 |       0 | 25-665            
+  ...ew-part-2.tsx |       0 |        0 |       0 |       0 | 21-308            
+  ...ew-part-3.tsx |       0 |        0 |       0 |       0 | 24-535            
+  ...ew-part-4.tsx |       0 |        0 |       0 |       0 | 32-593            
+  ...tive-view.tsx |       0 |      100 |       0 |       0 | 10                
+  ...r-messages.ts |       0 |        0 |       0 |       0 | 139-623           
+  ...ler-webrtc.ts |       0 |        0 |       0 |       0 | 31-458            
+  ...ontroller.tsx |       0 |        0 |       0 |       0 | 40-636            
+  ...firmation.tsx |       0 |        0 |       0 |       0 | 50-192            
+  ...ared-audio.ts |       0 |        0 |       0 |       0 | 6-408             
+  ...shared-ui.tsx |       0 |        0 |       0 |       0 | 19-484            
+  ...eb-shared.tsx |       0 |        0 |       0 |       0 | 14-120            
+  ...ew-part-1.tsx |       0 |        0 |       0 |       0 | 18-656            
+  ...ew-part-2.tsx |       0 |        0 |       0 |       0 | 7-332             
+  app-web-view.tsx |       0 |      100 |       0 |       0 | 8                 
+ ...ss-mobile/host |       0 |        0 |       0 |       0 |                   
+  ble-ipc.ts       |       0 |        0 |       0 |       0 | 13-117            
+  bonjour-ipc.ts   |       0 |        0 |       0 |       0 | 15-91             
+  multicast-ipc.ts |       0 |        0 |       0 |       0 | 13-115            
+  ...ice-bridge.ts |       0 |        0 |       0 |       0 | 25-200            
+  ...eer-webrtc.ts |       0 |        0 |       0 |       0 | 67-696            
+  usb-ipc.ts       |       0 |        0 |       0 |       0 | 10-86             
+  ...ore-bridge.ts |       0 |        0 |       0 |       0 | 14-127            
+  ...wa-install.ts |       0 |        0 |       0 |       0 | 26-114            
+  ...dbox-relay.ts |       0 |        0 |       0 |       0 | 17-140            
+  ...rial-relay.ts |       0 |        0 |       0 |       0 | 12-144            
+ ...ess-mobile/src |   60.54 |    70.62 |   67.85 |   62.67 |                   
+  ...ation-role.ts |     100 |    83.33 |     100 |     100 | 32-33             
+  ...mote-grant.ts |   81.03 |     83.6 |   81.81 |   81.03 | ...34,144,174,200 
+  ...te-session.ts |   41.97 |    57.14 |   53.33 |   44.73 | ...66-268,274-280 
+ ...sktop/src/main |   42.14 |    28.64 |   44.92 |    43.1 |                   
+  bridges.ts       |     100 |    94.44 |     100 |     100 | 178-184           
+  index.ts         |       0 |        0 |       0 |       0 | 23-439            
+ ...p/src/renderer |    0.49 |     0.88 |    0.62 |    0.52 |                   
+  ...tracted-1.mjs |       0 |        0 |       0 |       0 | 2-391             
+  ...tracted-2.mjs |       0 |        0 |       0 |       0 | 2-309             
+  ...tracted-3.mjs |       0 |        0 |       0 |       0 | 8-338             
+  app-settings.mjs |       0 |        0 |       0 |       0 | 26-203            
+  ...-bindings.mjs |       0 |        0 |       0 |       0 | 36-226            
+  ...-messages.mjs |       0 |        0 |       0 |       0 | 50-461            
+  app.js           |       0 |        0 |       0 |       0 | 39-521            
+  device-bridge.js |       0 |        0 |       0 |       0 | 7-281             
+  ...dec-bridge.js |       0 |        0 |       0 |       0 | 3-258             
+  ...rtc-bridge.js |       0 |        0 |       0 |       0 | 3-315             
+  qr-scanner.js    |   34.61 |    32.25 |      50 |      36 | 18,30-56          
+  widgets.js       |       0 |        0 |       0 |       0 | 4-406             
+ ...enderer/vendor |       0 |        0 |       0 |       0 |                   
+  jsqr.js          |       0 |        0 |       0 |       0 | 1-10096           
+  peer-audio.js    |       0 |        0 |       0 |       0 | 2-225             
+  qrcode.js        |       0 |        0 |       0 |       0 | 18-2348           
+ ...p-registry/src |   74.76 |     60.2 |   78.09 |   75.28 |                   
+  announce.ts      |   77.27 |    59.25 |   61.53 |   77.01 | ...72,286,313-340 
+  catalog.ts       |   55.15 |    46.84 |   62.85 |   55.97 | ...47,362,370-455 
+  manifest.ts      |   73.68 |    71.05 |      85 |   74.41 | ...08,226-235,249 
+  package.ts       |   90.83 |    68.42 |   95.23 |   90.76 | ...42,375,437-444 
+  signing.ts       |      90 |       50 |     100 |      90 | 46,57             
+  trust.ts         |    92.5 |       75 |   92.85 |    92.5 | 113,120,139       
+ ...net/src/client |   85.13 |    65.07 |   80.64 |   86.52 |                   
+  ...ct-backend.ts |   85.71 |       60 |      75 |   85.18 | 49,102-113        
+  ...kage-fetch.ts |      85 |       70 |     100 |      85 | 33,48,51          
+  ...og-backend.ts |      85 |    65.78 |   78.94 |   87.23 | ...48,164,178,193 
+ ...eenet/src/core |   65.84 |    52.74 |   54.92 |   66.37 |                   
+  client.ts        |    21.6 |    16.66 |    14.7 |   23.47 | ...51,260,276-377 
+  ...r-contract.ts |   90.32 |       75 |     100 |      90 | 24,27,50          
+  packet-log.ts    |   91.22 |    81.96 |     100 |   90.65 | ...71,179,187,198 
+  ...gation-set.ts |   85.41 |    60.46 |   81.25 |   84.44 | ...55,162,173,201 
+ ...net/src/server |   89.39 |       75 |   93.33 |   93.33 |                   
+  ...tion-store.ts |   91.07 |    77.77 |    92.3 |      96 | 33,89             
+  ...et-publish.ts |      80 |    66.66 |     100 |      80 | 30,33             
+ ...per/src/client |   96.42 |    92.68 |   89.47 |   97.43 |                   
+  ...rce-client.ts |   95.23 |    86.95 |      90 |   94.73 | 124,144           
+  ...yper-fetch.ts |   96.55 |      100 |   85.71 |     100 |                   
+ ...hyper/src/core |   98.52 |    90.35 |     100 |   98.49 |                   
+  drive.ts         |     100 |     90.9 |     100 |     100 | 133,169           
+  fetch.ts         |   95.94 |    88.57 |     100 |   95.94 | 127,168,257       
+  ...yper-fetch.ts |     100 |    83.33 |     100 |     100 | 63                
+ ...per/src/server |   99.36 |    94.66 |     100 |   99.34 |                   
+  ...lay-server.ts |   95.65 |    88.23 |     100 |   95.65 | 60                
+  ...tch-server.ts |     100 |    93.75 |     100 |     100 | 82,126            
+ ...s/cas-256t/src |   89.61 |    80.53 |   91.89 |   89.28 |                   
+  codec.ts         |   88.77 |    83.67 |   83.33 |   88.29 | ...82,197-203,209 
+  locator.ts       |   88.98 |    74.35 |   94.11 |   88.59 | ...49,257,268,274 
+  store.ts         |   93.18 |       84 |     100 |   93.18 | 58,102,108        
+ packages/cli/src  |   84.61 |       70 |   83.33 |   84.61 |                   
+  config.ts        |   84.61 |       70 |   83.33 |   84.61 | 53-54             
+ ...es/cli/src/bin |   53.19 |     37.2 |   66.66 |   48.83 |                   
+  tp.ts            |       0 |        0 |       0 |       0 | 19-88             
+ ...i/src/commands |   38.25 |    42.04 |    42.5 |   38.59 |                   
+  app-commands.ts  |    4.34 |     6.94 |    7.69 |    4.51 | 47-48,61-394      
+  helpers.ts       |   27.85 |    32.29 |   34.61 |   28.46 | ...33,441,465-501 
+  ...y-commands.ts |   57.72 |     56.6 |   57.14 |   59.32 | ...44-151,225-295 
+  node-commands.ts |   63.51 |       60 |   59.25 |   63.76 | 323-483           
+ ...es/cli/src/dev |   86.66 |       40 |      90 |   85.71 |                   
+  server.ts        |   86.66 |       40 |      90 |   85.71 | 58,65-67          
+ ...es/effects/src |   81.73 |    63.98 |   87.09 |    85.5 |                   
+  gate.ts          |   93.18 |      100 |   91.66 |   94.87 | 178-179           
+  machine.ts       |   73.33 |    77.27 |      75 |   73.33 | ...54,59,78,81-83 
+  media-codec.ts   |   73.55 |    54.28 |   80.95 |   79.26 | ...30,535,540,614 
+  trace.ts         |    92.5 |    72.72 |     100 |   96.87 | 54                
+  tripwire.ts      |   97.56 |    72.22 |     100 |   97.56 | 45,68             
+ .../adapters/real |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 18-72             
+ ...c/adapters/sim |   85.31 |    77.75 |   89.67 |   85.56 |                   
+  calibration.ts   |   81.61 |    67.44 |     100 |   82.67 | ...44,369,380,405 
+  clock.ts         |   44.44 |       40 |      75 |   44.44 | 18,24-28          
+  consumer.ts      |   81.57 |    72.22 |   83.33 |   81.08 | ...71,75,80,94-96 
+  entropy.ts       |   76.08 |    58.33 |     100 |    73.8 | 29-36,40-43       
+  freenet.ts       |   81.81 |    67.56 |   76.66 |   83.01 | ...29,236,259,291 
+  kernel.ts        |   91.53 |    92.98 |   89.65 |   91.33 | ...81,310-311,323 
+  oracles.ts       |     100 |       90 |     100 |     100 | 107               
+  recorder.ts      |    87.5 |    83.78 |   94.11 |   88.88 | 90,98,113,126     
+  replay.ts        |   96.15 |       75 |     100 |      96 | 83                
+  shrink.ts        |   69.09 |     62.5 |      70 |      68 | ...,93,99,133-152 
+  store.ts         |   41.17 |       50 |   33.33 |   41.17 | 34-51             
+  timers.ts        |     100 |       90 |     100 |     100 | 26                
+  transport.ts     |    94.7 |    88.11 |   96.55 |   95.17 | ...33,194-196,327 
+ .../host-core/src |    77.6 |    60.68 |   77.49 |   79.76 |                   
+  ...d-identity.ts |   89.28 |    79.16 |   85.71 |      94 | 28,78,181         
+  ...-forwarder.ts |   84.37 |    72.09 |   94.11 |   90.36 | ...17,176,183,210 
+  config.ts        |   69.01 |    62.82 |    92.3 |   68.57 | ...34,144,237-249 
+  ...idge-hyper.ts |     100 |       50 |     100 |     100 | 27-51             
+  ...e-resource.ts |   76.31 |    66.66 |   85.71 |   75.67 | ...01-106,120,155 
+  ...supervisor.ts |   73.29 |    62.62 |   58.33 |   75.44 | ...86-490,508-509 
+  ...f-delivery.ts |   89.06 |    71.42 |      75 |   91.66 | ...72,181,195,202 
+  ...ity-backup.ts |   93.54 |    83.78 |     100 |   95.55 | 63,141,154,179    
+  identity.ts      |   69.23 |    36.36 |   83.33 |   72.97 | ...,86-90,122-124 
+  ...ager-media.ts |      80 |     42.1 |   66.66 |      80 | 46                
+  ...nager-open.ts |   24.69 |    14.77 |   33.33 |   26.31 | ...77-379,403-430 
+  ...nager-view.ts |   92.85 |     61.9 |     100 |   92.59 | 134,144           
+  ...ce-manager.ts |   68.62 |    53.52 |    62.5 |      75 | ...11-416,448-454 
+  ...stallation.ts |   85.54 |    62.06 |     100 |   87.34 | ...22,233,240,256 
+  ...tion-store.ts |   72.22 |    74.07 |   63.63 |   78.72 | ...16-120,169-170 
+  ...oint-store.ts |   93.33 |       90 |     100 |   93.33 | 29                
+  node-host.ts     |   59.68 |       50 |   55.88 |      60 | ...73-483,512-521 
+  ...-interface.ts |   88.57 |    73.33 |     100 |   91.75 | ...74-175,192,206 
+  observe-agent.ts |       0 |        0 |       0 |       0 | 19-42             
+  observe-ring.ts  |   94.44 |    88.88 |     100 |   94.44 | 24                
+  protocol.ts      |   92.85 |       75 |     100 |   92.85 | 430               
+  seeder-state.ts  |    75.6 |       50 |   78.94 |    75.3 | ...23,136,262-299 
+  ...te-carrier.ts |   96.66 |    94.44 |     100 |      96 | 151,158           
+  ...-decisions.ts |   91.54 |    86.11 |      92 |   94.11 | 119,155,159,179   
+  ...gent-chunk.ts |   80.55 |    77.14 |     100 |   82.35 | 34,61,64,75,79,90 
+  ...t-commands.ts |   71.13 |    55.07 |   69.44 |   71.57 | ...71,275,281-283 
+  ...nt-runtime.ts |   85.24 |    68.68 |   78.33 |   89.42 | ...35,660,668,681 
+  types.ts         |   88.23 |    86.66 |     100 |   88.23 | 307-313           
+  web-leaf-host.ts |       0 |        0 |       0 |       0 | 47-116            
+  ...ge-storage.ts |   85.71 |    53.57 |      82 |   86.17 | ...95,431-435,464 
+ ...core/src/roles |       0 |        0 |       0 |       0 |                   
+  seeder.ts        |       0 |        0 |       0 |       0 | 46-132            
+ ...es/lxmf-ts/src |   78.85 |    67.74 |   79.52 |   79.45 |                   
+  message-codec.ts |   80.76 |    70.58 |     100 |   80.76 | ...21,240,265,277 
+  message.ts       |   83.58 |    65.55 |      85 |   84.09 | ...89,546,561,568 
+  msgpack.ts       |   44.44 |      100 |   44.44 |   44.44 | 26-46,70-76       
+  multipart.ts     |   90.82 |    86.07 |   94.73 |   91.34 | ...76,290,300,312 
+  ...tion-codec.ts |   82.35 |    66.66 |     100 |   86.66 | 79,114            
+  ...ation-node.ts |   83.33 |    61.53 |   89.47 |   82.69 | ...42,180,185,223 
+  ...ion-server.ts |   57.23 |    39.43 |   45.16 |   57.71 | ...59,427,446-604 
+  propagation.ts   |   75.14 |    67.41 |   77.41 |   77.51 | ...06-510,515-519 
+  router-await.ts  |   89.15 |    86.48 |    92.3 |   89.15 | ...,64-72,109,140 
+  ...on-ingress.ts |   76.92 |    81.25 |     100 |   76.92 | 34,68,89          
+  router-send.ts   |   84.88 |    71.21 |     100 |   84.88 | ...48,344,350,353 
+  router.ts        |   81.35 |    61.22 |   82.05 |   81.03 | ...32,475,496-512 
+ ...pp-runtime/src |   72.86 |    65.06 |   70.56 |   75.15 |                   
+  broker.ts        |   98.14 |    95.12 |     100 |   98.14 | 247               
+  capabilities.ts  |   83.47 |       70 |   82.14 |   83.89 | ...87,498,551,563 
+  ...ce-sidecar.ts |   89.47 |     87.5 |     100 |   89.47 | 62,85-86,134      
+  lifecycle.ts     |   65.45 |       55 |      75 |   64.81 | ...17-120,138-140 
+  ...eam-egress.ts |   70.37 |    47.05 |   79.31 |   73.73 | ...51,269,290-291 
+  ...am-inbound.ts |    75.6 |    69.56 |      75 |   80.55 | 35,37,40,54-56,66 
+  ...peer-route.ts |    76.3 |    60.65 |   78.37 |   83.97 | ...59,388-389,416 
+  ...eam-planes.ts |   71.91 |    59.09 |   71.42 |   72.94 | ...08,226,237-249 
+  route-quality.ts |     100 |     37.5 |     100 |     100 | 20-25             
+  ...ion-invite.ts |   81.57 |       75 |      90 |   82.85 | ...02,108,114,117 
+  ...on-adapter.ts |    3.03 |        0 |       0 |    3.03 | ...98-283,291-299 
+ ...device-manager |   77.85 |    68.77 |   90.39 |   78.42 |                   
+  layer-1-base.ts  |   68.78 |    67.21 |      80 |   68.51 | ...94,403,436,461 
+  layer-1.ts       |   77.85 |    63.54 |      95 |   80.55 | ...92,458-459,492 
+  layer-2-base.ts  |   72.87 |    63.49 |   85.71 |   72.97 | ...40,448,534,592 
+  ...-2-samples.ts |   86.91 |    72.94 |   95.65 |   86.79 | ...74,422,433,449 
+  layer-3.ts       |   72.41 |    66.66 |   68.75 |   71.92 | ...46,156,173-179 
+  shared.ts        |   98.86 |    93.18 |     100 |     100 | 424-446           
+ ...me/src/drivers |    4.73 |     2.04 |   15.15 |    4.66 |                   
+  ...er-effects.ts |       0 |        0 |       0 |       0 | 45-414            
+  host-bridge.ts   |   61.53 |    33.33 |    62.5 |   63.63 | 34-38,43          
+ ...ntime/src/host |   62.42 |    61.21 |   53.28 |   62.52 |                   
+  layer-1-base.ts  |   70.49 |       50 |   56.25 |   72.88 | ...33-179,195,211 
+  ...dlers-core.ts |   51.02 |       35 |   37.93 |   51.02 | ...14-319,330-332 
+  ...ers-device.ts |   63.04 |       55 |   41.46 |   63.04 | ...45,352-360,374 
+  ...s-services.ts |   51.51 |    29.41 |   44.82 |   51.02 | ...15,322,332-336 
+  layer-1-init.ts  |   84.84 |    77.08 |      85 |   84.84 | 59,63-69,80,132   
+  layer-2.ts       |   69.66 |    77.41 |   81.25 |   69.31 | ...12,274,277-278 
+ ...me/src/sandbox |   30.96 |    45.85 |      32 |    30.4 |                   
+  ...r-dispatch.ts |   94.44 |    88.88 |     100 |     100 | 53-70             
+  ...-bootstrap.ts |       0 |      100 |       0 |       0 | 6                 
+  compartment.ts   |       0 |      100 |       0 |       0 | 9-21              
+  factory.ts       |       0 |        0 |       0 |       0 | 8-25              
+  json-wire.ts     |   97.67 |    97.43 |     100 |   97.43 | 38                
+  node-worker.ts   |   69.49 |    53.33 |   76.47 |   70.68 | ...38,244-248,254 
+  web-proxy.ts     |       0 |        0 |       0 |       0 | 40-243            
+  web.ts           |    1.13 |        0 |       0 |    1.16 | 13-14,90-321      
+  worker.ts        |       0 |        0 |       0 |       0 | 11-143            
+  ...et-factory.ts |       0 |      100 |       0 |       0 | 8-9               
+ ...e/src/services |   71.35 |    62.16 |   72.42 |    73.4 |                   
+  ai-openrouter.ts |   82.17 |    64.42 |   87.09 |   85.08 | ...92,401,407-413 
+  ai.ts            |   83.22 |    75.19 |   96.77 |   84.82 | ...15,499,519,531 
+  announce.ts      |     100 |       90 |     100 |     100 | 35                
+  apps.ts          |   94.23 |    76.66 |     100 |   94.11 | 15,117,124        
+  device.ts        |      25 |     12.5 |   33.33 |      25 | ...3-60,68,84-172 
+  freenet.ts       |   74.19 |    71.42 |      90 |   73.33 | 41,62,112-131     
+  host-info.ts     |   66.66 |        0 |   66.66 |   66.66 | 55                
+  identity.ts      |   16.66 |        0 |      25 |   16.66 | 33-54             
+  ...bservatory.ts |   60.91 |    55.55 |    64.7 |   65.16 | ...88-509,516-517 
+  links.ts         |   77.77 |       75 |   66.66 |      80 | 44-56,101,116,130 
+  loopback.ts      |       8 |     6.06 |      10 |    8.16 | 34-186            
+  peers.ts         |   75.75 |       75 |   71.42 |      75 | ...8,68,80,86,127 
+  presence.ts      |       0 |      100 |       0 |       0 | 12-15             
+  relay.ts         |   80.64 |    71.66 |   86.95 |   86.04 | ...84,408,437,445 
+  resource.ts      |       0 |      100 |       0 |       0 | 17-23             
+  ...-corestore.ts |   86.95 |    77.77 |   81.81 |   86.66 | 38,61-62,73,76,87 
+  ...age-bee-kv.ts |       0 |        0 |       0 |       0 | 10-88             
+  storage-kv.ts    |   69.56 |    63.63 |   66.66 |   69.56 | 31-32,44-50,56    
+  ...t-announce.ts |     100 |       80 |     100 |     100 | 19-29             
+  ...flag-relay.ts |   71.27 |    60.93 |   86.95 |      75 | ...81-296,306-307 
+  workspace.ts     |   97.18 |    90.19 |     100 |   98.55 | 213               
+ ...runtime/src/ui |   87.83 |    67.33 |   81.81 |   87.94 |                   
+  describe.ts      |   72.34 |     39.7 |      68 |   72.72 | ...70,199,214-215 
+  diff.ts          |   95.83 |    85.71 |     100 |   95.65 | 54                
+  validate.ts      |   93.75 |     91.8 |     100 |   93.44 | 44,113,143,157    
+ ...-discovery/src |   74.42 |    61.49 |   76.62 |   75.66 |                   
+  audio.ts         |   46.34 |    23.07 |   66.66 |    47.5 | 56,93,102-150     
+  bluetooth.ts     |   35.89 |    14.28 |      50 |   36.84 | ...01,113,127-139 
+  budget.ts        |   95.65 |    83.33 |     100 |      95 | 22                
+  coordinator.ts   |   73.84 |    56.52 |     100 |    74.6 | ...40-241,249,255 
+  ...to-backend.ts |   88.67 |    71.42 |   88.23 |   88.46 | ...43,287,310,335 
+  index.ts         |    71.3 |     67.5 |    64.1 |   74.31 | ...36-338,385-394 
+  ...er-to-peer.ts |   33.33 |       40 |      25 |   33.33 | 13,32-44          
+  manual.ts        |   82.85 |       50 |      90 |   85.29 | 44,63,84,98,115   
+  ntfy.ts          |   83.61 |    69.11 |   90.24 |   86.09 | ...70,591,594-601 
+  portable-qr.ts   |   93.33 |    82.35 |     100 |   93.33 | 46                
+  qr.ts            |   69.69 |       55 |   83.33 |   69.84 | ...75,199,212-217 
+  replay-cache.ts  |     100 |    88.88 |     100 |     100 | 14                
+  reticulum.ts     |      80 |       64 |      80 |   81.81 | ...0,71,90,95,113 
+  route-quality.ts |     100 |    61.11 |     100 |     100 | 61-67,85-96       
+  ...e-registry.ts |      72 |       75 |   77.77 |   77.27 | 81,88,97-99       
+  unavailable.ts   |      60 |    66.66 |   57.14 |      60 | 16,27-33          
+  webrtc-route.ts  |   62.74 |    53.84 |   74.07 |   62.62 | ...96,299,313-322 
+ ...s/protocol/src |    89.6 |    80.82 |   97.57 |   90.07 |                   
+  announce-rate.ts |   88.67 |    82.75 |     100 |   88.67 | ...48,222,245,259 
+  ...el-reorder.ts |    92.3 |    86.11 |     100 |   92.06 | ...24,177,242,349 
+  ...rate-limit.ts |      84 |       75 |   85.71 |      84 | 47,72,78,119      
+  ...ceipt-poll.ts |   81.48 |    86.36 |   88.88 |   80.76 | ...01,131,163,171 
+  ...ation-name.ts |      90 |    69.11 |   97.91 |   89.74 | ...39-543,612,668 
+  ...tion-proof.ts |   87.09 |    81.81 |     100 |   87.09 | 88,152,220,229    
+  ...tor-safety.ts |   90.56 |     87.5 |     100 |      92 | ...38,186,351-353 
+  ...-admission.ts |   88.07 |    83.19 |   91.66 |   90.32 | ...64,273-274,394 
+  ...ingerprint.ts |   73.68 |       65 |     100 |   76.47 | 56,63,66,83       
+  ...e-nfc-apdu.ts |   90.47 |    81.25 |     100 |      95 | 88                
+  ...processors.ts |    87.5 |    69.69 |   88.88 |   94.44 | 117,143           
+  ...e-quantize.ts |      95 |    81.25 |     100 |     100 | 33-50,64          
+  ...gistry.gen.ts |   82.35 |       70 |     100 |      80 | 825,833,839       
+  device-remote.ts |   95.45 |       90 |     100 |     100 | 87,92             
+  ...ce-session.ts |   78.57 |    34.61 |      70 |   78.57 | ...52,170-188,198 
+  device-share.ts  |   88.23 |       85 |     100 |   93.33 | 58                
+  ...am-framing.ts |      90 |    85.07 |     100 |   90.42 | ...82,189,209,215 
+  escrow.ts        |   88.46 |    72.22 |     100 |   88.46 | 29,112,114        
+  grant-machine.ts |     100 |    77.77 |     100 |     100 | 70,83,110-119     
+  ...er-machine.ts |     100 |     62.5 |     100 |     100 | 76-206            
+  ...-migration.ts |   89.74 |    90.62 |     100 |   95.52 | 20,47,152         
+  grants.ts        |   89.86 |     83.8 |     100 |   90.82 | ...65,616-620,688 
+  hash-truncate.ts |      90 |    81.81 |     100 |      90 | 27,97             
+  hdlc.ts          |   95.34 |    85.18 |     100 |   95.34 | 144,208           
+  ...ity-keygen.ts |    90.9 |    78.94 |     100 |   90.78 | ...30,296,371,437 
+  ...het-record.ts |   88.63 |    74.54 |   97.82 |   88.63 | ...22,527,580,655 
+  ...ce-connect.ts |   96.55 |    95.83 |     100 |   96.55 | 181               
+  ...uest-await.ts |   93.75 |    91.66 |     100 |   93.75 | 111               
+  link-await.ts    |   95.23 |       95 |     100 |   95.23 | 125               
+  link-control.ts  |   92.07 |    91.58 |     100 |    98.8 | 178               
+  ...-handshake.ts |      75 |    63.41 |   66.66 |   76.59 | ...62,287,298-302 
+  link-identify.ts |   91.25 |    84.44 |   97.43 |   91.25 | ...98-299,434,583 
+  ...-keepalive.ts |   88.37 |    77.41 |     100 |   88.37 | ...66,217,270,330 
+  ...key-derive.ts |   87.93 |    75.67 |     100 |   87.71 | ...82,287,356-360 
+  link-keygen.ts   |   92.59 |    83.33 |     100 |   92.59 | 102,173           
+  link-metrics.ts  |   88.13 |     72.5 |     100 |   88.13 | ...96,410,476,490 
+  link-quality.ts  |   95.83 |    88.57 |     100 |   97.67 | 102               
+  ...uest-codec.ts |   84.28 |    76.36 |     100 |   83.82 | ...13,276,337,404 
+  ...st-receipt.ts |    91.8 |    88.09 |     100 |   91.52 | ...89,356,429,495 
+  link-session.ts  |   73.52 |    59.09 |      80 |   75.75 | 49,88,183-201     
+  link-teardown.ts |    84.5 |    77.08 |     100 |    84.5 | ...50,460,489,498 
+  link-watchdog.ts |   92.68 |    90.32 |   95.65 |   92.59 | ...60,421,497-501 
+  lxmf-codec.ts    |   87.21 |       75 |   98.18 |   87.21 | ...20,589,653,721 
+  ...peer-error.ts |      95 |       90 |     100 |      95 | 88                
+  ...send-state.ts |   91.17 |    89.58 |   94.73 |   91.17 | ...13,302-303,357 
+  lxmf-wire.ts     |   89.79 |       75 |     100 |   89.69 | ...74,549,615,689 
+  ...-readiness.ts |   72.09 |    56.52 |   93.75 |   75.67 | ...33-136,153-157 
+  media-timing.ts  |   94.11 |    70.58 |     100 |   94.11 | 65                
+  msgpack-core.ts  |   93.83 |    86.58 |     100 |   93.65 | ...19,329-337,346 
+  observe-drop.ts  |   82.35 |    73.68 |   82.35 |      80 | 47-58,127         
+  ...et-context.ts |   89.36 |    68.75 |   96.55 |   89.36 | ...34-235,356,361 
+  packet-proof.ts  |   85.05 |       75 |   95.12 |   84.88 | ...61-562,593,598 
+  path-await.ts    |   85.18 |     90.9 |    87.5 |      84 | 82-83,141,150     
+  path-request.ts  |   90.74 |    73.33 |     100 |   90.56 | 40,48,142,202,271 
+  ...onse-grace.ts |   78.57 |    92.85 |      80 |   78.57 | 50-54,106         
+  ...io-framing.ts |   91.72 |    78.94 |     100 |   92.74 | ...93,301,337,345 
+  ...-audio-fsk.ts |   91.72 |     78.2 |     100 |   92.43 | ...49,163,174,239 
+  ...invitation.ts |   92.44 |     85.8 |     100 |   91.82 | ...21,326,363,373 
+  peer-pairing.ts  |    90.9 |     87.5 |     100 |   89.47 | 52,101            
+  ...qr-framing.ts |   93.85 |    86.07 |     100 |   94.39 | ...49,198,228,236 
+  ...t-debounce.ts |   73.33 |       80 |      75 |   73.33 | 33-34,72,81       
+  pkcs7.ts         |   92.85 |       80 |     100 |   92.85 | 88,154            
+  ...gation-get.ts |   87.87 |       75 |   95.83 |   87.87 | ...00,333,348,375 
+  ...n-transfer.ts |   87.23 |    82.35 |     100 |   86.81 | ...18,485,550,622 
+  ...ery-quorum.ts |   95.45 |       75 |     100 |   95.45 | 22                
+  ...rtise-wait.ts |   81.81 |    88.88 |      80 |   81.81 | 57-61,126,135     
+  ...ertisement.ts |    88.6 |    78.78 |     100 |    88.6 | ...74,483,546,610 
+  ...e-material.ts |    93.1 |    65.38 |     100 |   92.98 | 198,267,334,403   
+  ...urce-proof.ts |   88.23 |    78.04 |     100 |   88.23 | ...40,313,373,443 
+  ...ce-segment.ts |   94.44 |       95 |     100 |   94.44 | 64                
+  ...e-watchdog.ts |   84.31 |    88.63 |   86.66 |   84.31 | ...48,256,267,270 
+  rns-hkdf.ts      |   89.47 |    89.47 |     100 |   89.47 | 30,119            
+  stamp-cost.ts    |   86.95 |       88 |     100 |   86.95 | 33,38,86          
+  ...am-machine.ts |     100 |       75 |     100 |     100 | 32                
+  token-framing.ts |   90.42 |    77.08 |     100 |   90.21 | ...59,418,495,561 
+  ...rt-framing.ts |   88.31 |    73.52 |     100 |   88.31 | ...71,230,300,360 
+  utf8.ts          |   82.81 |    73.17 |     100 |   82.25 | ...77,129,192,249 
+  ...ity-record.ts |    90.9 |    78.57 |     100 |    90.9 | 32,117,185        
+  ...cket-frame.ts |   93.15 |    86.66 |     100 |   92.95 | 80-81,139,199-203 
+ ...nounce-framing |   88.88 |     82.3 |    97.7 |   88.83 |                   
+  part-1.ts        |   87.67 |    71.73 |     100 |    87.5 | ...71,285,346,418 
+  part-2.ts        |   90.19 |    85.71 |     100 |   90.19 | ...20,192,338,427 
+  part-3.ts        |   89.18 |    90.47 |   93.93 |   89.18 | ...77-378,476,481 
+ ...annel-envelope |   86.88 |    74.44 |   96.55 |   86.88 |                   
+  part-1.ts        |   92.95 |    80.55 |     100 |   92.95 | ...81,298-302,364 
+  part-2.ts        |   82.75 |    66.66 |   93.33 |   82.75 | ...13-317,367,372 
+  part-3.ts        |   83.33 |    73.33 |   96.87 |   83.33 | ...00,275,341,406 
+ ...channel-window |   89.21 |    81.28 |   99.18 |   89.05 |                   
+  part-1.ts        |   89.79 |     86.2 |   96.29 |   89.79 | ...67-368,412,417 
+  part-2.ts        |   98.03 |    97.56 |     100 |      98 | 207               
+  part-3.ts        |   81.69 |    64.58 |     100 |   81.69 | ...46,461,474-480 
+  part-4.ts        |   90.78 |    84.44 |     100 |   90.54 | ...31,366,404,458 
+  part-5.ts        |   86.36 |     62.5 |     100 |   85.71 | 70,133,195        
+ ...tination-allow |   84.92 |    74.07 |   97.24 |   84.92 |                   
+  part-1.ts        |   86.36 |    78.57 |     100 |   86.36 | ...24,291,356,423 
+  part-2.ts        |   87.27 |    76.47 |     100 |   87.27 | ...73,365,466,471 
+  part-3.ts        |   83.11 |    71.87 |   91.66 |   83.11 | ...95,438,443,458 
+  part-4.ts        |    82.6 |    64.28 |     100 |    82.6 | 76,145,150,217    
+ ...ity-ciphertext |   86.36 |    76.13 |   96.77 |   86.28 |                   
+  part-1.ts        |   93.44 |    85.29 |     100 |   93.33 | 126,192,264,331   
+  part-2.ts        |   83.33 |    66.66 |   93.75 |   83.33 | ...32-333,376,381 
+  part-3.ts        |      82 |    73.07 |   96.87 |      82 | ...15,278,350,422 
+  part-4.ts        |      80 |       75 |     100 |      80 | 43                
+ ...face-reconnect |    82.4 |    76.54 |   96.42 |    82.4 |                   
+  part-1.ts        |    86.2 |    76.47 |     100 |    86.2 | ...29,394,459,524 
+  part-2.ts        |      78 |    76.59 |    87.5 |      78 | ...51,259,267,288 
+ ...link-establish |   85.58 |       76 |    96.3 |   85.58 |                   
+  part-1.ts        |   90.24 |    86.66 |     100 |   90.24 | 174,251,316,381   
+  part-10.ts       |   89.47 |     82.5 |     100 |   89.47 | ...32,304,518,536 
+  part-11.ts       |      95 |    83.33 |     100 |      95 | 165               
+  part-2.ts        |      86 |    84.21 |      96 |      86 | ...37,293,298,365 
+  part-3.ts        |   82.35 |    77.77 |   96.77 |   82.35 | ...58,329,400,470 
+  part-4.ts        |   83.33 |    69.44 |   93.54 |   83.33 | ...43,418,492,497 
+  part-5.ts        |   91.89 |    86.66 |     100 |   91.89 | 107,272,341       
+  part-6.ts        |   85.71 |    70.58 |    93.1 |   85.71 | ...97,452,461,515 
+  part-7.ts        |   86.04 |    78.12 |     100 |   86.04 | ...19,291,358,417 
+  part-8.ts        |   82.35 |    63.33 |     100 |   82.35 | ...52,357,407,419 
+  part-9.ts        |   80.72 |    60.52 |   88.37 |   80.72 | ...52,395,400,527 
+ ...src/link-proof |   88.27 |    70.21 |     100 |   88.19 |                   
+  part-1.ts        |   89.36 |       75 |     100 |   89.24 | ...79,339,413,473 
+  part-2.ts        |    87.5 |    67.64 |     100 |    87.5 | ...55,311,373,439 
+  part-3.ts        |   83.33 |       50 |     100 |   83.33 | 71,137            
+ ...esource-accept |   86.84 |    75.71 |   98.18 |   86.84 |                   
+  part-1.ts        |   90.47 |    78.94 |     100 |   90.47 | ...11,339,352,404 
+  part-2.ts        |   82.35 |    71.87 |   96.15 |   82.35 | ...26-330,379,397 
+ .../lxmf-delivery |   89.01 |    82.86 |      95 |    89.3 |                   
+  part-1.ts        |   89.28 |    73.33 |   96.15 |   89.28 | ...22,367,379,439 
+  part-10.ts       |   85.71 |    78.57 |    92.3 |   85.71 | 121-125,192,197   
+  part-2.ts        |   86.36 |    78.12 |   93.75 |   86.36 | ...34,384-387,440 
+  part-3.ts        |   89.09 |    83.33 |   96.77 |   89.09 | ...08,264,332,397 
+  part-4.ts        |   88.13 |    81.25 |   96.96 |   88.13 | ...45,398-402,460 
+  part-5.ts        |   91.52 |    89.74 |   96.29 |   91.52 | ...53-257,354,394 
+  part-6.ts        |   91.66 |    88.23 |   94.11 |   91.66 | ...97,360-364,432 
+  part-7.ts        |   91.17 |     87.5 |   96.77 |   91.17 | ...89-290,344,373 
+  part-8.ts        |   90.16 |    87.87 |   92.59 |   90.16 | ...65,294-298,340 
+  part-9.ts        |   85.07 |    83.33 |    92.3 |   87.69 | ...57-358,401,416 
+ .../packet-header |   83.55 |    78.65 |   86.56 |   83.44 |                   
+  part-1.ts        |   85.89 |    80.95 |   86.66 |   85.71 | ...59-377,463,468 
+  part-2.ts        |   79.68 |     75.6 |   84.37 |   79.68 | ...02,323,386,474 
+  part-3.ts        |      90 |    83.33 |     100 |      90 | 55                
+ ...eceipt-timeout |   87.74 |    78.78 |    97.4 |   87.66 |                   
+  part-1.ts        |   92.64 |       86 |     100 |   92.64 | ...04,390,492,497 
+  part-2.ts        |   86.27 |    76.92 |     100 |   86.27 | ...78,343,446,451 
+  part-3.ts        |   80.55 |       50 |    90.9 |      80 | ...62-163,198-202 
+ ...src/path-table |   88.67 |    79.55 |   97.31 |   88.44 |                   
+  part-1.ts        |   89.06 |     82.6 |   96.42 |   88.52 | ...65-369,453,458 
+  part-2.ts        |    85.1 |    77.41 |     100 |    85.1 | ...73,336,401,464 
+  part-3.ts        |   85.71 |       75 |   96.66 |   85.71 | ...90,394,471,476 
+  part-4.ts        |    92.4 |    84.09 |   97.05 |    92.2 | ...88,235,291,429 
+  part-5.ts        |   89.28 |       75 |   95.83 |   89.09 | ...23,173,178,297 
+ ...pagation-quota |   87.82 |    80.85 |   97.22 |   87.74 |                   
+  part-1.ts        |   93.33 |    88.88 |     100 |   93.22 | 104,172,304,359   
+  part-2.ts        |      85 |    76.31 |   96.77 |      85 | ...35,375,401,476 
+  part-3.ts        |   83.33 |       75 |   93.75 |   83.33 | ...22-226,259,264 
+ ...source-hashmap |   87.21 |    72.01 |   96.77 |    88.2 |                   
+  part-1.ts        |   89.09 |       74 |     100 |   88.67 | ...13,296,375,472 
+  part-2.ts        |   95.38 |    80.55 |     100 |   95.23 | ...65,438,505,570 
+  part-3.ts        |   78.72 |    63.63 |   95.83 |   82.22 | ...49-353,400,416 
+  part-4.ts        |      75 |    54.54 |   85.71 |   80.76 | ...94,361-365,416 
+  part-5.ts        |   83.33 |    66.66 |   96.66 |   83.33 | ...74,346,409,475 
+  part-6.ts        |   88.57 |    72.72 |     100 |   88.57 | 99,167,231,299    
+ ...esource-status |   84.82 |    79.34 |   95.12 |   84.82 |                   
+  part-1.ts        |   87.23 |    84.84 |   97.14 |   87.23 | ...24,290,362,429 
+  part-2.ts        |   83.33 |    70.96 |   96.87 |   83.33 | ...49,387,392,455 
+  part-3.ts        |   84.09 |    82.14 |   86.66 |   84.09 | ...89,194,205,235 
+ ...rc/stream-data |    91.6 |    83.33 |     100 |   91.54 |                   
+  part-1.ts        |   95.77 |    86.11 |     100 |   95.71 | 154,221,366       
+  part-2.ts        |   86.95 |       80 |     100 |   86.95 | ...73,332,397,469 
+  part-3.ts        |   88.46 |    83.33 |     100 |   88.46 | 88,163,229        
+ ...sport-announce |   84.42 |    66.66 |   98.43 |   84.42 |                   
+  part-1.ts        |   83.33 |       50 |     100 |   83.33 | ...88,277,341,355 
+  part-2.ts        |   85.71 |       75 |     100 |   85.71 | ...02,282,349,414 
+  part-3.ts        |   83.78 |    72.22 |   93.33 |   83.78 | ...98-202,244,259 
+ ...nsport-ingress |   99.47 |    91.54 |     100 |   99.47 |                   
+  part-1.ts        |   96.87 |    89.74 |     100 |   96.87 | 218,357           
+  part-3.ts        |     100 |    95.65 |     100 |     100 | 458               
+  part-4.ts        |     100 |    90.32 |     100 |     100 | 140-143,456       
+  part-5.ts        |     100 |    89.47 |     100 |     100 | 416-459           
+  part-6.ts        |     100 |       80 |     100 |     100 | 411-455           
+ ...interfaces/src |   57.41 |    46.51 |   50.45 |   57.52 |                   
+  auto-bridge.ts   |   75.94 |    53.33 |   74.28 |   76.12 | ...11-424,448-450 
+  auto-common.ts   |   93.15 |    71.05 |     100 |   92.64 | 75,83,126,147,152 
+  ...-discovery.ts |      40 |     90.9 |      10 |      40 | 67-103            
+  auto.ts          |   70.38 |    52.57 |    65.9 |   70.73 | ...29,556,564,569 
+  bonjour-mdns.ts  |       0 |        0 |       0 |       0 | 27-123            
+  bonjour.ts       |   64.28 |      100 |   54.54 |   64.28 | 40-44,53-54,63    
+  freenet.ts       |     100 |       90 |     100 |     100 | 55                
+  i2p.ts           |   46.45 |    26.56 |   45.83 |   46.03 | ...58,285,292-297 
+  ...icast-node.ts |       0 |        0 |       0 |       0 | 19-142            
+  policy.ts        |     100 |    83.33 |     100 |     100 | 118,130,172       
+  serial-node.ts   |       0 |        0 |       0 |       0 | 12-141            
+  ...er-channel.ts |   76.66 |       65 |      80 |   84.61 | 46,67-69          
+ ...s/src/acoustic |   88.23 |    78.12 |     100 |   93.33 |                   
+  interface.ts     |    88.7 |    77.77 |     100 |   92.72 | 124,128-129,154   
+  sim.ts           |   83.33 |       80 |     100 |     100 | 27                
+ ...rfaces/src/ble |   86.88 |    66.66 |    92.3 |   86.88 |                   
+  interface.ts     |   93.75 |    78.57 |     100 |   93.75 | 72,79             
+  sim.ts           |    77.5 |    59.25 |   81.81 |    77.5 | ...,87,91,102,107 
+  spec-framing.ts  |      90 |    67.85 |     100 |      90 | 31,45,90,98,102   
+ ...es/src/optical |   94.59 |    87.27 |     100 |   97.93 |                   
+  framing.ts       |   93.82 |     87.5 |     100 |    97.1 | 52,125            
+  interface.ts     |     100 |    91.66 |     100 |     100 | 42                
+  sim.ts           |      80 |    66.66 |     100 |     100 | 22                
+ ...aces/src/rnode |   79.47 |    59.32 |   81.48 |   79.33 |                   
+  interface.ts     |   79.68 |    66.66 |   83.33 |   79.68 | ...48-155,164,185 
+  kiss.ts          |   79.31 |    51.72 |   77.77 |   79.06 | ...39-140,161-172 
+ ...ticulum-ts/src |      73 |    64.99 |   75.72 |   73.45 |                   
+  announce.ts      |   85.71 |    79.22 |     100 |   86.74 | ...89,422,427,432 
+  buffer.ts        |   82.35 |    67.94 |    87.5 |   82.35 | ...40,362,394,432 
+  destination.ts   |   78.78 |       70 |     100 |   78.78 | ...64-267,297,304 
+  identity-base.ts |   57.26 |    46.15 |     100 |   57.26 | ...42,546,564,581 
+  identity.ts      |   84.88 |    74.57 |     100 |   85.88 | ...94,316,332,360 
+  ...st-receipt.ts |   61.53 |       50 |   28.57 |   61.53 | ...03,113-125,143 
+  msgpack.ts       |    1.61 |        0 |       0 |    1.66 | 46-163,184-218    
+  ...et-receipt.ts |   89.04 |    85.71 |   88.88 |   89.04 | ...13-214,231-232 
+  packet.ts        |   82.14 |       75 |      70 |   82.14 | ...83,391-399,413 
+  ...estination.ts |   72.54 |    67.18 |   76.19 |   72.27 | ...11,413,418,449 
+  reticulum.ts     |   71.42 |    38.88 |   73.33 |   75.47 | ...87,206,236-241 
+  web-identity.ts  |   87.64 |       60 |   90.47 |   87.35 | ...13,254,264,274 
+ ...ts/src/channel |   61.94 |    44.44 |   55.35 |   62.19 |                   
+  ...1-register.ts |   81.25 |    61.53 |     100 |   81.25 | 43,49,55          
+  part-1-types.ts  |   33.33 |      100 |       0 |   33.33 | 13-14             
+  part-1.ts        |   56.52 |    31.08 |   47.22 |   56.87 | ...35,444-585,605 
+  part-2.ts        |   59.25 |    33.33 |   61.53 |   59.25 | ...23,143,150-156 
+  part-3.ts        |      80 |    72.22 |     100 |      80 | ...36,145,151,157 
+ ...-ts/src/crypto |   82.22 |    57.14 |   85.24 |   81.92 |                   
+  bare.ts          |   89.18 |      100 |   76.47 |   89.18 | 32,40,135-143     
+  bytes.ts         |   88.23 |       50 |     100 |   85.71 | 11,28             
+  hkdf.ts          |   28.57 |    13.33 |      50 |   28.57 | 43-62             
+  node.ts          |   97.36 |       50 |   93.75 |   97.36 | 32                
+  pure.ts          |      80 |      100 |   78.57 |      80 | 22,87-95          
+  token.ts         |   74.24 |    68.51 |     100 |   74.24 | ...42,269,273,277 
+ ...src/interfaces |   79.52 |    65.42 |   86.61 |   79.52 |                   
+  interface.ts     |   89.77 |    77.08 |     100 |   89.77 | ...32,249,253,316 
+  pipe.ts          |   93.33 |       75 |     100 |   93.33 | 40                
+  tcp.ts           |   87.17 |    68.93 |   90.24 |   87.11 | ...17-518,550-556 
+  udp.ts           |      88 |    64.28 |    87.5 |      88 | 57,66,85          
+  ...ket-client.ts |   73.88 |    65.47 |   84.84 |   74.19 | ...96,408,426-436 
+  ...ket-server.ts |   69.84 |    55.67 |   78.04 |   69.54 | ...08-509,520-534 
+ ...um-ts/src/link |   74.84 |    59.54 |   86.32 |   74.81 |                   
+  ...-1-request.ts |   75.67 |    57.69 |     100 |   75.67 | ...07,150-151,154 
+  layer-1.ts       |   65.53 |    48.33 |   70.96 |   65.34 | ...58,498-511,529 
+  ...-establish.ts |   83.87 |    68.96 |     100 |   83.87 | ...16,331,357,361 
+  layer-2.ts       |   84.34 |    68.42 |     100 |   84.34 | ...67,484,514,546 
+  layer-3-core.ts  |   93.22 |    75.55 |     100 |   93.22 | 71,89,246,342     
+  layer-3.ts       |   76.22 |    61.45 |     100 |   76.22 | ...69,578,591,607 
+  layer-4.ts       |   66.25 |    49.52 |      76 |   66.25 | ...48,667,678-707 
+  shared.ts        |   68.96 |    42.85 |      80 |   68.96 | ...81,187-200,212 
+ ...s/src/resource |   82.47 |    63.51 |    86.3 |    82.4 |                   
+  layer-1.ts       |   84.15 |    68.18 |   89.28 |   84.15 | ...93-702,741-760 
+  ...2-assemble.ts |    78.4 |    62.96 |     100 |    78.4 | ...05,318,328,342 
+  layer-2-core.ts  |   76.34 |    61.66 |   63.15 |   76.34 | ...99,441,459,474 
+  layer-2.ts       |   91.66 |       80 |     100 |   91.66 | 40                
+  send-parts.ts    |   82.92 |       60 |     100 |    82.5 | ...09,113,170-171 
+  shared.ts        |   86.79 |    53.19 |     100 |   86.66 | ...24,299,335,356 
+ ...c/runtime/bare |     2.6 |        0 |       0 |    2.64 |                   
+  runtime.ts       |       0 |        0 |       0 |       0 | 6-46              
+  sockets.ts       |     2.4 |        0 |       0 |    2.43 | 19-368            
+  store.ts         |    3.77 |        0 |       0 |    3.84 | 12-28,36-127      
+ ...c/runtime/node |   80.68 |    59.67 |   91.83 |   80.41 |                   
+  runtime.ts       |   53.84 |    71.42 |   66.66 |   53.84 | 39-52             
+  sockets.ts       |   83.33 |    58.18 |    97.5 |   83.07 | ...10,261,280,284 
+ ...rc/runtime/web |   80.95 |    65.21 |      75 |   78.94 |                   
+  runtime.ts       |   80.95 |    65.21 |      75 |   78.94 | ...87,105,145,177 
+ .../src/transport |    82.2 |    73.41 |   86.79 |   82.73 |                   
+  bandwidth.ts     |   83.72 |       75 |   91.66 |    87.5 | 41,67,95-99       
+  drop-notify.ts   |   44.44 |       50 |      50 |   44.44 | 26,29-37,53-61    
+  path.ts          |   78.94 |       50 |     100 |   78.94 | 70,87,90,112      
+  rate.ts          |    87.5 |      100 |      80 |    87.5 | 60                
+  ...-node-base.ts |   92.85 |       75 |     100 |   92.85 | 76                
+  ...-node-path.ts |   78.37 |    70.96 |   83.33 |   78.37 | ...11,327,403,420 
+  transport.ts     |   85.96 |    79.41 |     100 |   85.96 | ...00,416,471-472 
+ ...transport/node |   85.48 |    65.09 |   93.42 |   85.44 |                   
+  ...1-announce.ts |   79.66 |     65.9 |     100 |   79.66 | ...99,243,262,269 
+  layer-1-core.ts  |   87.09 |    66.66 |     100 |   87.09 | ...38,165,194-196 
+  layer-1-proof.ts |   96.29 |       70 |     100 |   96.29 | 124               
+  layer-1.ts       |   88.49 |       70 |     100 |   88.49 | ...36-445,465,510 
+  layer-2.ts       |   83.07 |    62.33 |   82.14 |   82.94 | ...84-408,462-474 
+  shared.ts        |   83.33 |       50 |     100 |   83.33 | ...58,176,207,238 
+ ...dversaries/src |   74.72 |    73.95 |   77.77 |    75.9 |                   
+  accuracy.ts      |   93.16 |    88.73 |   96.77 |   93.39 | ...78-279,376,419 
+  adversary.ts     |   85.71 |    81.81 |     100 |   88.88 | 40,48,83          
+  ...-execution.ts |       0 |        0 |       0 |       0 | 29-171            
+  authoring.ts     |   73.17 |    71.42 |      90 |   74.35 | ...29,146-148,162 
+  social.ts        |   93.33 |    88.88 |     100 |   96.55 | 91                
+ ...m-campaign/src |   93.81 |    88.79 |    99.4 |   96.19 |                   
+  ...-scenarios.ts |   98.59 |    92.44 |     100 |    98.5 | 167,515           
+  estimation.ts    |   95.65 |       75 |     100 |     100 | 44-59             
+  ...-scenarios.ts |      95 |    89.47 |     100 |   95.94 | 203,348,359       
+  metrics.ts       |   89.23 |    84.61 |     100 |   90.16 | ...74,128-129,142 
+  runner.ts        |   94.54 |    86.11 |     100 |   96.15 | 95,208            
+  ...on-helpers.ts |   90.98 |    87.17 |   97.67 |   96.17 | ...42,441-442,566 
+  ...tion-steps.ts |   96.42 |     87.5 |     100 |   96.42 | 103               
+  scenarios.ts     |    92.3 |    92.85 |     100 |   91.66 | 56                
+ ...r-headless/src |      99 |    97.17 |     100 |     100 |                   
+  geometry.ts      |    99.1 |    97.91 |     100 |     100 | 318,358           
+  index.ts         |   98.59 |    95.65 |     100 |     100 | 73,183,231        
+ ...enderer-rn/src |   98.19 |    93.96 |   97.82 |   99.05 |                   
+  ...idgetTree.tsx |   98.19 |    93.96 |   97.82 |   99.05 | 148               
+ ...rklet-core/src |   35.52 |    28.85 |   36.76 |   36.14 |                   
+  ...st-driver.mjs |   18.62 |    13.33 |   31.57 |   18.94 | ...03,208,216-218 
+  dev-channel.mjs  |   98.41 |     90.9 |     100 |   98.36 | 31                
+  ...peer-pair.mjs |       0 |        0 |       0 |       0 | 10-158            
+  ...e-service.mjs |     100 |    95.83 |     100 |     100 | 38                
+  ...-backends.mjs |    3.03 |    17.94 |    6.89 |    3.19 | 30-53,93-437      
+  ...ared-core.mjs |    2.96 |     3.92 |    2.94 |    3.05 | ...40,157,166-457 
+  miniapp-host.mjs |       0 |        0 |       0 |       0 | 47-531            
+  ...ent-mount.mjs |       0 |        0 |       0 |       0 | 28                
+  ...iapp-host.mjs |       0 |        0 |       0 |       0 | 47-438            
+  ...-announce.mjs |     100 |    92.85 |     100 |     100 | 26                
+  ...ntry-auto.mjs |       0 |        0 |       0 |       0 | 7-90              
+  ...entry-cas.mjs |   98.21 |    96.29 |      90 |   98.11 | 19                
+  ...y-catalog.mjs |     100 |    63.63 |     100 |     100 | 54-61,64-65       
+  ...discovery.mjs |       0 |        0 |       0 |       0 | 10-223            
+  ...y-install.mjs |       0 |        0 |       0 |       0 | 14-132            
+  ...y-publish.mjs |       0 |        0 |       0 |       0 | 21-117            
+  ...d-helpers.mjs |   95.65 |       92 |     100 |     100 | 127-131           
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 61.86% ( 23138/37401 )
+Branches     : 55.4% ( 12291/22183 )
+Functions    : 71.57% ( 7042/9838 )
+Lines        : 62.64% ( 22534/35969 )
+================================================================================
+Coverage changed-line floor: 0 file(s) with changed executable locations checked against origin/main.
+Coverage ratchet: 22 packages measured; baseline checked against origin/main.
+
+Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0')
+  Searched in the following repositories:
+    MavenRepo
+    Google
+    Gradle Central Plugin Repository
+
+Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0')
+  Searched in the following repositories:
+    MavenRepo
+    Google
+    Gradle Central Plugin Repository
+
+Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0')
+  Searched in the following repositories:
+    MavenRepo
+    Google
+    Gradle Central Plugin Repository
+
+Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0')
+  Searched in the following repositories:
+    MavenRepo
+    Google
+    Gradle Central Plugin Repository
+
+> Task :twistedpear-ble-bridge:testDebugUnitTest FAILED
+
+BleBridgeTest > encodes an advertisement FAILED
+    org.opentest4j.AssertionFailedError: expected: <3> but was: <4>
+
+==> Dependency structure (structure)
+
+> twistedpear@0.0.0 structure:check
+> node scripts/analysis/structure-ratchet.mjs
+
+Structure ratchet: PASS; 0 new, 0 stale.
+
+==> Function complexity ratchet (complexity)
+
+> twistedpear@0.0.0 complexity:check
+> node scripts/analysis/eslint-ratchet.mjs --kind=complexity
+
+complexity: PASS; 0 new, 0 stale.
+
+==> Module coupling and modularity (coupling)
+
+> twistedpear@0.0.0 coupling:check
+> node scripts/analysis/coupling-gate.mjs
+
+Coupling: 1205 modules, 24 components, 0 new cycles (4 pinned), all limits met.
+
+==> Public API surface (api-surface)
+
+> twistedpear@0.0.0 api:check
+> node scripts/analysis/api-surface.mjs
+
+API surface: 7874 public symbols within limits.
+
+==> Public API signature compatibility (api-signatures)
+
+> twistedpear@0.0.0 api-signatures:check
+> npm run build && node scripts/analysis/api-signatures.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+API signatures: PASS; 37 entry point(s) checked against origin/main.
+
+==> Committed generated artifact freshness (generated-freshness)
+
+> twistedpear@0.0.0 generated:check
+> node scripts/analysis/generated-freshness.mjs
+
+wrote /Users/curt/me/twistedpear/packages/effects/src/types.gen.ts
+generated device registry: 19 classes, 30 capabilities →
+  /Users/curt/me/twistedpear/packages/protocol/src/device-registry.gen.ts
+  /Users/curt/me/twistedpear/packages/miniapp-runtime/src/device-capabilities.gen.ts
+
+> twistedpear@0.0.0 build:worklet
+> npm run build && npm run build:worklet --workspace=harness-mobile
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+
+> harness-mobile@0.2.0 build:worklet
+> node scripts/build-worklet.mjs
+
+assembled worklet entry.mjs and web-entry.mjs from parts
+worklet bundle written to /Users/curt/me/twistedpear/apps/harness-mobile/worklet/worklet.bundle.mjs
+store posture: dev
+
+> host-desktop@0.1.0 build
+> node scripts/ensure-electron.mjs --best-effort && tsc -b && node scripts/build-renderer-vendor.mjs && node scripts/build-worklet.mjs
+
+desktop renderer QR fallback copied to src/renderer/vendor/jsqr.js
+
+> @twistedpear/miniapp-runtime@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/app-registry@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/reticulum-ts@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/cas-256t@0.1.0 build
+> tsc -b
+
+handbook build: 38 chapter(s), 23 applet(s), 104 seed file(s) → bundle.js; 5 part package(s) → generated/part-packages/
+bundled-catalog: handbook@0.2.0 (378576 B), peer-link@0.1.0 (3731 B), devstudio@0.1.0 (14001 B), chat@0.1.0 (2629 B)
+desktop worklet bundle written to /Users/curt/me/twistedpear/apps/host-desktop/worklet/worklet.bundle
+Generated freshness: 6 committed outputs match their generators.
+worklet: no utf-16le TextDecoder sites found to neutralize
+
+==> Quality surface census (census)
+
+> twistedpear@0.0.0 census:check
+> node scripts/analysis/census.mjs
+
+Census: PASS; 2882 tests in 365 files, 64 gates, 46/47 CI jobs gating.
+Census: gates: "kotlin-tests tier=nightly run=test is below origin/main deliberately — see the latest history entry in census-ratchet.json.
+Census: gates:nightly is below origin/main deliberately — see the latest history entry in census-ratchet.json.
+
+==> Repository lint coverage (lint-all)
+
+> twistedpear@0.0.0 lint:all
+> node scripts/analysis/eslint-ratchet.mjs --kind=lint
+
+lint: PASS; 0 new, 0 stale.
+
+==> Typed asynchronous lint (typed-lint)
+
+> twistedpear@0.0.0 lint:typed
+> node scripts/analysis/eslint-ratchet.mjs --kind=typed
+
+typed: PASS; 0 new, 0 stale.
+
+==> Formatting ratchet (format)
+
+> twistedpear@0.0.0 format:check
+> node scripts/analysis/format-ratchet.mjs
+
+Formatting ratchet: PASS; 0 new, 0 stale.
+
+==> Copy-paste clone ratchet (jscpd)
+
+> twistedpear@0.0.0 jscpd:check
+> node scripts/analysis/survey-ratchet.mjs --kind=jscpd
+
+jscpd: PASS; 0 new, 0 stale.
+
+==> Cognitive complexity ratchet (cognitive-complexity)
+
+> twistedpear@0.0.0 cognitive-complexity:check
+> node scripts/analysis/survey-ratchet.mjs --kind=cognitive-complexity
+
+cognitive-complexity: PASS; 0 new, 0 stale.
+
+==> Non-any type coverage ratchet (type-coverage)
+
+> twistedpear@0.0.0 type-coverage:check
+> npm run build && node scripts/analysis/survey-ratchet.mjs --kind=type-coverage
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+type-coverage: PASS; 99.3692% across 20 projects.
+
+==> Structural reliability ratchet (ast-grep)
+
+> twistedpear@0.0.0 ast-grep:check
+> node scripts/analysis/survey-ratchet.mjs --kind=ast-grep
+
+ast-grep: PASS; 0 new, 0 stale.
+
+==> Property-based protocol tests (properties)
+
+> twistedpear@0.0.0 test:properties
+> vitest run packages/protocol/test/properties*.test.ts
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  3 passed (3)
+      Tests  18 passed (18)
+   Start at  13:53:22
+   Duration  1.13s (transform 1.87s, setup 66ms, import 2.48s, tests 313ms, environment 0ms)
+
+
+==> Malformed-input fuzz tests (fuzz)
+
+> twistedpear@0.0.0 test:fuzz
+> npm run build && FUZZ_ITERATIONS=${FUZZ_ITERATIONS:-512} vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  13:53:23
+   Duration  1.12s (transform 1.42s, setup 0ms, import 2.00s, tests 38ms, environment 0ms)
+
+
+==> Fixed simulation replay (sim-fixed-replay)
+
+> twistedpear@0.0.0 test:sim-fixed-replay
+> npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/fixed-replay.mjs
+
+
+> @twistedpear/effects@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/miniapp-runtime@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/sim-campaign@0.0.0 build
+> tsc -b
+
+fixed production-backed replay: 400 scenarios -> /Users/curt/me/twistedpear/conformance/sim-campaign/artifacts/fixed-replay.json
+
+==> Advisory allowlist policy (audit-policy)
+
+> twistedpear@0.0.0 audit:policy
+> node scripts/security/audit.mjs
+
+Advisory policy: 11 valid, unexpired temporary exceptions.
+
+==> Mutation score policy (mutation-policy)
+
+> twistedpear@0.0.0 mutation:ratchet
+> node scripts/analysis/mutation.mjs
+
+Mutation ratchet: no survey report; floors are combined 62.6%, packages/cas-256t 69.51%, packages/effects 52.08%, packages/host-core 48.52%, packages/lxmf-ts 49.4%, packages/miniapp-runtime 65.52%, packages/peer-discovery 57.52%, packages/protocol 71.7%, packages/reticulum-interfaces 64.84%, packages/reticulum-ts 46.39%.
+
+==> Dependency license policy (licenses)
+
+> twistedpear@0.0.0 licenses:check
+> node scripts/security/licenses.mjs
+
+License gate: PASS; 0 new, 0 stale.
+
+==> Dependency install-script policy (install-scripts)
+
+> twistedpear@0.0.0 install-scripts:check
+> node scripts/security/install-scripts.mjs
+
+install-scripts: PASS; 3 package(s) with install scripts, all skipped by ignore-scripts, 0 finding(s).
+
+Static-analysis gates: 33/33 passed.
