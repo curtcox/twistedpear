@@ -109,10 +109,9 @@ export function bucketFloor(samples, buckets, value) {
   for (let index = 0; index < buckets; index += 1) {
     const from = started + (span * index) / buckets;
     const to = started + (span * (index + 1)) / buckets;
-    const inBucket = samples.filter(
-      (sample) =>
-        sample.atMs >= from &&
-        (index === buckets - 1 ? sample.atMs <= to : sample.atMs < to),
+    const includesEnd = index === buckets - 1;
+    const inBucket = samples.filter((sample) =>
+      insideBucket(sample.atMs, from, to, includesEnd),
     );
     if (inBucket.length === 0) continue;
     floors.push({
@@ -124,6 +123,13 @@ export function bucketFloor(samples, buckets, value) {
     minutes: floors.map((floor) => (floor.at - started) / 60_000),
     values: floors.map((floor) => floor.value),
   };
+}
+
+/** @param {number} at @param {number} from @param {number} to @param {boolean} includesEnd */
+function insideBucket(at, from, to, includesEnd) {
+  if (at < from) return false;
+  if (includesEnd) return at <= to;
+  return at < to;
 }
 
 /**

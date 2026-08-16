@@ -13,7 +13,8 @@
 function newDiffPath(line) {
   if (!line.startsWith("+++ ")) return undefined;
   const named = line.slice(4);
-  return named === "/dev/null" ? null : named.replace(/^b\//, "");
+  if (named === "/dev/null") return null;
+  return named.replace(/^b\//, "");
 }
 
 /** @param {Map<string, Set<number>>} changed @param {string} file @param {string} line */

@@ -38,7 +38,14 @@ if (language === "python") {
 }
 if (language === "kotlin") commands.push(["ktlint", ...tracked(["kt"])]);
 if (language === "swift")
-  commands.push(["swiftlint", "lint", "--strict", "--quiet", "--no-cache"]);
+  commands.push([
+    "swiftlint",
+    "lint",
+    "--strict",
+    "--quiet",
+    "--no-cache",
+    ...tracked(["swift"]),
+  ]);
 if (language === "rust") {
   for (const manifest of tracked(["toml"]).filter(
     (file) =>
