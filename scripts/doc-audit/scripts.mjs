@@ -41,6 +41,43 @@ function extractNpmRunScripts(line) {
 }
 
 /**
+ * @param {Record<string, true>} scripts
+ * @param {string} rel
+ * @param {string} line
+ * @param {number} index
+ * @returns {ScriptFinding | null}
+ */
+function classifyUnknownScript(scripts, rel, line, index) {
+  const names = extractNpmRunScripts(line);
+  for (const name of names) {
+    if (scripts[name]) continue;
+    if (WORKSPACE_SCRIPTS.has(name)) {
+      if (
+        !line.includes("--workspace=") &&
+        !line.includes("workspace=host-desktop")
+      ) {
+        return {
+          file: rel,
+          line: index + 1,
+          script: name,
+          reason:
+            "workspace-local script; cite npm run dist --workspace=host-desktop",
+        };
+      }
+      continue;
+    }
+    if (PLANNED_ROOT_SCRIPTS.has(name)) continue;
+    return {
+      file: rel,
+      line: index + 1,
+      script: name,
+      reason: "unknown root script",
+    };
+  }
+  return null;
+}
+
+/**
  * @param {string} root
  * @param {{ files?: string[] }} [options]
  * @returns {ScriptFinding[]}
@@ -57,31 +94,8 @@ export function auditRegisterScripts(root = repoRoot(), options = {}) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (!line.includes("npm run")) continue;
-      for (const name of extractNpmRunScripts(line)) {
-        if (scripts[name]) continue;
-        if (WORKSPACE_SCRIPTS.has(name)) {
-          if (
-            !line.includes("--workspace=") &&
-            !line.includes("workspace=host-desktop")
-          ) {
-            findings.push({
-              file: rel,
-              line: i + 1,
-              script: name,
-              reason:
-                "workspace-local script; cite npm run dist --workspace=host-desktop",
-            });
-          }
-          continue;
-        }
-        if (PLANNED_ROOT_SCRIPTS.has(name)) continue;
-        findings.push({
-          file: rel,
-          line: i + 1,
-          script: name,
-          reason: "unknown root script",
-        });
-      }
+      const finding = classifyUnknownScript(scripts, rel, line, i);
+      if (finding !== null) findings.push(finding);
     }
   }
 
