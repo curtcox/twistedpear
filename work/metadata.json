@@ -463,7 +463,7 @@
       "added": "2026-08-16",
       "completed": "2026-08-16",
       "evidence": [
-        "coverage-changed-policy.json",
+        "coverage-rules.json",
         "api-signatures-policy.json",
         "docs/browser-quality.md",
         "conformance/soak-child-resources.mjs"
