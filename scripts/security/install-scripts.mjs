@@ -112,6 +112,50 @@ function collect(directory, found = new Map()) {
   return found;
 }
 
+/**
+ * First-party lifecycle hooks, which `ignore-scripts=true` also disables.
+ *
+ * npm's switch is all-or-nothing: it does not distinguish this repository's own
+ * workspaces from the 1500 packages under them. So a `postinstall` in a
+ * workspace stops running the moment that flag goes in, silently, and the only
+ * symptom is something missing much later.
+ *
+ * That is not hypothetical — it is how this file's own change broke the desktop
+ * host. `apps/host-desktop` had `postinstall: ensure-electron --best-effort`,
+ * which pre-warmed the Electron binary that `pack`, `dist`, and the Playwright
+ * handbook-ui runner all go on to need. The `collect` walk above could never
+ * have seen it: npm links workspaces into `node_modules` as symlinks, and
+ * `isDirectory()` is false for a symlink, so every workspace package was
+ * skipped. The fix was to invoke it from the desktop build, where the binary is
+ * actually wanted; this check is here so the next one is caught by a gate
+ * rather than by reading a diff.
+ *
+ * @returns {string[]}
+ */
+function workspaceHookFindings() {
+  const manifest = readJson(path.join(ROOT, "package.json"));
+  const findings = [];
+  for (const pattern of manifest.workspaces ?? []) {
+    const [directory] = pattern.split("/*");
+    // `withFileTypes`, because `packages/` holds an AGENTS.md alongside the
+    // workspaces and joining a file path with "package.json" throws ENOTDIR,
+    // which `readJson`'s fallback does not catch — it only forgives ENOENT.
+    for (const { name: entry } of fs
+      .readdirSync(path.join(ROOT, directory), { withFileTypes: true })
+      .filter((candidate) => candidate.isDirectory())) {
+      const file = path.join(ROOT, directory, entry, "package.json");
+      const workspace = readJson(file, null);
+      if (!workspace) continue;
+      for (const hook of [...HOOKS, "prepare"])
+        if (workspace.scripts?.[hook])
+          findings.push(
+            `${directory}/${entry}/package.json: "${hook}" will never run — .npmrc sets ignore-scripts=true, which applies to this repository's own workspaces too. Invoke ${workspace.scripts[hook]} from the script that needs its effect instead.`,
+          );
+    }
+  }
+  return findings;
+}
+
 if (!fs.existsSync(MODULES)) {
   console.error(
     "install-scripts: node_modules is absent; run npm ci before this gate. Refusing to report a clean tree from an empty one.",
@@ -143,7 +187,7 @@ if (write) {
 }
 
 const skipping = npmrcFindings();
-const findings = [...skipping];
+const findings = [...skipping, ...workspaceHookFindings()];
 
 for (const [name, { hooks, version }] of [...found].sort()) {
   const entry = recorded.packages?.[name];

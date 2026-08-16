@@ -343,22 +343,23 @@ than fail — unlike an allowlist, a stale entry permits nothing that was not al
 `install-scripts` (`npm run install-scripts:check`) closes the last door the gates above leave
 open. `advisories` asks whether a dependency is known-vulnerable, `licenses` whether its terms
 are acceptable, `provenance` whether the tarball is the one the registry signed — none ask
-whether it runs code on the way in. `npm ci` executed `preinstall`, `install`, and `postinstall`
-from the whole transitive tree, with full privileges, before any gate here ran.
+whether it runs code on the way in, and `npm ci` executed `preinstall`, `install`, and
+`postinstall` from the whole transitive tree, with full privileges, before any gate here ran.
 
 `.npmrc` now sets `ignore-scripts=true`. The gate keeps that true: it walks `node_modules`,
 enumerates every package declaring an install hook, and fails on any not recorded in
-`install-scripts-allowlist.json` with the script's exact text and a reason. It also fails if
-`ignore-scripts` leaves `.npmrc` — without that check the same allowlist would still pass while
-describing code that had already run, and nothing else about the repository would look
-different. A script whose text changes fails as if it were new.
+`install-scripts-allowlist.json` with the script's exact text and a reason. A script whose text
+changes fails as if it were new. It also fails if `ignore-scripts` leaves `.npmrc` — without
+that the same allowlist would pass while describing code that had already run.
 
-The allowlist grants nothing; nothing in it is executed. It records that someone read each
-script and confirmed the repository works without it. Three packages qualify, and all three
-were verified against a clean `ignore-scripts=true` install rather than assumed: ast-grep
-resolves its binary at run time, esbuild's CLI and JS API work from the platform package, and
-`@serialport/bindings-cpp` finds its prebuild at require time. Nothing needs `npm rebuild`,
-which is why no workflow has one.
+`ignore-scripts` is all-or-nothing — it covers this repository's own workspaces too — so the
+gate also fails any workspace `package.json` declaring an install hook, which would silently
+never run; `scripts/security/install-scripts.mjs` records the regression that check exists to
+prevent. The allowlist itself grants nothing and nothing in it is executed: it records that
+someone read each script and confirmed the repository works without it. Three packages qualify,
+all verified against a clean `ignore-scripts=true` install rather than assumed: ast-grep
+resolves its binary at run time, esbuild works from its platform package, and
+`@serialport/bindings-cpp` finds its prebuild at require time. Nothing needs `npm rebuild`.
 
 The first advisory survey found one transitive high-severity `vite` result in the local
 VitePress documentation toolchain, with no fix available through that dependency path.

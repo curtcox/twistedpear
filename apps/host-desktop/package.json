@@ -5,8 +5,7 @@
   "type": "module",
   "main": "dist/main/index.js",
   "scripts": {
-    "build": "tsc -b && node scripts/build-renderer-vendor.mjs && node scripts/build-worklet.mjs",
-    "postinstall": "node scripts/ensure-electron.mjs --best-effort",
+    "build": "node scripts/ensure-electron.mjs --best-effort && tsc -b && node scripts/build-renderer-vendor.mjs && node scripts/build-worklet.mjs",
     "start": "npm run build && node scripts/ensure-electron.mjs && env -u ELECTRON_RUN_AS_NODE electron .",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder"

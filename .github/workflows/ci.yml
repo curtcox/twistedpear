@@ -115,6 +115,14 @@ jobs:
         # the two gates are describing different code.
         if: matrix.id == 'rust-tests'
         run: rustup toolchain install 1.97.1 --profile minimal
+      - name: Install Rust coverage tools
+        # llvm-tools-preview is not optional: cargo-llvm-cov shells out to
+        # llvm-profdata and llvm-cov from the toolchain's own component, and
+        # without it fails at run time rather than at install.
+        if: matrix.id == 'rust-coverage'
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal --component llvm-tools-preview
+          cargo install cargo-llvm-cov --version 0.6.21 --locked
       - name: Install ktlint
         if: matrix.id == 'kotlin'
         run: |
