@@ -118,19 +118,26 @@ try {
   });
   record(
     "running app is unmistakably app content",
-    (await page.locator(".miniapp-toolbar").textContent()).includes(
-      "Running mini-app",
-    ),
+    (await page.locator(".miniapp-toolbar").isVisible()) &&
+      (await page
+        .locator("body")
+        .evaluate((body) => body.classList.contains("miniapp-running"))) &&
+      (await page.locator(".miniapp-toolbar").textContent()).includes(
+        "Running mini-app",
+      ),
   );
   await page.getByRole("button", { name: "Trust & capabilities" }).click();
   record(
     "trust details are reachable in one interaction",
-    await page.evaluate(() =>
-      globalThis.__TP_TEST_MESSAGES__.some(
-        (message) =>
-          message.type === "get-grants" && message.appId === "field-log",
-      ),
-    ),
+    (await page
+      .getByRole("button", { name: "Return to running mini-app" })
+      .isVisible()) &&
+      (await page.evaluate(() =>
+        globalThis.__TP_TEST_MESSAGES__.some(
+          (message) =>
+            message.type === "get-grants" && message.appId === "field-log",
+        ),
+      )),
   );
   await page.evaluate(() =>
     globalThis.__TP_TEST_EMIT__({
@@ -159,7 +166,7 @@ try {
   );
   await grants.locator('input[data-capability-id="location"]').uncheck();
   record(
-    "revocation takes effect without restart",
+    "revocation request is sent without restart",
     await page.evaluate(() =>
       globalThis.__TP_TEST_MESSAGES__.some(
         (message) =>
@@ -168,6 +175,42 @@ try {
           !message.grantedCapabilities.includes("location"),
       ),
     ),
+  );
+  await page.evaluate(() =>
+    globalThis.__TP_TEST_EMIT__({
+      type: "grants",
+      appId: "field-log",
+      capabilities: [
+        {
+          id: "storage:kv",
+          description: "Save observations",
+          declared: true,
+          granted: true,
+        },
+        {
+          id: "location",
+          description: "Read current location",
+          declared: true,
+          granted: false,
+        },
+      ],
+    }),
+  );
+  record(
+    "host-confirmed revocation renders without restart",
+    !(await grants.locator('input[data-capability-id="location"]').isChecked()),
+  );
+  await page
+    .getByRole("button", { name: "Return to running mini-app" })
+    .click();
+  record(
+    "running app is reachable again without relaunch",
+    (await page.locator(".miniapp-toolbar").isVisible()) &&
+      !(await page.evaluate(() =>
+        globalThis.__TP_TEST_MESSAGES__.some(
+          (message) => message.type === "launch-miniapp",
+        ),
+      )),
   );
   await page.close();
 } finally {

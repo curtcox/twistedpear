@@ -198,6 +198,33 @@ async function scanDesktopHost(browser) {
             grid.innerHTML =
               "<dt>Running</dt><dd>yes</dd><dt>Identity</dt><dd>17a5be8a…c4cc27b3</dd><dt>Transport</dt><dd>enabled</dd>";
           }
+          globalThis.__TP_A11Y_EMIT__({
+            type: "catalog",
+            entries: [
+              {
+                appId: "handbook",
+                name: "Handbook",
+                version: "0.2.0",
+                publisherPublicKey: "publisher-0123456789abcdef",
+                packageSize: 378576,
+                packageHash: "hash-handbook",
+                driveKey: "drive-handbook",
+                resourceAvailable: true,
+                receivedAt: 1,
+              },
+              {
+                appId: "chat",
+                name: "Chat",
+                version: "0.1.0",
+                publisherPublicKey: "publisher-0123456789abcdef",
+                packageSize: 2629,
+                packageHash: "hash-chat",
+                driveKey: "drive-chat",
+                resourceAvailable: true,
+                receivedAt: 2,
+              },
+            ],
+          });
         });
         await page.evaluate(axeSource);
         const surfaces = {

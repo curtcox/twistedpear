@@ -234,11 +234,15 @@ export function handleWorkletMessage(scope, message) {
       }
     } else {
       scope.runningAppId = message.runtime.appId;
+      if (scope.runningAppId === null) scope.miniappHostView = false;
       if (runningAppId === requestedAppId) scope.requestedAppLaunchTimer = null;
       document.body.classList.toggle(
         "miniapp-running",
-        scope.runningAppId !== null,
+        scope.runningAppId !== null && !scope.miniappHostView,
       );
+      if (scope.returnMiniapp)
+        scope.returnMiniapp.hidden =
+          scope.runningAppId === null || !scope.miniappHostView;
       if (miniappTitle)
         miniappTitle.textContent = scope.runningAppId ?? "Mini-app";
       if (scope.runningAppId !== null)

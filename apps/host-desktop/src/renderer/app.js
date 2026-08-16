@@ -44,6 +44,7 @@ const logEl = document.querySelector("#log");
 const widgetRoot = document.querySelector("#widget-root");
 const miniappTitle = document.querySelector("#miniapp-title");
 const miniappTrust = document.querySelector("#miniapp-trust");
+const returnMiniapp = document.querySelector("#return-miniapp");
 const closeMiniapp = document.querySelector("#close-miniapp");
 const previewRoot = document.querySelector("#preview-root");
 const stopPreview = document.querySelector("#stop-preview");
@@ -501,6 +502,8 @@ const shellScope = {
   limitMemory,
   forceQuit,
   miniappTrust,
+  returnMiniapp,
+  miniappHostView: false,
   closeMiniapp,
   stopPreview,
   install256tInput,
