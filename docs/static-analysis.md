@@ -82,22 +82,48 @@ All finding baselines compare against the PR base branch, not the merge commit. 
 baseline writes only tighten; `--allow-regressions` is required to establish or
 intentionally loosen a baseline.
 
-| Gate                 | Command                              | Current artifact / baseline                                                                                                                                                            |
-| -------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Coverage             | `npm run coverage:check`             | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute pure-package floors in `coverage-rules.json`; 0.5 point tolerance |
-| Structure            | `npm run structure:check`            | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                               |
-| Complexity           | `npm run complexity:check`           | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                               |
-| Repository lint      | `npm run lint:all`                   | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                       |
-| Typed lint           | `npm run lint:typed`                 | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                |
-| Formatting           | `npm run format:check`               | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                   |
-| Properties           | `npm run test:properties`            | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                |
-| Duplication          | `npm run jscpd:check`                | token-level clone pairs in `jscpd-ratchet.json`, keyed by the file pair rather than by line numbers                                                                                    |
-| Cognitive complexity | `npm run cognitive-complexity:check` | functions over each of the 15/25/50/100 bands in `cognitive-complexity-ratchet.json`                                                                                                   |
-| Type coverage        | `npm run type-coverage:check`        | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                |
-| Accessibility        | `npm run a11y:check`                 | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                |
+| Gate                 | Command                              | Current artifact / baseline                                                                                                                                                                                 |
+| -------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coverage             | `npm run coverage:check`             | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute pure-package floors and a new-file floor in `coverage-rules.json`; 0.5 point tolerance |
+| Structure            | `npm run structure:check`            | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                                                    |
+| Complexity           | `npm run complexity:check`           | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                                                    |
+| Repository lint      | `npm run lint:all`                   | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                                            |
+| Typed lint           | `npm run lint:typed`                 | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                                     |
+| Formatting           | `npm run format:check`               | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                                        |
+| Properties           | `npm run test:properties`            | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                                     |
+| Duplication          | `npm run jscpd:check`                | token-level clone pairs in `jscpd-ratchet.json`, keyed by the file pair rather than by line numbers                                                                                                         |
+| Cognitive complexity | `npm run cognitive-complexity:check` | functions over each of the 15/25/50/100 bands in `cognitive-complexity-ratchet.json`                                                                                                                        |
+| Type coverage        | `npm run type-coverage:check`        | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                                     |
+| Accessibility        | `npm run a11y:check`                 | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                                     |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
+
+### The new-file coverage floor
+
+The coverage ratchet is a per-workspace aggregate, and an aggregate cannot see a new
+file arrive untested. Four hundred uncovered lines added to a package sitting at 74%
+move that number by a point or two, which the 0.5-point tolerance and the ordinary
+noise of a refactor absorb — so the file lands at zero and the gate stays green.
+Thirty-three files entered this repository that way; eighty are still at 0%.
+
+`coverage-rules.json` therefore carries a `newFile` block (60% statements, 45%
+branches, 60% functions). It applies to files **added since the base ref**, compared
+three-dot against the merge base so a branch is never asked to answer for a file
+someone else added to `main` after it forked. The floor lands on a file the day it is
+written, which is the only day its tests are cheap. Existing files are untouched:
+they are held by their workspace ratchet, and retrofitting a floor onto all 676 of
+them is a different decision with a different cost.
+
+Three kinds of added path are skipped rather than judged — paths outside the
+coverage roots (tests, scripts, documents, which have no summary entry at all),
+generated files, and explicit entries in `newFile.exempt`, which require a reason and
+are printed on every run. Branches are floored lower than statements deliberately: a
+file at 62% statements and 30% branches clears one and not the other, and one shared
+number would have to pick which of those two mistakes to make. The decision logic
+lives in `scripts/analysis/coverage-new-files.mjs` and is tested directly by
+`conformance/checks/coverage-new-files.test.mjs`, because the branch otherwise runs
+only on commits that happen to add a file.
 
 The last three arrived on 2026-08-15 from the survey, which measures them but by
 design never fails on findings — the trending system that was to consume

@@ -6,5 +6,12 @@
   "packages": {
     "packages/protocol": { "statements": 89, "branches": 79, "functions": 90 },
     "packages/effects": { "statements": 80, "branches": 70, "functions": 80 }
+  },
+  "newFile": {
+    "description": "Floors for files added since the base ref. The per-workspace ratchet above is an aggregate, so a new file lands behind whatever its workspace already averages: 400 untested lines added to a package sitting at 74% move that number by a point or two and the gate stays green. This applies to the file itself, on the day it arrives, which is the only day its tests are cheap to write. Existing files are unaffected — 80 of them sit at 0% and are held by their workspace ratchet, not by this.",
+    "statements": 60,
+    "branches": 45,
+    "functions": 60,
+    "exempt": {}
   }
 }
