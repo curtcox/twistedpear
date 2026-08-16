@@ -245,6 +245,8 @@
     "jscpd:check": "node scripts/analysis/survey-ratchet.mjs --kind=jscpd",
     "jscpd:baseline": "node scripts/analysis/survey-ratchet.mjs --kind=jscpd --write",
     "cognitive-complexity:check": "node scripts/analysis/survey-ratchet.mjs --kind=cognitive-complexity",
+    "ast-grep:check": "node scripts/analysis/survey-ratchet.mjs --kind=ast-grep",
+    "ast-grep:baseline": "node scripts/analysis/survey-ratchet.mjs --kind=ast-grep --write",
     "cognitive-complexity:baseline": "node scripts/analysis/survey-ratchet.mjs --kind=cognitive-complexity --write",
     "type-coverage:check": "npm run build && node scripts/analysis/survey-ratchet.mjs --kind=type-coverage",
     "type-coverage:baseline": "npm run build && node scripts/analysis/survey-ratchet.mjs --kind=type-coverage --write",

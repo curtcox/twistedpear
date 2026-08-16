@@ -13,10 +13,21 @@ That distinction is the whole design. Everything in
 [Static analysis](static-analysis.md) is a ratchet or a hard threshold: it fails
 CI, it blocks a merge, and its baseline is a debt register that may only shrink.
 The survey does none of that. It runs every tool to completion, writes JSON
-under `reports/`, and exits zero whatever the numbers say. Trending, thresholds,
-and any policy built on this data belong to the external system that consumes
-the reports — which is why survey tools are deliberately **not** registered in
-`scripts/checks/registry.mjs`, and why `ci-green` does not depend on them.
+under `reports/`, and exits zero whatever the numbers say. `npm run survey` is
+not registered in `scripts/checks/registry.mjs` and `ci-green` does not depend
+on it.
+
+**Four of these measurements are also gated, and the survey is still not the
+gate.** `jscpd`, `cognitive-complexity`, `type-coverage`, and `ast-grep` each
+have a ratchet in `scripts/analysis/survey-ratchet.mjs` that calls the same
+`tool.run()` and writes the same report, then compares the findings against a
+baseline. So the tool is shared and the policy is not: running the survey never
+fails, and the gate is a separate command with a separate entry in the registry.
+The other four tools here — `knip`, `dependency-cruiser`, `api-extractor`, and
+`code-maat` — set no policy of their own. `knip` and `dependency-cruiser` are
+not therefore ungated: the `structure` and `coupling` gates ratchet their
+findings directly, which is why neither has a second baseline under
+`survey-ratchet.mjs`.
 
 ## Running it
 

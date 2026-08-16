@@ -196,6 +196,22 @@ export const gates = [
     ["reports/type-coverage.json", "type-coverage-ratchet.json"],
     "survey-ratchet",
   ),
+  // The three above bound taste. This one bounds defects: its rules find a
+  // request with no deadline, an error caught and dropped, a retry with nothing
+  // making it safe to repeat, a case fold under the user's locale. None is a
+  // type error, none is a lint violation, and all of them work on a laptop and
+  // fail in the field — which made it the one defect-class measurement here
+  // that could grow indefinitely with every gate green. 94 of the 134
+  // baselined findings are empty catch blocks.
+  gate(
+    "ast-grep",
+    "Structural reliability ratchet",
+    "ast-grep:check",
+    "pr",
+    ["node"],
+    ["reports/ast-grep.json", "ast-grep-ratchet.json"],
+    "survey-ratchet",
+  ),
   gate("properties", "Property-based protocol tests", "test:properties", "pr", [
     "node",
   ]),

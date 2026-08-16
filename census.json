@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T12:58:36.811Z",
+  "generatedAt": "2026-08-16T13:02:20.384Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -8,6 +8,7 @@
       "actions-pinned tier=pr run=actions:check",
       "advisories tier=release run=audit:advisories",
       "api-surface tier=pr run=api:check",
+      "ast-grep tier=pr run=ast-grep:check",
       "audit tier=nightly run=audit:nightly",
       "audit-policy tier=pr run=audit:policy",
       "benchmark tier=nightly run=benchmark:check",
@@ -246,6 +247,7 @@
       "a11y:check",
       "actions:check",
       "api:check",
+      "ast-grep:check",
       "benchmark:check",
       "census:check",
       "cognitive-complexity:check",
@@ -496,9 +498,9 @@
     "floor:mutation:score": 62.6,
     "floor:sansio:protocol-roots": 5,
     "gates:nightly": 11,
-    "gates:pr": 42,
+    "gates:pr": 43,
     "gates:release": 1,
-    "scripts:quality": 158,
+    "scripts:quality": 159,
     "skips:suppressed-tests": 1,
     "test-files:apps/handbook": 2,
     "test-files:apps/harness-mobile": 3,

@@ -1,22 +1,31 @@
 #!/usr/bin/env node
 /**
- * Ratchet gates over three survey measurements.
+ * Ratchet gates over four survey measurements.
  *
  * `scripts/survey/run.mjs` measures duplication, `any` density and cognitive
  * complexity, and by design never fails on findings — trending was left to "the
  * external system that reads reports/manifest.json", which does not exist. So
- * these three were the only analysis dimensions in the repository with no
- * direction: cyclomatic complexity was gated while cognitive complexity was
- * not, and nothing anywhere stopped copy-paste from growing.
+ * these were the only analysis dimensions in the repository with no direction:
+ * cyclomatic complexity was gated while cognitive complexity was not, and
+ * nothing anywhere stopped copy-paste from growing.
+ *
+ * `ast-grep` joined them for a different reason. The other three measure taste;
+ * it measures defects. Its rules are the checks nothing else here makes — a
+ * request with no deadline, an error caught and dropped, a case fold under the
+ * user's locale — and every one of them is a bug that works on a laptop and
+ * fails in the field. Leaving it advisory meant the repository could grow
+ * dropped `catch` blocks indefinitely while every gate stayed green.
  *
  * This turns the measurements into the same monotonic ratchets every other
  * dimension already has, using the same primitives. The survey keeps running
  * unchanged and stays advisory: it holds tools like code-maat and api-extractor
- * that answer questions rather than set policy.
+ * that answer questions rather than set policy. `knip` is deliberately not here
+ * — the `structure` gate already ratchets its findings per symbol, and a second
+ * baseline over the same tool would only drift from the first.
  *
  * Two comparison shapes, because the measurements are two different kinds:
  *
- *   - a finding set (`jscpd`, `cognitive-complexity`) compared with
+ *   - a finding set (`jscpd`, `cognitive-complexity`, `ast-grep`) compared with
  *     `compareDiagnosticSet`, so entries may disappear but never appear;
  *   - a percentage per project (`type-coverage`) compared against floors that
  *     may only rise, like the coverage ratchet.
@@ -39,7 +48,7 @@ const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const KINDS = ["jscpd", "cognitive-complexity", "type-coverage"];
+const KINDS = ["jscpd", "cognitive-complexity", "type-coverage", "ast-grep"];
 
 const argv = process.argv.slice(2);
 const kind = argv
@@ -102,6 +111,28 @@ function cognitiveEntries() {
   return entries;
 }
 
+/**
+ * One entry per finding, anchored on rule, file and symbol.
+ *
+ * Not the line: `anchors.mjs` exists because reformatting a file moves every
+ * line number and no findings. Two findings of the same rule in the same symbol
+ * are distinguished by an occurrence index rather than collapsed, so adding a
+ * second dropped `catch` beside an existing one is a new entry and fails.
+ * Without the index the set would dedupe them and the second would be free.
+ *
+ * The index is assigned in the tool's own sort order (rule, then file), which
+ * is stable across runs for an unchanged tree.
+ */
+function astGrepEntries() {
+  const seen = new Map();
+  return findings.map((finding) => {
+    const key = `${finding.rule}:${finding.file}:${finding.symbol ?? "?"}`;
+    const occurrence = (seen.get(key) ?? 0) + 1;
+    seen.set(key, occurrence);
+    return `${key}#${occurrence}`;
+  });
+}
+
 if (kind === "type-coverage") {
   const baselineFile = path.join(ROOT, "type-coverage-ratchet.json");
   const rules = RULES["type-coverage"];
@@ -162,7 +193,12 @@ if (kind === "type-coverage") {
   process.exit(failed ? 1 : 0);
 }
 
-const entries = kind === "jscpd" ? jscpdEntries() : cognitiveEntries();
+const ENTRIES = {
+  jscpd: jscpdEntries,
+  "cognitive-complexity": cognitiveEntries,
+  "ast-grep": astGrepEntries,
+};
+const entries = ENTRIES[kind]();
 const comparison = compareDiagnosticSet({
   root: ROOT,
   baselineFile: path.join(ROOT, `${kind}-ratchet.json`),
