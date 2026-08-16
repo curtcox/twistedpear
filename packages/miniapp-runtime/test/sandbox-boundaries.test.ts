@@ -1,3 +1,4 @@
+import { Script } from "node:vm";
 import { describe, expect, it, vi } from "vitest";
 import { dispatchWorkerBrokerMessage } from "../src/sandbox/broker-dispatch.js";
 import {
@@ -123,11 +124,11 @@ describe("sandbox JSON wire", () => {
 
 describe("sandbox bundle preparation", () => {
   it("rewrites SDK imports to the injected global", () => {
-    expect(
-      prepareBundleSource(
-        'import { render, send as transmit } from "@twistedpear/miniapp-sdk";\nrender();',
-      ),
-    ).toBe("const { render, send as transmit } = sdk;\nrender();");
+    const aliased = prepareBundleSource(
+      'import { render, send as transmit } from "@twistedpear/miniapp-sdk";\nrender();',
+    );
+    expect(aliased).toBe("const { render, send: transmit } = sdk;\nrender();");
+    expect(() => new Script(aliased)).not.toThrow();
     expect(
       prepareBundleSource(
         "\"use strict\";\nimport { render } from '@twistedpear/miniapp-sdk';\nrender();",

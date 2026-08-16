@@ -18,6 +18,20 @@ function endOfImport(
   return end;
 }
 
+const identifier = /^[$A-Z_a-z][$\w]*$/u;
+
+function destructuringBinding(specifier: string): string | undefined {
+  const parts = specifier.split(/\s+as\s+/u);
+  if (parts.length === 1 && identifier.test(parts[0]!)) return parts[0];
+  if (
+    parts.length === 2 &&
+    identifier.test(parts[0]!) &&
+    identifier.test(parts[1]!)
+  )
+    return `${parts[0]}: ${parts[1]}`;
+  return undefined;
+}
+
 /**
  * Rewrites one named mini-app SDK import into the injected sandbox global.
  * Deliberate index-based parsing keeps this boundary linear for hostile source.
@@ -44,5 +58,7 @@ export function prepareBundleSource(source: string): string {
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
   if (names.length === 0) return source;
-  return `${source.slice(0, importStart)}const { ${names.join(", ")} } = sdk;\n${source.slice(endOfImport(source, quoted))}`;
+  const bindings = names.map(destructuringBinding);
+  if (bindings.some((binding) => binding === undefined)) return source;
+  return `${source.slice(0, importStart)}const { ${bindings.join(", ")} } = sdk;\n${source.slice(endOfImport(source, quoted))}`;
 }
