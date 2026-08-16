@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T13:02:20.384Z",
+  "generatedAt": "2026-08-16T13:09:15.514Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -50,6 +50,7 @@
       "shell tier=pr run=lint:shell",
       "sim-authored-replay tier=pr run=test:sim-authored-replay",
       "sim-fixed-replay tier=pr run=test:sim-fixed-replay",
+      "spelling tier=pr run=spelling:check",
       "structure tier=pr run=structure:check",
       "swift tier=pr run=lint:swift",
       "swift-tests tier=pr run=test:swift",
@@ -272,6 +273,7 @@
       "provenance:check",
       "secrets:check",
       "site:check",
+      "spelling:check",
       "structure:check",
       "test:adapter-pairs",
       "test:android-emulator",
@@ -498,9 +500,9 @@
     "floor:mutation:score": 62.6,
     "floor:sansio:protocol-roots": 5,
     "gates:nightly": 11,
-    "gates:pr": 43,
+    "gates:pr": 44,
     "gates:release": 1,
-    "scripts:quality": 159,
+    "scripts:quality": 160,
     "skips:suppressed-tests": 1,
     "test-files:apps/handbook": 2,
     "test-files:apps/harness-mobile": 3,

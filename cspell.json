@@ -1,0 +1,31 @@
+{
+  "version": "0.2",
+  "language": "en,en-GB",
+  "dictionaryDefinitions": [
+    {
+      "name": "twistedpear",
+      "path": "./project-words.txt",
+      "addWords": true,
+      "description": "Terms this repository uses that no general dictionary knows: protocol names, package names, identifiers quoted in prose, and people. Written by `npm run spelling:baseline`; the diff is the review."
+    }
+  ],
+  "dictionaries": ["twistedpear", "softwareTerms", "typescript", "node", "npm"],
+  "ignorePaths": [
+    "archive/**",
+    "node_modules/**",
+    "**/dist/**",
+    "**/Pods/**",
+    "docs/simulation-architecture.html"
+  ],
+  "ignoreRegExpList": [
+    "/`[^`\\n]*`/",
+    "/^```[\\s\\S]*?^```/gm",
+    "/\\]\\([^)]*\\)/",
+    "/^\\s*\\[[^\\]]+\\]:\\s*\\S+/gm",
+    "/<!--[\\s\\S]*?-->/",
+    "/\\bhttps?:\\/\\/\\S+/",
+    "/\\b[0-9a-f]{7,}\\b/"
+  ],
+  "ignoreWords": [],
+  "allowCompoundWords": false
+}

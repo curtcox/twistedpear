@@ -298,6 +298,31 @@ and no consumer action follows from it. Provenance attestation counts are record
 publisher's choice rather than a property of this repository. At the time of writing all
 1521 resolved packages verify and 371 carry an attestation.
 
+### Prose spelling
+
+`spelling` (`npm run spelling:check`) runs cspell over the published prose: the README,
+the root status and release documents, and the `docs/`, `guide/`, `authors/`, `cookbook/`,
+and `specs/` trees — 177 files. `doc-audit` already checks a great deal about the same
+files, but all of it is structure: lifecycle metadata, `counterpart:` pairing, archive
+placement, every link and image resolving. None of it reads a sentence, and a typo in the
+user guide fails no build.
+
+`project-words.txt` is the dictionary: 146 terms no general dictionary knows — protocol
+names, package names, contributors, coinages like `holepunching` and `unforgeable`.
+`npm run spelling:baseline` adds unknown words in bulk, so the guard against blessing a
+real misspelling forever is that additions arrive as a reviewable diff, one word per line.
+British spellings are not in it; the config sets `"language": "en,en-GB"` so `behaviour`
+and `licence` are simply correct.
+
+Vendored trees are excluded, which is not incidental: the first run reported `vitualenv`
+from `apps/harness-mobile/ios/Pods/SocketRocket/README.md` — a real typo in someone else's
+README that this project can neither fix nor sensibly baseline. Words no longer used
+anywhere are reported as a warning rather than a failure; unlike an allowlist, a stale
+dictionary entry permits nothing that was not already intended. That staleness is computed
+by re-running cspell against an empty dictionary rather than by tokenising the prose here,
+because cspell splits `well-formedness` into two words and folds case its own way, and any
+reimplementation drifts from it.
+
 ### Install scripts
 
 `install-scripts` (`npm run install-scripts:check`) closes the last door the three gates

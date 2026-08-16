@@ -54,6 +54,19 @@ export const gates = [
     "node",
   ]),
   gate("doc-audit", "Documentation audit", "test:doc-audit", "pr", ["node"]),
+  // `doc-audit` above checks everything about these files except what they say.
+  // Lifecycle metadata, counterpart links, every link and image resolving — all
+  // structure, none of it reading a sentence. The user guide, authoring guide,
+  // cookbook, specs and docs tree are what a reader meets before any code, and
+  // a typo there fails no build, which is why nothing had caught one.
+  gate(
+    "spelling",
+    "Prose spelling",
+    "spelling:check",
+    "pr",
+    ["node"],
+    ["project-words.txt"],
+  ),
   gate(
     "sim-authored-replay",
     "Authored simulation replay",
