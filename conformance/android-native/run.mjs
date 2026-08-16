@@ -6,12 +6,21 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import os from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const harnessMobile = join(repoRoot, "apps/harness-mobile");
 const androidDir = join(harnessMobile, "android");
+const defaultMacSdk = join(os.homedir(), "Library/Android/sdk");
+if (
+  process.env.ANDROID_HOME === undefined &&
+  process.platform === "darwin" &&
+  existsSync(defaultMacSdk)
+) {
+  process.env.ANDROID_HOME = defaultMacSdk;
+}
 
 const NATIVE_TEST_TASKS = [
   ":twistedpear-ble-bridge:testDebugUnitTest",

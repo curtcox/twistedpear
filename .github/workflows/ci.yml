@@ -49,14 +49,14 @@ jobs:
         with:
           python-version: "3.12"
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        if: matrix.id == 'kotlin' || matrix.id == 'kotlin-tests' || matrix.id == 'formal'
+        if: matrix.id == 'kotlin' || matrix.id == 'kotlin-tests' || matrix.id == 'kotlin-coverage' || matrix.id == 'formal'
         with:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
-        if: matrix.id == 'kotlin-tests'
+        if: matrix.id == 'kotlin-tests' || matrix.id == 'kotlin-coverage'
       - name: Cache Gradle dependencies
-        if: matrix.id == 'kotlin-tests'
+        if: matrix.id == 'kotlin-tests' || matrix.id == 'kotlin-coverage'
         # The Android build resolves org.gradle.toolchains.foojay-resolver-
         # convention from the plugin portal on every cold run, because it is
         # declared by a third-party included build under node_modules that we
@@ -159,6 +159,10 @@ jobs:
             artifacts/languages/rust-tests.json
             artifacts/languages/swift-tests.json
             artifacts/languages/kotlin-tests.json
+            artifacts/languages/swift-coverage.json
+            artifacts/languages/kotlin-coverage.json
+            language-ratchets/swift-coverage.json
+            language-ratchets/kotlin-coverage.json
             artifacts/web-examples/web-examples.json
             artifacts/accessibility/accessibility.json
             artifacts/differential-fuzz/differential-fuzz.json
@@ -208,11 +212,22 @@ jobs:
         include:
           - language: javascript-typescript
             filter: javascript
+            runner: ubuntu-latest
           - language: python
             filter: python
+            runner: ubuntu-latest
           - language: actions
             filter: actions
-    runs-on: ubuntu-latest
+            runner: ubuntu-latest
+          - language: java-kotlin
+            filter: kotlin
+            runner: ubuntu-latest
+            build-mode: none
+          - language: swift
+            filter: swift
+            runner: macos-15
+            build-mode: autobuild
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
@@ -230,10 +245,16 @@ jobs:
             actions:
               - '.github/workflows/**'
               - '.github/actions/**'
+            kotlin:
+              - '**/*.kt'
+              - '**/*.kts'
+            swift:
+              - '**/*.swift'
       - uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         if: steps.changes.outputs[matrix.filter] == 'true'
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
       - uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         if: steps.changes.outputs[matrix.filter] == 'true'
         with:

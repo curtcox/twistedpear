@@ -361,11 +361,11 @@ silently and forever.
 
 `scripts/languages/test.mjs` runs them, and three gates publish the result:
 
-| Gate           | Command               | Tier    | Scope                                                                      |
-| -------------- | --------------------- | ------- | -------------------------------------------------------------------------- |
-| `rust-tests`   | `npm run test:rust`   | PR      | `cargo test` under the pinned 1.97.1 toolchain, every tracked crate        |
-| `swift-tests`  | `npm run test:swift`  | PR      | `swift test` for each Swift package with a `Tests` directory, macOS runner |
-| `kotlin-tests` | `npm run test:kotlin` | Nightly | the three Android bridge JVM unit-test tasks                               |
+| Gate           | Command               | Tier | Scope                                                                      |
+| -------------- | --------------------- | ---- | -------------------------------------------------------------------------- |
+| `rust-tests`   | `npm run test:rust`   | PR   | `cargo test` under the pinned 1.97.1 toolchain, every tracked crate        |
+| `swift-tests`  | `npm run test:swift`  | PR   | `swift test` for each Swift package with a `Tests` directory, macOS runner |
+| `kotlin-tests` | `npm run test:kotlin` | PR   | the three Android bridge JVM unit-test tasks                               |
 
 `rust-coverage` (`npm run coverage:rust`, PR) is the measurement those gates cannot make.
 `cargo test` says whether the tests pass, not how much they touch — and it reports `ok` for a
@@ -383,6 +383,14 @@ the pinned stable toolchain, and a floor of 0 that can never move looks like a f
 being one. Regions are the stable stand-in — a half-taken branch leaves an unexecuted region. A
 crate that keeps a floor but stops being measured fails, because renaming or dropping one would
 otherwise retire its floor in silence.
+
+Swift and Kotlin now carry the same kind of PR coverage ratchet. `coverage:swift` uses
+SwiftPM's llvm-cov JSON and measures authored package sources at 95.0% lines, 100% functions,
+and 87.5% regions. `coverage:kotlin` applies pinned JaCoCo instrumentation to the three JVM-tested
+Android bridges and records lines, branches, and methods per module. The Kotlin starting floors
+are deliberately low (5.4–12.2% lines): most code is hardware-bound and was never exercised by
+the JVM suites. Publishing those numbers as rising-only floors makes that debt visible and stops
+tests or testable seams from disappearing while the bridge logic is decomposed further.
 
 Nothing else here is ratcheted. Every other analysis gate carries a baseline of findings
 that may only shrink; a test suite does not get a list of tests that are allowed to

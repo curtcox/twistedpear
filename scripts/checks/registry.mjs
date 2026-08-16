@@ -482,17 +482,38 @@ export const gates = [
     "native-tests",
     "macos-15",
   ),
-  // Nightly rather than PR: the Expo prebuild plus a cold Gradle run is minutes,
-  // not seconds, and unlike Rust and Swift these tests were at least reachable
-  // before. Moving them onto a schedule that actually fires is the win here.
+  gate(
+    "swift-coverage",
+    "Swift coverage ratchet",
+    "coverage:swift",
+    "pr",
+    ["macos", "swift"],
+    [
+      "artifacts/languages/swift-coverage.json",
+      "language-ratchets/swift-coverage.json",
+    ],
+    "generic",
+    "macos-15",
+  ),
   gate(
     "kotlin-tests",
     "Android bridge unit tests",
     "test:kotlin",
-    "nightly",
+    "pr",
     ["jvm", "android-sdk"],
     ["artifacts/languages/kotlin-tests.json"],
     "native-tests",
+  ),
+  gate(
+    "kotlin-coverage",
+    "Kotlin coverage ratchet",
+    "coverage:kotlin",
+    "pr",
+    ["jvm", "android-sdk"],
+    [
+      "artifacts/languages/kotlin-coverage.json",
+      "language-ratchets/kotlin-coverage.json",
+    ],
   ),
   // Nightly rather than PR, for the same reason `kotlin-tests` is: installing a
   // second Rust toolchain and building three sanitizer-instrumented binaries is

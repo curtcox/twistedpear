@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply from: new File(rootProject.rootDir, '../../../conformance/android-native/jacoco-module.gradle')
 
 group = 'network.twistedpear.harness'
 version = '0.0.0'

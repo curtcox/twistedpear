@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "description": "Per-package Swift coverage floors from SwiftPM/llvm-cov. Authored package sources are measured; generated test runners and Tests are excluded. Values may only rise.",
+  "tolerance": 0.5,
+  "scopes": {
+    "apps/harness-mobile/modules/ble-bridge": {
+      "lines": 95,
+      "functions": 100,
+      "regions": 87.5
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -464,7 +465,9 @@ export const REQUIREMENTS = {
     // `local.properties` inside the generated project. Probing the environment
     // is the only check that works before the Expo prebuild has run.
     probe: () =>
-      Boolean(process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT),
+      Boolean(process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT) ||
+      (process.platform === "darwin" &&
+        fs.existsSync(path.join(os.homedir(), "Library/Android/sdk"))),
     needs: ["jvm"],
     manual:
       "Android Studio or the command-line SDK tools, with ANDROID_HOME set",
