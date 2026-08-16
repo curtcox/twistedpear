@@ -82,22 +82,24 @@ All finding baselines compare against the PR base branch, not the merge commit. 
 baseline writes only tighten; `--allow-regressions` is required to establish or
 intentionally loosen a baseline.
 
-| Gate                   | Command                              | Current artifact / baseline                                                                                                                                                                                 |
-| ---------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Coverage               | `npm run coverage:check`             | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute pure-package floors and a new-file floor in `coverage-rules.json`; 0.5 point tolerance |
-| Structure              | `npm run structure:check`            | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                                                    |
-| Complexity             | `npm run complexity:check`           | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                                                    |
-| Repository lint        | `npm run lint:all`                   | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                                            |
-| Typed lint             | `npm run lint:typed`                 | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                                     |
-| Formatting             | `npm run format:check`               | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                                        |
-| Properties             | `npm run test:properties`            | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                                     |
-| Duplication            | `npm run jscpd:check`                | token-level clone pairs in `jscpd-ratchet.json`, keyed by the file pair rather than by line numbers                                                                                                         |
-| Cognitive complexity   | `npm run cognitive-complexity:check` | functions over each of the 15/25/50/100 bands in `cognitive-complexity-ratchet.json`                                                                                                                        |
-| Type coverage          | `npm run type-coverage:check`        | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                                     |
-| Structural reliability | `npm run ast-grep:check`             | missing request deadlines, dropped errors, non-idempotent retries, and locale-dependent comparisons in `ast-grep-ratchet.json`, keyed by rule, file and enclosing symbol                                    |
-| Accessibility          | `npm run a11y:check`                 | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                                     |
-| API signatures         | `npm run api-signatures:check`       | SHA-256 digests of API Extractor's complete signature reports in `api-signatures-policy.json`; report Markdown is published as a CI artifact                                                                |
-| Generated freshness    | `npm run generated:check`            | schema-derived TypeScript, device capabilities, mobile store posture, and both committed shipping worklet bundles                                                                                           |
+| Gate                   | Command                                   | Current artifact / baseline                                                                                                                                                                                 |
+| ---------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coverage               | `npm run coverage:check`                  | per-workspace statements, branches, and functions in `coverage-ratchet.json` for `packages/*` and `apps/*`; absolute pure-package floors and a new-file floor in `coverage-rules.json`; 0.5 point tolerance |
+| Structure              | `npm run structure:check`                 | Knip unused files/exports/dependencies, dependency-cruiser cycles/orphans/dependency types, and the package dependency table in `structure-ratchet.json`                                                    |
+| Complexity             | `npm run complexity:check`                | ESLint function complexity, depth, parameters, length, and nested callbacks in `complexity-ratchet.json`                                                                                                    |
+| Repository lint        | `npm run lint:all`                        | all tracked JS/TS roots, with generated bundles excluded, in `lint-ratchet.json`                                                                                                                            |
+| Typed lint             | `npm run lint:typed`                      | floating/misused promises, awaitable misuse, unnecessary async, and unnecessary conditions in `typed-lint-ratchet.json`                                                                                     |
+| Formatting             | `npm run format:check`                    | Prettier must report zero deviations; `format-ratchet.json` is empty                                                                                                                                        |
+| Properties             | `npm run test:properties`                 | 18 seeded FastCheck properties covering protocol codec pairs, malformed-input safety, byte/hash helpers, and executable rate/path/grant/announce traces                                                     |
+| Duplication            | `npm run jscpd:check`                     | token-level clone pairs in `jscpd-ratchet.json`, keyed by the file pair rather than by line numbers                                                                                                         |
+| Cognitive complexity   | `npm run cognitive-complexity:check`      | functions over each of the 15/25/50/100 bands in `cognitive-complexity-ratchet.json`                                                                                                                        |
+| Type coverage          | `npm run type-coverage:check`             | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                                     |
+| Structural reliability | `npm run ast-grep:check`                  | missing request deadlines, dropped errors, non-idempotent retries, and locale-dependent comparisons in `ast-grep-ratchet.json`, keyed by rule, file and enclosing symbol                                    |
+| Accessibility          | `npm run a11y:check`                      | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                                     |
+| Cross-browser examples | `npm run test:web-examples:cross-browser` | chat, file-drop, and board lifecycle conformance in pinned Firefox and WebKit, with one structured report per browser                                                                                       |
+| Visual regression      | `npm run visual:check`                    | exact-pixel Chromium captures of the desktop main, capability-review, and grants states on the pinned macOS runner                                                                                          |
+| API signatures         | `npm run api-signatures:check`            | SHA-256 digests of API Extractor's complete signature reports in `api-signatures-policy.json`; report Markdown is published as a CI artifact                                                                |
+| Generated freshness    | `npm run generated:check`                 | schema-derived TypeScript, device capabilities, mobile store posture, and both committed shipping worklet bundles                                                                                           |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
@@ -110,7 +112,11 @@ digest change fails until `npm run api-signatures:baseline` records the reviewed
 contract and the owning package version changes. Full `.api.md` reports remain CI
 artifacts, keeping the committed baseline small without reducing what reviewers see.
 
-The last three arrived on 2026-08-15 from the survey, which measures them but by
+The browser and screenshot workflow is documented in
+[Browser quality](browser-quality.md).
+
+Duplication, cognitive complexity, and type coverage arrived on 2026-08-15 from the
+survey, which measures them but by
 design never fails on findings — the trending system that was to consume
 `reports/manifest.json` does not exist. Until then these were the only analysis
 dimensions with no direction at all: cyclomatic complexity was gated while

@@ -51,6 +51,17 @@ export function hasCommand(command, args = ["--version"]) {
   return spawnSync(command, args, { encoding: "utf8" }).status === 0;
 }
 
+/** @param {"chromium" | "firefox" | "webkit"} browser */
+function hasPlaywrightBrowser(browser) {
+  const script = `import('playwright').then((pw)=>{process.exit(require('node:fs').existsSync(pw.${browser}.executablePath())?0:1)},()=>process.exit(1))`;
+  return (
+    spawnSync("node", ["-e", script], {
+      encoding: "utf8",
+      timeout: 30_000,
+    }).status === 0
+  );
+}
+
 /**
  * The version of an installed tool, or null when it is absent or says nothing
  * recognisable.
@@ -424,22 +435,30 @@ export const REQUIREMENTS = {
   // executable path is the only honest question.
   chromium: {
     why: "driving the browser conformance harnesses under Playwright",
-    probe: () => {
-      const probed = spawnSync(
-        "node",
-        [
-          "-e",
-          "import('playwright').then((pw)=>{process.exit(require('node:fs').existsSync(pw.chromium.executablePath())?0:1)},()=>process.exit(1))",
-        ],
-        { encoding: "utf8", timeout: 30_000 },
-      );
-      return probed.status === 0;
-    },
+    probe: () => hasPlaywrightBrowser("chromium"),
     install: {
       darwin: [["npx", "playwright", "install", "chromium"]],
       linux: [["npx", "playwright", "install", "--with-deps", "chromium"]],
     },
     manual: "npx playwright install chromium",
+  },
+  firefox: {
+    why: "checking browser conformance under Firefox",
+    probe: () => hasPlaywrightBrowser("firefox"),
+    install: {
+      darwin: [["npx", "playwright", "install", "firefox"]],
+      linux: [["npx", "playwright", "install", "--with-deps", "firefox"]],
+    },
+    manual: "npx playwright install firefox",
+  },
+  webkit: {
+    why: "checking browser conformance under WebKit",
+    probe: () => hasPlaywrightBrowser("webkit"),
+    install: {
+      darwin: [["npx", "playwright", "install", "webkit"]],
+      linux: [["npx", "playwright", "install", "--with-deps", "webkit"]],
+    },
+    manual: "npx playwright install webkit",
   },
   // `docker --version` answers even when the daemon is not running, and a gate
   // that shells into a container needs the daemon, not the client. `docker

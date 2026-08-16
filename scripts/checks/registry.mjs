@@ -311,6 +311,28 @@ export const gates = [
     ["artifacts/web-examples/web-examples.json"],
     "web-examples",
   ),
+  gate(
+    "web-cross-browser",
+    "Web examples in Firefox and WebKit",
+    "test:web-examples:cross-browser",
+    "pr",
+    ["node", "firefox", "webkit"],
+    [
+      "artifacts/web-examples/web-examples-firefox.json",
+      "artifacts/web-examples/web-examples-webkit.json",
+    ],
+    "web-examples",
+  ),
+  gate(
+    "visual-regression",
+    "Critical desktop visual regression",
+    "visual:check",
+    "pr",
+    ["node", "chromium"],
+    ["artifacts/visual-regression.json"],
+    "generic",
+    "macos-15",
+  ),
   // The first accessibility check in the repository. It scans the Handbook
   // reader — rendered from its real widget tree through react-native-web, the
   // same way the documentation screenshots are captured — and the desktop

@@ -137,6 +137,12 @@ jobs:
       - name: Install Chromium
         if: matrix.id == 'web-examples' || matrix.id == 'accessibility'
         run: npx playwright install --with-deps chromium
+      - name: Install Chromium on macOS
+        if: matrix.id == 'visual-regression'
+        run: npx playwright install chromium
+      - name: Install Firefox and WebKit
+        if: matrix.id == 'web-cross-browser'
+        run: npx playwright install --with-deps firefox webkit
       - name: Run ${{ matrix.title }}
         run: node scripts/checks/run.mjs --tier=pr --only=${{ matrix.id }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -164,6 +170,9 @@ jobs:
             language-ratchets/swift-coverage.json
             language-ratchets/kotlin-coverage.json
             artifacts/web-examples/web-examples.json
+            artifacts/web-examples/web-examples-firefox.json
+            artifacts/web-examples/web-examples-webkit.json
+            artifacts/visual-regression.json
             artifacts/accessibility/accessibility.json
             artifacts/differential-fuzz/differential-fuzz.json
             reports/jscpd.json

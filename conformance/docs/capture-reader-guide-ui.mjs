@@ -15,6 +15,10 @@ import {
 import { runCookbookCaptures } from "./capture-reader-guide-ui-cookbook.mjs";
 
 const captureSection = process.env.CAPTURE_READER_GUIDE_SECTION ?? "all";
+const captureScenes =
+  process.env.CAPTURE_READER_GUIDE_SCENES?.split(",").filter(Boolean);
+const captureFiles =
+  process.env.CAPTURE_READER_GUIDE_FILES?.split(",").filter(Boolean);
 
 const scenes = [
   { file: "guide/images/00-hero-desktop-host.png", kind: "main" },
@@ -57,7 +61,13 @@ const scenes = [
 
 const browser = await chromium.launch();
 try {
-  for (const scene of captureSection === "all" ? scenes : []) {
+  for (const scene of captureFiles !== undefined
+    ? scenes.filter((candidate) => captureFiles.includes(candidate.file))
+    : captureScenes === undefined
+      ? captureSection === "all"
+        ? scenes
+        : []
+      : scenes.filter((candidate) => captureScenes.includes(candidate.kind))) {
     const output = join(repoRoot, scene.file);
     mkdirSync(dirname(output), { recursive: true });
     const page = await browser.newPage({
@@ -303,7 +313,11 @@ try {
     console.log(`reader-guide capture written to ${output}`);
   }
 
-  if (captureSection === "all") {
+  if (
+    captureSection === "all" &&
+    captureScenes === undefined &&
+    captureFiles === undefined
+  ) {
     const webHostRoot = join(repoRoot, "dist/web-host");
     const webHostOutput = join(repoRoot, "guide/images/02-web-host-tab.png");
     mkdirSync(dirname(webHostOutput), { recursive: true });
@@ -324,7 +338,8 @@ try {
     }
     console.log(`reader-guide capture written to ${webHostOutput}`);
   }
-  await runCookbookCaptures(browser, captureSection);
+  if (captureScenes === undefined && captureFiles === undefined)
+    await runCookbookCaptures(browser, captureSection);
 } finally {
   await browser.close();
 }

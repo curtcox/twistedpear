@@ -14,13 +14,24 @@ import {
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { chromium, firefox, webkit } from "playwright";
 
 const examplesRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(examplesRoot, "../..");
 
 /** The examples this gate asserts still install, launch, and render. */
 const EXPECTED_EXAMPLES = ["chat", "file-drop", "board"];
+const browserName =
+  process.argv
+    .find((argument) => argument.startsWith("--browser="))
+    ?.slice("--browser=".length) ?? "chromium";
+const browserType = { chromium, firefox, webkit }[browserName];
+if (browserType === undefined) {
+  console.error(
+    `Unknown browser ${browserName}; expected chromium, firefox, or webkit.`,
+  );
+  process.exit(2);
+}
 
 /**
  * Publish the result as an artifact, not just as an exit code.
@@ -35,7 +46,12 @@ function writeReport(report) {
   const directory = join(repoRoot, "artifacts/web-examples");
   mkdirSync(directory, { recursive: true });
   writeFileSync(
-    join(directory, "web-examples.json"),
+    join(
+      directory,
+      browserName === "chromium"
+        ? "web-examples.json"
+        : `web-examples-${browserName}.json`,
+    ),
     `${JSON.stringify(report, null, 2)}\n`,
   );
 }
@@ -137,7 +153,7 @@ function staticContentType(extension) {
 let lastSnapshot = null;
 
 async function runPlaywright(pageUrl) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await browserType.launch({ headless: true });
   try {
     const page = await browser.newPage();
     page.on("console", (message) => {
@@ -208,6 +224,7 @@ try {
   const result = await runPlaywright(pageUrl);
   writeReport({
     ok: true,
+    browser: browserName,
     expected: EXPECTED_EXAMPLES,
     passed: result.passed,
     failed: [],
@@ -218,6 +235,7 @@ try {
   const passed = Array.isArray(lastSnapshot?.passed) ? lastSnapshot.passed : [];
   writeReport({
     ok: false,
+    browser: browserName,
     expected: EXPECTED_EXAMPLES,
     passed,
     failed: EXPECTED_EXAMPLES.filter((name) => !passed.includes(name)),
@@ -231,4 +249,4 @@ try {
   }
 }
 
-console.log("web-examples: passed");
+console.log(`web-examples: passed in ${browserName}`);
