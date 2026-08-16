@@ -1,4 +1,5 @@
 import tsParser from "@typescript-eslint/parser";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
 import thresholds from "./complexity-rules.json" with { type: "json" };
 
 const rulesFor = (limits) => ({
@@ -37,6 +38,7 @@ export default [
       parser: tsParser,
       parserOptions: { ecmaVersion: 2022, sourceType: "module" },
     },
+    plugins: { "@typescript-eslint": tsPlugin },
     rules: rulesFor(thresholds.source),
   },
   {

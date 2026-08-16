@@ -41,12 +41,12 @@ module.exports = {
       name: "no-orphans",
       severity: "warn",
       comment:
-        "New source files must be reachable from a package, app, script, or test entry point.",
+        "New source files must be reachable from a package, app, script, or test entry point. Ambient declaration files, Metro web-build stubs, framework plugins/entries, and concatenated bundle inputs are reachable by configuration rather than import and are excluded.",
       from: {
         orphan: true,
         path: "^(packages|apps)/",
         pathNot:
-          "(^|/)(index|main|entry|setup-tripwire|.*\\.test)\\.(ts|tsx|js|mjs)$|\\.gen\\.ts$",
+          "(^|/)(index|main|entry|setup-tripwire|.*\\.test)\\.(ts|tsx|js|mjs)$|\\.gen\\.ts$|\\.d\\.ts$|/stubs/[^/]+\\.web\\.js$|/public/web-core\\.worker\\.js$|/modules/[^/]+/app\\.plugin\\.js$|(^|/)apps/handbook/src/runtime(-applets)?\\.js$",
       },
       to: {},
     },
