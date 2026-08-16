@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "Hard caps on public API surface, one per entry point plus a per-package and repository total. Adding an exported symbol fails `npm run api:check` until the matching number is raised in the same pull request, which is the point: it puts every widening of the public surface in the diff, where it can be argued about. `export * from` is followed transitively, so a barrel cannot hide its size. Run `npm run api:baseline` to recalibrate after an intended change.",
-  "total": 7871,
+  "total": 7874,
   "packages": {
     "app-registry": {
       "total": 57,
@@ -99,11 +99,11 @@
       }
     },
     "reticulum-ts": {
-      "total": 497,
+      "total": 500,
       "entryPoints": {
-        ".": 216,
-        "./web": 84,
-        "./worklet": 197
+        ".": 217,
+        "./web": 85,
+        "./worklet": 198
       }
     },
     "sim-adversaries": {

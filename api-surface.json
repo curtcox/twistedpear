@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "total": 7871,
-  "cap": 7871,
+  "total": 7874,
+  "cap": 7874,
   "packages": 19,
   "entryPoints": 44,
   "unresolved": 0,
@@ -17,11 +17,11 @@
     {
       "name": "reticulum-ts",
       "entryPoints": {
-        ".": 216,
-        "./web": 84,
-        "./worklet": 197
+        ".": 217,
+        "./web": 85,
+        "./worklet": 198
       },
-      "total": 497
+      "total": 500
     },
     {
       "name": "miniapp-runtime",

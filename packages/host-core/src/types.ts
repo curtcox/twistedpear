@@ -239,7 +239,7 @@ export type HostConfigOverrides = {
 };
 
 /** Loopback port the status endpoint binds when no port is configured. */
-export const DEFAULT_STATUS_ENDPOINT_PORT = 9473;
+const DEFAULT_STATUS_ENDPOINT_PORT = 9473;
 
 export const DEFAULT_QUOTAS: HostQuotas = {
   seedStorageBytes: 2 * 1024 * 1024 * 1024,
@@ -255,7 +255,7 @@ export const DEFAULT_DESKTOP_ROLES: HostRoleConfig = {
   attachRnsd: null,
 };
 
-export const DEFAULT_RELAY_CONFIG: HostRelayConfig = {
+const DEFAULT_RELAY_CONFIG: HostRelayConfig = {
   mode: "off",
 };
 

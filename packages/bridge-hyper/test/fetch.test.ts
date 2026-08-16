@@ -15,7 +15,7 @@ import {
   assessFetchBudget,
   BULK_BLOCK_RNODE_BYTES,
   fetchPackage,
-} from "../src/fetch.js";
+} from "../src/core/fetch.js";
 import type { DriveManager } from "../src/drive.js";
 
 function mockIface(name: string, online: boolean): PacketInterface {
