@@ -11,6 +11,12 @@ import {
   MiniappLifecycle,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
+import {
+  anyFailed,
+  compareLatency,
+  countByStatus,
+} from "../../scripts/analysis/latency-benchmark.mjs";
+import { readJson, writeJson } from "../../scripts/ratchet/lib.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const measuredPath = join(
@@ -22,6 +28,20 @@ const ITERATIONS = Number.parseInt(
   10,
 );
 const record = process.env.MINIAPP_BENCHMARK_RECORD === "1";
+
+/**
+ * Every metric this benchmark records, and which way it runs.
+ *
+ * All four are checked. Until 2026-08-15 only `spawnMs` was, which left the two
+ * that bound how fast a runaway mini-app is stopped — `killMs` and
+ * `busyLoopKillMs` — measured, printed, and unasserted.
+ */
+const METRICS = [
+  { metric: "spawnMs", kind: "latency" },
+  { metric: "killMs", kind: "latency" },
+  { metric: "busyLoopKillMs", kind: "latency" },
+  { metric: "watchdogPingsPerSecond", kind: "throughput" },
+];
 
 function nowMs() {
   return performance.now();
@@ -196,19 +216,40 @@ async function main() {
   if (record) {
     writeFileSync(measuredPath, `${JSON.stringify(summary, null, 2)}\n`);
     console.log(`miniapp-benchmark: recorded ${measuredPath}`);
-  } else {
-    const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
-    if (baseline.spawnMs > 0) {
-      const spawnRatio = summary.spawnMs / baseline.spawnMs;
-      if (spawnRatio > 3) {
-        throw new Error(
-          `miniapp spawn regression: ${summary.spawnMs}ms vs baseline ${baseline.spawnMs}ms`,
-        );
-      }
-    }
+    console.log(`miniapp-benchmark: ${JSON.stringify(summary)}`);
+    return;
   }
 
-  console.log(`miniapp-benchmark: ${JSON.stringify(summary)}`);
+  const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
+  const rules = readJson(join(repoRoot, "benchmark-rules.json")).endToEnd;
+  const results = compareLatency(summary, baseline, METRICS, rules);
+
+  writeJson(join(repoRoot, "artifacts/benchmark/miniapp-benchmark.json"), {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    platform: summary.platform,
+    backend: summary.backend,
+    iterations: summary.iterations,
+    baselineMeasuredAt: baseline.measuredAt,
+    failAboveRatio: rules.failAboveRatio,
+    warnAboveRatio: rules.warnAboveRatio,
+    counts: countByStatus(results),
+    results,
+  });
+
+  for (const result of results) {
+    if (result.status === "ok") continue;
+    const line = `${result.metric}: ${result.value} vs baseline ${result.baseline}${result.ratio === null ? "" : ` (${result.ratio}x worse)`}`;
+    if (result.status === "warn") console.warn(`  warn ${line}`);
+    else console.error(`  ${result.status.toUpperCase()} ${line}`);
+  }
+
+  const failed = anyFailed(results);
+  const counts = countByStatus(results);
+  console.log(
+    `miniapp-benchmark: ${failed ? "FAIL" : "PASS"}; ${counts.ok} ok, ${counts.warn} warn, ${counts.fail} fail, ${counts.missing} missing, ${counts.unrecorded} unrecorded (fail above ${rules.failAboveRatio}x).`,
+  );
+  if (failed) process.exitCode = 1;
 }
 
 main().catch((error) => {

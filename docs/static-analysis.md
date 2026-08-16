@@ -370,9 +370,46 @@ everyone to ignore it. Thresholds and the rule for changing a reference live in
 `benchmark-rules.json`.
 
 It is nightly because throughput measured on a shared PR runner alongside forty
-other jobs is noise. The interop `link-benchmark` stays inside the `python-interop`
-CI job: it needs the pinned Docker peers that job provisions, and moving it would
-mean duplicating that provisioning rather than registering a gate.
+other jobs is noise.
+
+### End-to-end latency
+
+`benchmark` covers crypto primitives. Nothing covered the paths a user actually
+waits on, so a 3x regression in link setup or mini-app spawn passed every gate in
+the repository. Two more nightly gates close that: `link-benchmark` (requires
+Docker) measures the handshake to ACTIVE against the `link-echo` peer, and
+`miniapp-benchmark` measures sandbox spawn, kill, watchdog ping rate, and how long
+a busy-loop app survives.
+
+Both runners already existed with a threshold, and neither was reachable by any
+schedule. This section previously recorded a decision not to register
+`link-benchmark`, on the grounds that it needed Docker peers the `python-interop`
+job provisions. That is not so — the runner brings its own `link-echo` service up
+through `withComposeService`, so registering it costs nothing but a nightly job.
+
+Three things were wrong beyond not being registered:
+
+- **`conformance/link-benchmark/measured.json` was all zeros**, and the comparison
+  read `if (baseline.setupP95Ms > 0)`. For over a month the benchmark measured,
+  printed, and asserted nothing. An unrecorded reference now **fails** — "no
+  baseline" and "passing" must not be the same state.
+- **Each runner checked one of the metrics it recorded.** link checked
+  `setupP95Ms` and ignored p50 and max; miniapp checked `spawnMs` and ignored
+  `killMs`, `busyLoopKillMs`, and the watchdog rate — including the two that bound
+  how fast a runaway mini-app is stopped. All seven metrics are now compared.
+- **Neither published anything**, so drift was invisible until the cliff.
+  `artifacts/benchmark/{link,miniapp}-benchmark.json` now carry every measurement
+  against its reference.
+
+Ratios are normalised so **larger is always worse**, whichever way a metric runs: a
+latency ratio of 2 means twice as slow, a throughput ratio of 2 means half as fast.
+One threshold pair in `benchmark-rules.json` (`endToEnd`) then covers both, and a
+reader does not have to remember which direction each metric points. The bands are
+2x fail and 1.4x warn — wider than the crypto gate's, because process spawn, a
+loopback socket, and a Docker peer vary far more on a shared runner than a tight
+crypto loop. The comparison logic is in `scripts/analysis/latency-benchmark.mjs`,
+tested by `conformance/checks/latency-benchmark.test.mjs`, because a nightly gate's
+decision code is otherwise exercised once a day on the happy path.
 
 ## Other source languages and nightly mutation testing
 

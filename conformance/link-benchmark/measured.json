@@ -1,12 +1,15 @@
 {
-  "measuredAt": "2026-07-07",
+  "measuredAt": "2026-08-16",
   "runtime": "node",
   "provider": "pure",
   "peer": "127.0.0.1:4244",
   "iterations": 20,
-  "setupMs": [],
-  "setupP50Ms": 0,
-  "setupP95Ms": 0,
-  "setupMaxMs": 0,
-  "note": "Populated by CI interop job (artifact link-benchmark-measured) or INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark"
+  "setupMs": [
+    25, 12, 11, 16, 12, 10, 12, 11, 11, 10, 16, 14, 12, 10, 11, 11, 12, 12, 12,
+    11
+  ],
+  "setupP50Ms": 12,
+  "setupP95Ms": 16,
+  "setupMaxMs": 25,
+  "note": "Regenerate: INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark. Loopback handshake against the docker link-echo peer, so the numbers are host-dependent; the gate's 2x failure band in benchmark-rules.json is sized for that."
 }

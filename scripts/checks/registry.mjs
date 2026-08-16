@@ -458,6 +458,37 @@ export const gates = [
     ],
     "benchmark",
   ),
+  // End-to-end performance. The `benchmark` gate above covers crypto
+  // primitives; nothing covered the paths a user actually waits on. Both of
+  // these runners existed and had a threshold, and neither was reachable by any
+  // schedule — `test:link-benchmark` compared against a baseline file of all
+  // zeros behind `if (baseline.setupP95Ms > 0)`, so for over a month it
+  // measured, printed, and asserted nothing. A 3x regression in link setup or
+  // mini-app spawn passed every gate in the repository.
+  gate(
+    "link-benchmark",
+    "Link handshake latency drift",
+    "test:link-benchmark",
+    "nightly",
+    ["node", "docker"],
+    [
+      "artifacts/benchmark/link-benchmark.json",
+      "conformance/link-benchmark/measured.json",
+    ],
+    "benchmark",
+  ),
+  gate(
+    "miniapp-benchmark",
+    "Mini-app spawn and watchdog drift",
+    "test:miniapp-benchmark",
+    "nightly",
+    ["node"],
+    [
+      "artifacts/benchmark/miniapp-benchmark.json",
+      "conformance/miniapp-benchmark/measured-desktop.json",
+    ],
+    "benchmark",
+  ),
   gate(
     "sbom",
     "CycloneDX SBOM",

@@ -24,6 +24,25 @@ import {
   LINK_ECHO_PORT,
   waitForReadyLine,
 } from "../scenarios/ts/harness.mjs";
+import {
+  anyFailed,
+  compareLatency,
+  countByStatus,
+} from "../../scripts/analysis/latency-benchmark.mjs";
+import { readJson, writeJson } from "../../scripts/ratchet/lib.mjs";
+
+/**
+ * Every metric this benchmark records.
+ *
+ * All three are checked. Until 2026-08-15 only `setupP95Ms` was — and even that
+ * was guarded by `if (baseline.setupP95Ms > 0)` against a baseline file of all
+ * zeros, so nothing was ever compared.
+ */
+const METRICS = [
+  { metric: "setupP50Ms", kind: "latency" },
+  { metric: "setupP95Ms", kind: "latency" },
+  { metric: "setupMaxMs", kind: "latency" },
+];
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const measuredPath = join(repoRoot, "conformance/link-benchmark/measured.json");
@@ -158,27 +177,49 @@ async function main() {
       setupP50Ms: percentile(setupMs, 50),
       setupP95Ms: percentile(setupMs, 95),
       setupMaxMs: Math.max(...setupMs),
+      note: "Regenerate: INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark. Loopback handshake against the docker link-echo peer, so the numbers are host-dependent; the gate's 2x failure band in benchmark-rules.json is sized for that.",
     };
-
-    if (record) {
-      writeFileSync(measuredPath, `${JSON.stringify(summary, null, 2)}\n`);
-      console.log(`link-benchmark: recorded ${measuredPath}`);
-    } else {
-      const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
-      if (baseline.setupP95Ms > 0) {
-        const ratio = summary.setupP95Ms / baseline.setupP95Ms;
-        if (ratio > 2) {
-          throw new Error(
-            `link setup p95 regression: ${summary.setupP95Ms}ms vs baseline ${baseline.setupP95Ms}ms`,
-          );
-        }
-      }
-    }
 
     console.log(
       `link-benchmark: ${ITERATIONS} handshakes — p50 ${summary.setupP50Ms}ms, ` +
         `p95 ${summary.setupP95Ms}ms, max ${summary.setupMaxMs}ms`,
     );
+
+    if (record) {
+      writeFileSync(measuredPath, `${JSON.stringify(summary, null, 2)}\n`);
+      console.log(`link-benchmark: recorded ${measuredPath}`);
+      return;
+    }
+
+    const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
+    const rules = readJson(join(repoRoot, "benchmark-rules.json")).endToEnd;
+    const results = compareLatency(summary, baseline, METRICS, rules);
+
+    writeJson(join(repoRoot, "artifacts/benchmark/link-benchmark.json"), {
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      peer: summary.peer,
+      iterations: summary.iterations,
+      baselineMeasuredAt: baseline.measuredAt,
+      failAboveRatio: rules.failAboveRatio,
+      warnAboveRatio: rules.warnAboveRatio,
+      counts: countByStatus(results),
+      results,
+    });
+
+    for (const result of results) {
+      if (result.status === "ok") continue;
+      const line = `${result.metric}: ${result.value}ms vs baseline ${result.baseline}ms${result.ratio === null ? "" : ` (${result.ratio}x worse)`}`;
+      if (result.status === "warn") console.warn(`  warn ${line}`);
+      else console.error(`  ${result.status.toUpperCase()} ${line}`);
+    }
+
+    const failed = anyFailed(results);
+    const counts = countByStatus(results);
+    console.log(
+      `link-benchmark: ${failed ? "FAIL" : "PASS"}; ${counts.ok} ok, ${counts.warn} warn, ${counts.fail} fail, ${counts.missing} missing, ${counts.unrecorded} unrecorded (fail above ${rules.failAboveRatio}x).`,
+    );
+    if (failed) process.exitCode = 1;
   });
 }
 
