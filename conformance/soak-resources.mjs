@@ -204,6 +204,85 @@ export function judge(samples, limits) {
 }
 
 /**
+ * Judge samples, write their common artifact, and render one monitor-specific summary.
+ * @param {{id: string, samples: any[], limits: typeof DEFAULTS, write: (line: string) => void, metadata?: Record<string, unknown>, describeGrowth: (growth: ReturnType<typeof judge>["growth"], samples: number) => string}} options
+ */
+export function recordResourceVerdict(options) {
+  const verdict = judge(options.samples, options.limits);
+  const elapsedMs =
+    options.samples.length < 2
+      ? 0
+      : options.samples.at(-1).atMs - options.samples[0].atMs;
+  const output = path.join(
+    ROOT,
+    "artifacts",
+    "soak",
+    `${options.id}-resources.json`,
+  );
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(
+    output,
+    `${JSON.stringify(
+      {
+        version: 1,
+        id: options.id,
+        ...options.metadata,
+        generatedAt: new Date().toISOString(),
+        elapsedMs,
+        limits: options.limits,
+        status: verdict.status,
+        reason: verdict.reason,
+        growth: verdict.growth,
+        findings: verdict.findings,
+        samples: options.samples,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  for (const finding of verdict.findings) options.write(`  ${finding}`);
+  options.write(
+    `[soak] resources ${options.id}: ${verdict.status.toUpperCase()}` +
+      (verdict.growth
+        ? options.describeGrowth(verdict.growth, verdict.samples)
+        : ` — ${verdict.reason}`),
+  );
+  return verdict;
+}
+
+/**
+ * Common sampler lifecycle for in-process and child-process-tree monitors.
+ * @param {{id: string, takeSample: () => any, write?: (line: string) => void, metadata?: Record<string, unknown>, describeGrowth: (growth: ReturnType<typeof judge>["growth"], samples: number) => string}} options
+ */
+export function resourceMonitor(options) {
+  const limits = soakResourceRules();
+  const write = options.write ?? ((line) => console.log(line));
+  const samples = [];
+  const take = () => {
+    const sample = options.takeSample();
+    if (sample !== null) samples.push(sample);
+  };
+  take();
+  const timer = setInterval(take, limits.sampleIntervalMs);
+  timer.unref?.();
+  return {
+    sample: take,
+    finish() {
+      clearInterval(timer);
+      take();
+      return recordResourceVerdict({
+        id: options.id,
+        samples,
+        limits,
+        write,
+        metadata: options.metadata,
+        describeGrowth: options.describeGrowth,
+      });
+    },
+  };
+}
+
+/**
  * Start sampling this process's memory and handle count.
  *
  * `unref`ed so the timer never holds the soak open past its own completion, and
@@ -213,78 +292,23 @@ export function judge(samples, limits) {
  * @param {{id: string, write?: (line: string) => void, now?: () => number}} options
  */
 export function soakResources(options) {
-  const limits = soakResourceRules();
   const now = options.now ?? Date.now;
-  const write = options.write ?? ((line) => console.log(line));
-  const samples = [];
-
-  const take = () => {
-    const memory = process.memoryUsage();
-    samples.push({
-      atMs: now(),
-      rss: memory.rss,
-      heapUsed: memory.heapUsed,
-      external: memory.external,
-      // Handle and request counts are the leak that memory does not show: a
-      // socket or timer retained per reconnect can sit almost entirely outside
-      // the JS heap.
-      handles:
-        (process._getActiveHandles?.().length ?? 0) +
-        (process._getActiveRequests?.().length ?? 0),
-    });
-  };
-
-  take();
-  const timer = setInterval(take, limits.sampleIntervalMs);
-  timer.unref?.();
-
-  return {
-    /** Take an extra sample at a meaningful point, e.g. the end of a cycle. */
-    sample: take,
-
-    /** Stop sampling, write the artifact, and return the verdict. */
-    finish() {
-      clearInterval(timer);
-      take();
-      const verdict = judge(samples, limits);
-      const elapsedMs = (samples.at(-1)?.atMs ?? 0) - (samples[0]?.atMs ?? 0);
-
-      const output = path.join(
-        ROOT,
-        "artifacts",
-        "soak",
-        `${options.id}-resources.json`,
-      );
-      fs.mkdirSync(path.dirname(output), { recursive: true });
-      fs.writeFileSync(
-        output,
-        `${JSON.stringify(
-          {
-            version: 1,
-            id: options.id,
-            generatedAt: new Date().toISOString(),
-            elapsedMs,
-            limits,
-            status: verdict.status,
-            reason: verdict.reason,
-            growth: verdict.growth,
-            findings: verdict.findings,
-            samples,
-          },
-          null,
-          2,
-        )}\n`,
-      );
-
-      for (const finding of verdict.findings) write(`  ${finding}`);
-      const growth = verdict.growth;
-      write(
-        `[soak] resources ${options.id}: ${verdict.status.toUpperCase()}` +
-          (growth
-            ? ` heap ${growth.heapUsedBytesPerMinute}B/min, rss ${growth.rssBytesPerMinute}B/min, handles ${growth.handlesPerMinute}/min over ${verdict.samples} sample(s)`
-            : ` — ${verdict.reason}`),
-      );
-      return verdict;
+  return resourceMonitor({
+    id: options.id,
+    write: options.write,
+    takeSample() {
+      const memory = process.memoryUsage();
+      return {
+        atMs: now(),
+        rss: memory.rss,
+        heapUsed: memory.heapUsed,
+        external: memory.external,
+        handles:
+          (process._getActiveHandles?.().length ?? 0) +
+          (process._getActiveRequests?.().length ?? 0),
+      };
     },
-  };
+    describeGrowth: (growth, count) =>
+      ` heap ${growth.heapUsedBytesPerMinute}B/min, rss ${growth.rssBytesPerMinute}B/min, handles ${growth.handlesPerMinute}/min over ${count} sample(s)`,
+  });
 }

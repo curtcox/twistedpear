@@ -9,6 +9,24 @@
 
 /** @typedef {{ start: { line: number }, end: { line: number } }} Location */
 
+/** @param {string} line */
+function newDiffPath(line) {
+  if (!line.startsWith("+++ ")) return undefined;
+  const named = line.slice(4);
+  return named === "/dev/null" ? null : named.replace(/^b\//, "");
+}
+
+/** @param {Map<string, Set<number>>} changed @param {string} file @param {string} line */
+function addHunk(changed, file, line) {
+  if (!line.startsWith("@@")) return;
+  const match = /\+(\d+)(?:,(\d+))?/.exec(line);
+  if (match === null) return;
+  const start = Number(match[1]);
+  const count = match[2] === undefined ? 1 : Number(match[2]);
+  for (let offset = 0; offset < count; offset += 1)
+    changed.get(file)?.add(start + offset);
+}
+
 /**
  * Parse the new-file line numbers from a unified diff.
  *
@@ -19,19 +37,13 @@ export function changedLinesFromDiff(text) {
   const changed = new Map();
   let file = null;
   for (const line of text.split(/\r?\n/)) {
-    if (line.startsWith("+++ ")) {
-      const named = line.slice(4);
-      file = named === "/dev/null" ? null : named.replace(/^b\//, "");
+    const nextFile = newDiffPath(line);
+    if (nextFile !== undefined) {
+      file = nextFile;
       if (file !== null && !changed.has(file)) changed.set(file, new Set());
       continue;
     }
-    if (file === null || !line.startsWith("@@")) continue;
-    const match = /\+(\d+)(?:,(\d+))?/.exec(line);
-    if (match === null) continue;
-    const start = Number(match[1]);
-    const count = match[2] === undefined ? 1 : Number(match[2]);
-    for (let offset = 0; offset < count; offset += 1)
-      changed.get(file)?.add(start + offset);
+    if (file !== null) addHunk(changed, file, line);
   }
   return changed;
 }
@@ -41,6 +53,41 @@ function intersects(location, changed) {
   for (let line = location.start.line; line <= location.end.line; line += 1)
     if (changed.has(line)) return true;
   return false;
+}
+
+/** @param {Record<string, any>} report @param {Set<number>} lines */
+function statementScore(report, lines) {
+  let total = 0;
+  let covered = 0;
+  for (const [id, location] of Object.entries(report.statementMap ?? {})) {
+    if (!intersects(location, lines)) continue;
+    total += 1;
+    if ((report.s?.[id] ?? 0) > 0) covered += 1;
+  }
+  return { covered, total };
+}
+
+/** @param {Record<string, any>} report @param {Set<number>} lines */
+function branchScore(report, lines) {
+  let total = 0;
+  let covered = 0;
+  for (const [id, branch] of Object.entries(report.branchMap ?? {})) {
+    const hits = report.b?.[id] ?? [];
+    for (const [index, location] of (branch.locations ?? []).entries()) {
+      if (!intersects(location, lines)) continue;
+      total += 1;
+      if ((hits[index] ?? 0) > 0) covered += 1;
+    }
+  }
+  return { covered, total };
+}
+
+/** @param {string} absolute @param {string} normalizedRoot */
+function relativeCoveragePath(absolute, normalizedRoot) {
+  const normalized = absolute.replaceAll("\\", "/");
+  return normalized.startsWith(`${normalizedRoot}/`)
+    ? normalized.slice(normalizedRoot.length + 1)
+    : normalized;
 }
 
 /**
@@ -62,37 +109,15 @@ export function changedCoverage(
   const scores = [];
   const normalizedRoot = root.replaceAll("\\", "/").replace(/\/$/, "");
   for (const [absolute, report] of Object.entries(coverage)) {
-    const normalized = absolute.replaceAll("\\", "/");
-    const relative = normalized.startsWith(`${normalizedRoot}/`)
-      ? normalized.slice(normalizedRoot.length + 1)
-      : normalized;
+    const relative = relativeCoveragePath(absolute, normalizedRoot);
     const lines = changed.get(relative);
     if (lines === undefined || isGenerated(relative) || exempt[relative])
       continue;
 
-    let statementTotal = 0;
-    let statementCovered = 0;
-    for (const [id, location] of Object.entries(report.statementMap ?? {})) {
-      if (!intersects(location, lines)) continue;
-      statementTotal += 1;
-      if ((report.s?.[id] ?? 0) > 0) statementCovered += 1;
-    }
-
-    let branchTotal = 0;
-    let branchCovered = 0;
-    for (const [id, branch] of Object.entries(report.branchMap ?? {})) {
-      const hits = report.b?.[id] ?? [];
-      for (const [index, location] of (branch.locations ?? []).entries()) {
-        if (!intersects(location, lines)) continue;
-        branchTotal += 1;
-        if ((hits[index] ?? 0) > 0) branchCovered += 1;
-      }
-    }
-
     scores.push({
       path: relative,
-      statements: { covered: statementCovered, total: statementTotal },
-      branches: { covered: branchCovered, total: branchTotal },
+      statements: statementScore(report, lines),
+      branches: branchScore(report, lines),
     });
   }
   return scores.sort((left, right) => left.path.localeCompare(right.path));

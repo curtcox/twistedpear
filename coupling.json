@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1197,
+  "modules": 1205,
   "components": 24,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 254,
+      "modules": 255,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,
@@ -49,7 +49,7 @@
     },
     {
       "id": "scripts",
-      "modules": 172,
+      "modules": 179,
       "ca": 1,
       "ce": 9,
       "instability": 0.9,

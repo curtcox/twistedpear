@@ -1,12 +1,8 @@
 /** Resource-growth sampling for a soak whose system under test is a child process tree. */
 import fs from "node:fs";
-import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 
-import { judge, soakResourceRules } from "./soak-resources.mjs";
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+import { resourceMonitor } from "./soak-resources.mjs";
 
 /** @param {string} output */
 export function parseProcessTable(output) {
@@ -105,63 +101,18 @@ export function takeProcessTreeSample(options) {
  * @param {{id: string, rootPid: number, includeRoot?: boolean, write?: (line: string) => void, now?: () => number}} options
  */
 export function childProcessResources(options) {
-  const limits = soakResourceRules();
-  const write = options.write ?? ((line) => console.log(line));
-  const samples = [];
-  const take = () => {
-    const sample = takeProcessTreeSample(options);
-    if (sample !== null) samples.push(sample);
-  };
-  take();
-  const timer = setInterval(take, limits.sampleIntervalMs);
-  timer.unref?.();
-
-  return {
-    sample: take,
-    finish() {
-      clearInterval(timer);
-      take();
-      const verdict = judge(samples, limits);
-      const elapsedMs =
-        samples.length < 2 ? 0 : samples.at(-1).atMs - samples[0].atMs;
-      const output = path.join(
-        ROOT,
-        "artifacts",
-        "soak",
-        `${options.id}-resources.json`,
-      );
-      fs.mkdirSync(path.dirname(output), { recursive: true });
-      fs.writeFileSync(
-        output,
-        `${JSON.stringify(
-          {
-            version: 1,
-            id: options.id,
-            source: "process-tree",
-            rootPid: options.rootPid,
-            includeRoot: options.includeRoot ?? true,
-            generatedAt: new Date().toISOString(),
-            elapsedMs,
-            limits,
-            status: verdict.status,
-            reason: verdict.reason,
-            growth: verdict.growth,
-            findings: verdict.findings,
-            samples,
-          },
-          null,
-          2,
-        )}\n`,
-      );
-      for (const finding of verdict.findings) write(`  ${finding}`);
-      const growth = verdict.growth;
-      write(
-        `[soak] resources ${options.id}: ${verdict.status.toUpperCase()}` +
-          (growth
-            ? ` process-tree rss ${growth.rssBytesPerMinute}B/min, descriptors ${growth.handlesPerMinute}/min over ${verdict.samples} sample(s)`
-            : ` — ${verdict.reason}`),
-      );
-      return verdict;
+  return resourceMonitor({
+    id: options.id,
+    write: options.write,
+    takeSample() {
+      return takeProcessTreeSample(options);
     },
-  };
+    metadata: {
+      source: "process-tree",
+      rootPid: options.rootPid,
+      includeRoot: options.includeRoot ?? true,
+    },
+    describeGrowth: (growth, count) =>
+      ` process-tree rss ${growth.rssBytesPerMinute}B/min, descriptors ${growth.handlesPerMinute}/min over ${count} sample(s)`,
+  });
 }
