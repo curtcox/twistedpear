@@ -116,25 +116,17 @@ function measure(manifest) {
   );
 }
 
-const recorded = readJson(RATCHET, { crates: {}, tolerance: 0.5 });
-const tolerance = recorded.tolerance ?? 0.5;
-const measured = {};
-for (const manifest of manifests())
-  measured[path.dirname(manifest)] = measure(manifest);
-
-if (Object.keys(measured).length === 0) {
-  // The same rule `test.mjs` applies: a gate that finds nothing to measure is
-  // how a suite disappears unnoticed.
-  console.error(
-    `${language}: no crates found to measure; expected at least one.`,
-  );
-  process.exit(1);
-}
-
-if (write) {
+/**
+ * New floors, refusing to lower one without saying so.
+ *
+ * @param {Record<string, Record<string, number>>} measured
+ * @param {Record<string, Record<string, number>>} floors
+ * @param {number} tolerance
+ */
+function nextFloors(measured, floors, tolerance) {
   const crates = {};
   for (const [crate, percentages] of Object.entries(measured)) {
-    const floor = recorded.crates?.[crate] ?? {};
+    const floor = floors[crate] ?? {};
     crates[crate] = Object.fromEntries(
       METRICS.map((metric) => {
         const now = percentages[metric];
@@ -147,61 +139,96 @@ if (write) {
       }),
     );
   }
-  writeJson(RATCHET, {
-    version: 1,
-    description:
-      "Per-crate Rust coverage floors from cargo llvm-cov. Values may only rise. Branch coverage is absent on purpose: llvm-cov needs an unstable flag for it and reports 0 on the pinned stable toolchain, and a floor that can never move looks like a floor without being one. Regions are the stable stand-in.",
-    tolerance,
-    crates,
-  });
-  console.log(
-    `${language} coverage: wrote floors for ${Object.keys(crates).length} crate(s).`,
-  );
-  process.exit(0);
+  return crates;
 }
 
-const findings = [];
-for (const [crate, floors] of Object.entries(recorded.crates ?? {})) {
-  const percentages = measured[crate];
-  // A crate that vanished from the measurement while keeping a floor is the
-  // failure worth catching: renaming or dropping a crate would otherwise remove
-  // its floor silently, and every remaining number would still look fine.
-  if (!percentages) {
-    findings.push(
-      `${crate}: has a recorded floor but was not measured. If the crate moved, re-baseline; if it was deleted, say so in the same change.`,
-    );
-    continue;
-  }
-  for (const metric of METRICS)
-    if (percentages[metric] + tolerance < (floors[metric] ?? 0))
+/**
+ * Every crate that is below its floor, plus every crate that has one and was
+ * not measured at all — renaming or dropping a crate would otherwise retire its
+ * floor in silence, and the remaining numbers would still look fine.
+ *
+ * @param {Record<string, Record<string, number>>} measured
+ * @param {Record<string, Record<string, number>>} floors
+ * @param {number} tolerance
+ * @returns {string[]}
+ */
+function shortfalls(measured, floors, tolerance) {
+  const findings = [];
+  for (const [crate, crateFloors] of Object.entries(floors)) {
+    const percentages = measured[crate];
+    if (!percentages) {
       findings.push(
-        `${crate} ${metric}: ${percentages[metric]}% < floor ${floors[metric]}%`,
+        `${crate}: has a recorded floor but was not measured. If the crate moved, re-baseline; if it was deleted, say so in the same change.`,
       );
+      continue;
+    }
+    for (const metric of METRICS)
+      if (percentages[metric] + tolerance < (crateFloors[metric] ?? 0))
+        findings.push(
+          `${crate} ${metric}: ${percentages[metric]}% < floor ${crateFloors[metric]}%`,
+        );
+  }
+  return findings;
 }
 
-const output = path.join(
-  ROOT,
-  "artifacts",
-  "languages",
-  `${language}-coverage.json`,
-);
-fs.mkdirSync(path.dirname(output), { recursive: true });
-writeJson(output, {
-  version: 1,
-  language,
-  generatedAt: new Date().toISOString(),
-  tolerance,
-  crates: measured,
-  findings,
-});
+function main() {
+  const recorded = readJson(RATCHET, { crates: {}, tolerance: 0.5 });
+  const tolerance = recorded.tolerance ?? 0.5;
+  const measured = {};
+  for (const manifest of manifests())
+    measured[path.dirname(manifest)] = measure(manifest);
 
-for (const finding of findings) console.error(`  ${finding}`);
-const summary = Object.entries(measured)
-  .map(
-    ([crate, percentages]) => `${path.basename(crate)} ${percentages.lines}%`,
-  )
-  .join(", ");
-console.log(
-  `${language} coverage: ${findings.length === 0 ? "PASS" : "FAIL"}; ${Object.keys(measured).length} crate(s) — ${summary}.`,
-);
-process.exit(findings.length === 0 ? 0 : 1);
+  if (Object.keys(measured).length === 0) {
+    // The same rule `test.mjs` applies: a gate that finds nothing to measure is
+    // how a suite disappears unnoticed.
+    console.error(
+      `${language}: no crates found to measure; expected at least one.`,
+    );
+    return 1;
+  }
+
+  if (write) {
+    const crates = nextFloors(measured, recorded.crates ?? {}, tolerance);
+    writeJson(RATCHET, {
+      version: 1,
+      description:
+        "Per-crate Rust coverage floors from cargo llvm-cov. Values may only rise. Branch coverage is absent on purpose: llvm-cov needs an unstable flag for it and reports 0 on the pinned stable toolchain, and a floor that can never move looks like a floor without being one. Regions are the stable stand-in.",
+      tolerance,
+      crates,
+    });
+    console.log(
+      `${language} coverage: wrote floors for ${Object.keys(crates).length} crate(s).`,
+    );
+    return 0;
+  }
+
+  const findings = shortfalls(measured, recorded.crates ?? {}, tolerance);
+  const output = path.join(
+    ROOT,
+    "artifacts",
+    "languages",
+    `${language}-coverage.json`,
+  );
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  writeJson(output, {
+    version: 1,
+    language,
+    generatedAt: new Date().toISOString(),
+    tolerance,
+    crates: measured,
+    findings,
+  });
+
+  for (const finding of findings) console.error(`  ${finding}`);
+  const summary = Object.entries(measured)
+    .map(
+      ([crate, percentages]) => `${path.basename(crate)} ${percentages.lines}%`,
+    )
+    .join(", ");
+  console.log(
+    `${language} coverage: ${findings.length === 0 ? "PASS" : "FAIL"}; ${Object.keys(measured).length} crate(s) — ${summary}.`,
+  );
+  return findings.length === 0 ? 0 : 1;
+}
+
+process.exit(main());

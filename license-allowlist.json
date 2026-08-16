@@ -1,13 +1,14 @@
 {
   "version": 1,
-  "description": "Approved dependency SPDX licenses. Every term in an AND branch must be approved; an expression passes when at least one OR branch passes. Nonstandard expressions are ratcheted separately. LGPL-3.0-only is listed because eslint-plugin-sonarjs is the cognitive-complexity survey engine.",
+  "description": "Approved dependency SPDX licenses. Every term in an AND branch must be approved; an expression passes when at least one OR branch passes. Nonstandard expressions are ratcheted separately. LGPL-3.0-only is listed because eslint-plugin-sonarjs is the cognitive-complexity survey engine. CC-BY-SA-4.0 is listed for cspell's bundled misspellings dictionary: it is a share-alike licence on a data file, and it is approved here only because that file is a development dependency that no shipped artifact contains or adapts. A CC-BY-SA dependency that reached a released binary would need a fresh decision, not this one.",
   "allowed": [
     "0BSD",
     "Apache-2.0",
+    "BlueOak-1.0.0",
     "BSD-2-Clause",
     "BSD-3-Clause",
-    "BlueOak-1.0.0",
     "CC-BY-4.0",
+    "CC-BY-SA-4.0",
     "CC0-1.0",
     "ISC",
     "LGPL-3.0-only",
@@ -15,11 +16,15 @@
     "MIT-0",
     "MPL-2.0",
     "Python-2.0",
-    "Unlicense",
     "Unicode-3.0",
+    "Unlicense",
     "WTFPL"
   ],
   "overrides": {
+    "@cspell/dict-en-common-misspellings@2.2.0": {
+      "license": "CC-BY-SA-4.0",
+      "reason": "Package metadata uses the non-SPDX spelling 'CC BY-SA 4.0'."
+    },
     "@freenetorg/freenet-stdlib@0.3.0": {
       "license": "MIT OR Apache-2.0",
       "reason": "Package metadata uses the non-SPDX shorthand MIT+APACHE-2.0."

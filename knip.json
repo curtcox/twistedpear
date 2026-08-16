@@ -51,6 +51,7 @@
     "bare-os",
     "bare-process",
     "bare-runtime",
+    "cspell",
     "jscpd",
     "mermaid",
     "opusscript",

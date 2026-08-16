@@ -6,11 +6,11 @@
     "kotlin",
     "swift"
   ],
-  "files": 574,
-  "functions": 6690,
-  "groups": 4119,
+  "files": 592,
+  "functions": 6853,
+  "groups": 4187,
   "exemptions": 92,
-  "violations": 0,
+  "violations": 1,
   "stale": 0,
   "findings": [
     {
@@ -373,7 +373,7 @@
       "key": "conformance/mixed-network-soak/run.mjs::main",
       "file": "conformance/mixed-network-soak/run.mjs",
       "name": "main",
-      "line": 144,
+      "line": 145,
       "tier": "tooling",
       "ccn": 21,
       "pinned": {
@@ -439,7 +439,7 @@
       "key": "conformance/dist-soak/run.mjs::main",
       "file": "conformance/dist-soak/run.mjs",
       "name": "main",
-      "line": 112,
+      "line": 113,
       "tier": "tooling",
       "ccn": 19,
       "pinned": {
@@ -456,6 +456,15 @@
       "pinned": {
         "ccn": 19
       }
+    },
+    {
+      "key": "scripts/analysis/mutation.mjs::main",
+      "file": "scripts/analysis/mutation.mjs",
+      "name": "main",
+      "line": 289,
+      "tier": "tooling",
+      "ccn": 19,
+      "pinned": null
     },
     {
       "key": "scripts/peers.mjs::commandStatus",
