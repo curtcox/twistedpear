@@ -410,6 +410,21 @@ export const gates = [
     ["artifacts/rust-fuzz/rust-fuzz.json"],
     "rust-fuzz",
   ),
+  // Whether the tests can be trusted, rather than whether the code is right.
+  // Nothing measured this: `vitest.config.ts` sets no retry and no repeats, and
+  // nothing reran a suite to compare, so a test passing 90% of the time was
+  // indistinguishable from a passing one and flakes surfaced as random red CI
+  // that someone re-ran by hand. Nightly because the honest form of this check
+  // is running the whole suite several times, and the PR tier already pays for
+  // it once.
+  gate(
+    "flake",
+    "Unit-suite flake detection",
+    "flake:check",
+    "nightly",
+    ["node"],
+    ["artifacts/flake/flake.json", "flake-ratchet.json"],
+  ),
   gate(
     "audit",
     "Dependency advisory scan",

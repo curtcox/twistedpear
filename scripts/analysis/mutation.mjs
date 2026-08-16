@@ -35,7 +35,7 @@ const allowRegressions = process.argv.includes("--allow-regressions");
 const DESCRIPTION =
   "Mutation score floors: one per mutated package, plus the combined figure across all of them. All may only rise. Per-package floors exist because a single number let one package's regression hide behind another's improvement — packages/protocol carries 25040 of the 27321 mutants, so packages/effects could fall 22 points and move the combined score by under two. The combined floor is kept as well, because per-package floors alone would let the overall score drift as the mix of mutants changes.";
 
-if (run) {
+function runSurvey() {
   // Stryker runs the vitest suite once per mutant, and vitest's GitHub Actions
   // reporter appends a job summary on every run. Left alone that accumulates
   // megabytes and GitHub discards the whole summary ("upload aborted, supports
@@ -195,75 +195,102 @@ export function comparePolicy(current, previous) {
   return failures;
 }
 
-const report = readJson(
-  path.join(ROOT, "reports/mutation/mutation.json"),
-  null,
-);
-const baselineFile = path.join(ROOT, "mutation-ratchet.json");
-const baseline = readJson(baselineFile);
-const scores = scoresFrom(report);
+/**
+ * Everything below is the gate; everything above is the logic it uses.
+ *
+ * The split matters because `conformance/checks/mutation-floors.test.mjs`
+ * imports the functions above, and without this guard that import *ran the
+ * gate* — reading whatever report happened to be on disk, comparing it to the
+ * committed floors, and calling `process.exit(1)` from inside a Vitest worker
+ * when it did not like the answer. It passed only because the report a clean
+ * checkout carries happens to satisfy the floors; a partial report from a
+ * scoped run (`MUTATION_PACKAGES=cas-256t`) takes down the test file, `vitest
+ * list`, and with it the census gate, none of which have anything to do with
+ * mutation scores.
+ */
+const executedDirectly =
+  process.argv[1] !== undefined &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-if (write) {
-  if (scores === null) {
-    console.error(
-      "Mutation ratchet: no usable report at reports/mutation/mutation.json — run npm run mutation first.",
+if (!executedDirectly) {
+  // Imported for the functions above. Nothing else to do.
+} else {
+  main();
+}
+
+function main() {
+  if (run) runSurvey();
+
+  const report = readJson(
+    path.join(ROOT, "reports/mutation/mutation.json"),
+    null,
+  );
+  const baselineFile = path.join(ROOT, "mutation-ratchet.json");
+  const baseline = readJson(baselineFile);
+  const scores = scoresFrom(report);
+
+  if (write) {
+    if (scores === null) {
+      console.error(
+        "Mutation ratchet: no usable report at reports/mutation/mutation.json — run npm run mutation first.",
+      );
+      process.exit(1);
+    }
+    const failures = compareScores(scores, baseline);
+    if (failures.length > 0 && !allowRegressions) {
+      console.error("Refusing to record a baseline that lowers a floor:");
+      for (const failure of failures) console.error(`  ${failure}`);
+      process.exit(1);
+    }
+    writeJson(baselineFile, {
+      version: 1,
+      description: DESCRIPTION,
+      combined: scores.combined,
+      packages: Object.fromEntries(
+        Object.entries(scores.packages).map(([name, value]) => [
+          name,
+          value.score,
+        ]),
+      ),
+    });
+    console.log(
+      `Mutation ratchet: wrote combined ${scores.combined} and ${Object.keys(scores.packages).length} package floor(s).`,
     );
-    process.exit(1);
+    process.exit(0);
   }
-  const failures = compareScores(scores, baseline);
-  if (failures.length > 0 && !allowRegressions) {
-    console.error("Refusing to record a baseline that lowers a floor:");
+
+  const failures = scores === null ? [] : compareScores(scores, baseline);
+
+  const ref = baseRef(ROOT, "MUTATION_RATCHET_BASE_REF");
+  const previous = ref ? jsonAtRef(ROOT, ref, "mutation-ratchet.json") : null;
+  failures.push(...comparePolicy(baseline, previous));
+
+  if (scores === null) {
+    console.log(
+      `Mutation ratchet: no survey report; floors are combined ${baseline.combined}%, ${Object.entries(
+        baseline.packages ?? {},
+      )
+        .map(([name, floor]) => `${name} ${floor}%`)
+        .join(", ")}.`,
+    );
+  } else {
+    console.log(
+      `Mutation ratchet: combined ${scores.combined}% against a ${baseline.combined}% floor.`,
+    );
+    for (const [name, value] of Object.entries(scores.packages)) {
+      console.log(
+        `  ${name}: ${value.score}% against ${
+          baseline.packages?.[name] === undefined
+            ? "no recorded"
+            : `${baseline.packages[name]}%`
+        } floor; ${value.killed} killed, ${value.survived} survived/no-coverage.`,
+      );
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error("");
     for (const failure of failures) console.error(`  ${failure}`);
     process.exit(1);
   }
-  writeJson(baselineFile, {
-    version: 1,
-    description: DESCRIPTION,
-    combined: scores.combined,
-    packages: Object.fromEntries(
-      Object.entries(scores.packages).map(([name, value]) => [
-        name,
-        value.score,
-      ]),
-    ),
-  });
-  console.log(
-    `Mutation ratchet: wrote combined ${scores.combined} and ${Object.keys(scores.packages).length} package floor(s).`,
-  );
-  process.exit(0);
-}
-
-const failures = scores === null ? [] : compareScores(scores, baseline);
-
-const ref = baseRef(ROOT, "MUTATION_RATCHET_BASE_REF");
-const previous = ref ? jsonAtRef(ROOT, ref, "mutation-ratchet.json") : null;
-failures.push(...comparePolicy(baseline, previous));
-
-if (scores === null) {
-  console.log(
-    `Mutation ratchet: no survey report; floors are combined ${baseline.combined}%, ${Object.entries(
-      baseline.packages ?? {},
-    )
-      .map(([name, floor]) => `${name} ${floor}%`)
-      .join(", ")}.`,
-  );
-} else {
-  console.log(
-    `Mutation ratchet: combined ${scores.combined}% against a ${baseline.combined}% floor.`,
-  );
-  for (const [name, value] of Object.entries(scores.packages)) {
-    console.log(
-      `  ${name}: ${value.score}% against ${
-        baseline.packages?.[name] === undefined
-          ? "no recorded"
-          : `${baseline.packages[name]}%`
-      } floor; ${value.killed} killed, ${value.survived} survived/no-coverage.`,
-    );
-  }
-}
-
-if (failures.length > 0) {
-  console.error("");
-  for (const failure of failures) console.error(`  ${failure}`);
-  process.exit(1);
 }

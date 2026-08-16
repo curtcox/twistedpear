@@ -19,6 +19,8 @@
     "actions:check": "node scripts/security/actions-pinned.mjs",
     "actions:pin": "node scripts/security/pin-actions.mjs",
     "provenance:check": "node scripts/security/provenance.mjs",
+    "flake:check": "node scripts/analysis/flake.mjs",
+    "flake:baseline": "node scripts/analysis/flake.mjs --write",
     "harness-mobile:typecheck": "npm run typecheck --workspace=harness-mobile",
     "test": "vitest run",
     "test:watch": "vitest",

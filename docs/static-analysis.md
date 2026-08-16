@@ -411,6 +411,38 @@ crypto loop. The comparison logic is in `scripts/analysis/latency-benchmark.mjs`
 tested by `conformance/checks/latency-benchmark.test.mjs`, because a nightly gate's
 decision code is otherwise exercised once a day on the happy path.
 
+## Flake detection
+
+Every other gate here asks whether the code is right. `flake`
+(`npm run flake:check`, nightly) asks whether the tests are trustworthy, which
+nothing did: `vitest.config.ts` sets no `retry` and no repeats, and nothing reran a
+suite to compare. A test that passes 90% of the time is indistinguishable from a
+passing test, so flakes surfaced as random red CI that someone re-ran by hand — and
+a re-run that goes green is indistinguishable from a fix.
+
+The suite is run three times as **separate processes** rather than through a repeat
+flag. Repeating inside one process catches only within-process nondeterminism;
+separate processes also catch state leaking between runs through the filesystem, a
+port, or a module-level cache, which is the likelier shape here given how much of
+this repository touches sockets and stores. Three is the smallest number that can
+tell a flake from a straight failure — two runs disagreeing says something is
+unstable but not which outcome is unusual — and at roughly forty seconds a run that
+is two minutes. `--runs=` raises it for a hunt.
+
+A test is unstable when its status is not identical in every run, **including**
+being present in some runs and absent from others. A test that fails to register
+protects nothing and is invisible to a pass/fail count, so `absent` is compared like
+any other status. Findings go in `flake-ratchet.json` through the same
+`compareDiagnosticSet` machinery as the other finding baselines; unlike those, this
+one is expected to stay empty, because an entry is a test that cannot be trusted to
+mean anything. The first run over 2819 tests found none.
+
+`flake-rules.json` also carries a `shuffle` switch, off by default. Shuffling finds
+order-dependent tests, which are real bugs and exactly what this gate should catch,
+but enabling it at the same time as introducing the gate would mix two signals in
+the first result. It is a one-line change now that the unshuffled baseline is known
+to be empty.
+
 ## Other source languages and nightly mutation testing
 
 Independent Rust, shell, Python, Kotlin, and Swift entries run the pinned external tools

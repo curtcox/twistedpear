@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T03:34:17.798Z",
+  "generatedAt": "2026-08-16T03:46:26.612Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -20,6 +20,7 @@
       "differential-fuzz tier=pr run=test:differential-fuzz",
       "doc-audit tier=pr run=test:doc-audit",
       "file-sizes tier=pr run=sizes",
+      "flake tier=nightly run=flake:check",
       "formal tier=pr run=test:formal",
       "format tier=pr run=format:check",
       "fuzz tier=pr run=test:fuzz",
@@ -250,6 +251,7 @@
       "complexity:check",
       "coupling:check",
       "coverage:check",
+      "flake:check",
       "format:check",
       "jscpd:check",
       "licenses:check",
@@ -487,10 +489,10 @@
     "floor:mutation:packages/protocol": 71.7,
     "floor:mutation:score": 70.06,
     "floor:sansio:protocol-roots": 5,
-    "gates:nightly": 10,
+    "gates:nightly": 11,
     "gates:pr": 41,
     "gates:release": 1,
-    "scripts:quality": 156,
+    "scripts:quality": 157,
     "skips:suppressed-tests": 1,
     "test-files:apps/handbook": 2,
     "test-files:apps/harness-mobile": 3,

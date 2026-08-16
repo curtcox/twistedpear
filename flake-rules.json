@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "Policy for the flake gate, which reruns the unit suite and compares per-test outcomes. Findings live in flake-ratchet.json; this file holds only how the reruns are performed.",
+  "runs": 3,
+  "shuffle": false,
+  "rationale": "Three runs is the smallest number that can distinguish a flake from a fail: two runs disagreeing tells you something is unstable but not which outcome is the unusual one, and the suite takes about forty seconds, so three is two minutes. Raising it finds rarer flakes at linear cost — the nightly gate is the right place to spend that, and `--runs=` overrides it for a hunt.",
+  "shuffleRationale": "File order is left alone by default. Shuffling finds order-dependent tests, which are real bugs and exactly the kind this gate should catch, but turning it on at the same time as introducing the gate would mix two different signals in the first result. It is a one-line change here once the unshuffled baseline is known to be empty."
+}

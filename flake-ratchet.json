@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Tests observed to change status across repeated runs of the unit suite. This baseline should be empty: an entry is a test that cannot be trusted to mean anything, and it may only shrink.",
+  "entries": []
+}
