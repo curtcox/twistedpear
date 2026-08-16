@@ -65,7 +65,7 @@ jobs:
         # network for it at all; `restore-keys` deliberately accepts a cache
         # from a different lockfile, since any warm cache already holds the
         # plugin marker this is protecting.
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
