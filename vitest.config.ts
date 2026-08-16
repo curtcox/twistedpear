@@ -30,6 +30,7 @@ export default defineConfig({
             "packages/*/test/**/*.test.ts",
             "packages/*/test/**/*.test.tsx",
             "apps/harness-mobile/test/**/*.test.ts",
+            "apps/host-desktop/test/**/*.test.ts",
             "apps/handbook/test/**/*.test.mjs",
             "conformance/mac-validation/**/*.test.mjs",
             "conformance/release-harness/**/*.test.mjs",

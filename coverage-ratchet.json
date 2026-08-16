@@ -14,9 +14,9 @@
       "functions": 2.71
     },
     "apps/host-desktop": {
-      "statements": 0.2,
-      "branches": 0.45,
-      "functions": 0.3
+      "statements": 3.07,
+      "branches": 2.84,
+      "functions": 4.98
     },
     "packages/app-registry": {
       "statements": 74.77,
@@ -39,9 +39,9 @@
       "functions": 91.89
     },
     "packages/cli": {
-      "statements": 38.18,
-      "branches": 37.11,
-      "functions": 46.15
+      "statements": 43.28,
+      "branches": 44.22,
+      "functions": 51.92
     },
     "packages/effects": {
       "statements": 82.85,
@@ -59,8 +59,8 @@
       "functions": 79.52
     },
     "packages/miniapp-runtime": {
-      "statements": 64.31,
-      "branches": 58.56,
+      "statements": 64.33,
+      "branches": 58.61,
       "functions": 65.13
     },
     "packages/miniapp-sdk": {
