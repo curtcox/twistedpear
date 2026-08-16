@@ -73,9 +73,15 @@ describe("census comparison", () => {
 });
 
 describe("census invariants", () => {
-  const withJobs = (jobs, gating, focusedTests = []) => ({
+  const withJobs = (
+    jobs,
+    gating,
+    focusedTests = [],
+    uncollectedTests = [],
+  ) => ({
     members: { ciJobs: jobs, ciGating: gating },
     focusedTests,
+    uncollectedTests,
   });
 
   it("fails a CI job that no branch-protection check waits for", () => {
@@ -106,6 +112,15 @@ describe("census invariants", () => {
     );
     expect(found).toHaveLength(1);
     expect(found[0]).toContain(".only");
+  });
+
+  it("fails a test file no vitest project collects", () => {
+    const found = invariants(
+      withJobs([], [], [], ["conformance/orphan/orphan.test.mjs"]),
+      {},
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0]).toContain("vitest.config.ts");
   });
 });
 
@@ -148,6 +163,7 @@ describe("census baseline", () => {
             ciGating: [].concat(ci.jobs["ci-green"].needs),
           },
           focusedTests: [],
+          uncollectedTests: [],
         },
         rules,
       ),

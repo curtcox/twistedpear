@@ -143,6 +143,84 @@ function testInventory(root) {
   };
 }
 
+/** Test files, by extension Vitest is configured to load. */
+const TEST_FILE = /\.test\.(?:ts|tsx|mjs|cjs|js)$/;
+
+/**
+ * Files matched by some project's `include` globs, whatever they declare.
+ *
+ * Deliberately not `tests.files`, which is the set of files that *reported a
+ * test*. Those differ, and conflating them accuses the wrong files: both
+ * `interop.test.ts` suites declare nothing unless `INTEROP=1`, and
+ * `conformance/ui-invariants` is a single `it.skip` placeholder. All three are
+ * included by a project and run exactly as intended; none of them appear in a
+ * collected-test list. `--filesOnly` asks the question actually being asked —
+ * would Vitest load this file — and stops at resolution, so it is also the
+ * cheaper of the two runs.
+ *
+ * @param {string} root
+ * @returns {Set<string>} repository-relative paths
+ */
+function includedTestFiles(root) {
+  const output = path.join(root, "artifacts", "census", "test-files.json");
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  const listed = spawnSync(
+    process.execPath,
+    [
+      "node_modules/vitest/vitest.mjs",
+      "list",
+      "--filesOnly",
+      `--json=${output}`,
+    ],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  if (listed.status !== 0) {
+    process.stderr.write(listed.stderr ?? "");
+    throw new Error(
+      `vitest could not resolve its test files (exit ${listed.status}); the census cannot tell which files are included.`,
+    );
+  }
+  /** @type {{file: string, projectName: string}[]} */
+  const files = readJson(output);
+  return new Set(files.map((entry) => path.relative(root, entry.file)));
+}
+
+/**
+ * Test files that exist in the tree but that no Vitest project includes.
+ *
+ * `vitest.config.ts` names its `include` globs one directory at a time —
+ * `conformance/ui-invariants/**`, `conformance/checks/**`, and seventeen more.
+ * That list is maintained by hand, so a new `conformance/<thing>/x.test.mjs`
+ * is not a failing test: it is not a test at all. Nothing else notices.
+ * `test-files:total` cannot, because it counts what Vitest loaded, and an
+ * orphan was never in that number to fall out of it — the count simply does
+ * not rise, which is indistinguishable from writing no tests that week.
+ *
+ * Tracked files only, so `dist/`, `node_modules/`, and scratch output cannot
+ * report themselves as uncollected tests.
+ *
+ * @param {string} root
+ * @returns {string[]} repository-relative paths, sorted
+ */
+function uncollectedTests(root) {
+  const included = includedTestFiles(root);
+  const listed = spawnSync("git", ["ls-files", "-z", "--", "*.test.*"], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (listed.status !== 0)
+    throw new Error(
+      `git ls-files failed (exit ${listed.status}); the census cannot tell which test files exist.`,
+    );
+  return listed.stdout
+    .split("\0")
+    .filter(
+      (file) => file !== "" && TEST_FILE.test(file) && !included.has(file),
+    )
+    .sort();
+}
+
 /**
  * Suppressed and focused tests. A suite can be hollowed out without deleting a
  * line of it, and `.only` silently drops every sibling test in its file.
@@ -326,5 +404,6 @@ export function collect(root) {
     members,
     counts,
     focusedTests: suppressions.focused.map((file) => path.relative(root, file)),
+    uncollectedTests: uncollectedTests(root),
   };
 }

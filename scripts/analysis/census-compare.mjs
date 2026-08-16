@@ -55,9 +55,11 @@ export function regressions(prior, current, source) {
  * nothing — it burns CI minutes to produce a result no branch protection reads.
  * actionlint catches the opposite mistake, a `needs` naming a job that does not
  * exist; nothing catches this one. A focused test silently skips every other
- * test in its file, which is a large, invisible drop in what runs.
+ * test in its file, which is a large, invisible drop in what runs. A test file
+ * no Vitest project collects is the same loss carried further: the file is
+ * reviewed, committed, and never executed.
  *
- * @param {Census & {focusedTests: string[]}} current
+ * @param {Census & {focusedTests: string[], uncollectedTests: string[]}} current
  * @param {{nonGatingJobs?: {job: string, reason: string}[]}} rules
  * @returns {string[]}
  */
@@ -78,6 +80,10 @@ export function invariants(current, rules) {
     ...current.focusedTests.map(
       (file) =>
         `${file}: a focused test (.only) silently skips every other test in its file.`,
+    ),
+    ...current.uncollectedTests.map(
+      (file) =>
+        `${file}: no vitest project collects this file, so none of its tests run. Add its directory to the include globs in vitest.config.ts.`,
     ),
   ];
 }

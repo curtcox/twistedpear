@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T07:30:03.204Z",
+  "generatedAt": "2026-08-16T12:53:38.765Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -538,7 +538,7 @@
     "tests:apps/handbook": 34,
     "tests:apps/harness-mobile": 16,
     "tests:apps/host-desktop": 24,
-    "tests:conformance/checks": 144,
+    "tests:conformance/checks": 145,
     "tests:conformance/cookbook": 58,
     "tests:conformance/cross-device-dev": 5,
     "tests:conformance/desktop": 4,
@@ -571,7 +571,7 @@
     "tests:packages/widget-renderer-headless": 70,
     "tests:packages/widget-renderer-rn": 44,
     "tests:packages/worklet-core": 112,
-    "tests:total": 2837,
+    "tests:total": 2838,
     "waivers:live": 0
   },
   "delta": {
