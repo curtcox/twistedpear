@@ -103,9 +103,10 @@ describe("static-analysis gate registry", () => {
         JSON.stringify({ id: "lint", title: "Lint", ok: true }),
       );
       const output = path.join(fixture, "summary.json");
+      const markdownOutput = path.join(fixture, "summary.md");
       const aggregate = spawnSync(
         globalThis.process.execPath,
-        ["scripts/checks/aggregate.mjs", fixture, output],
+        ["scripts/checks/aggregate.mjs", fixture, output, markdownOutput],
         { cwd: root, encoding: "utf8" },
       );
       expect(aggregate.status).toBe(0);
@@ -126,7 +127,6 @@ describe("static-analysis gate registry", () => {
       expect(summary.ok).toBe(false);
     } finally {
       fs.rmSync(fixture, { recursive: true, force: true });
-      fs.rmSync(path.join(root, "static-analysis-summary.md"), { force: true });
     }
   });
 

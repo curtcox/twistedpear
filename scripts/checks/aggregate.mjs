@@ -5,6 +5,7 @@ import { gates } from "./registry.mjs";
 
 const root = process.argv[2] ?? "gate-artifacts";
 const output = process.argv[3] ?? "static-analysis-summary.json";
+const markdownOutput = process.argv[4] ?? "static-analysis-summary.md";
 const discovered = new Map();
 function walk(directory) {
   if (!fs.existsSync(directory)) return;
@@ -89,5 +90,5 @@ const lines = [
   "",
   `[Workflow run](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`,
 ];
-fs.writeFileSync("static-analysis-summary.md", `${lines.join("\n")}\n`);
+fs.writeFileSync(markdownOutput, `${lines.join("\n")}\n`);
 console.log(`Aggregated ${artifacts.length} gate artifacts.`);
