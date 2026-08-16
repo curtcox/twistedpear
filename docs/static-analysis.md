@@ -243,6 +243,34 @@ license expressions outside `license-allowlist.json` are ratcheted. GitHub secre
 and push protection are enabled for the repository; Gitleaks keeps the same protection
 runnable locally and in CI.
 
+### Pinned Actions and registry signatures
+
+Two gates cover what the above does not. `actions-pinned` (`npm run actions:check`)
+requires every third-party `uses:` in `.github/workflows` to name a 40-character commit
+SHA with the moving tag preserved as a trailing `# v7` comment. A tag is a standing write
+grant to whoever can push it, and `actionlint` does not check for this — it validates
+syntax and expressions, not supply-chain posture. Until 2026-08-15 all 226 references here
+were mutable tags, in a repository that verifies the code-maat jar against a SHA-256
+digest and reconciles every advisory against an allowlist; this was the unlocked door. The
+gate is offline and shape-only, because a check that needs the network to say "unchanged"
+fails whenever GitHub does. `npm run actions:pin -- --write` is the maintenance half: it
+re-resolves the tag in each comment through the `gh` CLI and rewrites the digest, so
+bumping an action means editing the comment rather than hand-copying a SHA. The version
+comment is required, not decorative — without it there is no way to tell an intentional
+pin from a pasted digest, and no version for a bump to start from.
+
+`provenance` (`npm run provenance:check`, nightly) runs `npm audit signatures`. The
+existing supply-chain gates ask whether a dependency is known-vulnerable (`audit`,
+`advisories`) and whether its licence is acceptable (`licenses`), and the SBOM records
+what was installed — but an SBOM does not attest to what it lists. This one asks whether
+each tarball is the one the registry signed, which is what catches a tampered mirror or a
+poisoned cache. It fails on an **invalid** signature only. An unsigned package is reported
+and not gated: packages published before the registry began signing have nothing to check,
+and no consumer action follows from it. Provenance attestation counts are recorded in
+`artifacts/security/provenance.json` for the trend but not gated, since adoption is a
+publisher's choice rather than a property of this repository. At the time of writing all
+1521 resolved packages verify and 371 carry an attestation.
+
 The first advisory survey found one transitive high-severity `vite` result in the local
 VitePress documentation toolchain, with no fix available through that dependency path.
 It has a narrow, expiring exception in `audit-allowlist.json`; all other high/critical

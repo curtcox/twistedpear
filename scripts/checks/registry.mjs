@@ -62,6 +62,20 @@ export const gates = [
     ["node"],
   ),
   gate("actionlint", "GitHub Actions lint", "actionlint", "pr", ["actionlint"]),
+  // `actionlint` above validates workflow syntax and expressions; it says
+  // nothing about supply-chain posture. Until 2026-08-15 all 226 `uses:`
+  // references were moving tags — a standing write grant to whoever can push
+  // one — in a repository that otherwise verifies a code-maat jar against a
+  // SHA-256 digest and reconciles every advisory against an allowlist. Offline
+  // and shape-only on purpose: a gate that needs the network to say "unchanged"
+  // fails when GitHub does.
+  gate(
+    "actions-pinned",
+    "GitHub Actions pinned to commit SHAs",
+    "actions:check",
+    "pr",
+    ["node"],
+  ),
   gate(
     "coverage",
     "Coverage ratchet",
@@ -451,6 +465,20 @@ export const gates = [
     "nightly",
     ["node"],
     ["sbom.cdx.json"],
+  ),
+  // The SBOM above records what was installed; it does not attest to it.
+  // `audit` and `advisories` ask whether a dependency is known-vulnerable and
+  // `licenses` whether its terms are acceptable — none of them ask whether the
+  // tarball is the one the registry published, which is what catches a tampered
+  // mirror or a poisoned cache. Nightly rather than PR because it needs the
+  // network and takes about twelve seconds over 1500 packages.
+  gate(
+    "provenance",
+    "Dependency registry signatures",
+    "provenance:check",
+    "nightly",
+    ["node", "network"],
+    ["artifacts/security/provenance.json"],
   ),
   gate(
     "mutation",

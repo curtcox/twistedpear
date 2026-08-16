@@ -5,6 +5,7 @@
     "gates": [
       "accessibility tier=pr run=a11y:check",
       "actionlint tier=pr run=actionlint",
+      "actions-pinned tier=pr run=actions:check",
       "advisories tier=release run=audit:advisories",
       "api-surface tier=pr run=api:check",
       "audit tier=nightly run=audit:nightly",
@@ -33,6 +34,7 @@
       "mutation tier=nightly run=mutation:check",
       "mutation-policy tier=pr run=mutation:ratchet",
       "properties tier=pr run=test:properties",
+      "provenance tier=nightly run=provenance:check",
       "python tier=pr run=lint:python",
       "release-harness tier=pr run=test:release-harness",
       "rust tier=pr run=lint:rust",
@@ -238,6 +240,7 @@
     ],
     "scripts": [
       "a11y:check",
+      "actions:check",
       "api:check",
       "benchmark:check",
       "census:check",
@@ -258,6 +261,7 @@
       "lint:typed",
       "lint:typed:baseline",
       "mutation:check",
+      "provenance:check",
       "secrets:check",
       "site:check",
       "structure:check",
