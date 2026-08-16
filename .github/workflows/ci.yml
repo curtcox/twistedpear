@@ -135,7 +135,7 @@ jobs:
           brew install swiftlint
           test "$(swiftlint version)" = "0.65.0"
       - name: Install Chromium
-        if: matrix.id == 'web-examples' || matrix.id == 'accessibility'
+        if: matrix.id == 'web-examples' || matrix.id == 'accessibility' || matrix.id == 'ui-invariants'
         run: npx playwright install --with-deps chromium
       - name: Install Chromium on macOS
         if: matrix.id == 'visual-regression'
