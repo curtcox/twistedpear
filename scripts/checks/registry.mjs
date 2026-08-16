@@ -159,6 +159,14 @@ export const gates = [
     ["node"],
     ["api-surface.json", "api-surface-limits.json"],
   ),
+  gate(
+    "api-signatures",
+    "Public API signature compatibility",
+    "api-signatures:check",
+    "pr",
+    ["node"],
+    ["reports/api", "api-signatures-policy.json"],
+  ),
   // Measures the apparatus, not the code: gates, CI jobs, conformance runners
   // and test counts that may not quietly shrink. Every other gate here gets
   // *easier* when tests are deleted or a gate is dropped; this one is the

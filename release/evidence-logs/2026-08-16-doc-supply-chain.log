@@ -1,0 +1,6 @@
+
+> twistedpear@0.0.0 sizes
+> node scripts/size-ratchet.mjs
+
+File-size ratchet: 1922 files classified, 357 warn, 0 danger, 0 excess lines (ceiling 0), 0 grandfathered, 0 unlisted, 0 grown, 0 stale
+Baseline growth checked against origin/main.

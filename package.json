@@ -236,6 +236,8 @@
     "coupling:baseline": "node scripts/analysis/coupling-gate.mjs --write",
     "api:check": "node scripts/analysis/api-surface.mjs",
     "api:baseline": "node scripts/analysis/api-surface.mjs --write",
+    "api-signatures:check": "npm run build && node scripts/analysis/api-signatures.mjs",
+    "api-signatures:baseline": "npm run build && node scripts/analysis/api-signatures.mjs --write",
     "census:check": "node scripts/analysis/census.mjs",
     "census:baseline": "node scripts/analysis/census.mjs --write",
     "hotspots": "node scripts/analysis/hotspots.mjs",

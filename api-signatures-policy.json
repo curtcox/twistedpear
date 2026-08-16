@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "description": "SHA-256 digests of API Extractor's stable Markdown signatures. The full reports are CI artifacts. After bootstrap, changing a digest also requires changing that package version.",
+  "reports": 37,
+  "entries": {
+    "protocol.api.md": {
+      "package": "packages/protocol",
+      "sha256": "484ac31fcc8bfc1863b5cdaa584200f068586e7c3c4a776d6d95c3d4b2504895"
+    },
+    "miniapp-runtime.api.md": {
+      "package": "packages/miniapp-runtime",
+      "sha256": "069be4d55325389bfdd654c02f35ff6921d48e02e4229cbf59b87a671d43c792"
+    },
+    "host-core.api.md": {
+      "package": "packages/host-core",
+      "sha256": "1e69640517024957f63cbc5a846e6dd5e9987282d953d5baedb40735537819eb"
+    },
+    "reticulum-ts.api.md": {
+      "package": "packages/reticulum-ts",
+      "sha256": "28f98f50808634aebcf15b7b21ecc92b45640d8b765315d32204aa5fe01d5392"
+    },
+    "reticulum-ts-worklet.api.md": {
+      "package": "packages/reticulum-ts",
+      "sha256": "d27abd0b8edba28a4e500052f743e370a1d81347be1f0a1384f1ab10b348bb51"
+    },
+    "miniapp-sdk.api.md": {
+      "package": "packages/miniapp-sdk",
+      "sha256": "b10c043bcd17fdcee889c91f4eeb5c061ec1a6cfe3c60c2922840a934f2fb6f8"
+    },
+    "reticulum-interfaces.api.md": {
+      "package": "packages/reticulum-interfaces",
+      "sha256": "3570167b93f7842384ddee171ab6e41f5955943d409783b23cab580beaebdc69"
+    },
+    "miniapp-runtime-worklet.api.md": {
+      "package": "packages/miniapp-runtime",
+      "sha256": "660355090a5e60d88152cd2987c0dd969df96e75693f5d381e4292b06ae79e14"
+    },
+    "peer-discovery.api.md": {
+      "package": "packages/peer-discovery",
+      "sha256": "7670dddbe8f61938334590d1b574c9c572672d31ad5cecaf5ce7eb5a2ab5ad00"
+    },
+    "effects-adapters-sim.api.md": {
+      "package": "packages/effects",
+      "sha256": "0622ca9514df99d199afdd57f65f1f1b601f03a7e4fb02c52798e87ba39d6450"
+    },
+    "reticulum-ts-web.api.md": {
+      "package": "packages/reticulum-ts",
+      "sha256": "fa8aafe1e2b72bf1ebd0ca17041e4dc1609b076bc9e82dd761a17e6881b89b55"
+    },
+    "effects.api.md": {
+      "package": "packages/effects",
+      "sha256": "88b02630bc0dbeddf10248c6b996e76294f9c5e8491931d5ac5c37adfa850aa5"
+    },
+    "lxmf-ts.api.md": {
+      "package": "packages/lxmf-ts",
+      "sha256": "43d7668eb111a650512e97864b27c9cc3eaebde1f5d159cbbffdc6eac01d76ee"
+    },
+    "app-registry.api.md": {
+      "package": "packages/app-registry",
+      "sha256": "10e8936e67473b53d1943428a3ee849cbeda6464b4fc99cf2cbd62b27a4ea46d"
+    },
+    "host-core-web.api.md": {
+      "package": "packages/host-core",
+      "sha256": "99e3f78fd82f9e83d313fb3c2fab9b2aca840ecd47a4b79eaf243147831e0cef"
+    },
+    "sim-campaign.api.md": {
+      "package": "packages/sim-campaign",
+      "sha256": "4316c66d2d3219718602f74e59971a92a353d69a4083af41732654430ee4cb1c"
+    },
+    "bridge-hyper.api.md": {
+      "package": "packages/bridge-hyper",
+      "sha256": "507a3e11c89f4a2e5dac5e820cdbad21d9e553d5224c25da5929851c511dd733"
+    },
+    "bridge-freenet.api.md": {
+      "package": "packages/bridge-freenet",
+      "sha256": "a983e341850969b531bc49ff0a74002cc08dde8c86493c8080628cf1a907d585"
+    },
+    "cas-256t.api.md": {
+      "package": "packages/cas-256t",
+      "sha256": "4704dc6c1b1b422e10b3d46777f764b79aa1606c7dd0b114d648081df9d66eeb"
+    },
+    "sim-adversaries.api.md": {
+      "package": "packages/sim-adversaries",
+      "sha256": "723df17088d4e90b9d5253c0678ba36b2d21849c177eb3e54aab28d13835852c"
+    },
+    "bridge-hyper-worklet.api.md": {
+      "package": "packages/bridge-hyper",
+      "sha256": "b1b27d52de7981b86fa4d5a6020310ebd8c75b7f4c20bb8e5327a7180934a43c"
+    },
+    "bridge-hyper-web.api.md": {
+      "package": "packages/bridge-hyper",
+      "sha256": "eed19b69fe5a33e40ba32e36ba8cd7219e51eaf649da3137f10a04b18ad1e77b"
+    },
+    "miniapp-runtime-ui.api.md": {
+      "package": "packages/miniapp-runtime",
+      "sha256": "420bbf7dbbcd294d5df60263f2108a792b3684316e571a74656d5299a547b967"
+    },
+    "host-core-protocol.api.md": {
+      "package": "packages/host-core",
+      "sha256": "ad755cfa91e78e651ef3f3e02f561f458b1f98f5cd4ec283658d3ff24700ce2a"
+    },
+    "host-core-identity-backup.api.md": {
+      "package": "packages/host-core",
+      "sha256": "7dc910f8a13bb57a6ba9b77d2559de8758edada7f75ea4752c3903ce2ee5cf45"
+    },
+    "reticulum-interfaces-policy.api.md": {
+      "package": "packages/reticulum-interfaces",
+      "sha256": "ef7bda454cdb6c5961788487d16a7144225243930c40bef20ee5c533e814974e"
+    },
+    "widget-renderer-headless.api.md": {
+      "package": "packages/widget-renderer-headless",
+      "sha256": "f3fc7be4838bd0dd94a7d76510bbf66d65541033d625478d1f89c054ba5b6226"
+    },
+    "bridge-hyper-resource-server.api.md": {
+      "package": "packages/bridge-hyper",
+      "sha256": "239e006548ea65feeeacedb40c140b143a5bf9cf7967b8cd477c53b7330f0360"
+    },
+    "bridge-hyper-worklet-hyper.api.md": {
+      "package": "packages/bridge-hyper",
+      "sha256": "97cbe8cd424de986a0e884f98128bed606cfdfdb1e69ad045ac67590bec4cc32"
+    },
+    "cli.api.md": {
+      "package": "packages/cli",
+      "sha256": "c329a9365329464b186e02f0e9aa1d72bfd4b854e10bc33494c594952ecdaab6"
+    },
+    "effects-adapters-real.api.md": {
+      "package": "packages/effects",
+      "sha256": "9c57226b3a9a51548097f796c5423dd5b503135b5fb65c08b9561757202b7a21"
+    },
+    "effects-tripwire.api.md": {
+      "package": "packages/effects",
+      "sha256": "ce7a30789f7f149adca3d180d5487c1a1a8c921dfd03dee71b25bc44dab2771b"
+    },
+    "reticulum-interfaces-serial-node.api.md": {
+      "package": "packages/reticulum-interfaces",
+      "sha256": "0051d7b7176f22e583cb0d4b0147aff8c1a7c8759abf19809c7e26bc68191f5a"
+    },
+    "miniapp-runtime-sandbox-web.api.md": {
+      "package": "packages/miniapp-runtime",
+      "sha256": "c63ada4fa386c8ef55519ff10749500e6b4ba936d3f751be8a86fb02201d2c46"
+    },
+    "reticulum-interfaces-bonjour-mdns.api.md": {
+      "package": "packages/reticulum-interfaces",
+      "sha256": "799e4978ed9dd724efbb8278b6f4670332c9839a12bc77127c085e2830b8d54d"
+    },
+    "reticulum-interfaces-multicast-node.api.md": {
+      "package": "packages/reticulum-interfaces",
+      "sha256": "c0e76b4b0e8260bdc266959dc29350261d9298064e3818efa6c88117dca78c7d"
+    },
+    "widget-renderer-rn.api.md": {
+      "package": "packages/widget-renderer-rn",
+      "sha256": "548d8467384cd96dc213458011aedbeedd34e4afc42b3c6bbb41724acda4f06a"
+    }
+  }
+}

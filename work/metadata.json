@@ -98,6 +98,8 @@
       "requires": [],
       "verify": "npm run sizes",
       "added": "2026-08-16",
+      "completed": "2026-08-16",
+      "evidence": ["docs/coverage-policy.md"],
       "notes": "docs/static-analysis.md sits at exactly 593 lines against a 593-line danger threshold in size-rules.json, so any new prose in it trips the sizes gate. The repo's rule is to decompose rather than compress: split out a docs/supply-chain.md holding the secrets, advisories, licenses, provenance, actions-pinned, install-scripts and SBOM sections."
     },
     "G1": {

@@ -96,44 +96,18 @@ intentionally loosen a baseline.
 | Type coverage          | `npm run type-coverage:check`        | per-project non-`any` percentages in `type-coverage-ratchet.json`; 0.05 point tolerance                                                                                                                     |
 | Structural reliability | `npm run ast-grep:check`             | missing request deadlines, dropped errors, non-idempotent retries, and locale-dependent comparisons in `ast-grep-ratchet.json`, keyed by rule, file and enclosing symbol                                    |
 | Accessibility          | `npm run a11y:check`                 | axe-core violations per surface and per rule, counted by matched nodes, in `accessibility-ratchet.json`                                                                                                     |
+| API signatures         | `npm run api-signatures:check`       | SHA-256 digests of API Extractor's complete signature reports in `api-signatures-policy.json`; report Markdown is published as a CI artifact                                                                |
 
 Baseline commands use the corresponding `:baseline` suffix. They accept
 `-- --allow-regressions` only for an intentional initial survey or reviewed exception.
 
-### New-file and changed-line coverage floors
+Coverage has additional per-file policy that does not fit in the aggregate table; see
+[Coverage policy](coverage-policy.md) for new-file and changed-executable-line floors.
 
-The coverage ratchet is a per-workspace aggregate, and an aggregate cannot see a new
-file arrive untested. Four hundred uncovered lines added to a package sitting at 74%
-move that number by a point or two, which the 0.5-point tolerance and the ordinary
-noise of a refactor absorb — so the file lands at zero and the gate stays green.
-Thirty-three files entered this repository that way; eighty are still at 0%.
-
-`coverage-rules.json` therefore carries a `newFile` block (60% statements, 45%
-branches, 60% functions). It applies to files **added since the base ref**, compared
-three-dot against the merge base so a branch is never asked to answer for a file
-someone else added to `main` after it forked. The floor lands on a file the day it is
-written, which is the only day its tests are cheap. Existing files are untouched:
-they are held by their workspace ratchet, and retrofitting a floor onto all 676 of
-them is a different decision with a different cost.
-
-Three kinds of added path are skipped rather than judged — paths outside the
-coverage roots (tests, scripts, documents, which have no summary entry at all),
-generated files, and explicit entries in `newFile.exempt`, which require a reason and
-are printed on every run. Branches are floored lower than statements deliberately: a
-file at 62% statements and 30% branches clears one and not the other, and one shared
-number would have to pick which of those two mistakes to make. The decision logic
-lives in `scripts/analysis/coverage-new-files.mjs` and is tested directly by
-`conformance/checks/coverage-new-files.test.mjs`, because the branch otherwise runs
-only on commits that happen to add a file.
-
-The aggregate has the same blind spot when an existing low-coverage file changes.
-`changedLine` therefore holds executable statements and branch arms whose Istanbul
-source locations intersect the new-side lines of the pull-request diff to 80% and 70%
-respectively. It reads `coverage/coverage-final.json`; a metric with no executable
-location on a changed line is unmeasured rather than credited with 100%. Generated
-files and reasoned `changedLine.exempt` entries are excluded. The diff parser and
-location policy live in `scripts/analysis/coverage-changed-lines.mjs` and are exercised
-without a full coverage run by `conformance/checks/coverage-changed-lines.test.mjs`.
+API signature checks run API Extractor for every exported package subpath. An exact
+digest change fails until `npm run api-signatures:baseline` records the reviewed
+contract and the owning package version changes. Full `.api.md` reports remain CI
+artifacts, keeping the committed baseline small without reducing what reviewers see.
 
 The last three arrived on 2026-08-15 from the survey, which measures them but by
 design never fails on findings — the trending system that was to consume
