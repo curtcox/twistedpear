@@ -47,7 +47,13 @@ export default defineConfig({
             "conformance/checks/**/*.test.mjs",
             "conformance/desktop/**/*.test.mjs",
           ],
-          exclude: ["packages/protocol/test/**/*.test.ts"],
+          exclude: [
+            "packages/protocol/test/**/*.test.ts",
+            // Coverage measures the unit suite. Vitest 4 project includes ignore
+            // CLI `--exclude`, so coverage-run.mjs sets TP_COVERAGE and this
+            // drops the conformance files the default project otherwise runs.
+            ...(process.env.TP_COVERAGE === "1" ? ["conformance/**"] : []),
+          ],
         },
       },
     ],

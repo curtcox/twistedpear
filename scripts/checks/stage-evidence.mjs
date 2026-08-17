@@ -17,6 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { copyPath } from "./copy-path.mjs";
 import { gateById } from "./registry.mjs";
 
 const ROOT = path.resolve(
@@ -53,8 +54,7 @@ for (const relative of gate.artifacts) {
     continue;
   }
   const target = path.join(destination, relative);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.copyFileSync(source, target);
+  copyPath(source, target);
   staged += 1;
 }
 

@@ -165,6 +165,20 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain("if: always() && !cancelled()");
     expect(pagesWorkflow).toContain("Refuse to deploy a superseded main build");
     expect(pagesWorkflow).toContain("verify-publication.mjs");
+    expect(pagesWorkflow).toContain("if: matrix.id == 'rust-fuzz'");
+    expect(pagesWorkflow).toContain("GITHUB_TOKEN: ${{ github.token }}");
+    expect(pagesWorkflow).toContain("security-events: read");
+    const runner = fs.readFileSync(
+      path.join(root, "scripts/checks/run.mjs"),
+      "utf8",
+    );
+    expect(runner).toContain("writeGateResult");
+    expect(
+      runner
+        .slice(runner.indexOf("if (missing.length > 0)"))
+        .slice(0, 900),
+    ).toContain("writeGateResult");
+    expect(reports).toContain("copyPath");
     // Every job gating the publish must carry a status-check function in its
     // condition. Without one GitHub skips the job when any transitive
     // dependency failed — a single failing metric gate silently skipped

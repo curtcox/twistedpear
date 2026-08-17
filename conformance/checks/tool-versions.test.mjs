@@ -49,11 +49,13 @@ const copies = [
   ["rust", nightlyWorkflow, (v) => `rustup toolchain install ${v} `],
   ["cargo-deny", ciWorkflow, (v) => `cargo-deny --version ${v} `],
   ["cargo-deny", pagesWorkflow, (v) => `cargo-deny --version ${v} `],
-  // The nightly compiler the fuzzing gate needs, written in three places: the
-  // toolchain file a human lands in, the workflow that installs it, and the pin.
+  // The nightly compiler the fuzzing gate needs, written in the toolchain
+  // file a human lands in, both workflows that install it, and the pin.
   ["rust-nightly", nightlyWorkflow, (v) => `rustup toolchain install ${v} `],
+  ["rust-nightly", pagesWorkflow, (v) => `rustup toolchain install ${v} `],
   ["rust-nightly", fuzzToolchain, (v) => `channel = "${v}"`],
   ["cargo-fuzz", nightlyWorkflow, (v) => `cargo-fuzz --version ${v} `],
+  ["cargo-fuzz", pagesWorkflow, (v) => `cargo-fuzz --version ${v} `],
   ["ktlint", ciWorkflow, (v) => `ktlint/releases/download/${v}/`],
   ["ktlint", pagesWorkflow, (v) => `ktlint/releases/download/${v}/`],
   ["swiftlint", ciWorkflow, (v) => `test "$(swiftlint version)" = "${v}"`],

@@ -6,7 +6,7 @@ describe("register:G7-ui-invariants", () => {
     const script = readFileSync("conformance/ui-invariants/run.mjs", "utf8");
     expect(script).toContain('from "playwright"');
     expect(script).toContain("Trust & capabilities");
-    expect(script).toContain("revocation takes effect without restart");
+    expect(script).toContain("revocation request is sent without restart");
     expect(script).not.toContain("stub");
   });
 });

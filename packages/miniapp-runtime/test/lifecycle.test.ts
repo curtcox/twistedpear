@@ -83,6 +83,35 @@ describe("mini-app lifecycle", () => {
     ).toBe("RATE_LIMITED");
   });
 
+  it("does not schedule a watchdog delay on a live ping", async () => {
+    let delays = 0;
+    const backend = new NodeWorkerSandboxBackend();
+    const lifecycle = new MiniappLifecycle(
+      backend,
+      {
+        appId: "pingable",
+        version: "1.0.0",
+        entryPath: "bundle.js",
+        bundle: pingableBundle,
+        brokerEndpoint: { request: async () => ({ id: "0", ok: true }) },
+      },
+      {
+        now: () => Date.now(),
+        delay: async (ms) => {
+          delays += 1;
+          await wall.delay(ms);
+        },
+      },
+    );
+
+    await lifecycle.launch();
+    for (let index = 0; index < 20; index += 1) {
+      expect((await lifecycle.watchdogPing()).state).toBe("running");
+    }
+    expect(delays).toBe(0);
+    await lifecycle.stop("cleanup");
+  });
+
   it("stops and relaunches without leaking state", async () => {
     const backend = new NodeWorkerSandboxBackend();
     const lifecycle = new MiniappLifecycle(

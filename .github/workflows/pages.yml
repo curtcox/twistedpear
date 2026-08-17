@@ -15,6 +15,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  security-events: read
 
 concurrency:
   group: pages
@@ -91,8 +92,20 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             gradle-${{ runner.os }}-
+      - name: Install the fuzzing toolchain
+        if: matrix.id == 'rust-fuzz'
+        # Same two-toolchain install as nightly.yml: cargo-fuzz needs nightly
+        # for `-Z sanitizer`, and the contracts themselves are the stable pin.
+        # Copies of `tool-versions.json`; `conformance/checks/tool-versions.test.mjs`
+        # fails when they drift.
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup toolchain install nightly-2026-06-01 --profile minimal
+          cargo install cargo-fuzz --version 0.13.1 --locked
       - name: Run metric-producing gate
         run: node scripts/checks/run.mjs --tier=${{ matrix.tier }} --only=${{ matrix.id }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Stage metric evidence with repository-relative paths
         if: always()
         run: node scripts/checks/stage-evidence.mjs --gate=${{ matrix.id }} --into=page-metric-evidence

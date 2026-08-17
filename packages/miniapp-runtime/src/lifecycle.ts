@@ -18,7 +18,11 @@ export interface MiniappLifecycleSnapshot {
 export interface LifecycleOptions {
   readonly now: () => number;
   readonly watchdogMs?: number;
-  /** Injected delay used by the watchdog race — adapters supply setTimeout. */
+  /**
+   * Injected delay for adapter-side waits. Watchdog timeout is enforced by
+   * `SandboxInstance.ping`, not by racing this, so a live ping does not leave
+   * a timer behind.
+   */
   readonly delay: (ms: number) => Promise<void>;
 }
 
@@ -120,10 +124,12 @@ export class MiniappLifecycle {
       return this.snapshot();
     }
 
+    // The adapter's ping() already times out. Racing an injected delay here
+    // left a timer on every successful ping — the mini-app benchmark's 1s
+    // tight loop scheduled tens of thousands of them, which is what made
+    // watchdog throughput look like a 2x regression on a shared runner.
     const timeoutMs = this.options.watchdogMs ?? 1_000;
-    const ping = this.instance.ping(timeoutMs);
-    const timeout = this.options.delay(timeoutMs).then(() => false as const);
-    const alive = await Promise.race([ping, timeout]);
+    const alive = await this.instance.ping(timeoutMs);
 
     if (!alive) {
       await this.instance.kill("watchdog");

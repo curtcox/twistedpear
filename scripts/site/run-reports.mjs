@@ -11,6 +11,7 @@ import { gates, prebuildPrGates } from "../checks/registry.mjs";
 import { summarizeStaticAnalysis } from "./static-analysis-metrics.mjs";
 import { hasExpectedProvenance } from "./verify-publication.mjs";
 import { isolateWorktree } from "./isolate-worktree.mjs";
+import { copyPath } from "../checks/copy-path.mjs";
 
 const ISOLATE = process.env.SITE_REPORT_ISOLATE === "1";
 
@@ -73,8 +74,7 @@ function copyOutput(relative) {
   const src = fs.existsSync(local) ? local : imported && fs.existsSync(imported) ? imported : null;
   if (!src) return false;
   const dest = path.join(RESULTS_DIR, "artifacts", artifactKey(relative));
-  ensureDir(path.dirname(dest));
-  fs.copyFileSync(src, dest);
+  copyPath(src, dest);
   return true;
 }
 

@@ -59,36 +59,7 @@ if (matrix) {
   process.exit(0);
 }
 
-let failed = 0;
-for (const gate of selected) {
-  const missing = gate.requires.filter(
-    (requirement) => !requirementAvailable(requirement),
-  );
-  if (missing.length > 0) {
-    const message = `${gate.title}: missing ${missing.join(", ")}`;
-    if (process.env.CI) {
-      console.error(`FAIL ${message}`);
-      failed += 1;
-    } else {
-      console.log(`SKIP ${message}`);
-    }
-    continue;
-  }
-
-  const startedAt = new Date().toISOString();
-  console.log(`\n==> ${gate.title} (${gate.id})`);
-  const result = spawnSync(gate.command[0], gate.command.slice(1), {
-    cwd: ROOT,
-    env: { ...process.env, CHECK_ID: gate.id },
-    encoding: "utf8",
-    stdio: ["inherit", "pipe", "pipe"],
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  const stdout = result.stdout ?? "";
-  const stderr = result.stderr ?? "";
-  process.stdout.write(stdout);
-  process.stderr.write(stderr);
-  const exitCode = result.status ?? 1;
+function writeGateResult(gate, { startedAt, exitCode, ok, stdout, stderr }) {
   const artifact = {
     id: gate.id,
     title: gate.title,
@@ -99,7 +70,7 @@ for (const gate of selected) {
     startedAt,
     finishedAt: new Date().toISOString(),
     exitCode,
-    ok: exitCode === 0,
+    ok,
     host: `${os.platform()}-${os.arch()}`,
   };
   const artifactPath = path.join(
@@ -128,6 +99,56 @@ for (const gate of selected) {
       `## ${gate.title}\n\n| Gate | Result | Duration |\n|---|---:|---:|\n| \`${gate.id}\` | ${exitCode === 0 ? "PASS" : "FAIL"} | ${Date.parse(artifact.finishedAt) - Date.parse(startedAt)} ms |\n\n`,
     );
   }
+}
+
+let failed = 0;
+for (const gate of selected) {
+  const missing = gate.requires.filter(
+    (requirement) => !requirementAvailable(requirement),
+  );
+  const startedAt = new Date().toISOString();
+  if (missing.length > 0) {
+    const message = `${gate.title}: missing ${missing.join(", ")}`;
+    const inCi = Boolean(process.env.CI);
+    if (inCi) {
+      console.error(`FAIL ${message}`);
+      failed += 1;
+    } else {
+      console.log(`SKIP ${message}`);
+    }
+    // Always write the check record. Pages imports this file; skipping the
+    // write is what published rust-fuzz as "missing imported check artifact"
+    // instead of the actual missing-toolchain failure.
+    writeGateResult(gate, {
+      startedAt,
+      exitCode: inCi ? 1 : 0,
+      ok: !inCi,
+      stdout: "",
+      stderr: message,
+    });
+    continue;
+  }
+
+  console.log(`\n==> ${gate.title} (${gate.id})`);
+  const result = spawnSync(gate.command[0], gate.command.slice(1), {
+    cwd: ROOT,
+    env: { ...process.env, CHECK_ID: gate.id },
+    encoding: "utf8",
+    stdio: ["inherit", "pipe", "pipe"],
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const stdout = result.stdout ?? "";
+  const stderr = result.stderr ?? "";
+  process.stdout.write(stdout);
+  process.stderr.write(stderr);
+  const exitCode = result.status ?? 1;
+  writeGateResult(gate, {
+    startedAt,
+    exitCode,
+    ok: exitCode === 0,
+    stdout,
+    stderr,
+  });
   if (exitCode !== 0) failed += 1;
 }
 

@@ -40,7 +40,7 @@ if (process.argv.includes("--fast-baseline"))
   vitestArgs.splice(2, 0, "packages/protocol/test", "packages/effects/test");
 const report = spawnSync(process.execPath, vitestArgs, {
   stdio: "inherit",
-  env: process.env,
+  env: { ...process.env, TP_COVERAGE: "1" },
 });
 if (report.status !== 0) process.exit(report.status ?? 1);
 if (process.argv.includes("--report-only")) process.exit(0);
