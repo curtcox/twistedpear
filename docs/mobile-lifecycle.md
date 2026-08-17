@@ -76,13 +76,13 @@ One row per piece of utility a mini-app does not get because of the mobile lifec
 
 <!-- Generated from mobile-lifecycle-ledger.json; conformance/doc-audit/mobile-lifecycle.test.mjs fails if they diverge. -->
 
-| Row                      | Utility withheld                                                                  | Cause          | Revisit when                |
-| ------------------------ | --------------------------------------------------------------------------------- | -------------- | --------------------------- |
-| `MLC-BACKGROUND-IOS`     | Mini-app code running while the host app is backgrounded on iOS                   | `os`           | 2027-02-01                  |
-| `MLC-BACKGROUND-ANDROID` | Mini-app code running inside the Android foreground service the host already runs | `self-imposed` | 2027-02-01                  |
-| `MLC-SCHEDULED-WAKE`     | A mini-app asking to be woken periodically to do bounded work                     | `self-imposed` | 2027-02-01                  |
-| `MLC-LIFECYCLE-EVENTS`   | A mini-app being told it is about to be suspended, and that it has resumed        | `self-imposed` | 2027-02-01                  |
-| `MLC-ALWAYS-ON-ROLES`    | A phone carrying transport, seeding, or propagation for other peers               | `os`           | 2027-02-01                  |
+| Row                      | Utility withheld                                                                  | Cause          | Revisit when |
+| ------------------------ | --------------------------------------------------------------------------------- | -------------- | ------------ |
+| `MLC-BACKGROUND-IOS`     | Mini-app code running while the host app is backgrounded on iOS                   | `os`           | 2027-02-01   |
+| `MLC-BACKGROUND-ANDROID` | Mini-app code running inside the Android foreground service the host already runs | `self-imposed` | 2027-02-01   |
+| `MLC-SCHEDULED-WAKE`     | A mini-app asking to be woken periodically to do bounded work                     | `self-imposed` | 2027-02-01   |
+| `MLC-LIFECYCLE-EVENTS`   | A mini-app being told it is about to be suspended, and that it has resumed        | `self-imposed` | 2027-02-01   |
+| `MLC-ALWAYS-ON-ROLES`    | A phone carrying transport, seeding, or propagation for other peers               | `os`           | 2027-02-01   |
 
 The decision in force, the cost it carries, what would unlock it, and the files that show
 it are recorded per row in [mobile-lifecycle-ledger.json](../mobile-lifecycle-ledger.json).

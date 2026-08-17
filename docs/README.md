@@ -45,25 +45,25 @@ one-sided `counterpart:` all fail the build.
 
 ## Start here
 
-| Goal                                                                            | Document                                                                                               |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Get a short answer to a common question and a pointer to the canonical document | [FAQ](FAQ.md)                                                                                          |
-| Use TwistedPear as an end user (install, connect, run apps)                     | [User Guide](../guide/README.md)                                                                       |
-| Understand why the project exists and what success means                        | [Motivation](motivation.md)                                                                            |
-| See how the whole repository fits together                                      | [Architecture](architecture.md)                                                                        |
-| See how TwistedPear relates to similar projects                                 | [Prior art](prior-art.md)                                                                              |
-| Understand why mobile OS limits shape the design, and what they cost mini-apps  | [Mobile app lifecycle](mobile-lifecycle.md)                                                            |
-| See the path and gates to the v1 release                                        | [Release plan](../RELEASE-PLAN.md)                                                                     |
-| Understand the platform and run it locally                                      | [Repository README](../README.md)                                                                      |
-| See the specification decomposition and per-spec conformance                    | [Specifications index](../specs/README.md)                                                             |
-| Look up a term used in the code, specs, or docs                                 | [Developer glossary](glossary.md)                                                                      |
-| Learn the platform interactively                                                | [Handbook mini-app](../apps/handbook/README.md)                                                        |
+| Goal                                                                            | Document                                                                                                                                            |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Get a short answer to a common question and a pointer to the canonical document | [FAQ](FAQ.md)                                                                                                                                       |
+| Use TwistedPear as an end user (install, connect, run apps)                     | [User Guide](../guide/README.md)                                                                                                                    |
+| Understand why the project exists and what success means                        | [Motivation](motivation.md)                                                                                                                         |
+| See how the whole repository fits together                                      | [Architecture](architecture.md)                                                                                                                     |
+| See how TwistedPear relates to similar projects                                 | [Prior art](prior-art.md)                                                                                                                           |
+| Understand why mobile OS limits shape the design, and what they cost mini-apps  | [Mobile app lifecycle](mobile-lifecycle.md)                                                                                                         |
+| See the path and gates to the v1 release                                        | [Release plan](../RELEASE-PLAN.md)                                                                                                                  |
+| Understand the platform and run it locally                                      | [Repository README](../README.md)                                                                                                                   |
+| See the specification decomposition and per-spec conformance                    | [Specifications index](../specs/README.md)                                                                                                          |
+| Look up a term used in the code, specs, or docs                                 | [Developer glossary](glossary.md)                                                                                                                   |
+| Learn the platform interactively                                                | [Handbook mini-app](../apps/handbook/README.md)                                                                                                     |
 | Check implemented and verified work                                             | [Completed-work evidence](../STATUS-COMPLETE.md) (index); [early phases](complete-phases-early.md); [phase 2+ tables](../STATUS-COMPLETE-PHASES.md) |
-| Check remaining software work                                                   | [Software backlog](../STATUS-SOFTWARE.md)                                                              |
-| Check hardware- or account-gated work                                           | [Hardware status](../STATUS-HARDWARE.md)                                                               |
-| Check capability × host implementation / testing / validation                   | [Platform capabilities status](platform-capabilities-status.md)                                        |
-| Review known limitations                                                        | [Limitations](../LIMITATIONS.md)                                                                       |
-| Run the complete local validation suite                                         | [Single-Mac validation](mac-validation.md)                                                             |
+| Check remaining software work                                                   | [Software backlog](../STATUS-SOFTWARE.md)                                                                                                           |
+| Check hardware- or account-gated work                                           | [Hardware status](../STATUS-HARDWARE.md)                                                                                                            |
+| Check capability × host implementation / testing / validation                   | [Platform capabilities status](platform-capabilities-status.md)                                                                                     |
+| Review known limitations                                                        | [Limitations](../LIMITATIONS.md)                                                                                                                    |
+| Run the complete local validation suite                                         | [Single-Mac validation](mac-validation.md)                                                                                                          |
 
 ## Status and history
 

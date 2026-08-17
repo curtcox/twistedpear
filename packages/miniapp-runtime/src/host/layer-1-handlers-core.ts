@@ -17,10 +17,7 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
     this.broker.register("ui", "render", null, (request, context) => {
       const tree = (request.payload as { tree: WidgetTree }).tree;
       validateWidgetTree(tree);
-      const app = this.appByIdentity(
-        context.appId,
-        context.publisherPublicKey,
-      );
+      const app = this.appByIdentity(context.appId, context.publisherPublicKey);
       let patches: ReadonlyArray<WidgetPatch> = [];
       if (app !== undefined) {
         patches = diffWidgetTrees(app.widgetTree, tree);
@@ -44,10 +41,7 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
     );
 
     this.broker.register("ui", "event", null, async (request, context) => {
-      const app = this.appByIdentity(
-        context.appId,
-        context.publisherPublicKey,
-      );
+      const app = this.appByIdentity(context.appId, context.publisherPublicKey);
       if (app === undefined) {
         throw new Error("No mini-app is running");
       }

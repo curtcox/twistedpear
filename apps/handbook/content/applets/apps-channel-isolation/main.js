@@ -4,30 +4,63 @@
  */
 export async function run(sdk, report) {
   const started = Date.now();
+  const open = sdk.apps?.channel?.open;
+  if (typeof open !== "function") {
+    report({
+      status: "unavailable",
+      details: "apps.channel.open is not available in this sandbox.",
+      timings: { ms: Date.now() - started },
+    });
+    return;
+  }
+
+  let opened = false;
+  let failure;
   try {
-    await sdk.apps.channel.open({ appId: "handbook-no-such-app" });
+    await open.call(sdk.apps.channel, { appId: "handbook-no-such-app" });
+    opened = true;
+  } catch (caught) {
+    failure = caught;
+  }
+
+  if (opened) {
     report({
       status: "fail",
       details: "Host opened a channel to an app that is not running.",
       timings: { ms: Date.now() - started },
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const code =
-      error && typeof error === "object" && "code" in error
-        ? String(error.code)
-        : "";
-    const combined = `${code} ${message}`;
-    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(
-      combined,
-    );
-    const isolated = /CHANNEL_PEER_NOT_RUNNING/i.test(combined);
+    return;
+  }
+
+  const err = failure instanceof Error ? failure : new Error(String(failure));
+  const code =
+    failure && typeof failure === "object" && "code" in failure
+      ? String(failure.code)
+      : "";
+
+  if (
+    /CAPABILITY_DENIED|has not been granted/i.test(`${code} ${err.message}`)
+  ) {
     report({
-      status: notGranted ? "not-granted" : isolated ? "pass" : "fail",
-      details: isolated
-        ? "Missing destination was rejected before confirmation."
-        : message,
+      status: "not-granted",
+      details: err.message,
       timings: { ms: Date.now() - started },
     });
+    return;
   }
+
+  if (code === "CHANNEL_PEER_NOT_RUNNING") {
+    report({
+      status: "pass",
+      details: "Missing destination was rejected before confirmation.",
+      timings: { ms: Date.now() - started },
+    });
+    return;
+  }
+
+  report({
+    status: "fail",
+    details: err.message,
+    timings: { ms: Date.now() - started },
+  });
 }

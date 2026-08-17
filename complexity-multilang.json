@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 616,
-  "functions": 7110,
-  "groups": 4304,
+  "files": 617,
+  "functions": 7115,
+  "groups": 4310,
   "exemptions": 91,
   "violations": 0,
   "stale": 0,
@@ -32,11 +32,11 @@
       "name": "handleWorkletMessage",
       "line": 11,
       "tier": "source",
-      "ccn": 89,
-      "nloc": 302,
+      "ccn": 85,
+      "nloc": 268,
       "pinned": {
-        "ccn": 89,
-        "nloc": 302
+        "ccn": 85,
+        "nloc": 268
       }
     },
     {
@@ -136,19 +136,6 @@
       }
     },
     {
-      "key": "apps/handbook/build.mjs::build",
-      "file": "apps/handbook/build.mjs",
-      "name": "build",
-      "line": 79,
-      "tier": "tooling",
-      "ccn": 37,
-      "nloc": 218,
-      "pinned": {
-        "ccn": 37,
-        "nloc": 218
-      }
-    },
-    {
       "key": "apps/host-desktop/src/renderer/app-settings.mjs::bindSettingsPanel",
       "file": "apps/host-desktop/src/renderer/app-settings.mjs",
       "name": "bindSettingsPanel",
@@ -222,6 +209,19 @@
       "pinned": {
         "ccn": 31,
         "nloc": 268
+      }
+    },
+    {
+      "key": "apps/handbook/build.mjs::build",
+      "file": "apps/handbook/build.mjs",
+      "name": "build",
+      "line": 101,
+      "tier": "tooling",
+      "ccn": 30,
+      "nloc": 202,
+      "pinned": {
+        "ccn": 30,
+        "nloc": 202
       }
     },
     {
@@ -964,11 +964,11 @@
       "key": "apps/handbook/build-reference.mjs::generateReferenceChapters",
       "file": "apps/handbook/build-reference.mjs",
       "name": "generateReferenceChapters",
-      "line": 69,
+      "line": 149,
       "tier": "tooling",
-      "nloc": 405,
+      "nloc": 333,
       "pinned": {
-        "nloc": 405
+        "nloc": 333
       }
     },
     {
@@ -1030,7 +1030,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithCapabilityReview",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "launchWithCapabilityReview",
-      "line": 337,
+      "line": 350,
       "tier": "source",
       "params": 10,
       "pinned": {
@@ -1041,7 +1041,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "launchWithoutReview",
-      "line": 407,
+      "line": 426,
       "tier": "source",
       "params": 7,
       "pinned": {

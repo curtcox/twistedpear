@@ -32,9 +32,7 @@ import {
 } from "./linked-installation.js";
 import type { LinkedInstallationRoster } from "./linked-installation-roster.js";
 
-const ACCOUNT_JOURNAL_MAGIC = new Uint8Array([
-  0x54, 0x50, 0x4a, 0x52, 0x01,
-]); // TPJR\x01
+const ACCOUNT_JOURNAL_MAGIC = new Uint8Array([0x54, 0x50, 0x4a, 0x52, 0x01]); // TPJR\x01
 const ACCOUNT_JOURNAL_ENVELOPE_MAGIC = new Uint8Array([
   0x54, 0x50, 0x4a, 0x45, 0x01,
 ]); // TPJE\x01
@@ -116,9 +114,7 @@ function signedPayload(record: {
   );
 }
 
-function encodeAccountJournalRecord(
-  record: AccountJournalRecord,
-): Uint8Array {
+function encodeAccountJournalRecord(record: AccountJournalRecord): Uint8Array {
   const bytes = concatBytes(
     signedPayload(record),
     hexBytes(record.signature, SIGNATURE_BYTES, "signature"),

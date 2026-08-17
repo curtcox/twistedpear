@@ -66,6 +66,86 @@ function generateLimitationsChapter(refDir) {
   writeText(join(refDir, "limitations.md"), `${limitationsMd}\n`);
 }
 
+function fallbackCapabilityDefinitions() {
+  return [
+    {
+      id: "identity",
+      description: "Use an app-scoped identity for signing and addressing.",
+    },
+    {
+      id: "presence",
+      description: "Read coarse peer/interface presence and host info.",
+    },
+    {
+      id: "announce:subscribe",
+      description: "Receive announces in the app namespace.",
+    },
+    { id: "announce:publish", description: "Publish the app destination." },
+    {
+      id: "lxmf:send",
+      description: "Send LXMF messages from the app destination.",
+    },
+    {
+      id: "lxmf:receive",
+      description: "Receive LXMF messages for the app destination.",
+    },
+    {
+      id: "storage:kv",
+      description: "Store local key/value data for this app.",
+    },
+    {
+      id: "storage:hyperbee",
+      description: "Store ordered local Hyperbee data for this app.",
+    },
+    {
+      id: "resource:fetch",
+      description: "Fetch package resources through host budget rules.",
+    },
+    {
+      id: "workspace",
+      description:
+        "Read and write project source files in this app's private workspace.",
+    },
+    {
+      id: "ai:chat",
+      description: "Send prompts to the host-configured AI service.",
+    },
+    {
+      id: "ai:embed",
+      description:
+        "Send bounded text to the host-configured embedding model and rank vectors locally.",
+    },
+    {
+      id: "apps:package",
+      description:
+        "Package and sign apps under this device's publisher identity.",
+    },
+    {
+      id: "apps:publish",
+      description:
+        "Publish signed apps so other users can find and install them.",
+    },
+    {
+      id: "apps:install",
+      description: "Ask the host to install apps from a 256t id.",
+    },
+    {
+      id: "apps:preview",
+      description: "Run a built app in the host's sandboxed dev-preview slot.",
+    },
+    {
+      id: "apps:channel",
+      description:
+        "Send and receive messages with another running mini-app named when you grant this.",
+    },
+    {
+      id: "share:cas",
+      description:
+        "Store and retrieve bounded content-addressed data shared by 256t id.",
+    },
+  ];
+}
+
 export async function generateReferenceChapters() {
   const refDir = join(contentDir, "part-5-reference");
   ensureDir(refDir);
@@ -133,84 +213,7 @@ export async function generateReferenceChapters() {
     defaultRoles = hostCore.DEFAULT_DESKTOP_ROLES;
     defaultInterfaces = hostCore.DEFAULT_INTERFACE_CONFIG;
   } catch {
-    capabilityDefinitions = [
-      {
-        id: "identity",
-        description: "Use an app-scoped identity for signing and addressing.",
-      },
-      {
-        id: "presence",
-        description: "Read coarse peer/interface presence and host info.",
-      },
-      {
-        id: "announce:subscribe",
-        description: "Receive announces in the app namespace.",
-      },
-      { id: "announce:publish", description: "Publish the app destination." },
-      {
-        id: "lxmf:send",
-        description: "Send LXMF messages from the app destination.",
-      },
-      {
-        id: "lxmf:receive",
-        description: "Receive LXMF messages for the app destination.",
-      },
-      {
-        id: "storage:kv",
-        description: "Store local key/value data for this app.",
-      },
-      {
-        id: "storage:hyperbee",
-        description: "Store ordered local Hyperbee data for this app.",
-      },
-      {
-        id: "resource:fetch",
-        description: "Fetch package resources through host budget rules.",
-      },
-      {
-        id: "workspace",
-        description:
-          "Read and write project source files in this app's private workspace.",
-      },
-      {
-        id: "ai:chat",
-        description: "Send prompts to the host-configured AI service.",
-      },
-      {
-        id: "ai:embed",
-        description:
-          "Send bounded text to the host-configured embedding model and rank vectors locally.",
-      },
-      {
-        id: "apps:package",
-        description:
-          "Package and sign apps under this device's publisher identity.",
-      },
-      {
-        id: "apps:publish",
-        description:
-          "Publish signed apps so other users can find and install them.",
-      },
-      {
-        id: "apps:install",
-        description: "Ask the host to install apps from a 256t id.",
-      },
-      {
-        id: "apps:preview",
-        description:
-          "Run a built app in the host's sandboxed dev-preview slot.",
-      },
-      {
-        id: "apps:channel",
-        description:
-          "Send and receive messages with another running mini-app named when you grant this.",
-      },
-      {
-        id: "share:cas",
-        description:
-          "Store and retrieve bounded content-addressed data shared by 256t id.",
-      },
-    ];
+    capabilityDefinitions = fallbackCapabilityDefinitions();
     widgetTypes = [
       "button",
       "code-editor",

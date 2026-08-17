@@ -280,59 +280,11 @@ export function handleWorkletMessage(scope, message) {
   }
 
   if (message.type === "confirm-request") {
-    const kindTitles = {
-      package: "Package and sign an app?",
-      publish: "Publish an app to other users?",
-      install: "Install an app?",
-      "trust-import": "Trust a new publisher?",
-      "device-session": "Allow a device session?",
-      "device-stream": "Stream a device to a peer?",
-      "device-remote-grant": "Let a remote peer use a device on this host?",
-      "device-share-offer": "Share a device with this peer?",
-      "device-share-revoke": "Stop sharing this device?",
-      "link-probe": "Measure this peer link?",
-      "app-channel": "Allow messages to another mini-app?",
-    };
-    showHostModal({
-      title: kindTitles[message.kind] ?? `Confirm ${message.kind}?`,
-      fingerprint: message.publisherPublicKey,
-      rows: [
-        ["Requested by", message.appId],
-        ...Object.entries(message.summary ?? {}),
-      ],
-      confirmLabel: "Approve",
-      onDone: (approved) => {
-        host.send({ type: "confirm-response", token: message.token, approved });
-      },
-    });
+    handleConfirmRequest(scope, message);
   }
 
   if (message.type === "launch-review") {
-    if (requestedAppId !== null && message.appId === requestedAppId) {
-      host.send({
-        type: "launch-confirm",
-        token: message.token,
-        accept: true,
-        grants: message.capabilities.map((capability) => capability.id),
-      });
-      return;
-    }
-
-    showHostModal({
-      title: `Run ${message.appId} v${message.version}?`,
-      fingerprint: message.publisherPublicKey,
-      rows: [["Capabilities requested", message.capabilities.length]],
-      capabilities: message.capabilities,
-      confirmLabel: "Run",
-      onDone: (accept, grants) => {
-        host.send({
-          type: "launch-confirm",
-          token: message.token,
-          accept,
-          grants,
-        });
-      },
-    });
+    handleLaunchReview(scope, message);
   }
 
   if (message.type === "limits") renderLimits(message.limits);
@@ -430,6 +382,65 @@ export function handleWorkletMessage(scope, message) {
   if (message.type === "inbound-media-frame") {
     logInboundMediaFrame(appendLog, message);
   }
+}
+
+const CONFIRM_KIND_TITLES = {
+  package: "Package and sign an app?",
+  publish: "Publish an app to other users?",
+  install: "Install an app?",
+  "trust-import": "Trust a new publisher?",
+  "device-session": "Allow a device session?",
+  "device-stream": "Stream a device to a peer?",
+  "device-remote-grant": "Let a remote peer use a device on this host?",
+  "device-share-offer": "Share a device with this peer?",
+  "device-share-revoke": "Stop sharing this device?",
+  "link-probe": "Measure this peer link?",
+  "app-channel": "Allow messages to another mini-app?",
+};
+
+function handleConfirmRequest(scope, message) {
+  const { host, showHostModal } = scope;
+  showHostModal({
+    title: CONFIRM_KIND_TITLES[message.kind] ?? `Confirm ${message.kind}?`,
+    fingerprint: message.publisherPublicKey,
+    rows: [
+      ["Requested by", message.appId],
+      ...Object.entries(message.summary ?? {}),
+    ],
+    confirmLabel: "Approve",
+    onDone: (approved) => {
+      host.send({ type: "confirm-response", token: message.token, approved });
+    },
+  });
+}
+
+function handleLaunchReview(scope, message) {
+  const { host, requestedAppId, showHostModal } = scope;
+  if (requestedAppId !== null && message.appId === requestedAppId) {
+    host.send({
+      type: "launch-confirm",
+      token: message.token,
+      accept: true,
+      grants: message.capabilities.map((capability) => capability.id),
+    });
+    return;
+  }
+
+  showHostModal({
+    title: `Run ${message.appId} v${message.version}?`,
+    fingerprint: message.publisherPublicKey,
+    rows: [["Capabilities requested", message.capabilities.length]],
+    capabilities: message.capabilities,
+    confirmLabel: "Run",
+    onDone: (accept, grants) => {
+      host.send({
+        type: "launch-confirm",
+        token: message.token,
+        accept,
+        grants,
+      });
+    },
+  });
 }
 
 function isPeerWebRtcHostMessage(type) {

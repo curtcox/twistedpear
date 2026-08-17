@@ -9,7 +9,7 @@
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "069be4d55325389bfdd654c02f35ff6921d48e02e4229cbf59b87a671d43c792"
+      "sha256": "5f69c8b1283d03b06b9300ef7e248481581e005d157f5bb0057723e93224b666"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
@@ -25,7 +25,7 @@
     },
     "miniapp-sdk.api.md": {
       "package": "packages/miniapp-sdk",
-      "sha256": "b10c043bcd17fdcee889c91f4eeb5c061ec1a6cfe3c60c2922840a934f2fb6f8"
+      "sha256": "6e24a6371af37e4d725ec693bf430a3e6a0c5cac28ce00f6558c6d9f67e86610"
     },
     "reticulum-interfaces.api.md": {
       "package": "packages/reticulum-interfaces",
@@ -33,7 +33,7 @@
     },
     "miniapp-runtime-worklet.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "660355090a5e60d88152cd2987c0dd969df96e75693f5d381e4292b06ae79e14"
+      "sha256": "1ea1fa2e5ea885ce81edae6ec7efac8428270053339dc9e31c2d93431a0d3ff2"
     },
     "host-core-web.api.md": {
       "package": "packages/host-core",
@@ -101,7 +101,7 @@
     },
     "host-core-protocol.api.md": {
       "package": "packages/host-core",
-      "sha256": "ad755cfa91e78e651ef3f3e02f561f458b1f98f5cd4ec283658d3ff24700ce2a"
+      "sha256": "afcde20a80fb65a587360e41d7affb8a8297624b45e68152030bfe8faf068014"
     },
     "reticulum-interfaces-policy.api.md": {
       "package": "packages/reticulum-interfaces",

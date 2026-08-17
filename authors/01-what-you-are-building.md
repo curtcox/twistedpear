@@ -137,7 +137,7 @@ Read this list before you design, not after.
 | --------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Ship native code or link a native module                  | The sandbox runs JavaScript only.                                           |
 | Run while TwistedPear itself is not on screen             | The OS suspends the whole host app. On iOS this is permanent.               |
-| Share storage with another mini-app                       | A channel copies messages; each app's store stays its own.              |
+| Share storage with another mini-app                       | A channel copies messages; each app's store stays its own.                  |
 | Open a socket, read a file, or call an arbitrary HTTP API | Everything goes through the broker; there is no general network capability. |
 | Assume a fast link                                        | A peer may be reachable only over LoRa at hundreds of bits per second.      |
 | Assume you are online                                     | Peers appear and disappear; LXMF delivery may be deferred for hours.        |

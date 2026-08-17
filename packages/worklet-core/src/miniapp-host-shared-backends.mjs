@@ -335,16 +335,15 @@ export function createAppsBackendPreviewAction({
 }
 
 function bringToForegroundIfRunning(host, record) {
-  const match = host.running().find(
-    (item) =>
-      item.appId === record.appId &&
-      item.publisherPublicKey === record.manifest.publisherPublicKey,
-  );
+  const match = host
+    .running()
+    .find(
+      (item) =>
+        item.appId === record.appId &&
+        item.publisherPublicKey === record.manifest.publisherPublicKey,
+    );
   if (match === undefined) return false;
-  host.switchForeground(
-    record.appId,
-    record.manifest.publisherPublicKey,
-  );
+  host.switchForeground(record.appId, record.manifest.publisherPublicKey);
   return true;
 }
 

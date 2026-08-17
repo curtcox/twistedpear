@@ -114,7 +114,8 @@ describe("concurrent mini-apps", () => {
     const { host } = await createHost();
     await host.launch(manifestFor("alpha"), helloBundle("alpha"));
     await waitUntil(
-      () => host.snapshot().widgetTree?.root.children?.[0]?.props?.value ===
+      () =>
+        host.snapshot().widgetTree?.root.children?.[0]?.props?.value ===
         "alpha",
     );
     await host.launch(manifestFor("beta"), helloBundle("beta"));
@@ -124,10 +125,12 @@ describe("concurrent mini-apps", () => {
     );
 
     expect(host.snapshot().appId).toBe("beta");
-    expect(host.running().map((item) => item.appId).sort()).toEqual([
-      "alpha",
-      "beta",
-    ]);
+    expect(
+      host
+        .running()
+        .map((item) => item.appId)
+        .sort(),
+    ).toEqual(["alpha", "beta"]);
     expect(host.running().find((item) => item.appId === "alpha")?.state).toBe(
       "running",
     );

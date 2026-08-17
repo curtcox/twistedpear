@@ -50,11 +50,11 @@
       "ccn": 38
     },
     "apps/handbook/build-reference.mjs::generateReferenceChapters": {
-      "nloc": 405
+      "nloc": 333
     },
     "apps/handbook/build.mjs::build": {
-      "ccn": 37,
-      "nloc": 218
+      "ccn": 30,
+      "nloc": 202
     },
     "apps/handbook/content/applets/ai-chat/main.js::run": {
       "ccn": 13
@@ -133,8 +133,8 @@
       "ccn": 13
     },
     "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage": {
-      "ccn": 89,
-      "nloc": 302
+      "ccn": 85,
+      "nloc": 268
     },
     "apps/host-desktop/src/renderer/device-bridge.js::deviceAvailability": {
       "ccn": 15

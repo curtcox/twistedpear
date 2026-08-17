@@ -18,7 +18,7 @@ Status: Phase 5 simulator-first baseline.
 | BLE phone pipe          | central/peripheral active             | existing links may survive briefly    | OS-managed only        | background modes only           |
 | RNode                   | BLE-only on iOS                       | existing BLE link may survive briefly | OS-managed only        | not promised                    |
 | LXMF                    | local send/receive                    | persist pending work                  | store-and-forward only | propagation sync budget         |
-| Mini-app runtime        | several apps; one painted     | suspend message sent                  | no execution           | no mini-app execution           |
+| Mini-app runtime        | several apps; one painted             | suspend message sent                  | no execution           | no mini-app execution           |
 | Relay bridge            | foreground only                       | quiesce with interfaces               | stopped                | not promised                    |
 
 iOS has no foreground-service equivalent. The host therefore treats backgrounding as a

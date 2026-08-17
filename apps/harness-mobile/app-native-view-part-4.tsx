@@ -524,8 +524,7 @@ function NativeMiniappSurfaceCard({ scope }: { scope: NativeHarnessScope }) {
 }
 
 function NativeMiniappRuntimeLine({ scope }: { scope: NativeHarnessScope }) {
-  const { status, miniappRuntime, sendToWorklet } = scope;
-  const running = miniappRuntime?.running ?? [];
+  const { status, miniappRuntime } = scope;
   return (
     <>
       <Text testID="miniapp-state" style={styles.muted}>
@@ -535,35 +534,42 @@ function NativeMiniappRuntimeLine({ scope }: { scope: NativeHarnessScope }) {
         {miniappRuntime?.appId ?? "none"} · {miniappRuntime?.state ?? "stopped"}
         {status.miniappRunning ? " · foreground" : ""}
       </Text>
-      {running.length > 1 ? (
-        <View style={styles.buttonRow}>
-          {running.map((item) => {
-            const appId = item.appId;
-            if (appId === null) return null;
-            return (
-              <Pressable
-                key={appId}
-                testID={`switch-miniapp-${appId}`}
-                style={styles.smallButton}
-                onPress={() =>
-                  sendToWorklet({
-                    type: "switch-miniapp",
-                    appId,
-                    ...(item.publisherPublicKey
-                      ? { publisherPublicKey: item.publisherPublicKey }
-                      : {}),
-                  })
-                }
-              >
-                <Text style={styles.buttonLabel}>
-                  {appId === miniappRuntime?.appId ? `• ${appId}` : appId}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
+      <NativeMiniappSwitcher scope={scope} />
     </>
+  );
+}
+
+function NativeMiniappSwitcher({ scope }: { scope: NativeHarnessScope }) {
+  const { miniappRuntime, sendToWorklet } = scope;
+  const running = miniappRuntime?.running ?? [];
+  if (running.length <= 1) return null;
+  return (
+    <View style={styles.buttonRow}>
+      {running.map((item) => {
+        const appId = item.appId;
+        if (appId === null) return null;
+        return (
+          <Pressable
+            key={appId}
+            testID={`switch-miniapp-${appId}`}
+            style={styles.smallButton}
+            onPress={() =>
+              sendToWorklet({
+                type: "switch-miniapp",
+                appId,
+                ...(item.publisherPublicKey
+                  ? { publisherPublicKey: item.publisherPublicKey }
+                  : {}),
+              })
+            }
+          >
+            <Text style={styles.buttonLabel}>
+              {appId === miniappRuntime?.appId ? `• ${appId}` : appId}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 

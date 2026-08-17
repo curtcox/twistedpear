@@ -111,18 +111,18 @@ host-side. `ai.chatStream` requires host API `0.5.0`.
 
 ## apps
 
-| Call                                            | Capability     | Confirmed?                    | Returns                       |
-| ----------------------------------------------- | -------------- | ----------------------------- | ----------------------------- |
-| `apps.packageProject(projectPrefix, manifest)`  | `apps:package` | Yes, every call               | `{ packageHash, size, t256 }` |
-| `apps.publish(t256)`                            | `apps:publish` | Yes, every call               |                               |
-| `apps.install(t256)`                            | `apps:install` | Yes, plus a capability review |                               |
-| `apps.preview(projectPrefix, manifest, grants)` | `apps:preview` | Yes, every call               |                               |
-| `apps.stopPreview()`                            | `apps:preview` |                               |                               |
-| `apps.channel.open({ appId, publisherPublicKey? })` | `apps:channel` | Yes, names the destination | `{ destination }` |
-| `apps.channel.send(destination, payload)`       | `apps:channel` |                               | `{ id }`                      |
-| `apps.channel.receive()`                        | `apps:channel` |                               | messages                      |
-| `apps.channel.close(destination)`               | `apps:channel` |                               |                               |
-| `apps.channel.peers()`                          | `apps:channel` |                               | running mutual grants         |
+| Call                                                | Capability     | Confirmed?                    | Returns                       |
+| --------------------------------------------------- | -------------- | ----------------------------- | ----------------------------- |
+| `apps.packageProject(projectPrefix, manifest)`      | `apps:package` | Yes, every call               | `{ packageHash, size, t256 }` |
+| `apps.publish(t256)`                                | `apps:publish` | Yes, every call               |                               |
+| `apps.install(t256)`                                | `apps:install` | Yes, plus a capability review |                               |
+| `apps.preview(projectPrefix, manifest, grants)`     | `apps:preview` | Yes, every call               |                               |
+| `apps.stopPreview()`                                | `apps:preview` |                               |                               |
+| `apps.channel.open({ appId, publisherPublicKey? })` | `apps:channel` | Yes, names the destination    | `{ destination }`             |
+| `apps.channel.send(destination, payload)`           | `apps:channel` |                               | `{ id }`                      |
+| `apps.channel.receive()`                            | `apps:channel` |                               | messages                      |
+| `apps.channel.close(destination)`                   | `apps:channel` |                               |                               |
+| `apps.channel.peers()`                              | `apps:channel` |                               | running mutual grants         |
 
 "Confirmed" means a host-chrome dialog your app cannot draw over or acknowledge, auto-denied
 after 60 seconds. `grants` must be a subset of the project's declared capabilities.

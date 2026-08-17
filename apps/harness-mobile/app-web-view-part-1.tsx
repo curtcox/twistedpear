@@ -600,14 +600,8 @@ function WebHarnessViewPart1Block5({ scope }: { scope: WebHarnessScope }) {
   );
 }
 function WebHarnessViewPart1Block6({ scope }: { scope: WebHarnessScope }) {
-  const {
-    developerMode,
-    deviceState,
-    miniappRuntime,
-    readWorkspaceDocument,
-    sendToWorker,
-    setDeveloperMode,
-  } = scope;
+  const { developerMode, miniappRuntime, sendToWorker, setDeveloperMode } =
+    scope;
   return (
     <>
       <View style={styles.card}>
@@ -646,51 +640,70 @@ function WebHarnessViewPart1Block6({ scope }: { scope: WebHarnessScope }) {
             ? ` · ${miniappRuntime.appId}@${miniappRuntime.version ?? "?"}`
             : ""}
         </Text>
-        {(miniappRuntime?.running?.length ?? 0) > 1 ? (
-          <View style={styles.buttonRow}>
-            {miniappRuntime?.running?.map((item) => {
-              const appId = item.appId;
-              if (appId === null) return null;
-              return (
-                <ActionButton
-                  key={appId}
-                  label={
-                    appId === miniappRuntime.appId ? `• ${appId}` : appId
-                  }
-                  onPress={() =>
-                    sendToWorker({
-                      type: "switch-miniapp",
-                      appId,
-                      ...(item.publisherPublicKey
-                        ? { publisherPublicKey: item.publisherPublicKey }
-                        : {}),
-                    })
-                  }
-                />
-              );
-            })}
-          </View>
-        ) : null}
-        {miniappRuntime?.widgetTree ? (
-          <View testID="miniapp-live-tree">
-            <MiniappWidgetTree
-              tree={miniappRuntime.widgetTree as WidgetTree}
-              readDocument={readWorkspaceDocument}
-              deviceSessions={deviceState?.sessions ?? []}
-              onEvent={(nodeId, event, value) => {
-                sendToWorker({
-                  type: "miniapp-ui-event",
-                  nodeId,
-                  event,
-                  ...(value === undefined ? {} : { value }),
-                });
-              }}
-            />
-          </View>
-        ) : (
-          <Text style={styles.muted}>No live mini-app widget tree yet.</Text>
-        )}
+        <WebMiniappSwitcher scope={scope} />
+        <WebMiniappLiveTree scope={scope} />
       </View>
     </>
+  );
+}
+
+function WebMiniappSwitcher({ scope }: { scope: WebHarnessScope }) {
+  const { miniappRuntime, sendToWorker } = scope;
+  const named = (miniappRuntime?.running ?? []).flatMap((item) => {
+    if (item.appId === null) return [];
+    return [
+      {
+        appId: item.appId,
+        publisherPublicKey: item.publisherPublicKey,
+        foreground: item.appId === miniappRuntime?.appId,
+      },
+    ];
+  });
+  if (named.length < 2) return null;
+  return (
+    <View style={styles.buttonRow}>
+      {named.map((entry) => (
+        <ActionButton
+          key={entry.appId}
+          label={entry.foreground ? `• ${entry.appId}` : entry.appId}
+          onPress={() => {
+            const message: {
+              type: "switch-miniapp";
+              appId: string;
+              publisherPublicKey?: string;
+            } = { type: "switch-miniapp", appId: entry.appId };
+            if (entry.publisherPublicKey) {
+              message.publisherPublicKey = entry.publisherPublicKey;
+            }
+            sendToWorker(message);
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+function WebMiniappLiveTree({ scope }: { scope: WebHarnessScope }) {
+  const { deviceState, miniappRuntime, readWorkspaceDocument, sendToWorker } =
+    scope;
+  if (!miniappRuntime?.widgetTree) {
+    return <Text style={styles.muted}>No live mini-app widget tree yet.</Text>;
+  }
+  return (
+    <View testID="miniapp-live-tree">
+      <MiniappWidgetTree
+        tree={miniappRuntime.widgetTree as WidgetTree}
+        readDocument={readWorkspaceDocument}
+        deviceSessions={deviceState?.sessions ?? []}
+        onEvent={(nodeId, event, value) => {
+          sendToWorker({
+            type: "miniapp-ui-event",
+            nodeId,
+            event,
+            ...(value === undefined ? {} : { value }),
+          });
+        }}
+      />
+    </View>
   );
 }

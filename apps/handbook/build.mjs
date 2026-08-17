@@ -76,6 +76,28 @@ function assertNoUnstrippedExports(source) {
   }
 }
 
+function validateHandbookLinks(allLinks, chapterIds) {
+  for (const link of allLinks) {
+    if (link.target.startsWith("chapter:")) {
+      const targetId = link.target.slice("chapter:".length);
+      if (!chapterIds.has(targetId)) {
+        fail(`Broken chapter link from ${link.from}: ${link.target}`);
+      }
+    } else if (
+      link.target.startsWith("http://") ||
+      link.target.startsWith("https://")
+    ) {
+      // External URLs are allowed.
+    } else if (link.target.startsWith("../") || link.target.endsWith(".md")) {
+      fail(
+        `Dead in-app link from ${link.from}: ${link.target} — use chapter:id targets`,
+      );
+    } else {
+      fail(`Unsupported link target from ${link.from}: ${link.target}`);
+    }
+  }
+}
+
 async function build() {
   await generateReferenceChapters();
   const toc = loadToc();
@@ -152,25 +174,7 @@ async function build() {
     }
   }
 
-  for (const link of allLinks) {
-    if (link.target.startsWith("chapter:")) {
-      const targetId = link.target.slice("chapter:".length);
-      if (!chapterIds.has(targetId)) {
-        fail(`Broken chapter link from ${link.from}: ${link.target}`);
-      }
-    } else if (
-      link.target.startsWith("http://") ||
-      link.target.startsWith("https://")
-    ) {
-      // External URLs are allowed.
-    } else if (link.target.startsWith("../") || link.target.endsWith(".md")) {
-      fail(
-        `Dead in-app link from ${link.from}: ${link.target} — use chapter:id targets`,
-      );
-    } else {
-      fail(`Unsupported link target from ${link.from}: ${link.target}`);
-    }
-  }
+  validateHandbookLinks(allLinks, chapterIds);
 
   for (const applet of applets) {
     for (const platform of HANDBOOK_PLATFORMS) {

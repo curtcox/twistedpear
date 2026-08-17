@@ -56,7 +56,7 @@ export interface MiniappRuntimeView {
   readonly running?: ReadonlyArray<MiniappRunningView>;
 }
 
-export interface MiniappRunningView {
+interface MiniappRunningView {
   readonly appId: string | null;
   readonly publisherPublicKey: string | null;
   readonly version: string | null;

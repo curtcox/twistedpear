@@ -4,8 +4,8 @@ import {
   type HostConfirmationChannel,
 } from "../confirm.js";
 
-export const APP_CHANNEL_MAX_PAYLOAD_BYTES = 16 * 1024;
-export const APP_CHANNEL_MAX_INBOX = 32;
+const APP_CHANNEL_MAX_PAYLOAD_BYTES = 16 * 1024;
+const APP_CHANNEL_MAX_INBOX = 32;
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
@@ -18,7 +18,7 @@ type AppChannelErrorCode =
   | "CHANNEL_PAYLOAD_TOO_LARGE"
   | "CHANNEL_INBOX_FULL";
 
-export class AppChannelError extends Error {
+class AppChannelError extends Error {
   constructor(
     readonly code: AppChannelErrorCode,
     message: string,

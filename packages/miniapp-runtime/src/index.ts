@@ -64,7 +64,6 @@ export {
 export { createSandboxBackend } from "./sandbox/factory.js";
 export { prepareBundleSource } from "./sandbox/prepare-bundle.js";
 export { MiniappHost } from "./host.js";
-export { ForegroundRequiredError } from "./host/running-apps.js";
 export type {
   LaunchManifest,
   MiniappHostCallbacks,

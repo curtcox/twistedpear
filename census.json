@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-17T19:32:46.919Z",
+  "generatedAt": "2026-08-17T22:29:10.126Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -551,9 +551,9 @@
     "test-files:packages/cas-256t": 2,
     "test-files:packages/cli": 7,
     "test-files:packages/effects": 16,
-    "test-files:packages/host-core": 23,
+    "test-files:packages/host-core": 26,
     "test-files:packages/lxmf-ts": 6,
-    "test-files:packages/miniapp-runtime": 29,
+    "test-files:packages/miniapp-runtime": 31,
     "test-files:packages/miniapp-sdk": 8,
     "test-files:packages/peer-discovery": 14,
     "test-files:packages/protocol": 109,
@@ -564,7 +564,7 @@
     "test-files:packages/widget-renderer-headless": 3,
     "test-files:packages/widget-renderer-rn": 2,
     "test-files:packages/worklet-core": 9,
-    "test-files:total": 372,
+    "test-files:total": 377,
     "tests:apps/handbook": 34,
     "tests:apps/harness-mobile": 16,
     "tests:apps/host-desktop": 24,
@@ -588,10 +588,10 @@
     "tests:packages/cas-256t": 29,
     "tests:packages/cli": 28,
     "tests:packages/effects": 91,
-    "tests:packages/host-core": 113,
+    "tests:packages/host-core": 125,
     "tests:packages/lxmf-ts": 37,
-    "tests:packages/miniapp-runtime": 301,
-    "tests:packages/miniapp-sdk": 70,
+    "tests:packages/miniapp-runtime": 312,
+    "tests:packages/miniapp-sdk": 75,
     "tests:packages/peer-discovery": 54,
     "tests:packages/protocol": 826,
     "tests:packages/reticulum-interfaces": 63,
@@ -601,7 +601,7 @@
     "tests:packages/widget-renderer-headless": 70,
     "tests:packages/widget-renderer-rn": 44,
     "tests:packages/worklet-core": 112,
-    "tests:total": 2924,
+    "tests:total": 2952,
     "waivers:live": 0
   },
   "delta": {

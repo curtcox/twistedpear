@@ -393,9 +393,7 @@ function NativeAppCatalogCard({ scope }: { scope: NativeHarnessScope }) {
 function NativeInstalledPackagesCard({ scope }: { scope: NativeHarnessScope }) {
   const {
     installed,
-    selectedInstalledAppId,
     setSelectedInstalledAppId,
-    grantCapabilities,
     sendToWorklet,
     miniappRuntime,
   } = scope;
@@ -468,50 +466,63 @@ function NativeInstalledPackagesCard({ scope }: { scope: NativeHarnessScope }) {
             </View>
           ))
         : null}
-      {selectedInstalledAppId !== null && grantCapabilities.length > 0 ? (
-        <View style={styles.detailCard}>
-          <Text style={styles.catalogName}>
-            Grants for {selectedInstalledAppId}
-          </Text>
-          {grantCapabilities
-            .filter((cap) => cap.declared)
-            .map((cap) => (
-              <View key={cap.id} style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>{cap.id}</Text>
-                  <Text style={styles.muted}>{cap.description}</Text>
-                </View>
-                <Switch
-                  testID={`grant-${cap.id.replace(/:/g, "-")}`}
-                  value={cap.granted}
-                  onValueChange={(granted) => {
-                    const pkg = installed.find(
-                      (entry) => entry.appId === selectedInstalledAppId,
-                    );
-                    if (pkg === undefined) {
-                      return;
-                    }
+      <NativeInstalledGrantsPanel scope={scope} />
+    </View>
+  );
+}
 
-                    const next = grantCapabilities
-                      .filter(
-                        (entry) =>
-                          entry.declared &&
-                          (entry.id === cap.id ? granted : entry.granted),
-                      )
-                      .map((entry) => entry.id);
-                    sendToWorklet({
-                      type: "set-grants",
-                      appId: pkg.appId,
-                      publisherPublicKey: pkg.publisherPublicKey ?? "",
-                      declaredCapabilities: pkg.capabilities ?? [],
-                      grantedCapabilities: next,
-                    });
-                  }}
-                />
-              </View>
-            ))}
-        </View>
-      ) : null}
+function NativeInstalledGrantsPanel({ scope }: { scope: NativeHarnessScope }) {
+  const {
+    installed,
+    selectedInstalledAppId,
+    grantCapabilities,
+    sendToWorklet,
+  } = scope;
+  if (selectedInstalledAppId === null || grantCapabilities.length === 0) {
+    return null;
+  }
+  return (
+    <View style={styles.detailCard}>
+      <Text style={styles.catalogName}>
+        Grants for {selectedInstalledAppId}
+      </Text>
+      {grantCapabilities
+        .filter((cap) => cap.declared)
+        .map((cap) => (
+          <View key={cap.id} style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>{cap.id}</Text>
+              <Text style={styles.muted}>{cap.description}</Text>
+            </View>
+            <Switch
+              testID={`grant-${cap.id.replace(/:/g, "-")}`}
+              value={cap.granted}
+              onValueChange={(granted) => {
+                const pkg = installed.find(
+                  (entry) => entry.appId === selectedInstalledAppId,
+                );
+                if (pkg === undefined) {
+                  return;
+                }
+
+                const next = grantCapabilities
+                  .filter(
+                    (entry) =>
+                      entry.declared &&
+                      (entry.id === cap.id ? granted : entry.granted),
+                  )
+                  .map((entry) => entry.id);
+                sendToWorklet({
+                  type: "set-grants",
+                  appId: pkg.appId,
+                  publisherPublicKey: pkg.publisherPublicKey ?? "",
+                  declaredCapabilities: pkg.capabilities ?? [],
+                  grantedCapabilities: next,
+                });
+              }}
+            />
+          </View>
+        ))}
     </View>
   );
 }

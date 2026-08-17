@@ -113,13 +113,13 @@ Android emulator numbers using the Bare worker backend are recorded in
 
 ## The limits that are not numbers
 
-| Constraint                          | Consequence for your design                                           | Permanent?                            |
-| ----------------------------------- | --------------------------------------------------------------------- | ------------------------------------- |
-| No execution while the host is away | Nothing happens while TwistedPear is not the app on screen.           | On iOS yes; on Android not inherently |
-| No shared storage between apps      | A channel copies messages; each app's store stays its own.            | Yes, for v1                           |
-| No native modules                   | JavaScript only, no exceptions.                                       | Yes                                   |
-| Local-only storage                  | No sync, no backup, no cross-device state.                            | Yes, for v1                           |
-| Suspension is normal                | Persist as you go; there is no `onSuspend`.                           | Suspension yes; the missing hook no   |
+| Constraint                          | Consequence for your design                                 | Permanent?                            |
+| ----------------------------------- | ----------------------------------------------------------- | ------------------------------------- |
+| No execution while the host is away | Nothing happens while TwistedPear is not the app on screen. | On iOS yes; on Android not inherently |
+| No shared storage between apps      | A channel copies messages; each app's store stays its own.  | Yes, for v1                           |
+| No native modules                   | JavaScript only, no exceptions.                             | Yes                                   |
+| Local-only storage                  | No sync, no backup, no cross-device state.                  | Yes, for v1                           |
+| Suspension is normal                | Persist as you go; there is no `onSuspend`.                 | Suspension yes; the missing hook no   |
 
 The "Permanent?" column is not decoration. Rows marked _no_ are limits the platform
 imposes on itself and has committed to revisiting on a schedule that fails the build if it
