@@ -4,6 +4,7 @@ import {
   blockersFor,
   compareItems,
   findCycles,
+  nextAttention,
   ranked,
 } from "../../scripts/work/lib.mjs";
 import { effortOf } from "../../scripts/work/effort.mjs";
@@ -112,6 +113,42 @@ describe("work ranking policy", () => {
       item({ id: "FEATURE", type: "feature" }),
     ]).map((entry) => entry.id);
     expect(order).toEqual(["FEATURE", "UNTYPED"]);
+  });
+});
+
+describe("unattended waits", () => {
+  it("does not start soaks while a gate is red", () => {
+    const attention = nextAttention([
+      item({ id: "RQ-DESKTOP", type: "release-gate", unattended: true }),
+      item({ id: "GATE-COVERAGE", type: "broken-gate" }),
+    ]);
+    expect(attention.start).toEqual([]);
+    expect(attention.then?.id).toBe("GATE-COVERAGE");
+  });
+
+  it("names unattended release-gates then proposes the hands-on item", () => {
+    const soaks = [
+      item({ id: "RQ-DESKTOP", type: "release-gate", unattended: true }),
+      item({ id: "RQ-LINK", type: "release-gate", unattended: true }),
+    ];
+    const handsOn = item({ id: "ID-ROSTER", type: "feature" });
+    const attention = nextAttention([...soaks, handsOn]);
+    expect(attention.start.map((entry) => entry.id)).toEqual([
+      "RQ-DESKTOP",
+      "RQ-LINK",
+    ]);
+    expect(attention.then?.id).toBe("ID-ROSTER");
+    expect(attention.pick?.id).toBe("ID-ROSTER");
+  });
+
+  it("proposes an unattended item only when nothing hands-on is unblocked", () => {
+    const attention = nextAttention([
+      item({ id: "RQ-DESKTOP", type: "release-gate", unattended: true }),
+      item({ id: "RQ-LINK", type: "release-gate", unattended: true }),
+    ]);
+    expect(attention.then).toBeNull();
+    expect(attention.pick?.id).toBe("RQ-DESKTOP");
+    expect(attention.start).toHaveLength(2);
   });
 });
 

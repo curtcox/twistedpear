@@ -17,6 +17,7 @@ npm run work:add -- --id=<ID> --type=<${TYPES.join("|")}> --title="<what>" [opti
   --section=<heading>    table heading within it (default "${DEFAULT_SECTION}")
   --evidence="<text>"    initial evidence cell (default "—")
   --notes="<text>"       free-form note stored in work/metadata.json
+  --unattended           this is a wait (a soak); work:next starts it, then names the hands-on item
 `;
 
 /**
@@ -91,6 +92,7 @@ export function addWork(flags, root = repoRoot()) {
     verify,
     added: new Date().toISOString().slice(0, 10),
     ...(flags.notes ? { notes: String(flags.notes) } : {}),
+    ...(flags.unattended === true ? { unattended: true } : {}),
   };
   saveMetadata(metadata, root);
 

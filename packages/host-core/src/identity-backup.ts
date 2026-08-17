@@ -7,7 +7,7 @@ import {
 } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import type { CryptoProvider, Identity } from "@twistedpear/reticulum-ts";
-import { Identity as RnsIdentity } from "@twistedpear/reticulum-ts";
+import { Identity as RnsIdentity, bytesToHex } from "@twistedpear/reticulum-ts";
 
 const MAGIC = new TextEncoder().encode("TPIDBK01");
 const HEADER_BYTES = 58;
@@ -152,6 +152,19 @@ function assertIdentityBackupHeader(container: Uint8Array): void {
     view.getUint16(12, false) !== 3
   ) {
     throw new Error();
+  }
+}
+
+/**
+ * Identity hash advertised in the backup header. Readable without the
+ * passphrase so a pairing import can confirm the account before decrypting.
+ */
+export function identityBackupHash(container: Uint8Array): string {
+  try {
+    assertIdentityBackupHeader(container);
+    return bytesToHex(container.subarray(HASH_OFFSET, HEADER_BYTES));
+  } catch {
+    throw new Error(IDENTITY_BACKUP_ERROR);
   }
 }
 

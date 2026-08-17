@@ -35,6 +35,9 @@ export function idWidth(items) {
   return items.reduce((width, item) => Math.max(width, item.id.length), 2);
 }
 
+export const PLAN_DURATION_SOAKS =
+  "npm run validate:mac -- --stage 8 --plan-duration";
+
 /**
  * @param {import("./lib.mjs").WorkItem} item
  * @param {number} width
@@ -46,7 +49,9 @@ export function oneLine(item, width = 15) {
       ? item.status
       : item.blockers.length > 0
         ? "blocked"
-        : "ready";
+        : item.unattended === true
+          ? "wait"
+          : "ready";
   return `${state.padEnd(8)}${item.id.padEnd(width)} ${(item.type || "?").padEnd(13)} ${item.title}`;
 }
 
@@ -90,5 +95,26 @@ export function explain(item, runnerUp) {
       `  runner-up ${runnerUp.id} (${runnerUp.type}, unblocks ${runnerUp.unblocks}, effort ${runnerUp.effort ?? 1}, added ${runnerUp.added})`,
     );
   }
+  return lines;
+}
+
+/**
+ * "Start these waits, then do this" — the shape work:next uses when unattended
+ * soaks outrank the hands-on pick.
+ * @param {import("./lib.mjs").WorkItem[]} start
+ * @param {import("./lib.mjs").WorkItem | null} then
+ * @returns {string[]}
+ */
+export function startThen(start, then) {
+  const width = idWidth(start);
+  const lines = [
+    "start these (unattended) and let them run:",
+    ...start.map((item) => `  ${oneLine(item, width)}`),
+  ];
+  if (start.length > 1 && start.every((item) => item.type === "release-gate")) {
+    lines.push(`  ${PLAN_DURATION_SOAKS}`);
+  }
+  if (then) lines.push("", "then do this:");
+  else lines.push("", "nothing hands-on is unblocked; the wait is the work.");
   return lines;
 }

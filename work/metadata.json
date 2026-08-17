@@ -364,6 +364,15 @@
       "requires": [],
       "verify": "npx vitest run packages/host-core/test/linked-installation-roster.test.ts",
       "added": "2026-08-10",
+      "completed": "2026-08-17",
+      "evidence": [
+        "packages/host-core/src/linked-installation-roster.ts",
+        "packages/host-core/src/linked-installation-announce.ts",
+        "packages/host-core/src/linked-installation.ts",
+        "packages/host-core/src/identity-backup.ts",
+        "packages/host-core/test/linked-installation-roster.test.ts",
+        "docs/linked-devices.md"
+      ],
       "notes": "Persist verified TPDV certificates, announce under the account-derived aspect, and merge valid certificates into a local roster. Both pairing directions per docs/linked-devices-plan.md. linked-installation.ts supplies the format and is consumed by nothing today."
     },
     "ID-SIBLING-CHROME": {
@@ -652,47 +661,54 @@
       "type": "release-gate",
       "requires": [],
       "verify": "SOAK_DURATION_MS=300000 DESKTOP_SOAK_CYCLES=864 npm run test:desktop-soak",
-      "added": "2026-07-31"
+      "added": "2026-07-31",
+      "unattended": true
     },
     "RQ-DIST": {
       "type": "release-gate",
       "requires": [],
       "verify": "SOAK_DURATION_MS=86400000 npm run test:dist-soak",
-      "added": "2026-07-31"
+      "added": "2026-07-31",
+      "unattended": true
     },
     "RQ-INTEGRATION": {
       "type": "release-gate",
       "requires": [],
       "verify": "SOAK_DURATION_MS=86400000 npm run test:integration-soak",
-      "added": "2026-07-31"
+      "added": "2026-07-31",
+      "unattended": true
     },
     "RQ-IOS": {
       "type": "release-gate",
       "requires": [],
       "verify": "SOAK_DURATION_MS=86400000 IOS_LIFECYCLE_CYCLES=100 npm run test:ios-soak:required",
-      "added": "2026-07-31"
+      "added": "2026-07-31",
+      "unattended": true
     },
     "RQ-LINK": {
       "type": "release-gate",
       "requires": [],
       "verify": "LINK_SOAK_DURATION_MS=3600000 npm run test:link-soak",
-      "added": "2026-07-31"
+      "added": "2026-07-31",
+      "unattended": true
     },
     "RQ-MINIAPP": {
       "type": "release-gate",
       "requires": [],
       "verify": "SOAK_DURATION_MS=86400000 npm run test:miniapp-soak",
-      "added": "2026-07-31"
+      "added": "2026-07-31",
+      "unattended": true
     },
     "RQ-MIXED": {
       "type": "release-gate",
       "requires": [],
       "verify": "SOAK_DURATION_MS=86400000 npm run test:mixed-network-soak",
-      "added": "2026-07-31"
+      "added": "2026-07-31",
+      "unattended": true
     },
     "RQ-RETICULUM": {
       "type": "release-gate",
-      "requires": [],
+      "requires": ["RQ-TRANSPORT"],
       "verify": "npm run release:status",
       "added": "2026-07-31"
     },
@@ -700,7 +716,8 @@
       "type": "release-gate",
       "requires": [],
       "verify": "TRANSPORT_SOAK_DURATION_MS=259200000 npm run test:transport-node-soak",
-      "added": "2026-07-31"
+      "added": "2026-07-31",
+      "unattended": true
     },
     "S0": {
       "type": "quality",
@@ -737,6 +754,15 @@
       "requires": [],
       "verify": "npx vitest run conformance/doc-audit/work-ranking.test.mjs",
       "added": "2026-08-07",
+      "completed": "2026-08-17",
+      "evidence": [
+        "scripts/work/lib.mjs",
+        "scripts/work/next.mjs",
+        "scripts/work/render.mjs",
+        "conformance/doc-audit/work-ranking.test.mjs",
+        "docs/work-tracking.md",
+        "work/metadata.json"
+      ],
       "notes": "The nine RQ soaks are not nine decisions: they are one action (npm run validate:mac -- --stage 8 --plan-duration) followed by up to 72 hours of waiting. work:next allocates attention, but its top answer currently costs almost none, and it presents the batch as a queue to pick from. Marking such items unattended would let work:next say 'start these, then do this' and rank the hands-on item second. Relates to work:done --from-log, which already assumes soaks run outside the tool."
     }
   }

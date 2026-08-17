@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "SHA-256 digests of API Extractor's stable Markdown signatures. The full reports are CI artifacts. After bootstrap, changing a digest also requires changing that package version.",
+  "description": "SHA-256 digests of API Extractor's stable Markdown signatures. Full reports are CI artifacts. After bootstrap, changing a digest also requires changing that package version.",
   "reports": 37,
   "entries": {
     "protocol.api.md": {
@@ -13,7 +13,7 @@
     },
     "host-core.api.md": {
       "package": "packages/host-core",
-      "sha256": "1e69640517024957f63cbc5a846e6dd5e9987282d953d5baedb40735537819eb"
+      "sha256": "ea900f15515c9b48041e6a4e38a41fd265498bd69cce2dfce32cb79248fa90fb"
     },
     "reticulum-ts.api.md": {
       "package": "packages/reticulum-ts",
@@ -47,6 +47,10 @@
       "package": "packages/reticulum-ts",
       "sha256": "fa8aafe1e2b72bf1ebd0ca17041e4dc1609b076bc9e82dd761a17e6881b89b55"
     },
+    "host-core-web.api.md": {
+      "package": "packages/host-core",
+      "sha256": "aff7d0200b350c7f6d7bdca2c61baf909ab882cd9ccd29b3d823ae3886e04fb2"
+    },
     "effects.api.md": {
       "package": "packages/effects",
       "sha256": "88b02630bc0dbeddf10248c6b996e76294f9c5e8491931d5ac5c37adfa850aa5"
@@ -58,10 +62,6 @@
     "app-registry.api.md": {
       "package": "packages/app-registry",
       "sha256": "10e8936e67473b53d1943428a3ee849cbeda6464b4fc99cf2cbd62b27a4ea46d"
-    },
-    "host-core-web.api.md": {
-      "package": "packages/host-core",
-      "sha256": "99e3f78fd82f9e83d313fb3c2fab9b2aca840ecd47a4b79eaf243147831e0cef"
     },
     "sim-campaign.api.md": {
       "package": "packages/sim-campaign",
@@ -91,6 +91,10 @@
       "package": "packages/bridge-hyper",
       "sha256": "eed19b69fe5a33e40ba32e36ba8cd7219e51eaf649da3137f10a04b18ad1e77b"
     },
+    "host-core-identity-backup.api.md": {
+      "package": "packages/host-core",
+      "sha256": "bfdb231c48ca126f930c141ef9a5b6100dcdfa91858676c9a4a571c24ead750d"
+    },
     "miniapp-runtime-ui.api.md": {
       "package": "packages/miniapp-runtime",
       "sha256": "420bbf7dbbcd294d5df60263f2108a792b3684316e571a74656d5299a547b967"
@@ -98,10 +102,6 @@
     "host-core-protocol.api.md": {
       "package": "packages/host-core",
       "sha256": "ad755cfa91e78e651ef3f3e02f561f458b1f98f5cd4ec283658d3ff24700ce2a"
-    },
-    "host-core-identity-backup.api.md": {
-      "package": "packages/host-core",
-      "sha256": "7dc910f8a13bb57a6ba9b77d2559de8758edada7f75ea4752c3903ce2ee5cf45"
     },
     "reticulum-interfaces-policy.api.md": {
       "package": "packages/reticulum-interfaces",

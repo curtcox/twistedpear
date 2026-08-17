@@ -78,13 +78,6 @@ and every wire value keep their spelling.
 
 ## Remaining work
 
-**Installation roster and pairing.** Persist verified certificates; announce under the
-account-derived aspect; merge valid certificates into a local roster. Both pairing
-directions — exporting a short-lived encrypted account backup from an existing installation,
-and importing it on a new one — with the account hash confirmed before anything is written.
-The transfer passphrase travels by a separate channel. A link backup is equivalent to the
-account recovery words: whoever holds both becomes the account, and the UI must say so.
-
 **Account journal.** Encrypted, append-only, exchanged over certified installation
 destinations. Records are content-addressed, signed by the emitting installation certificate,
 deduplicated by record hash, and bounded by the same propagation and multipart limits as

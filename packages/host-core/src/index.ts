@@ -83,6 +83,7 @@ export {
 export {
   decryptIdentityBackup,
   encryptIdentityBackup,
+  identityBackupHash,
   identityFromRecoveryWords,
   identityToRecoveryWords,
   isEncryptedIdentityBackup,
@@ -181,19 +182,37 @@ export {
 } from "./app-scoped-identity.js";
 export {
   LINKED_INSTALLATION_ANNOUNCE_ASPECT,
+  LINKED_INSTALLATION_APP_NAME,
   LINKED_INSTALLATION_ID_BYTES,
   LINKED_INSTALLATION_MAGIC,
   LINKED_INSTALLATION_MAX_CERTIFICATE_BYTES,
   LINKED_INSTALLATION_MAX_LABEL_BYTES,
+  createLinkedInstallation,
   createLinkedInstallationId,
   decodeLinkedInstallationCertificate,
   deriveLinkedInstallationIdentity,
   encodeLinkedInstallationCertificate,
   linkedInstallationAnnounceAspects,
+  linkedInstallationAnnounceFilter,
   signLinkedInstallationCertificate,
   verifyLinkedInstallationCertificate,
   type LinkedInstallationCertificate,
 } from "./linked-installation.js";
+export {
+  LINKED_ACCOUNT_BACKUP_WARNING,
+  createKeyValueLinkedInstallationRoster,
+  exportLinkedAccountBackup,
+  pairNewLinkedInstallation,
+  type LinkedAccountBackupExport,
+  type LinkedInstallationKeyValueStore,
+  type LinkedInstallationRoster,
+  type LinkedInstallationRosterEntry,
+} from "./linked-installation-roster.js";
+export {
+  createLinkedInstallationAnnounce,
+  type LinkedInstallationAnnounceOptions,
+  type LinkedInstallationAnnounceSession,
+} from "./linked-installation-announce.js";
 export type {
   FetchPath,
   FetchPlane,

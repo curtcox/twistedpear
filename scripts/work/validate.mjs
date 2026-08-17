@@ -18,6 +18,7 @@ const ITEM_KEYS = new Set([
   "completed",
   "evidence",
   "notes",
+  "unattended",
 ]);
 const REQUIRED_KEYS = ["type", "requires", "verify", "added"];
 const ID_PATTERN = /^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$/;
@@ -25,7 +26,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const RESOURCE_PATTERN = /^res:[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /**
- * Hand-rolled rather than schema-library driven: the shape is seven fields and
+ * Hand-rolled rather than schema-library driven: the shape is eight fields and
  * two enums, and a validator dependency would need entries in the license
  * allowlist, deny.toml, and the knip surface to earn its place.
  * @param {string} root
@@ -107,6 +108,9 @@ export function validateMetadataShape(root = repoRoot()) {
     }
     if (entry.completed !== undefined && !entry.evidence?.length) {
       problems.push(`${at}: completed items must cite evidence`);
+    }
+    if (entry.unattended !== undefined && entry.unattended !== true) {
+      problems.push(`${at}: unattended must be true when present`);
     }
   }
 

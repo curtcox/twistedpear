@@ -8,8 +8,8 @@ counterpart: docs/linked-devices-plan.md
 -->
 
 What the shipped code actually does about the boundary between **a user** and **one of
-that user's machines**. The linked-account design that this file used to describe — roster,
-pairing, account journal, mode switch — is not built; it now lives in
+that user's machines**. The remaining linked-account work — account journal and the
+one-way linked-mode switch — lives in
 [Device identity and user identity — delivery plan](linked-devices-plan.md). Where the two
 disagree, this file wins.
 
@@ -36,8 +36,8 @@ that is in force.
 
 ## What ships toward the distinction
 
-Two format-level pieces are implemented and tested, and are inert until a host enables
-linked mode.
+Three library pieces are implemented and tested, and are inert on the wire until a host
+enables linked mode.
 
 **Account-to-installation certificates**
 ([packages/host-core/src/linked-installation.ts](../packages/host-core/src/linked-installation.ts)).
@@ -50,8 +50,24 @@ bytes so they fit a Reticulum announce `app_data`, and the announce aspect is de
 hash of the account key. Verification requires the account signature, so a transport or
 bootstrap operator cannot graft a machine onto someone else's account.
 
-The module is exported from `index.ts` and `web.ts` and **consumed by nothing**. There is no
-roster, no pairing flow, no announce integration, and no persistence.
+The module is exported from `index.ts` and `web.ts`. A host persists verified certificates
+in a key/value roster
+([packages/host-core/src/linked-installation-roster.ts](../packages/host-core/src/linked-installation-roster.ts)),
+announce them under the account-derived aspect
+([packages/host-core/src/linked-installation-announce.ts](../packages/host-core/src/linked-installation-announce.ts)),
+and merge a peer's certificate only when the account signature verifies, the account
+matches, the announced identity owns the certified installation key, and that
+installation id is not already bound to a different key. Shipping hosts still do not
+enable linked mode, so this destination is unused on the wire until a host opts in.
+
+**Pairing.** An existing installation exports the ordinary encrypted account backup
+(`TPIDBK01`). The header carries the account hash without the passphrase, so the new
+machine can show it and require confirmation before decrypting. A mismatched
+confirmation throws and writes nothing. After a confirmed import, `pairNewLinkedInstallation`
+derives a fresh installation identity and certificate; the caller persists the roster
+entry. The transfer passphrase travels by a separate channel. The export warns that a
+link backup is equivalent to the account recovery words: whoever holds both becomes
+the account.
 
 **Locator v2** ([packages/cas-256t/src/locator.ts](../packages/cas-256t/src/locator.ts)).
 `servingPublicKey` is carried separately from `publisherPublicKey`, and v2 is emitted only
@@ -158,9 +174,10 @@ The vocabulary is closed: `sibling:moderation`, `sibling:trust`, `sibling:apps`,
 other half of the guarantee in the table above — a grant given to an app on one machine has
 no route to another. Both halves are pinned by tests.
 
-The roster predicate and the durable proposal store are injected, which is why the gate is
-finished before the roster (`ID-ROSTER`) and the journal (`ID-JOURNAL`) exist. The host chrome
-that renders held proposals, and the wiring that applies an `apply` verdict to the moderation
+The roster predicate and the durable proposal store are injected, which is why the gate
+could ship before the roster (`ID-ROSTER`) and the journal (`ID-JOURNAL`). The roster now
+exists and is the intended `isKnownInstallation` implementation. The host chrome that
+renders held proposals, and the wiring that applies an `apply` verdict to the moderation
 and trust stores, are not built.
 
 ## Naming: installation vs device

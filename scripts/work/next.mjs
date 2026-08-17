@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { repoRoot } from "../doc-audit/repo-root.mjs";
-import { isActionable, loadWork, ranked } from "./lib.mjs";
+import { isActionable, loadWork, nextAttention, ranked } from "./lib.mjs";
 import { auditNudge } from "./audit-clock.mjs";
 import {
   detail,
@@ -9,6 +9,7 @@ import {
   listFlag,
   oneLine,
   parseFlags,
+  startThen,
 } from "./render.mjs";
 
 /**
@@ -31,9 +32,12 @@ function main() {
   const candidates = actionableWork(repoRoot(), { type: listFlag(flags.type) });
 
   if (flags.json) {
-    console.log(
-      JSON.stringify(all ? candidates : candidates.slice(0, 1), null, 2),
-    );
+    if (all) {
+      console.log(JSON.stringify(candidates, null, 2));
+      return;
+    }
+    const attention = nextAttention(candidates);
+    console.log(JSON.stringify(attention, null, 2));
     return;
   }
 
@@ -47,9 +51,18 @@ function main() {
     const width = idWidth(candidates);
     for (const item of candidates) console.log(oneLine(item, width));
   } else {
-    for (const line of detail(candidates[0])) console.log(line);
-    console.log("");
-    for (const line of explain(candidates[0], candidates[1])) console.log(line);
+    const attention = nextAttention(candidates);
+    const pick = attention.then ?? attention.pick;
+    if (attention.start.length > 0) {
+      for (const line of startThen(attention.start, pick)) console.log(line);
+      console.log("");
+    }
+    if (pick) {
+      for (const line of detail(pick)) console.log(line);
+      console.log("");
+      const runnerUp = candidates.find((item) => item.id !== pick.id);
+      for (const line of explain(pick, runnerUp)) console.log(line);
+    }
     console.log(
       `\n${candidates.length - 1} other unblocked item(s): npm run work:unblocked`,
     );

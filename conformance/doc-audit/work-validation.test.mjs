@@ -42,6 +42,13 @@ describe("metadata schema", () => {
     );
   });
 
+  it("accepts unattended: true and rejects any other value", () => {
+    expect(problemsFor(meta({ unattended: true }))).toBe("");
+    expect(problemsFor(meta({ unattended: false }))).toContain(
+      "unattended must be true when present",
+    );
+  });
+
   it("rejects a missing required field", () => {
     const entry = meta();
     delete entry.verify;

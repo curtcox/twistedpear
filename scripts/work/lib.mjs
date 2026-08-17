@@ -56,6 +56,8 @@ export const HISTORY_FILE = "work/history.jsonl";
  * @property {string} [completed]
  * @property {string[]} [evidence]
  * @property {string} [notes]
+ * @property {boolean} [unattended] true when the work is a wait (a soak, a
+ *   long run) rather than something that needs a person's attention now
  */
 
 /**
@@ -72,6 +74,7 @@ export const HISTORY_FILE = "work/history.jsonl";
  * @property {string} [completed]
  * @property {string[]} [evidence]
  * @property {string} [notes]
+ * @property {boolean} [unattended]
  * @property {boolean} [derived] computed from machine output, not a register
  *   row; cannot be closed or retyped by hand
  * @property {Blocker[]} blockers
@@ -128,6 +131,7 @@ function canonicalStructure(metadata) {
     "completed",
     "evidence",
     "notes",
+    "unattended",
   ];
   /** @type {Record<string, any>} */
   const items = {};
@@ -363,6 +367,7 @@ export function loadWork(root = repoRoot()) {
       completed: meta?.completed,
       evidence: meta?.evidence,
       notes: meta?.notes,
+      unattended: meta?.unattended === true,
       blockers: [],
       unblocks: 0,
       effort: effortOf({ verify }, ratchetFiles),
@@ -531,6 +536,29 @@ export function isActionable(item) {
  */
 export function ranked(items) {
   return [...items].sort(compareItems);
+}
+
+/**
+ * The item that should get a person's attention, plus any unattended waits that
+ * outrank it and should be started first.
+ *
+ * Unattended items (plan-duration soaks) are real work, but they are waits:
+ * one command starts them and then they run for hours. Ranking them as the
+ * next thing to *do* hides the hands-on item behind a queue of idle soaks.
+ * A red gate still wins outright — soaks must not start while checks are red.
+ * @param {WorkItem[]} candidates already-unblocked items
+ * @returns {{ pick: WorkItem | null; start: WorkItem[]; then: WorkItem | null }}
+ */
+export function nextAttention(candidates) {
+  const ordered = ranked(candidates);
+  const handsOn = ordered.filter((item) => item.unattended !== true);
+  const waiting = ordered.filter((item) => item.unattended === true);
+  if (handsOn.length === 0) {
+    return { pick: ordered[0] ?? null, start: waiting, then: null };
+  }
+  const then = handsOn[0];
+  const start = waiting.filter((item) => compareItems(item, then) < 0);
+  return { pick: then, start, then };
 }
 
 /**

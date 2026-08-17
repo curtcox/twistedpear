@@ -59,6 +59,15 @@ those, the order is fixed and total:
 4. **Age** — oldest `added` date first.
 5. **ID** — lexicographic, so the answer never depends on file order.
 
+Unattended items — plan-duration soaks, anything that is a wait rather than a
+decision — stay in that order, but `work:next` does not hand them to a person as
+the thing to _do_. It prints "start these, then do this": start the waits that
+outrank the hands-on pick, then name the hands-on item. A red gate still wins
+outright, so a soak is never started against a tree whose checks are unverified.
+Mark a row with `--unattended` on `work:add`, or `"unattended": true` in
+[work/metadata.json](../work/metadata.json). The eight `RQ-*` soaks are one
+action: `npm run validate:mac -- --stage 8 --plan-duration`.
+
 `work:next` prints which rule decided the pick and what came second. Filter with
 `--type=bug,quality`; `--json` for scripting.
 

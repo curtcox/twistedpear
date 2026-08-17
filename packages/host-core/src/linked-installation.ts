@@ -29,6 +29,8 @@ export const LINKED_INSTALLATION_MAX_CERTIFICATE_BYTES = 383;
 
 /** On-wire announce aspect for linked-mode installation certificates. */
 export const LINKED_INSTALLATION_ANNOUNCE_ASPECT = "linked-device";
+/** Destination app name; the aspect filter is `twistedpear.linked-device.<account>`. */
+export const LINKED_INSTALLATION_APP_NAME = "twistedpear";
 
 export interface LinkedInstallationCertificate {
   readonly formatVersion: 1;
@@ -283,4 +285,54 @@ export function linkedInstallationAnnounceAspects(
         .slice(0, 8),
     ),
   ];
+}
+
+/** Aspect filter that matches only installations of this account. */
+export function linkedInstallationAnnounceFilter(
+  provider: CryptoProvider,
+  accountPublicKey: string,
+): string {
+  return [
+    LINKED_INSTALLATION_APP_NAME,
+    ...linkedInstallationAnnounceAspects(provider, accountPublicKey),
+  ].join(".");
+}
+
+/**
+ * Allocates an installation under an account: random id, derived identity,
+ * and a signed certificate. Does not register a destination or persist.
+ */
+export function createLinkedInstallation(
+  provider: CryptoProvider,
+  accountIdentity: Identity,
+  options: {
+    readonly label: string;
+    readonly createdAt: number;
+    readonly installationId?: string;
+  },
+): {
+  readonly installationId: string;
+  readonly installationIdentity: Identity;
+  readonly certificate: LinkedInstallationCertificate;
+} {
+  const installationId =
+    options.installationId ?? createLinkedInstallationId(provider);
+  const installationIdentity = deriveLinkedInstallationIdentity(
+    provider,
+    accountIdentity,
+    installationId,
+  );
+  return {
+    installationId,
+    installationIdentity,
+    certificate: signLinkedInstallationCertificate(
+      accountIdentity,
+      installationIdentity,
+      {
+        installationId,
+        label: options.label,
+        createdAt: options.createdAt,
+      },
+    ),
+  };
 }
