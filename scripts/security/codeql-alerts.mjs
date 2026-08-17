@@ -13,6 +13,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const BASELINE = join(ROOT, "codeql-ratchet.json");
 const REPORT = join(ROOT, "artifacts/security/codeql-alerts.json");
 
+export const retryableAlertStatuses = new Set([429, 500, 502, 503]);
+export const ALERT_RETRY_ATTEMPTS = 8;
+export const ALERT_RETRY_BASE_MS = 2_000;
+export const ALERT_RETRY_CAP_MS = 30_000;
+export const ALERT_RETRY_AFTER_CAP_MS = 60_000;
+export const ALERT_FETCH_TIMEOUT_MS = 30_000;
+
 export function repositoryFrom(remote) {
   const match = remote
     .trim()
@@ -32,10 +39,36 @@ export function normalizeAlerts(alerts) {
     .sort();
 }
 
-export const retryableAlertStatuses = new Set([429, 502, 503]);
+export function parseRetryAfterMs(header) {
+  if (header == null || header === "") return null;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.min(seconds * 1000, ALERT_RETRY_AFTER_CAP_MS);
+  }
+  const date = Date.parse(header);
+  if (Number.isNaN(date)) return null;
+  return Math.min(Math.max(0, date - Date.now()), ALERT_RETRY_AFTER_CAP_MS);
+}
 
-export function alertRetryDelayMs(attempt) {
-  return 500 * 2 ** (attempt - 1);
+export function alertRetryDelayMs(attempt, retryAfterHeader) {
+  const fromHeader = parseRetryAfterMs(retryAfterHeader);
+  if (fromHeader != null) return fromHeader;
+  return Math.min(ALERT_RETRY_BASE_MS * 2 ** (attempt - 1), ALERT_RETRY_CAP_MS);
+}
+
+export function isRetryableAlertError(error) {
+  if (!error || typeof error !== "object") return false;
+  const name = error.name;
+  return name === "AbortError" || name === "TimeoutError" || name === "TypeError";
+}
+
+function retryAfterHeader(response) {
+  return response.headers?.get?.("retry-after") ?? null;
+}
+
+function attemptFetchOptions(options, timeoutMs) {
+  if (timeoutMs == null) return options;
+  return { ...options, signal: AbortSignal.timeout(timeoutMs) };
 }
 
 export async function fetchJsonWithRetry(
@@ -44,20 +77,31 @@ export async function fetchJsonWithRetry(
   {
     fetchImpl = globalThis.fetch,
     sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-    attempts = 4,
+    attempts = ALERT_RETRY_ATTEMPTS,
+    timeoutMs,
   } = {},
 ) {
-  let response;
+  let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    response = await fetchImpl(url, options);
-    if (response.ok) return response.json();
-    if (!retryableAlertStatuses.has(response.status) || attempt === attempts) {
-      throw new Error(
-        `CodeQL alerts API returned ${response.status}: ${(await response.text()).slice(0, 240)}`,
-      );
+    let response;
+    try {
+      response = await fetchImpl(url, attemptFetchOptions(options, timeoutMs));
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableAlertError(error) || attempt === attempts) throw error;
+      await sleep(alertRetryDelayMs(attempt));
+      continue;
     }
-    await sleep(alertRetryDelayMs(attempt));
+    if (response.ok) return response.json();
+    lastError = new Error(
+      `CodeQL alerts API returned ${response.status}: ${(await response.text()).slice(0, 240)}`,
+    );
+    if (!retryableAlertStatuses.has(response.status) || attempt === attempts) {
+      throw lastError;
+    }
+    await sleep(alertRetryDelayMs(attempt, retryAfterHeader(response)));
   }
+  throw lastError;
 }
 
 function token() {
@@ -78,19 +122,17 @@ function repository() {
 
 async function fetchAlerts(repo, auth) {
   const alerts = [];
+  const headers = {
+    accept: "application/vnd.github+json",
+    authorization: `Bearer ${auth}`,
+    "x-github-api-version": "2022-11-28",
+    "user-agent": "twistedpear-codeql-gate",
+  };
   for (let page = 1; ; page += 1) {
-    const timeout = {
-      signal: AbortSignal.timeout(30_000),
-      headers: {
-        accept: "application/vnd.github+json",
-        authorization: `Bearer ${auth}`,
-        "x-github-api-version": "2022-11-28",
-        "user-agent": "twistedpear-codeql-gate",
-      },
-    };
     const batch = await fetchJsonWithRetry(
       `https://api.github.com/repos/${repo}/code-scanning/alerts?state=open&per_page=100&page=${page}`,
-      timeout,
+      { headers },
+      { timeoutMs: ALERT_FETCH_TIMEOUT_MS },
     );
     alerts.push(...batch);
     if (batch.length < 100) return alerts;

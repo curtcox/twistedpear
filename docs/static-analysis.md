@@ -250,10 +250,10 @@ flaky; Swift needs a macOS runner and a real build, because it has no such mode.
 
 The nightly `codeql-alerts` gate imports open code-scanning alerts through GitHub's API,
 compares their alert number, rule, location, and severity with `codeql-ratchet.json`, and publishes
-`artifacts/security/codeql-alerts.json` through the normal reporting path. Its committed
-baseline is intentionally empty: a known alert remains red until its source is fixed and
-GitHub's next CodeQL scan closes it. Generated web-runtime bundles are excluded at CodeQL
-configuration level, while their authored sources remain analyzed.
+`artifacts/security/codeql-alerts.json` through the normal reporting path. Transient API
+failures (429/5xx, timeouts) retry with backoff and Retry-After; the committed baseline is
+intentionally empty, so a known alert stays red until GitHub's next scan closes it. Generated
+web-runtime bundles are excluded at CodeQL configuration level, while their authored sources remain analyzed.
 Gitleaks, advisory-policy, dependency-license, CycloneDX SBOM, and nightly npm audit
 commands are registry gates. Advisory exceptions require an ID, reason, and expiry;
 license expressions outside `license-allowlist.json` are ratcheted. GitHub secret scanning
