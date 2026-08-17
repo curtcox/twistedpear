@@ -25,6 +25,7 @@ import {
 } from "../../scripts/analysis/latency-benchmark.mjs";
 
 const RULES = { failAboveRatio: 2, warnAboveRatio: 1.4 };
+const REPO_ROOT = join(import.meta.dirname, "../..");
 
 const LATENCY = [{ metric: "setupP95Ms", kind: "latency" }];
 const THROUGHPUT = [{ metric: "pingsPerSecond", kind: "throughput" }];
@@ -123,6 +124,23 @@ describe("compareLatency", () => {
       RULES,
     );
     expect(results[0]).toMatchObject({ status: "fail", ratio: 2.5 });
+  });
+
+  it("warns rather than failing the observed GitHub-runner watchdog sample", () => {
+    // Pages published a 2.55x watchdog drop (20073 vs 51201) as a red gate
+    // after a commit that did not touch the sandbox. The committed 3x cliff
+    // keeps that visible as warn without failing the publish.
+    const rules = JSON.parse(
+      readFileSync(join(REPO_ROOT, "benchmark-rules.json"), "utf8"),
+    ).endToEnd;
+    const results = compareLatency(
+      { pingsPerSecond: 20073 },
+      { pingsPerSecond: 51201 },
+      THROUGHPUT,
+      rules,
+    );
+    expect(results[0].status).toBe("warn");
+    expect(results[0].ratio).toBe(2.551);
   });
 
   it("passes a throughput improvement", () => {

@@ -227,22 +227,36 @@ jobs:
     timeout-minutes: 70
     environment:
       name: github-pages
-      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}
+      url: ${{ steps.retry2.outputs.page_url || steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}
     steps:
-      # The default 10-minute timeout turns a GitHub Pages deployment-lag
-      # incident into a skipped publish. Wait longer, tolerate more transient
-      # status-report errors, and try a second time before giving up.
+      # Creating a Pages deployment 503s when GitHub's Pages API is down. An
+      # immediate second attempt retried into the same outage and left
+      # /results/ on the previous commit. Wait between attempts. The action
+      # caps `timeout` at 10 minutes regardless of the value we pass.
       - id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
         continue-on-error: true
         with:
-          timeout: 1800000
+          timeout: 600000
           error_count: 25
+      - name: Wait after a transient Pages deploy failure
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
       - id: retry
         if: steps.deployment.outcome == 'failure'
+        continue-on-error: true
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
         with:
-          timeout: 1800000
+          timeout: 600000
+          error_count: 25
+      - name: Wait after a second transient Pages deploy failure
+        if: steps.retry.outcome == 'failure'
+        run: sleep 120
+      - id: retry2
+        if: steps.retry.outcome == 'failure'
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
+        with:
+          timeout: 600000
           error_count: 25
 
   freshness:

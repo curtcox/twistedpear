@@ -28,6 +28,10 @@ const pagesWorkflow = fs.readFileSync(
   path.join(root, ".github/workflows/pages.yml"),
   "utf8",
 );
+const siteChecksWorkflow = fs.readFileSync(
+  path.join(root, ".github/workflows/site-checks.yml"),
+  "utf8",
+);
 const reports = fs.readFileSync(
   path.join(root, "scripts/site/run-reports.mjs"),
   "utf8",
@@ -170,6 +174,15 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain("cancel-in-progress: false");
     expect(pagesWorkflow).toContain("if: always() && !cancelled()");
     expect(pagesWorkflow).toContain("Refuse to deploy a superseded main build");
+    expect(pagesWorkflow).toContain(
+      "Wait after a transient Pages deploy failure",
+    );
+    expect(pagesWorkflow).toContain(
+      "Wait after a second transient Pages deploy failure",
+    );
+    expect(siteChecksWorkflow).toContain(
+      "Wait after a transient artifact download failure",
+    );
     expect(pagesWorkflow).toContain("verify-publication.mjs");
     expect(pagesWorkflow).toContain("if: matrix.id == 'rust-fuzz'");
     expect(pagesWorkflow).toContain("GITHUB_TOKEN: ${{ github.token }}");

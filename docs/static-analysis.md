@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-05
+audited: 2026-08-17
 register: none
 counterpart: docs/static-analysis-plan.md
 -->
@@ -249,11 +249,11 @@ prebuild and the plugin-portal download that make the Android build slow and occ
 flaky; Swift needs a macOS runner and a real build, because it has no such mode.
 
 The nightly `codeql-alerts` gate imports open code-scanning alerts through GitHub's API,
-compares their alert number, rule, location, and severity with `codeql-ratchet.json`, and publishes
-`artifacts/security/codeql-alerts.json` through the normal reporting path. Transient API
-failures (429/5xx, timeouts) retry with backoff and Retry-After; the committed baseline is
-intentionally empty, so a known alert stays red until GitHub's next scan closes it. Generated
-web-runtime bundles are excluded at CodeQL configuration level, while their authored sources remain analyzed.
+compares them with `codeql-ratchet.json`, and publishes `artifacts/security/codeql-alerts.json`.
+Transient API failures (429/5xx, timeouts) retry with backoff and Retry-After; if they are
+still unavailable, the gate skips — a GitHub outage is not an open alert. The committed
+baseline is empty, so a known alert stays red until GitHub's next scan closes it. Generated
+web-runtime bundles are excluded at configuration level; their authored sources remain analyzed.
 Gitleaks, advisory-policy, dependency-license, CycloneDX SBOM, and nightly npm audit
 commands are registry gates. Advisory exceptions require an ID, reason, and expiry;
 license expressions outside `license-allowlist.json` are ratcheted. GitHub secret scanning
@@ -482,13 +482,11 @@ Three things were wrong beyond not being registered:
 
 Ratios are normalised so **larger is always worse**, whichever way a metric runs: a
 latency ratio of 2 means twice as slow, a throughput ratio of 2 means half as fast.
-One threshold pair in `benchmark-rules.json` (`endToEnd`) then covers both, and a
-reader does not have to remember which direction each metric points. The bands are
-2x fail and 1.4x warn — wider than the crypto gate's, because process spawn, a
-loopback socket, and a Docker peer vary far more on a shared runner than a tight
-crypto loop. The comparison logic is in `scripts/analysis/latency-benchmark.mjs`,
-tested by `conformance/checks/latency-benchmark.test.mjs`, because a nightly gate's
-decision code is otherwise exercised once a day on the happy path.
+One threshold pair in `benchmark-rules.json` (`endToEnd`) then covers both. The bands
+are 3x fail and 1.4x warn — a 2x cliff painted `/results/` red on watchdog throughput
+with no sandbox change (1.6x typical, 2.55x on a noisy VM). Comparison lives in
+`scripts/analysis/latency-benchmark.mjs`, tested by
+`conformance/checks/latency-benchmark.test.mjs`.
 
 ## Flake detection
 

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-14
+audited: 2026-08-17
 register: none
 -->
 
@@ -235,8 +235,11 @@ whether the site published; the separate **Site checks** workflow (`site-checks.
 afterwards and fails if any reported gate failed. A red Pages run therefore always means a
 publishing failure, never a gate finding. Enable **Settings → Pages → GitHub Actions** once
 per repository. Each report and imported gate result is bound to the workflow SHA.
-Superseded runs cannot deploy, and the workflow verifies the public
-`/results/raw/summary.json` SHA after GitHub Pages reports a successful deployment.
+Superseded runs cannot deploy. Deploy retries wait 60s then 120s between attempts, because an
+immediate retry during a Pages API 503 left `/results/` on the previous commit. Site checks
+retries the `site-results` download once after 30s rather than treating a 503 as "no report".
+The workflow verifies the public `/results/raw/summary.json` SHA after GitHub Pages reports a
+successful deployment.
 
 Gates listed in `deferredOnPages` (`scripts/checks/registry.mjs`, currently `mutation`) are
 kept off the publish path entirely: the Pages build neither runs nor imports them, and the

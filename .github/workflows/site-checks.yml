@@ -26,17 +26,29 @@ jobs:
           path: site-results
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Note that the build produced no report
+      - name: Wait after a transient artifact download failure
         if: steps.fetch.outcome != 'success'
+        run: sleep 30
+      - id: fetch-retry
+        if: steps.fetch.outcome != 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: site-results
+          path: site-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Note that the build produced no report
+        if: steps.fetch.outcome != 'success' && steps.fetch-retry.outcome != 'success'
         run: |
           echo "Pages run ${{ github.event.workflow_run.id }} recorded no site-results artifact."
           echo "The build did not get far enough to report gate results; nothing to evaluate."
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        if: steps.fetch.outcome == 'success'
+        if: steps.fetch.outcome == 'success' || steps.fetch-retry.outcome == 'success'
         with:
           node-version: "22"
       - name: Fail if reported checks failed
-        if: steps.fetch.outcome == 'success'
+        if: steps.fetch.outcome == 'success' || steps.fetch-retry.outcome == 'success'
         run: |
           node -e "
           const fs = require('fs');

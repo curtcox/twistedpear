@@ -4,6 +4,7 @@ import {
   alertRetryDelayMs,
   fetchJsonWithRetry,
   isRetryableAlertError,
+  isUnavailableAlertError,
   normalizeAlerts,
   parseRetryAfterMs,
   repositoryFrom,
@@ -170,6 +171,24 @@ describe("CodeQL alert import", () => {
     expect(isRetryableAlertError({ name: "AbortError" })).toBe(true);
     expect(isRetryableAlertError({ name: "TypeError" })).toBe(true);
     expect(isRetryableAlertError({ name: "SyntaxError" })).toBe(false);
+  });
+
+  it("treats exhausted 503s as unavailable rather than as open alerts", () => {
+    // A GitHub Pages outage used to fail this gate and paint /results/ red
+    // with no CodeQL finding. After retries are spent, that is "we could not
+    // import", not "new alerts appeared".
+    expect(
+      isUnavailableAlertError(
+        new Error(
+          'CodeQL alerts API returned 503: {"message": "No server is currently available"}',
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      isUnavailableAlertError(
+        new Error("CodeQL alerts API returned 403: forbidden"),
+      ),
+    ).toBe(false);
   });
 
   it("gives each attempt its own timeout signal", async () => {

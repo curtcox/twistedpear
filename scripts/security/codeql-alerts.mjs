@@ -59,7 +59,14 @@ export function alertRetryDelayMs(attempt, retryAfterHeader) {
 export function isRetryableAlertError(error) {
   if (!error || typeof error !== "object") return false;
   const name = error.name;
-  return name === "AbortError" || name === "TimeoutError" || name === "TypeError";
+  return (
+    name === "AbortError" || name === "TimeoutError" || name === "TypeError"
+  );
+}
+
+export function isUnavailableAlertError(error) {
+  if (isRetryableAlertError(error)) return true;
+  return /API returned (429|500|502|503)\b/.test(String(error?.message ?? ""));
 }
 
 function retryAfterHeader(response) {
@@ -146,7 +153,24 @@ async function main() {
     throw new Error(
       "CodeQL alert import needs GITHUB_TOKEN/GH_TOKEN (or authenticated gh) and a GitHub origin.",
     );
-  const raw = await fetchAlerts(repo, auth);
+  let raw;
+  try {
+    raw = await fetchAlerts(repo, auth);
+  } catch (error) {
+    if (!isUnavailableAlertError(error)) throw error;
+    mkdirSync(dirname(REPORT), { recursive: true });
+    writeJson(REPORT, {
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      repository: repo,
+      skipped: true,
+      skipReason: String(error.message),
+      open: 0,
+      findings: [],
+    });
+    console.warn(`codeql-alerts: skipped; ${error.message}`);
+    return;
+  }
   const findings = normalizeAlerts(raw);
   const comparison = compareDiagnosticSet({
     root: ROOT,

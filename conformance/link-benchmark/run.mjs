@@ -172,7 +172,7 @@ async function main() {
       setupP50Ms: percentile(setupMs, 50),
       setupP95Ms: percentile(setupMs, 95),
       setupMaxMs: Math.max(...setupMs),
-      note: "Regenerate: INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark. Loopback handshake against the docker link-echo peer, so the numbers are host-dependent; the gate's 2x failure band in benchmark-rules.json is sized for that.",
+      note: "Regenerate: INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark. Loopback handshake against the docker link-echo peer, so the numbers are host-dependent; the gate's 3x failure band in benchmark-rules.json is sized for that.",
     };
 
     console.log(
