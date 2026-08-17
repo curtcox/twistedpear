@@ -134,7 +134,7 @@
     },
     "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage": {
       "ccn": 89,
-      "nloc": 321
+      "nloc": 302
     },
     "apps/host-desktop/src/renderer/device-bridge.js::deviceAvailability": {
       "ccn": 15

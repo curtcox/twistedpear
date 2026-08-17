@@ -23,6 +23,19 @@ interface ControlServer {
   close(): Promise<void>;
 }
 
+function notifyMatching<K>(
+  waiters: Map<K, (frame: Record<string, unknown>) => void>,
+  key: K,
+  frame: Record<string, unknown>,
+): void {
+  for (const [expected, notify] of waiters) {
+    if (expected !== key) continue;
+    waiters.delete(expected);
+    notify(frame);
+    break;
+  }
+}
+
 /**
  * Minimal stand-in for `scripts/peers/control-server.mjs`: accepts agent
  * connections, keys them by the label in their hello frame, and correlates
@@ -55,15 +68,11 @@ async function startControlServer(): Promise<ControlServer> {
           const label = String(frame.label);
           sockets.set(label, socket);
           hellos.set(label, frame);
-          const waiter = helloWaiters.get(label);
-          if (waiter !== undefined) waiter(frame);
-          helloWaiters.delete(label);
+          notifyMatching(helloWaiters, label, frame);
           continue;
         }
         if (typeof frame.id === "number") {
-          const waiter = pending.get(frame.id);
-          if (waiter !== undefined) waiter(frame);
-          pending.delete(frame.id);
+          notifyMatching(pending, frame.id, frame);
         }
       }
     });

@@ -112,32 +112,9 @@ export function handleWorkletMessage(scope, message) {
   }
 
   if (message.type === "peer-qr-availability") {
-    const hasDisplay = typeof globalThis.qrcode === "function";
-    const hasCamera =
-      typeof navigator.mediaDevices?.getUserMedia === "function";
-    const hasDecoder =
-      typeof globalThis.BarcodeDetector === "function" ||
-      typeof globalThis.jsQR === "function";
-    const availability = !hasDisplay
-      ? {
-          state: "unsupported",
-          reason: "QR generation is unavailable in this build",
-        }
-      : !hasCamera
-        ? {
-            state: "unsupported",
-            reason: "Camera capture is unavailable; use full manual copy/paste",
-          }
-        : !hasDecoder
-          ? {
-              state: "unsupported",
-              reason: "QR decoding is unavailable; use full manual copy/paste",
-            }
-          : {
-              state: "permission-required",
-              reason: "Camera permission is requested only after Start camera",
-            };
-    sendPeerChromeResponse(message.token, { availability });
+    sendPeerChromeResponse(message.token, {
+      availability: peerQrAvailability(),
+    });
     return;
   }
 
@@ -439,15 +416,7 @@ export function handleWorkletMessage(scope, message) {
   if (message.type === "media-opus-play-request") {
     void handleMediaOpusPlayRequest(message, (reply) => host.send(reply));
   }
-  if (
-    message.type === "peer-webrtc-signal" ||
-    message.type === "peer-webrtc-establish" ||
-    message.type === "peer-webrtc-data-send" ||
-    message.type === "peer-webrtc-media-attach" ||
-    message.type === "peer-webrtc-media-stats" ||
-    message.type === "peer-webrtc-media-detach" ||
-    message.type === "peer-webrtc-close"
-  ) {
+  if (isPeerWebRtcHostMessage(message.type)) {
     appendLog(`WebRTC host message ${message.type}`);
     void handlePeerWebRtcMessage(message, (reply) => {
       appendLog(`WebRTC host reply ${message.type}`);
@@ -455,16 +424,62 @@ export function handleWorkletMessage(scope, message) {
     });
   }
   if (message.type === "inbound-media-frame") {
-    void playInboundMediaFrame(message)
-      .then((played) =>
-        appendLog(
-          `Inbound ${message.encoding} media → ${played ? "speaker" : message.sink.kind} (${message.dataHex.length / 2} bytes)`,
-        ),
-      )
-      .catch((error) =>
-        appendLog(
-          `Inbound media failed: ${error instanceof Error ? error.message : String(error)}`,
-        ),
-      );
+    logInboundMediaFrame(appendLog, message);
   }
+}
+
+function isPeerWebRtcHostMessage(type) {
+  return (
+    type === "peer-webrtc-signal" ||
+    type === "peer-webrtc-establish" ||
+    type === "peer-webrtc-data-send" ||
+    type === "peer-webrtc-media-attach" ||
+    type === "peer-webrtc-media-stats" ||
+    type === "peer-webrtc-media-detach" ||
+    type === "peer-webrtc-close"
+  );
+}
+
+function logInboundMediaFrame(appendLog, message) {
+  void playInboundMediaFrame(message)
+    .then((played) =>
+      appendLog(
+        `Inbound ${message.encoding} media → ${played ? "speaker" : message.sink.kind} (${message.dataHex.length / 2} bytes)`,
+      ),
+    )
+    .catch((error) =>
+      appendLog(
+        `Inbound media failed: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    );
+}
+
+function peerQrAvailability() {
+  const hasDisplay = typeof globalThis.qrcode === "function";
+  const hasCamera = typeof navigator.mediaDevices?.getUserMedia === "function";
+  const hasDecoder =
+    typeof globalThis.BarcodeDetector === "function" ||
+    typeof globalThis.jsQR === "function";
+  if (!hasDisplay) {
+    return {
+      state: "unsupported",
+      reason: "QR generation is unavailable in this build",
+    };
+  }
+  if (!hasCamera) {
+    return {
+      state: "unsupported",
+      reason: "Camera capture is unavailable; use full manual copy/paste",
+    };
+  }
+  if (!hasDecoder) {
+    return {
+      state: "unsupported",
+      reason: "QR decoding is unavailable; use full manual copy/paste",
+    };
+  }
+  return {
+    state: "permission-required",
+    reason: "Camera permission is requested only after Start camera",
+  };
 }

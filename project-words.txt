@@ -38,6 +38,7 @@ deprioritize
 devstudio
 diffable
 Dioxus
+eliminable
 dockerized
 Dolev
 Dónde
@@ -113,8 +114,11 @@ replayer
 rnode
 rnsd
 sansio
+sideload
+Sideload
 sideloading
 Spritely
+streamability
 subresource
 syncable
 Tarjan
@@ -131,6 +135,7 @@ Unpaced
 unrecoverably
 unrevivable
 unsandboxed
+unskippable
 unshuffled
 unwaived
 Urbit

@@ -18,6 +18,27 @@ function record(name, ok, detail = null) {
   if (!ok) throw new Error(`${name}${detail ? `: ${detail}` : ""}`);
 }
 
+function fieldLogGrants(locationGranted) {
+  return {
+    type: "grants",
+    appId: "field-log",
+    capabilities: [
+      {
+        id: "storage:kv",
+        description: "Save observations",
+        declared: true,
+        granted: true,
+      },
+      {
+        id: "location",
+        description: "Read current location",
+        declared: true,
+        granted: locationGranted,
+      },
+    ],
+  };
+}
+
 const server = await startStaticServer(dirname(renderer));
 const browser = await chromium.launch();
 try {
@@ -139,25 +160,9 @@ try {
         ),
       )),
   );
-  await page.evaluate(() =>
-    globalThis.__TP_TEST_EMIT__({
-      type: "grants",
-      appId: "field-log",
-      capabilities: [
-        {
-          id: "storage:kv",
-          description: "Save observations",
-          declared: true,
-          granted: true,
-        },
-        {
-          id: "location",
-          description: "Read current location",
-          declared: true,
-          granted: true,
-        },
-      ],
-    }),
+  await page.evaluate(
+    (grants) => globalThis.__TP_TEST_EMIT__(grants),
+    fieldLogGrants(true),
   );
   const grants = page.locator("#grants-panel");
   record(
@@ -176,25 +181,9 @@ try {
       ),
     ),
   );
-  await page.evaluate(() =>
-    globalThis.__TP_TEST_EMIT__({
-      type: "grants",
-      appId: "field-log",
-      capabilities: [
-        {
-          id: "storage:kv",
-          description: "Save observations",
-          declared: true,
-          granted: true,
-        },
-        {
-          id: "location",
-          description: "Read current location",
-          declared: true,
-          granted: false,
-        },
-      ],
-    }),
+  await page.evaluate(
+    (grants) => globalThis.__TP_TEST_EMIT__(grants),
+    fieldLogGrants(false),
   );
   record(
     "host-confirmed revocation renders without restart",

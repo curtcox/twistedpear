@@ -49,10 +49,13 @@ export default defineConfig({
           ],
           exclude: [
             "packages/protocol/test/**/*.test.ts",
-            // Coverage measures the unit suite. Vitest 4 project includes ignore
+            // Coverage measures the unit suite plus the conformance files that
+            // are already in this project. Vitest 4 project includes ignore
             // CLI `--exclude`, so coverage-run.mjs sets TP_COVERAGE and this
-            // drops the conformance files the default project otherwise runs.
-            ...(process.env.TP_COVERAGE === "1" ? ["conformance/**"] : []),
+            // drops cookbook — those tests time out under V8 instrumentation.
+            ...(process.env.TP_COVERAGE === "1"
+              ? ["conformance/cookbook/**"]
+              : []),
           ],
         },
       },

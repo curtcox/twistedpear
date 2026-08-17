@@ -24,7 +24,7 @@ const vitestArgs = [
   "--coverage.enabled",
   ...coverageInclude.map((glob) => `--coverage.include=${glob}`),
   ...coverageExclude.map((glob) => `--coverage.exclude=${glob}`),
-  "--exclude=conformance/**",
+  "--exclude=conformance/cookbook/**",
   "--coverage.reporter=text",
   "--coverage.reporter=json-summary",
   // The summary can only say whether a whole file was exercised. The JSON

@@ -28,6 +28,9 @@
       "path": "../bridge-hyper"
     },
     {
+      "path": "../bridge-freenet"
+    },
+    {
       "path": "../app-registry"
     }
   ]

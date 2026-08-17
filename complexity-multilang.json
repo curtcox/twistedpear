@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 608,
-  "functions": 6993,
-  "groups": 4253,
+  "files": 616,
+  "functions": 7053,
+  "groups": 4285,
   "exemptions": 91,
   "violations": 0,
   "stale": 0,
@@ -33,10 +33,10 @@
       "line": 11,
       "tier": "source",
       "ccn": 89,
-      "nloc": 321,
+      "nloc": 302,
       "pinned": {
         "ccn": 89,
-        "nloc": 321
+        "nloc": 302
       }
     },
     {
@@ -1008,7 +1008,7 @@
       "key": "conformance/vectors/generate.py::base_packet_corpus.packet_entry",
       "file": "conformance/vectors/generate.py",
       "name": "base_packet_corpus.packet_entry",
-      "line": 121,
+      "line": 117,
       "tier": "tooling",
       "params": 11,
       "pinned": {

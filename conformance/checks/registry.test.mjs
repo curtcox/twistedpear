@@ -174,9 +174,7 @@ describe("static-analysis gate registry", () => {
     );
     expect(runner).toContain("writeGateResult");
     expect(
-      runner
-        .slice(runner.indexOf("if (missing.length > 0)"))
-        .slice(0, 900),
+      runner.slice(runner.indexOf("if (missing.length > 0)")).slice(0, 900),
     ).toContain("writeGateResult");
     expect(reports).toContain("copyPath");
     // Every job gating the publish must carry a status-check function in its
