@@ -1,0 +1,108 @@
+{
+  "$comment": "Utility withheld from mini-apps because of the mobile app lifecycle. Rendered as the ledger table in docs/mobile-lifecycle.md and enforced by conformance/doc-audit/mobile-lifecycle.test.mjs. Read docs/mobile-lifecycle.md before editing.",
+  "audited": "2026-08-16",
+  "causes": {
+    "os": "The mobile OS forbids it. Nothing this repository can build changes the answer; only an OS capability, an entitlement, or a different host would.",
+    "os-derived": "The OS forbids something adjacent, and this is our implementation of living within it. A different implementation could recover part of the utility.",
+    "self-imposed": "Nothing in the mobile OS requires this. The platform chose it, and the cost to mini-apps is ours to remove."
+  },
+  "forbiddenClaims": [
+    {
+      "pattern": "one foreground mini-app, by design",
+      "why": "It is not a design choice. The OS suspends the host process; it does not limit how many sandboxes a running host may hold. See MLC-CONCURRENT-APPS."
+    },
+    {
+      "pattern": "One foreground mini-app at a time in v1, by design",
+      "why": "Same claim in a different sentence. State it as an open implementation limit and name MINIAPP-CONCURRENT."
+    },
+    {
+      "pattern": "no background execution or ambient APIs, by design",
+      "why": "Background execution is an OS limit on iOS only; on Android it is ours. Attributing both to design hides the Android half. See MLC-BACKGROUND-ANDROID."
+    }
+  ],
+  "rows": [
+    {
+      "id": "MLC-CONCURRENT-APPS",
+      "utility": "Several mini-apps running at once inside one running host",
+      "cause": "self-imposed",
+      "decision": "MiniappHost keeps a single `active: ActiveApp | null` slot, so launching a second app stops the first",
+      "evidence": [
+        "packages/miniapp-runtime/src/host/layer-1-base.ts",
+        "packages/worklet-core/src/miniapp-host-shared-core.mjs"
+      ],
+      "cost": "No companion apps, no cooperating pair, and app state is lost on every switch",
+      "unlock": "Per-app runtime instances, per-app broker routing and budget accounting, and a shell app switcher",
+      "revisit": { "work": "MINIAPP-CONCURRENT" },
+      "note": "The OS constrains the host process, not the sandboxes inside it. The dev-preview slot already runs a second MiniappHost concurrently in the same worklet, which is the existence proof."
+    },
+    {
+      "id": "MLC-BACKGROUND-IOS",
+      "utility": "Mini-app code running while the host app is backgrounded on iOS",
+      "cause": "os",
+      "decision": "Backgrounding is a state transition: the worklet gets `suspend-node`, quiesces interfaces, and no mini-app executes",
+      "evidence": ["docs/ios-host.md"],
+      "cost": "Nothing happens while the user is elsewhere: no sync, no delivery, no timers",
+      "unlock": "An iOS background execution mode for general network daemons. None exists; the declared `fetch` and `processing` modes are host sync budgets, not general execution",
+      "revisit": { "after": "2027-02-01" },
+      "note": "iOS has no foreground-service equivalent. Re-check when Apple changes background execution policy or when H13 device measurements land."
+    },
+    {
+      "id": "MLC-BACKGROUND-ANDROID",
+      "utility": "Mini-app code running inside the Android foreground service the host already runs",
+      "cause": "self-imposed",
+      "decision": "The foreground service carries mesh participation only; the runtime stops mini-apps on background regardless of platform",
+      "evidence": ["LIMITATIONS.md", "docs/battery-bandwidth-policy.md"],
+      "cost": "Android inherits an iOS-shaped limit it does not have, and app authors write to the smaller target",
+      "unlock": "A budgeted, user-visible background execution grant scoped to the running foreground service, with Doze and OEM throttling accounted for",
+      "revisit": { "after": "2027-02-01" },
+      "note": "Android permits this today. Doing it means deciding what a background mini-app may cost in battery, and saying so on the grant screen."
+    },
+    {
+      "id": "MLC-SCHEDULED-WAKE",
+      "utility": "A mini-app asking to be woken periodically to do bounded work",
+      "cause": "self-imposed",
+      "decision": "Host background wake budgets are spent on LXMF propagation sync; no capability exposes them to mini-apps",
+      "evidence": ["docs/ios-host.md"],
+      "cost": "No periodic sync, no scheduled reminder, no catch-up on reopen without doing it all at launch",
+      "unlock": "A capability over the wake budgets the host already holds — `fetch`/`processing` on iOS, WorkManager on Android — with a hard per-app budget",
+      "revisit": { "after": "2027-02-01" },
+      "note": "The scarce resource is the wake budget, which is per-host, not per-app. Any grant here is a rationing decision before it is an API."
+    },
+    {
+      "id": "MLC-LIFECYCLE-EVENTS",
+      "utility": "A mini-app being told it is about to be suspended, and that it has resumed",
+      "cause": "self-imposed",
+      "decision": "The host receives `suspend-node` / `resume-node` and does not forward either to the sandbox; apps are told to persist as they go",
+      "evidence": [
+        "packages/miniapp-runtime/src/lifecycle.ts",
+        "authors/12-limits-and-budgets.md"
+      ],
+      "cost": "No checkpoint on the way down and no cheap catch-up on the way back; every write must assume it is the last one",
+      "unlock": "Deliver the transitions the host already observes to the sandbox as SDK events, with a bounded grace budget for the suspend handler",
+      "revisit": { "after": "2027-02-01" },
+      "note": "The suspension is real and not removable. Being unable to react to it is not."
+    },
+    {
+      "id": "MLC-APP-TO-APP",
+      "utility": "One mini-app talking to another, or sharing storage with it",
+      "cause": "self-imposed",
+      "decision": "App-to-app messaging and shared storage are deferred; grants are keyed per app and storage is per app",
+      "evidence": ["LIMITATIONS.md", "docs/miniapp-runtime.md"],
+      "cost": "No suite of cooperating apps; every app re-implements what its neighbour already has",
+      "unlock": "A brokered, separately granted app-to-app channel — which only becomes useful once two apps can run at once",
+      "revisit": { "work": "MINIAPP-CONCURRENT" },
+      "note": "Sequenced behind MLC-CONCURRENT-APPS, not blocked by the OS. Revisit when that work closes."
+    },
+    {
+      "id": "MLC-ALWAYS-ON-ROLES",
+      "utility": "A phone carrying transport, seeding, or propagation for other peers",
+      "cause": "os",
+      "decision": "Always-on roles default on for desktop and headless peers and are not promised on mobile",
+      "evidence": ["docs/desktop-host.md", "docs/propagation-node.md"],
+      "cost": "Peer density depends on desktop peers; a mini-app cannot assume its messages move while the phone sleeps",
+      "unlock": "Nothing an app can do. Android foreground-service peers narrow the gap; iOS does not close it",
+      "revisit": { "after": "2027-02-01" },
+      "note": "This is the load-bearing reason desktop hosts exist as always-on peers at all."
+    }
+  ]
+}

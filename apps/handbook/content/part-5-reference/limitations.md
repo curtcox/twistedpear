@@ -21,6 +21,12 @@ register: none
 Companion to archive/design/plan-v0.md. Reticulum compatibility is the only hard constraint;
 everything below is a known cost of the chosen design or of the platforms involved.
 
+Sections 4, 5, and 7 share one cause worth naming up front: **the mobile app lifecycle is
+much poorer than a desktop OS's** — almost no background execution, and one active app at a
+time. It binds the host process, not the mini-apps inside it, and
+docs/mobile-lifecycle.md keeps an audited ledger separating the
+limits iOS and Android impose from the ones this platform added on top.
+
 ## 1. Reticulum implementation
 
 - **No production JS implementation exists.** The reference RNS is Python. The only JS
@@ -95,7 +101,10 @@ everything below is a known cost of the chosen design or of the platforms involv
   foreground service for a general network daemon. An iPhone cannot be a reliable
   always-on Reticulum transport node. Compromise: opportunistic connectivity (foreground,
   brief background windows, BLE background modes) and reliance on desktop/Android peers
-  for routing.
+  for routing. This is the strictest lifecycle the platform targets, and much of the design
+  is shaped by it — see docs/mobile-lifecycle.md §"Decisions
+  that follow from it". What it withholds from mini-apps is ledger rows
+  `MLC-BACKGROUND-IOS` and `MLC-ALWAYS-ON-ROLES`, both genuinely OS-imposed.
 - **Multicast entitlement:** AutoInterface peer discovery uses IPv6 multicast, which
   requires `com.apple.developer.networking.multicast` — granted by Apple on application,
   with lead time and no guarantee. Application draft prepared (Phase 2 M8); **status:
@@ -124,6 +133,12 @@ everything below is a known cost of the chosen design or of the platforms involv
 - Persistent mesh participation requires a **foreground service** with a permanent
   notification; Doze and OEM battery managers can still throttle networking. Battery cost
   of always-on BLE + multicast is real and must be budgeted/opt-in.
+- **Android is less restricted than the platform currently assumes.** That foreground
+  service could carry mini-app execution while the user is in another app; it does not,
+  and the runtime stops mini-apps on background regardless of platform. The limit is
+  ours, not Android's — ledger rows `MLC-BACKGROUND-ANDROID` and `MLC-SCHEDULED-WAKE` in
+  docs/mobile-lifecycle.md record what it costs and what
+  rationing questions have to be answered before it changes.
 - **Google Play policy** restricts apps that download executable code. Interpreted JS in a
   sandbox is a recognized carve-out, but a P2P app store pushes the boundary. Escape hatch
   (which iOS lacks): distribute the host APK directly / via F-Droid — itself fitting the
@@ -179,6 +194,11 @@ everything below is a known cost of the chosen design or of the platforms involv
 - Mini-apps are **not native apps**: no arbitrary native modules, no background autonomy,
   capabilities only via the host SDK. Some app categories (games needing native perf,
   apps needing exotic hardware) won't fit; the tiered-APK channel was deliberately deferred.
+- **Mini-app limits inherited from the mobile lifecycle are tracked, not accepted.** Four of
+  the seven entries in the mobile lifecycle ledger — concurrency,
+  suspend/resume events, app-to-app channels, and Android background execution — are limits
+  no mobile OS imposes. They carry revisit triggers that fail `npm run test:doc-audit` if
+  they lapse. Do not cite them here as permanent trade-offs.
 - JS sandboxing inside one runtime is a real attack surface. Phase 7 completed a software-tier
   adversarial review of the broker chokepoint (docs/security-review.md);
   mini-app installation still trusts the publisher signature for declared behavior.
@@ -188,8 +208,11 @@ everything below is a known cost of the chosen design or of the platforms involv
   open (H11). Watchdog thresholds may false-positive on low-end devices.
 - Desktop Node Worker sandbox metrics: `conformance/miniapp-benchmark/measured-desktop.json`
   (`npm run test:miniapp-benchmark`; record with `MINIAPP_BENCHMARK_RECORD=1`).
-- One foreground mini-app at a time in v1; no background execution. Dev side-loading is
-  localhost/adb-only, off by default, and badged **DEV** in the UI.
+- One mini-app at a time in v1, and none while the host is backgrounded. The platform is
+  meant to run several at once whenever the host app itself is running — the single
+  `active` slot in `MiniappHost` is what prevents it, tracked as `MINIAPP-CONCURRENT` in
+  STATUS-SOFTWARE.md. Dev side-loading is localhost/adb-only, off by
+  default, and badged **DEV** in the UI.
 - **Realtime peer media is core-complete; shipping-host evidence is partial.** The broker/SDK,
   app-scoped link model, readiness/share policy, five-plane egress binding, TPD2 timing,
   receive sinks, WebCodecs Opus on desktop/web, Line Check app, and SPEC-STREAM conformance

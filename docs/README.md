@@ -29,6 +29,7 @@ When they disagree, the `live` document wins — including against its own plan.
 
 | Topic                             | Current implementation                                                                                                 | Plan                                                                                                                          |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Mobile lifecycle constraint       | [mobile-lifecycle.md](mobile-lifecycle.md)                                                                             | [mobile-lifecycle-plan.md](mobile-lifecycle-plan.md)                                                                          |
 | Freenet integration               | [freenet.md](freenet.md)                                                                                               | [freenet-plan.md](freenet-plan.md), sequenced by [freenet-simulator-first-work-plan.md](freenet-simulator-first-work-plan.md) |
 | Device I/O                        | [device-io.md](device-io.md)                                                                                           | [device-io-plan.md](device-io-plan.md)                                                                                        |
 | Local peer discovery              | [local-peer-discovery.md](local-peer-discovery.md), [evidence register](local-peer-discovery-evidence.md)              | [local-peer-discovery-plan.md](local-peer-discovery-plan.md)                                                                  |
@@ -51,6 +52,7 @@ one-sided `counterpart:` all fail the build.
 | Understand why the project exists and what success means                        | [Motivation](motivation.md)                                                                            |
 | See how the whole repository fits together                                      | [Architecture](architecture.md)                                                                        |
 | See how TwistedPear relates to similar projects                                 | [Prior art](prior-art.md)                                                                              |
+| Understand why mobile OS limits shape the design, and what they cost mini-apps  | [Mobile app lifecycle](mobile-lifecycle.md)                                                            |
 | See the path and gates to the v1 release                                        | [Release plan](../RELEASE-PLAN.md)                                                                     |
 | Understand the platform and run it locally                                      | [Repository README](../README.md)                                                                      |
 | See the specification decomposition and per-spec conformance                    | [Specifications index](../specs/README.md)                                                             |
@@ -100,6 +102,7 @@ them as current behaviour.
 | Topic                                              | Canonical document                                              |
 | -------------------------------------------------- | --------------------------------------------------------------- |
 | Runtime isolation, capabilities, lifecycle, and UI | [Mini-app runtime](miniapp-runtime.md)                          |
+| What the mobile lifecycle costs mini-apps, and why | [Mobile app lifecycle](mobile-lifecycle.md)                     |
 | SDK namespaces and widget protocol                 | [Mini-app SDK](miniapp-sdk.md)                                  |
 | Capability × peer-type implementation matrix       | [Platform capabilities status](platform-capabilities-status.md) |
 | Signed package structure and fetch paths           | [Package format](package-format.md)                             |
@@ -161,16 +164,19 @@ Protocol implementation details live in the
 
 ## Security, quality, and validation
 
-| Topic                                                     | Document                                                                         |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Sandbox threat model and findings                         | [Security review](security-review.md)                                            |
-| CI gates, nightly jobs, and exclusions                    | [CI policy](ci-policy.md)                                                        |
-| Full local validation workflow                            | [Single-Mac validation](mac-validation.md)                                       |
-| Evidence from the documented Mac validation run           | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md)     |
-| Sans-IO boundary and enforcement                          | [Sans-IO protocol discipline](sansio.md)                                         |
-| Source-file size thresholds and the decomposition ratchet | [File-size classification](file-sizes.md)                                        |
-| Static analysis gates, baselines, and local runner        | [Static analysis](static-analysis.md), [remaining plan](static-analysis-plan.md) |
-| Mutation score floors and what they cover                 | [Mutation testing](mutation-testing.md)                                          |
+| Topic                                                      | Document                                                                                              |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Sandbox threat model and findings                          | [Security review](security-review.md)                                                                 |
+| Whether a grant can be scoped to just the I/O an app needs | [Capability scoping audit](capability-scoping-audit.md), [remaining plan](capability-scoping-plan.md) |
+| Adversarial scenarios for author deception of users        | [Hostile author plan](hostile-author-plan.md)                                                         |
+| Making approval evidence proportionate to app risk         | [App approval risk plan](app-approval-risk-plan.md)                                                   |
+| CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                             |
+| Full local validation workflow                             | [Single-Mac validation](mac-validation.md)                                                            |
+| Evidence from the documented Mac validation run            | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md)                          |
+| Sans-IO boundary and enforcement                           | [Sans-IO protocol discipline](sansio.md)                                                              |
+| Source-file size thresholds and the decomposition ratchet  | [File-size classification](file-sizes.md)                                                             |
+| Static analysis gates, baselines, and local runner         | [Static analysis](static-analysis.md), [remaining plan](static-analysis-plan.md)                      |
+| Mutation score floors and what they cover                  | [Mutation testing](mutation-testing.md)                                                               |
 
 Additional focused runbooks are indexed from the
 [conformance overview](../conformance/README.md).

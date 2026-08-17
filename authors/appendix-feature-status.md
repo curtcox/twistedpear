@@ -65,7 +65,10 @@ You can build on these, but not the way the surrounding text might suggest.
 These are not going to change; they follow from the design, and are documented in full in
 [LIMITATIONS.md](../LIMITATIONS.md).
 
-- **One foreground mini-app at a time.** No background execution, no cooperating pair of apps.
+- **Nothing runs while TwistedPear is not the app on screen.** On iOS the OS suspends the
+  host outright and there is no way around it. (The related limit — that only _one_
+  mini-app runs even while the host is in the foreground — is **not** permanent and is not
+  listed here; see the section below.)
 - **No native modules.** JavaScript through the broker, or nothing.
 - **No central registry, so no store, no search, and no moderation.** Your app reaches people
   because a peer announced it, and nobody reviews anyone's code.
@@ -76,3 +79,21 @@ These are not going to change; they follow from the design, and are documented i
   on that target, ever.
 - **Signatures authenticate the publisher, not the behaviour.** The capability grant is the
   user's actual defence.
+
+## Limits that look permanent and are not
+
+Mobile operating systems suspend the **host app**; they do not cap how many mini-apps a
+running host may hold. Several limits that read like design rules are really unfinished
+implementation, and the platform tracks them with revisit triggers that fail the build if
+they lapse. Do not design as though these were settled:
+
+- **Only one mini-app runs at a time.** Intended to change — the platform is meant to run
+  several at once whenever TwistedPear itself is running (`MINIAPP-CONCURRENT`).
+- **No app-to-app communication.** Deferred behind concurrency, not ruled out.
+- **No suspend/resume events for your app.** The host observes both transitions today and
+  simply does not forward them.
+- **No background execution on Android.** The host already runs a foreground service; what
+  is missing is a decision about battery budgets, not a platform capability.
+
+The full ledger, with the cause of each row and what would lift it, is
+[docs/mobile-lifecycle.md](../docs/mobile-lifecycle.md).

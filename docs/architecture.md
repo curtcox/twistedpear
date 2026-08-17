@@ -50,7 +50,8 @@ flowchart TB
   B1 --- B2
 ```
 
-Three constraints shape everything below, and none of them are negotiable:
+Four constraints shape everything below. Three are not negotiable; the fourth is imposed
+from outside and is tracked precisely so that it does not quietly become the third kind:
 
 1. **Wire compatibility.** Reticulum and LXMF behaviour must match the pinned Python
    reference implementations byte for byte. TwistedPear does not author those protocols; it
@@ -60,6 +61,15 @@ Three constraints shape everything below, and none of them are negotiable:
    returned as data and executed by adapters. See section 4.
 3. **Capability-gated apps.** A mini-app reaches the outside world only through broker calls
    that a host-rendered grant screen has authorised. See section 7.
+4. **The mobile app lifecycle.** iOS and Android give a platform far less than a desktop OS
+   does: almost no background execution, and one active app at a time. Much of what follows
+   — backgrounding as an explicit state transition, always-on roles living on desktop peers,
+   store-and-forward delivery, foreground-preferring budgets — exists because of it. This
+   constraint binds the **host process**, not the mini-apps inside it, and the difference is
+   load-bearing: the OS decides whether TwistedPear runs, not how many sandboxes a running
+   TwistedPear may hold. [mobile-lifecycle.md](mobile-lifecycle.md) states the constraint and
+   keeps an audited ledger of the utility mini-apps lose to it, marking each entry with
+   whether the OS actually requires it.
 
 Why the project exists at all is [motivation.md](motivation.md); how it relates to
 neighbouring systems is [prior-art.md](prior-art.md); vocabulary is
@@ -512,6 +522,7 @@ internet. Superseded plans, closed decisions, and dated evidence move under
 | Subsystem                                       | Canonical document                                                                             |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Repository setup, commands, and repo map        | [README.md](../README.md)                                                                      |
+| Mobile lifecycle constraint and its ledger      | [mobile-lifecycle.md](mobile-lifecycle.md)                                                     |
 | Documentation index and lifecycle rules         | [docs/README.md](README.md)                                                                    |
 | Per-package responsibility and dependency table | [packages/AGENTS.md](../packages/AGENTS.md)                                                    |
 | Contributor loop and non-negotiable constraints | [AGENTS.md](../AGENTS.md)                                                                      |

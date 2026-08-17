@@ -74,8 +74,10 @@ These are not going to change; they follow from the design and are documented in
 [LIMITATIONS.md](../LIMITATIONS.md). Several recipes exist mainly to show how to live with
 them.
 
-- **One foreground mini-app at a time.** No multitasking, no background work, no cooperating
-  pair of apps. [Beacon lite](09-apps-for-a-bad-link.md#beacon-lite) says so on screen.
+- **Nothing runs while TwistedPear is not the app on screen.** The phone suspends the host;
+  on iOS that is permanent. [Beacon lite](09-apps-for-a-bad-link.md#beacon-lite) says so on
+  screen. (That only _one_ mini-app runs at a time is a separate, temporary limit — see
+  below — so recipes here assume a single app without treating it as a rule.)
 - **No native modules.** JavaScript through the broker, or nothing.
 - **No central registry, so no store, no search, and no moderation.**
   [App relay](08-apps-that-build-apps.md#app-relay) is what curation looks like without one.
@@ -86,3 +88,19 @@ them.
 - **Signatures authenticate the publisher, not the behaviour.**
   [Dead drop](04-apps-that-talk-to-one-peer.md#dead-drop) spends a section on the difference,
   and [Chapter 8](08-apps-that-build-apps.md) is built around it.
+
+## Temporary limits these recipes work around
+
+Some constraints the recipes accommodate are unfinished implementation rather than design.
+Mobile operating systems suspend the host app; they do not cap how many mini-apps a running
+host may hold. These are tracked with revisit triggers, so a recipe that exists only to work
+around one of them may become unnecessary:
+
+- **Only one mini-app runs at a time** (`MINIAPP-CONCURRENT`). The recipes that pack several
+  jobs into a single app do so for this reason, not because splitting them would be wrong.
+- **No app-to-app communication.** Deferred behind concurrency.
+- **No suspend/resume events**, so recipes persist on every write rather than saving state
+  once on the way down.
+- **No background execution on Android**, though the host already runs a foreground service.
+
+The ledger is [docs/mobile-lifecycle.md](../docs/mobile-lifecycle.md).

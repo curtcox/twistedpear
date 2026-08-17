@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T21:23:25.195Z",
+  "generatedAt": "2026-08-17T03:11:09.294Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -534,7 +534,7 @@
     "test-files:conformance/cross-device-dev": 2,
     "test-files:conformance/desktop": 1,
     "test-files:conformance/device-evidence": 1,
-    "test-files:conformance/doc-audit": 20,
+    "test-files:conformance/doc-audit": 21,
     "test-files:conformance/docs": 1,
     "test-files:conformance/file-sizes": 1,
     "test-files:conformance/local-multipeer": 2,
@@ -562,7 +562,7 @@
     "test-files:packages/widget-renderer-headless": 3,
     "test-files:packages/widget-renderer-rn": 2,
     "test-files:packages/worklet-core": 9,
-    "test-files:total": 367,
+    "test-files:total": 368,
     "tests:apps/handbook": 34,
     "tests:apps/harness-mobile": 16,
     "tests:apps/host-desktop": 24,
@@ -571,7 +571,7 @@
     "tests:conformance/cross-device-dev": 5,
     "tests:conformance/desktop": 4,
     "tests:conformance/device-evidence": 1,
-    "tests:conformance/doc-audit": 220,
+    "tests:conformance/doc-audit": 224,
     "tests:conformance/docs": 3,
     "tests:conformance/file-sizes": 11,
     "tests:conformance/local-multipeer": 6,
@@ -599,7 +599,7 @@
     "tests:packages/widget-renderer-headless": 70,
     "tests:packages/widget-renderer-rn": 44,
     "tests:packages/worklet-core": 112,
-    "tests:total": 2886,
+    "tests:total": 2890,
     "waivers:live": 0
   },
   "delta": {
