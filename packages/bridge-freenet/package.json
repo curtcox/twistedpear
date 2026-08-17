@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@freenetorg/freenet-stdlib": "0.3.0",
-    "@noble/hashes": "^2.2.0",
+    "@noble/hashes": "^2.3.0",
     "@twistedpear/cas-256t": "0.1.0",
     "@twistedpear/reticulum-ts": "0.0.0"
   }
