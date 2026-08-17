@@ -1,4 +1,5 @@
 import { grantStoreKey } from "../capabilities.js";
+import type { AppChannelResolveResult } from "../services/app-channel.js";
 import type { ActiveApp, MiniappHostSnapshot } from "./shared.js";
 
 export class ForegroundRequiredError extends Error {
@@ -50,6 +51,29 @@ export function findAppById(
     if (app.manifest.name === appId) return app;
   }
   return undefined;
+}
+
+export function resolveChannelPeer(
+  apps: ReadonlyMap<string, ActiveApp>,
+  appId: string,
+  publisherPublicKey?: string,
+): AppChannelResolveResult {
+  if (publisherPublicKey !== undefined) {
+    const app = apps.get(appInstanceKey(appId, publisherPublicKey));
+    return app === undefined ? null : { appId, publisherPublicKey };
+  }
+  const matches: Array<{ appId: string; publisherPublicKey: string }> = [];
+  for (const app of apps.values()) {
+    if (app.manifest.name === appId) {
+      matches.push({
+        appId,
+        publisherPublicKey: app.manifest.publisherPublicKey,
+      });
+    }
+  }
+  if (matches.length === 0) return null;
+  if (matches.length > 1) return "ambiguous";
+  return matches[0] ?? null;
 }
 
 export function pickFallbackForeground(

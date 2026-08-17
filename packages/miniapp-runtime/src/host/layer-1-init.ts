@@ -4,6 +4,7 @@ import { InboundMediaRouter } from "../media-stream.js";
 import {
   AiService,
   AnnounceService,
+  AppChannelService,
   AppIdentityService,
   AppsService,
   DeviceBrokerService,
@@ -22,7 +23,8 @@ import {
   type IdentityBackend,
   type LinkObservatoryBackend,
 } from "../services/index.js";
-import type { MiniappHostOptions } from "./shared.js";
+import { resolveChannelPeer } from "./running-apps.js";
+import type { ActiveApp, MiniappHostOptions } from "./shared.js";
 
 export interface HostClock {
   now(): number;
@@ -210,12 +212,14 @@ export interface HostLayer1Services {
   readonly freenetService: FreenetBrokerService | null;
   readonly deviceService: DeviceBrokerService | null;
   readonly inboundMedia: InboundMediaRouter | null;
+  readonly channelService: AppChannelService;
   readonly workspace: WorkspaceService;
 }
 
 export function createHostLayer1Services(
   options: MiniappHostOptions,
   now: () => number,
+  apps: () => ReadonlyMap<string, ActiveApp>,
 ): HostLayer1Services {
   return {
     identityService: new AppIdentityService(createIdentityBackend(options)),
@@ -234,6 +238,14 @@ export function createHostLayer1Services(
     freenetService: createFreenetService(options),
     deviceService: createDeviceService(options),
     inboundMedia: createInboundMedia(options, now),
+    channelService: new AppChannelService(
+      {
+        resolvePeer: (appId, publisherPublicKey) =>
+          resolveChannelPeer(apps(), appId, publisherPublicKey),
+        now,
+      },
+      options.confirmationChannel,
+    ),
     workspace: new WorkspaceService(options.kvBackend, options.workspaceLimits),
   };
 }

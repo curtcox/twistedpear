@@ -147,7 +147,7 @@ describe("concurrent mini-apps", () => {
   });
 
   it("isolates kv writes and rate limits per app", async () => {
-    const { host, store } = await createHost();
+    const { store } = await createHost();
     const grants = new GrantStore(store);
     await grants.set({
       appId: "alpha",

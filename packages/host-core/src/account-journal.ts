@@ -32,13 +32,13 @@ import {
 } from "./linked-installation.js";
 import type { LinkedInstallationRoster } from "./linked-installation-roster.js";
 
-export const ACCOUNT_JOURNAL_MAGIC = new Uint8Array([
+const ACCOUNT_JOURNAL_MAGIC = new Uint8Array([
   0x54, 0x50, 0x4a, 0x52, 0x01,
 ]); // TPJR\x01
-export const ACCOUNT_JOURNAL_ENVELOPE_MAGIC = new Uint8Array([
+const ACCOUNT_JOURNAL_ENVELOPE_MAGIC = new Uint8Array([
   0x54, 0x50, 0x4a, 0x45, 0x01,
 ]); // TPJE\x01
-export const ACCOUNT_JOURNAL_SALT = "TwistedPear account journal v1";
+const ACCOUNT_JOURNAL_SALT = "TwistedPear account journal v1";
 export const ACCOUNT_JOURNAL_MAX_RECORD_BYTES = DEFAULT_MULTIPART_BUDGET_BYTES;
 export const ACCOUNT_JOURNAL_HARD_MAX_BYTES = MAX_MULTIPART_BYTES;
 
@@ -116,7 +116,7 @@ function signedPayload(record: {
   );
 }
 
-export function encodeAccountJournalRecord(
+function encodeAccountJournalRecord(
   record: AccountJournalRecord,
 ): Uint8Array {
   const bytes = concatBytes(
@@ -130,7 +130,7 @@ export function encodeAccountJournalRecord(
   return bytes;
 }
 
-export function decodeAccountJournalRecord(
+function decodeAccountJournalRecord(
   provider: CryptoProvider,
   bytes: Uint8Array,
 ): AccountJournalRecord {
@@ -218,7 +218,7 @@ export function signAccountJournalRecord(
   };
 }
 
-export function verifyAccountJournalRecord(
+function verifyAccountJournalRecord(
   provider: CryptoProvider,
   certificate: LinkedInstallationCertificate,
   record: AccountJournalRecord,
@@ -264,7 +264,7 @@ export function encryptAccountJournalRecord(
   }
 }
 
-export function decryptAccountJournalRecord(
+function decryptAccountJournalRecord(
   provider: CryptoProvider,
   accountIdentity: Identity,
   envelope: Uint8Array,

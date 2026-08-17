@@ -334,7 +334,7 @@ export function createAppsBackendPreviewAction({
   };
 }
 
-export function bringToForegroundIfRunning(host, record) {
+function bringToForegroundIfRunning(host, record) {
   const match = host.running().find(
     (item) =>
       item.appId === record.appId &&

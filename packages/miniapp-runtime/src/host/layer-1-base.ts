@@ -1,21 +1,4 @@
 import { MiniappBroker } from "../broker.js";
-import type { AnnounceBackend } from "../services/announce.js";
-import { AppIdentityService } from "../services/identity.js";
-import { NamespacedLxmfService } from "../services/lxmf.js";
-import { PresenceService } from "../services/presence.js";
-import { LinkQualityService } from "../services/links.js";
-import { HostInfoService } from "../services/host-info.js";
-import { ResourceService } from "../services/resource.js";
-import { AiService } from "../services/ai.js";
-import { AppsService } from "../services/apps.js";
-import { WorkspaceService } from "../services/workspace.js";
-import { PeerBrokerService } from "../services/peers.js";
-import { RelayBrokerService } from "../services/relay.js";
-import { FreenetBrokerService } from "../services/freenet.js";
-import { DeviceBrokerService } from "../services/device.js";
-import { InboundMediaRouter } from "../media-stream.js";
-import { AppChannelService } from "../services/app-channel.js";
-import type { AppChannelResolveResult } from "../services/app-channel.js";
 import type { GrantRecord } from "../capabilities.js";
 import type { ConfirmationRequest } from "../confirm.js";
 import { AiServiceError } from "../services/ai.js";
@@ -26,7 +9,11 @@ import type {
   MiniappHostOptions,
   MiniappHostSnapshot,
 } from "./shared.js";
-import { createHostBroker, createHostLayer1Services } from "./layer-1-init.js";
+import {
+  createHostBroker,
+  createHostLayer1Services,
+  type HostLayer1Services,
+} from "./layer-1-init.js";
 import {
   ForegroundRequiredError,
   appInstanceKey,
@@ -42,22 +29,22 @@ export abstract class MiniappHostLayer1Base {
 
   protected readonly broker: MiniappBroker;
 
-  protected readonly identityService: AppIdentityService;
-  protected readonly lxmfService: NamespacedLxmfService;
-  protected readonly announceService: AnnounceBackend;
-  protected readonly resourceService: ResourceService | null;
-  protected readonly presenceService: PresenceService | null;
-  protected readonly linkService: LinkQualityService | null;
-  protected readonly hostInfoService: HostInfoService;
-  protected readonly aiService: AiService | null;
-  protected readonly appsService: AppsService | null;
-  protected readonly peerService: PeerBrokerService | null;
-  protected readonly relayService: RelayBrokerService | null;
-  protected readonly freenetService: FreenetBrokerService | null;
-  protected readonly deviceService: DeviceBrokerService | null;
-  protected readonly inboundMedia: InboundMediaRouter | null;
-  protected readonly channelService: AppChannelService;
-  readonly workspace: WorkspaceService;
+  protected readonly identityService: HostLayer1Services["identityService"];
+  protected readonly lxmfService: HostLayer1Services["lxmfService"];
+  protected readonly announceService: HostLayer1Services["announceService"];
+  protected readonly resourceService: HostLayer1Services["resourceService"];
+  protected readonly presenceService: HostLayer1Services["presenceService"];
+  protected readonly linkService: HostLayer1Services["linkService"];
+  protected readonly hostInfoService: HostLayer1Services["hostInfoService"];
+  protected readonly aiService: HostLayer1Services["aiService"];
+  protected readonly appsService: HostLayer1Services["appsService"];
+  protected readonly peerService: HostLayer1Services["peerService"];
+  protected readonly relayService: HostLayer1Services["relayService"];
+  protected readonly freenetService: HostLayer1Services["freenetService"];
+  protected readonly deviceService: HostLayer1Services["deviceService"];
+  protected readonly inboundMedia: HostLayer1Services["inboundMedia"];
+  protected readonly channelService: HostLayer1Services["channelService"];
+  readonly workspace: HostLayer1Services["workspace"];
 
   protected readonly apps = new Map<string, ActiveApp>();
   protected foregroundKey: string | null = null;
@@ -72,7 +59,11 @@ export abstract class MiniappHostLayer1Base {
       now: () => this.now(),
       logActive: (appId, line) => this.logActive(appId, line),
     });
-    const services = createHostLayer1Services(wrapped, () => this.now());
+    const services = createHostLayer1Services(
+      wrapped,
+      () => this.now(),
+      () => this.apps,
+    );
     this.identityService = services.identityService;
     this.lxmfService = services.lxmfService;
     this.announceService = services.announceService;
@@ -87,15 +78,8 @@ export abstract class MiniappHostLayer1Base {
     this.freenetService = services.freenetService;
     this.deviceService = services.deviceService;
     this.inboundMedia = services.inboundMedia;
+    this.channelService = services.channelService;
     this.workspace = services.workspace;
-    this.channelService = new AppChannelService(
-      {
-        resolvePeer: (appId, publisherPublicKey) =>
-          this.resolveChannelPeer(appId, publisherPublicKey),
-        now: () => this.now(),
-      },
-      wrapped.confirmationChannel,
-    );
     this.registerHandlers();
   }
 
@@ -128,28 +112,6 @@ export abstract class MiniappHostLayer1Base {
 
   protected appById(appId: string): ActiveApp | undefined {
     return findAppById(this.apps, appId);
-  }
-
-  protected resolveChannelPeer(
-    appId: string,
-    publisherPublicKey?: string,
-  ): AppChannelResolveResult {
-    if (publisherPublicKey !== undefined) {
-      const app = this.appByIdentity(appId, publisherPublicKey);
-      return app === undefined ? null : { appId, publisherPublicKey };
-    }
-    const matches: Array<{ appId: string; publisherPublicKey: string }> = [];
-    for (const app of this.apps.values()) {
-      if (app.manifest.name === appId) {
-        matches.push({
-          appId,
-          publisherPublicKey: app.manifest.publisherPublicKey,
-        });
-      }
-    }
-    if (matches.length === 0) return null;
-    if (matches.length > 1) return "ambiguous";
-    return matches[0] ?? null;
   }
 
   protected assertForeground(appId: string, publisherPublicKey: string): void {

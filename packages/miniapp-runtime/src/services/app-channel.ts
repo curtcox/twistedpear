@@ -9,7 +9,7 @@ export const APP_CHANNEL_MAX_INBOX = 32;
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
-export type AppChannelErrorCode =
+type AppChannelErrorCode =
   | "CHANNEL_BAD_REQUEST"
   | "CHANNEL_SELF"
   | "CHANNEL_PEER_NOT_RUNNING"
