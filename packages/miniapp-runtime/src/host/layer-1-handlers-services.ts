@@ -250,9 +250,7 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
       return this.peerService;
     };
     const runtimeId = (appId: string) =>
-      this.active?.manifest.name === appId
-        ? this.active.runtimeId
-        : `external:${appId}`;
+      this.appById(appId)?.runtimeId ?? `external:${appId}`;
     this.broker.register(
       "peers",
       "request",

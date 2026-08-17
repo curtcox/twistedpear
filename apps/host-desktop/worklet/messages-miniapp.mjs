@@ -81,6 +81,15 @@ export function createMiniappMessageHandlers(deps) {
     return;
   };
 
+  const handleSwitchMiniapp = async (message) => {
+    ensureMiniappHost().switchForeground(
+      message.appId,
+      message.publisherPublicKey,
+    );
+    log(`Switched mini-app ${message.appId}`);
+    return;
+  };
+
   const handleConfirmResponse = async (message) => {
     if (!hostReplyChannel.resolveReply(message)) {
       log(
@@ -238,6 +247,7 @@ export function createMiniappMessageHandlers(deps) {
       "set-grants": handleSetGrants,
       "revoke-grant": handleRevokeGrant,
       "launch-miniapp": handleLaunchMiniapp,
+      "switch-miniapp": handleSwitchMiniapp,
       "stop-miniapp": handleStopMiniapp,
       "confirm-response": handleConfirmResponse,
       "launch-confirm": handleConfirmResponse,

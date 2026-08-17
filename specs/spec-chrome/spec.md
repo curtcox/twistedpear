@@ -40,8 +40,12 @@ Fixtures and future rules cite these ids; a fixture that attacks a rule names it
   not yet known — the package has not been fetched — so capability review
   happens in the host's post-fetch review pipeline, which the install
   confirmation names.)
+- **CHROME-R7 (background has no surface).** Host-rendered UI is painted only
+  for the foreground mini-app. A concurrently running app that is not on
+  screen has no drawing surface and cannot overlay chrome. Its widget tree is
+  retained and painted when the user switches to it.
 
-R2, R4, R5, and R6 are fixture-testable (broker-observable); R1 and R3 are
+R2, R4, R5, and R6 are fixture-testable (broker-observable); R1, R3, and R7 are
 render-level and stay informative until a snapshot-based check exists.
 
 ## Normative artifacts (current locations)
@@ -61,7 +65,9 @@ render-level and stay informative until a snapshot-based check exists.
     review material (declared capabilities, requested grants, package id +
     review note) and an unguessable token.
 - **R1 (canonical descriptions)** and **R3 (no draw-over)** are render-level
-  and stay **informative** until a snapshot-based check exists.
+  and stay **informative** until a snapshot-based check exists. **R7
+  (background has no surface)** is the same class: host-rendered UI is only
+  painted for the foreground mini-app.
 - Broader hostile-app fixtures: [conformance/hostile-apps](../../conformance/hostile-apps/)
   (`npm run test:hostile-apps`)
 - Double-gating of `apps:*` is partially captured by the grant model in
@@ -78,6 +84,7 @@ not silently approve, operations requiring chrome confirmation).
 
 Done for the fixture-testable set — `conformance/chrome/` keys fixtures to
 R2/R4/R5/R6, each citing the rule it attacks. R1 (canonical grant-screen
-descriptions) and R3 (no draw-over) remain render-level and stay informative
-until a snapshot-based check exists; this is the allowed partial-informative
-state for SPEC-CHROME per [specs/README.md](../README.md).
+descriptions), R3 (no draw-over), and R7 (background has no surface) remain
+render-level and stay informative until a snapshot-based check exists; this is
+the allowed partial-informative state for SPEC-CHROME per
+[specs/README.md](../README.md).

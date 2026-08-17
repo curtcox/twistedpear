@@ -160,6 +160,7 @@ function WebHarnessViewPart2Installed({ scope }: { scope: WebHarnessScope }) {
   const {
     grantCapabilities,
     installed,
+    miniappRuntime,
     selectedInstalledAppId,
     sendToWorker,
     setSelectedInstalledAppId,
@@ -196,7 +197,13 @@ function WebHarnessViewPart2Installed({ scope }: { scope: WebHarnessScope }) {
                 </Text>
               </Pressable>
               <ActionButton
-                label="Launch"
+                label={
+                  miniappRuntime?.running?.some(
+                    (item) => item.appId === pkg.appId,
+                  ) || miniappRuntime?.appId === pkg.appId
+                    ? "Switch"
+                    : "Launch"
+                }
                 onPress={() =>
                   sendToWorker({ type: "launch-miniapp", appId: pkg.appId })
                 }

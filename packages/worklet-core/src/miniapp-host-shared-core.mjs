@@ -216,6 +216,12 @@ export function createMainRuntimePusher(
         state: snapshot.state,
         widgetTree: snapshot.widgetTree,
         devBadge: devBadgeRef.current,
+        running: host.running().map((item) => ({
+          appId: item.appId,
+          publisherPublicKey: item.publisherPublicKey,
+          version: item.version,
+          state: item.state,
+        })),
       },
     });
   };
@@ -430,6 +436,11 @@ export function createUiLifecycleMethods({ host, pushRuntime, previewRef }) {
       }
 
       await previewRef.current.host.handleUiEvent(nodeId, event, value);
+    },
+
+    switchForeground(appId, publisherPublicKey) {
+      host.switchForeground(appId, publisherPublicKey);
+      pushRuntime();
     },
   };
 }

@@ -115,9 +115,8 @@ Android emulator numbers using the Bare worker backend are recorded in
 
 | Constraint                          | Consequence for your design                                           | Permanent?                            |
 | ----------------------------------- | --------------------------------------------------------------------- | ------------------------------------- |
-| One mini-app runs at a time         | No companion app, no cooperating pair, and state is lost on a switch. | No — `MINIAPP-CONCURRENT`             |
 | No execution while the host is away | Nothing happens while TwistedPear is not the app on screen.           | On iOS yes; on Android not inherently |
-| No app-to-app communication         | Do not design a suite. Deferred behind concurrency, not forbidden.    | No                                    |
+| No app-to-app communication         | Two apps can run; they still cannot talk. `MINIAPP-APP-TO-APP`.       | No                                    |
 | No native modules                   | JavaScript only, no exceptions.                                       | Yes                                   |
 | Local-only storage                  | No sync, no backup, no cross-device state.                            | Yes, for v1                           |
 | Suspension is normal                | Persist as you go; there is no `onSuspend`.                           | Suspension yes; the missing hook no   |
@@ -125,8 +124,8 @@ Android emulator numbers using the Bare worker backend are recorded in
 The "Permanent?" column is not decoration. Rows marked _no_ are limits the platform
 imposes on itself and has committed to revisiting on a schedule that fails the build if it
 lapses; [docs/mobile-lifecycle.md](../docs/mobile-lifecycle.md) has the ledger, the cause
-of each row, and what would lift it. Write your app for today's single-app, foreground-only
-reality — but if you are about to contort a design around one of the _no_ rows, say so in
+of each row, and what would lift it. Write your app for today's foreground-only reality — but if you are about to contort a
+design around one of the _no_ rows, say so in
 an issue rather than shipping the contortion.
 
 ## A sizing heuristic

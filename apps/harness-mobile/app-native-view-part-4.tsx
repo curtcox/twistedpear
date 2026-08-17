@@ -1,4 +1,4 @@
-import { Platform, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import {
   acceptFreenetRemoteGrant,
   FREENET_REMOTE_DISCLOSURE,
@@ -524,15 +524,46 @@ function NativeMiniappSurfaceCard({ scope }: { scope: NativeHarnessScope }) {
 }
 
 function NativeMiniappRuntimeLine({ scope }: { scope: NativeHarnessScope }) {
-  const { status, miniappRuntime } = scope;
+  const { status, miniappRuntime, sendToWorklet } = scope;
+  const running = miniappRuntime?.running ?? [];
   return (
-    <Text testID="miniapp-state" style={styles.muted}>
-      {miniappRuntime?.devBadge ? (
-        <Text style={styles.devBadge}>DEV </Text>
+    <>
+      <Text testID="miniapp-state" style={styles.muted}>
+        {miniappRuntime?.devBadge ? (
+          <Text style={styles.devBadge}>DEV </Text>
+        ) : null}
+        {miniappRuntime?.appId ?? "none"} · {miniappRuntime?.state ?? "stopped"}
+        {status.miniappRunning ? " · foreground" : ""}
+      </Text>
+      {running.length > 1 ? (
+        <View style={styles.buttonRow}>
+          {running.map((item) => {
+            const appId = item.appId;
+            if (appId === null) return null;
+            return (
+              <Pressable
+                key={appId}
+                testID={`switch-miniapp-${appId}`}
+                style={styles.smallButton}
+                onPress={() =>
+                  sendToWorklet({
+                    type: "switch-miniapp",
+                    appId,
+                    ...(item.publisherPublicKey
+                      ? { publisherPublicKey: item.publisherPublicKey }
+                      : {}),
+                  })
+                }
+              >
+                <Text style={styles.buttonLabel}>
+                  {appId === miniappRuntime?.appId ? `• ${appId}` : appId}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       ) : null}
-      {miniappRuntime?.appId ?? "none"} · {miniappRuntime?.state ?? "stopped"}
-      {status.miniappRunning ? " · foreground" : ""}
-    </Text>
+    </>
   );
 }
 

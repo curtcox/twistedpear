@@ -15,6 +15,7 @@ import { FreenetBrokerService } from "../services/freenet.js";
 import { DeviceBrokerService } from "../services/device.js";
 import { InboundMediaRouter } from "../media-stream.js";
 import type { GrantRecord } from "../capabilities.js";
+import type { ConfirmationRequest } from "../confirm.js";
 import { AiServiceError } from "../services/ai.js";
 import type {
   ActiveApp,
@@ -24,6 +25,13 @@ import type {
   MiniappHostSnapshot,
 } from "./shared.js";
 import { createHostBroker, createHostLayer1Services } from "./layer-1-init.js";
+import {
+  ForegroundRequiredError,
+  appInstanceKey,
+  emptyHostSnapshot,
+  findAppById,
+  snapshotFromApp,
+} from "./running-apps.js";
 
 export abstract class MiniappHostLayer1Base {
   protected abstract now(): number;
@@ -48,7 +56,8 @@ export abstract class MiniappHostLayer1Base {
   protected readonly inboundMedia: InboundMediaRouter | null;
   readonly workspace: WorkspaceService;
 
-  protected active: ActiveApp | null = null;
+  protected readonly apps = new Map<string, ActiveApp>();
+  protected foregroundKey: string | null = null;
   protected readonly limitOverrides = new Map<string, LimitOverrides>();
   protected readonly aiStreams = new Map<string, AiStreamSession>();
   protected nextAiStreamId = 0;
@@ -59,7 +68,10 @@ export abstract class MiniappHostLayer1Base {
       now: () => this.now(),
       logActive: (appId, line) => this.logActive(appId, line),
     });
-    const services = createHostLayer1Services(options, () => this.now());
+    const services = createHostLayer1Services(
+      this.withForegroundConfirmations(options),
+      () => this.now(),
+    );
     this.identityService = services.identityService;
     this.lxmfService = services.lxmfService;
     this.announceService = services.announceService;
@@ -79,24 +91,42 @@ export abstract class MiniappHostLayer1Base {
   }
 
   snapshot(): MiniappHostSnapshot {
-    if (this.active === null) {
-      return {
-        appId: null,
-        version: null,
-        state: "stopped",
-        widgetTree: null,
-        logs: [],
-      };
-    }
+    const foreground = this.foregroundApp();
+    return foreground === null
+      ? emptyHostSnapshot()
+      : snapshotFromApp(foreground);
+  }
 
-    const lifecycle = this.active.lifecycle.snapshot();
-    return {
-      appId: lifecycle.appId,
-      version: lifecycle.version,
-      state: lifecycle.state,
-      widgetTree: this.active.widgetTree,
-      logs: [...this.active.logs],
-    };
+  running(): ReadonlyArray<MiniappHostSnapshot> {
+    return [...this.apps.values()].map(snapshotFromApp);
+  }
+
+  protected instanceKey(appId: string, publisherPublicKey: string): string {
+    return appInstanceKey(appId, publisherPublicKey);
+  }
+
+  protected foregroundApp(): ActiveApp | null {
+    if (this.foregroundKey === null) return null;
+    return this.apps.get(this.foregroundKey) ?? null;
+  }
+
+  protected appByIdentity(
+    appId: string,
+    publisherPublicKey: string,
+  ): ActiveApp | undefined {
+    return this.apps.get(this.instanceKey(appId, publisherPublicKey));
+  }
+
+  protected appById(appId: string): ActiveApp | undefined {
+    return findAppById(this.apps, appId);
+  }
+
+  protected assertForeground(appId: string, publisherPublicKey: string): void {
+    const key = this.instanceKey(appId, publisherPublicKey);
+    if (!this.apps.has(key)) return;
+    if (this.foregroundKey !== key) {
+      throw new ForegroundRequiredError();
+    }
   }
 
   getGrants(
@@ -142,17 +172,13 @@ export abstract class MiniappHostLayer1Base {
     appId: string,
     publisherPublicKey: string,
   ): Promise<void> {
-    if (
-      this.active?.manifest.name !== appId ||
-      this.active.manifest.publisherPublicKey !== publisherPublicKey
-    ) {
-      return;
-    }
-    await this.peerService?.closeRuntime(appId, this.active.runtimeId);
+    const app = this.appByIdentity(appId, publisherPublicKey);
+    if (app === undefined) return;
+    await this.peerService?.closeRuntime(appId, app.runtimeId);
   }
 
   private async closeDeviceSurfacesIfActive(appId: string): Promise<void> {
-    if (this.active?.manifest.name !== appId) return;
+    if (this.appById(appId) === undefined) return;
     this.deviceService?.closeApp(appId);
     await this.inboundMedia?.closeApp(appId);
   }
@@ -205,13 +231,30 @@ export abstract class MiniappHostLayer1Base {
 
   protected logActive(appId: string, line: string): void {
     const entry = { appId, line, at: this.now() };
-    if (this.active !== null && this.active.manifest.name === appId) {
-      this.active.logs.push(entry);
-      if (this.active.logs.length > 200) {
-        this.active.logs.shift();
+    const app = this.appById(appId);
+    if (app !== undefined) {
+      app.logs.push(entry);
+      if (app.logs.length > 200) {
+        app.logs.shift();
       }
     }
 
     this.options.callbacks?.onLog?.(entry);
+  }
+
+  private withForegroundConfirmations(
+    options: MiniappHostOptions,
+  ): MiniappHostOptions {
+    const channel = options.confirmationChannel;
+    if (channel === undefined) return options;
+    return {
+      ...options,
+      confirmationChannel: {
+        confirm: (request: ConfirmationRequest) => {
+          this.assertForeground(request.appId, request.publisherPublicKey);
+          return channel.confirm(request);
+        },
+      },
+    };
   }
 }

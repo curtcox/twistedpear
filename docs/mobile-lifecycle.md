@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-16
+audited: 2026-08-17
 register: none
 counterpart: docs/mobile-lifecycle-plan.md
 -->
@@ -38,8 +38,11 @@ each other, or what they are told about their own lifecycle. Every limit of that
 kind is ours, and it is on the ledger below with `self-imposed` next to it.
 
 The platform therefore commits to the opposite default: **as long as the host app is
-running, running several mini-apps at once must be possible.** Today it is not — that is
-tracked as [`MINIAPP-CONCURRENT`](../STATUS-SOFTWARE.md), not defended as a design.
+running, running several mini-apps at once must be possible.** `MiniappHost` holds a
+per-app instance map keyed the way grants are (`appId + publisherPublicKey`). Launching a
+second app does not stop the first. Each shell has a switcher; only the foreground app's
+widget tree is painted. Grants stay live for a running background app; confirmations and
+media capture require it to be foregrounded (`FOREGROUND_REQUIRED`).
 
 ## Decisions that follow from it
 
@@ -73,12 +76,11 @@ One row per piece of utility a mini-app does not get because of the mobile lifec
 
 | Row                      | Utility withheld                                                                  | Cause          | Revisit when                |
 | ------------------------ | --------------------------------------------------------------------------------- | -------------- | --------------------------- |
-| `MLC-CONCURRENT-APPS`    | Several mini-apps running at once inside one running host                         | `self-imposed` | `MINIAPP-CONCURRENT` closes |
 | `MLC-BACKGROUND-IOS`     | Mini-app code running while the host app is backgrounded on iOS                   | `os`           | 2027-02-01                  |
 | `MLC-BACKGROUND-ANDROID` | Mini-app code running inside the Android foreground service the host already runs | `self-imposed` | 2027-02-01                  |
 | `MLC-SCHEDULED-WAKE`     | A mini-app asking to be woken periodically to do bounded work                     | `self-imposed` | 2027-02-01                  |
 | `MLC-LIFECYCLE-EVENTS`   | A mini-app being told it is about to be suspended, and that it has resumed        | `self-imposed` | 2027-02-01                  |
-| `MLC-APP-TO-APP`         | One mini-app talking to another, or sharing storage with it                       | `self-imposed` | `MINIAPP-CONCURRENT` closes |
+| `MLC-APP-TO-APP`         | One mini-app talking to another, or sharing storage with it                       | `self-imposed` | `MINIAPP-APP-TO-APP` closes |
 | `MLC-ALWAYS-ON-ROLES`    | A phone carrying transport, seeding, or propagation for other peers               | `os`           | 2027-02-01                  |
 
 The decision in force, the cost it carries, what would unlock it, and the files that show
@@ -86,7 +88,7 @@ it are recorded per row in [mobile-lifecycle-ledger.json](../mobile-lifecycle-le
 What it would take to clear the `self-imposed` rows is
 [mobile-lifecycle-plan.md](mobile-lifecycle-plan.md).
 
-Four of the seven rows are `self-imposed`. That ratio is the finding: most of what
+Three of the six rows are `self-imposed`. That ratio is the finding: most of what
 mini-apps cannot do is not what iOS and Android forbid, it is what the platform inherited
 from assuming they did.
 

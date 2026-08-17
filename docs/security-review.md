@@ -32,10 +32,9 @@ Out of scope: host OS hardening, Electron renderer XSS, package signature crypto
 
 - Mini-app bytecode is **hostile**; publisher signature authenticates identity only.
 - Users grant capabilities at install; revocation applies on the next broker call.
-- One mini-app runs at a time; no background execution or ambient APIs. This is an
-  assumption of the review, not a conclusion of it: concurrent mini-apps are an intended
-  change (`MINIAPP-CONCURRENT`, see [mobile-lifecycle.md](mobile-lifecycle.md)), and the
-  findings below should be re-examined against cross-app isolation when it lands.
+- Several mini-apps may run inside one host; only the foreground app is painted.
+  Confirmations and media capture require the foreground app (`FOREGROUND_REQUIRED`).
+  Re-examine cross-app isolation as app-to-app messaging lands (`MINIAPP-APP-TO-APP`).
 - Host owns rendering; mini-apps submit data-only widget trees.
 
 ## Findings

@@ -42,6 +42,9 @@ in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Rules:
   draw over or acknowledge ([SPEC-CHROME](../spec-chrome/spec.md)).
 - A grant is scoped to one (app, capability) pair; nothing in this spec aggregates
   grants.
+- Grants remain live while a mini-app is running in the background. Confirmations
+  and media capture (`device.open` / `device.stream`) require the app to be the
+  host's foreground mini-app; otherwise the broker returns `FOREGROUND_REQUIRED`.
 - `link:observe` exposes only app-scoped peer summaries; `link:probe` is a separate,
   rate-limited traffic-generation authority.
 - `device:share-policy:read` is read-only. Outbound share offers are authored and

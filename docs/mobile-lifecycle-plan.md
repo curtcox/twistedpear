@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-16
+audited: 2026-08-17
 register: none
 counterpart: docs/mobile-lifecycle.md
 -->
@@ -16,53 +16,18 @@ The organising claim is the one the live document states: the mobile OS constrai
 host process, not the mini-apps inside it. Every candidate below is an attempt to stop a
 mini-app paying for a restriction that was never placed on it.
 
+Concurrent mini-apps have shipped (`MINIAPP-CONCURRENT`): `MiniappHost` holds a per-app
+instance map, broker traffic and budgets are per app, and each shell has a switcher. The
+remaining rows are what that recovery makes worth attempting.
+
 ## Sequencing
 
-Concurrency comes first, and not only because it is the largest single recovery. It is the
-prerequisite that makes three other rows worth attempting: app-to-app messaging is
-pointless while only one app runs, lifecycle events are far more valuable to an app that
-keeps running while the user looks at another one, and per-app background budgets are
-unanswerable until "per app" means something.
-
-1. `MLC-CONCURRENT-APPS` — several mini-apps at once.
-2. `MLC-LIFECYCLE-EVENTS` — tell an app what the host already knows.
-3. `MLC-APP-TO-APP` — a brokered channel between two running apps.
-4. `MLC-BACKGROUND-ANDROID` and `MLC-SCHEDULED-WAKE` — budgeted execution when the user is
+1. `MLC-LIFECYCLE-EVENTS` — tell an app what the host already knows.
+2. `MLC-APP-TO-APP` — a brokered channel between two running apps (`MINIAPP-APP-TO-APP`).
+3. `MLC-BACKGROUND-ANDROID` and `MLC-SCHEDULED-WAKE` — budgeted execution when the user is
    elsewhere. Last, because both are rationing problems before they are API problems.
 
-## Candidate 1 — several mini-apps at once (`MINIAPP-CONCURRENT`)
-
-`MiniappHost` holds `active: ActiveApp | null`
-([layer-1-base.ts](../packages/miniapp-runtime/src/host/layer-1-base.ts)), and `launch()`
-stops whatever was there. The dev-preview slot works around this by constructing a whole
-second `MiniappHost` with its own broker and an in-memory grant store
-([miniapp-host-shared-core.mjs](../packages/worklet-core/src/miniapp-host-shared-core.mjs)),
-and the worklet IPC already carries a `slot` discriminator for it. Two apps therefore
-already run concurrently on device today — through a mechanism built for previewing, with
-a private grant store, which is exactly why it is not the answer.
-
-The work is to make the slot general:
-
-- Replace the single `active` field with a per-app instance map, keyed the way grants are
-  keyed (`appId + publisherPublicKey`).
-- Route broker traffic per app. The chokepoint stays single; what becomes per-app is the
-  rate limit, the message accounting, and the widget-tree destination.
-- Decide what budgets mean under concurrency. Message rate and KV quota are already
-  per-app. Memory ceilings and the AI in-flight slot are not obviously per-app when four
-  apps run on a phone, and the aggregate is what the OS will judge.
-- Give each shell a switcher, and decide what the renderer shows when an app is running
-  but not on screen. Host-rendered UI makes this safe to do — a backgrounded mini-app has
-  no drawing surface to abuse — but [SPEC-CHROME](../specs/spec-chrome/spec.md) should say
-  so explicitly rather than leaving it implied.
-- Keep the watchdog per app. One wedged app must not cost the others their session.
-
-Open question: whether a concurrently running app that is not on screen keeps its
-capability grants live, or drops to a reduced set until the user returns to it. The
-conservative answer — grants stay, but anything user-visible (confirmations, media
-capture) requires the app to be foregrounded — is probably right, and belongs in
-[SPEC-CAP](../specs/spec-cap/spec.md) rather than in host code.
-
-## Candidate 2 — lifecycle events for mini-apps
+## Candidate 1 — lifecycle events for mini-apps
 
 The host already receives `suspend-node` and `resume-node` and acts on them; the sandbox
 is told nothing. Forwarding them as SDK events costs little and removes the "persist on
@@ -75,14 +40,14 @@ budget, and an app that overruns it must be killed rather than delaying the host
 quiesce. That argues for a strictly bounded synchronous checkpoint — a "write this blob
 now" call — rather than a general `onSuspend` in which arbitrary app code runs.
 
-## Candidate 3 — a channel between two running apps
+## Candidate 2 — a channel between two running apps (`MINIAPP-APP-TO-APP`)
 
-Only worth building once two apps run. When it is: a brokered channel, separately granted
+Two apps can now run at once. The remaining work is a brokered channel, separately granted
 on both sides, with the destination app named on the grant screen. Shared storage is the
 harder half and probably should not follow — a channel keeps each app's data its own,
 while a shared store makes one app's compromise the other's.
 
-## Candidates 4 and 5 — background and scheduled execution
+## Candidates 3 and 4 — background and scheduled execution
 
 Android already runs a foreground service for mesh participation; nothing prevents mini-app
 execution inside it. iOS wake budgets (`fetch`, `processing`) already exist and are spent on

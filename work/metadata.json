@@ -424,11 +424,25 @@
       "evidence": ["scripts/languages/check.mjs", ".config/ruff.toml"],
       "notes": "scripts/languages/check.mjs runs ruff from the repo root without --config, and ruff only discovers ruff.toml/.ruff.toml/pyproject.toml beside the file or in an ancestor — never .config/ruff.toml. Nothing else in the tree references that file either, so its select = [E, F, I, UP, B] and line-length = 100 have never applied: the gate has been running ruff's defaults (E4/E7/E9/F, line-length 88). Passing --config .config/ruff.toml turns on I/UP/B across every tracked .py file, so it needs its own baselining decision rather than a one-line change."
     },
+    "MINIAPP-APP-TO-APP": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/app-to-app.test.ts",
+      "added": "2026-08-17",
+      "notes": "Sequenced behind MINIAPP-CONCURRENT. A brokered, separately granted channel with the destination app named on the grant screen. Shared storage is out of scope. Ledger row MLC-APP-TO-APP."
+    },
     "MINIAPP-CONCURRENT": {
       "type": "feature",
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/concurrent-apps.test.ts",
       "added": "2026-08-17",
+      "completed": "2026-08-17",
+      "evidence": [
+        "packages/miniapp-runtime/test/concurrent-apps.test.ts",
+        "packages/miniapp-runtime/src/host/running-apps.ts",
+        "packages/miniapp-runtime/src/host/layer-2.ts",
+        "packages/worklet-core/src/miniapp-host-shared-core.mjs"
+      ],
       "notes": "The mobile OS constrains the host process, not mini-apps within it: iOS suspends the whole app and Android needs a foreground service, but neither limits how many sandboxes a running host may hold. MiniappHost nonetheless keeps a single `active: ActiveApp | null` slot (packages/miniapp-runtime/src/host/layer-1-base.ts), so launching a second app stops the first. The dev-preview slot already runs a second MiniappHost concurrently in the same worklet (packages/worklet-core/src/miniapp-host-shared-core.mjs), which is the existence proof that the platform, not the OS, imposes the limit. Replace the single slot with per-app instances, route broker traffic and budgets per app, and give the shells a switcher. Ledger row MLC-CONCURRENT-APPS in mobile-lifecycle-ledger.json."
     },
     "PD-AI": {

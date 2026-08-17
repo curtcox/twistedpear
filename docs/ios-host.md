@@ -18,7 +18,7 @@ Status: Phase 5 simulator-first baseline.
 | BLE phone pipe          | central/peripheral active             | existing links may survive briefly    | OS-managed only        | background modes only           |
 | RNode                   | BLE-only on iOS                       | existing BLE link may survive briefly | OS-managed only        | not promised                    |
 | LXMF                    | local send/receive                    | persist pending work                  | store-and-forward only | propagation sync budget         |
-| Mini-app runtime        | one app at a time (runtime, not iOS)  | suspend message sent                  | no execution           | no mini-app execution           |
+| Mini-app runtime        | several apps; one painted     | suspend message sent                  | no execution           | no mini-app execution           |
 | Relay bridge            | foreground only                       | quiesce with interfaces               | stopped                | not promised                    |
 
 iOS has no foreground-service equivalent. The host therefore treats backgrounding as a
@@ -27,11 +27,10 @@ enters a grace window and the worklet receives `suspend-node` IPC to quiesce int
 on foreground, `resume-node` restarts them. The harness status screen shows the current
 lifecycle state, including an explicit "node suspended by iOS" message.
 
-Read the "Mini-app runtime" row above precisely: iOS is why nothing runs when suspended,
-but it is not why only one mini-app runs when the host is foregrounded. That second limit
-is the runtime's single `active` slot, tracked as `MINIAPP-CONCURRENT`. The wider ledger of
-which restrictions iOS imposes and which the platform adds is
-[mobile-lifecycle.md](mobile-lifecycle.md).
+Read the "Mini-app runtime" row above precisely: iOS is why nothing runs when suspended.
+Several mini-apps may run while the host is foregrounded; the shell switcher chooses
+which widget tree is painted. The wider ledger of which restrictions iOS imposes and
+which the platform adds is [mobile-lifecycle.md](mobile-lifecycle.md).
 
 The Relay & Interfaces card controls off/bridge/transport mode and direction for the
 worklet-managed TCP, Auto, BLE, and RNode paths, lists unavailable kinds as unsupported,

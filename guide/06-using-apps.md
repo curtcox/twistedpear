@@ -19,14 +19,14 @@ The host chrome remains visible around it — a header strip naming the running 
 **Back to host** button, and a **Stop mini-app** button. The distinction between host
 chrome and app content should be visually obvious.
 
-**One app runs at a time.** Launching a second one stops the first. Apps do not run in the
-background, do not run when you close the host, and cannot wake up on their own. This is
-a v1 design decision, not an oversight — see [LIMITATIONS.md §7](../LIMITATIONS.md).
+**Several apps can run at once.** Launching a second one does not stop the first. The
+host paints only the app you are looking at; use the running-app switcher (or Launch
+again) to bring another to the front. Apps do not run when you close the host, and
+cannot wake up on their own. See [LIMITATIONS.md §7](../LIMITATIONS.md).
 
-> **⏳ Not yet available — multiple apps at once and background execution.** There is no
-> multitasking between mini-apps and no way for an app to do work while you are not
-> looking at it. An app that wants to notify you of a message cannot, unless you have it
-> open.
+> **⏳ Not yet available — background execution.** There is no way for an app to do
+> work while the host itself is in the background. An app that wants to notify you of a
+> message cannot, unless TwistedPear is open.
 
 ## What the apps you start with do
 

@@ -322,7 +322,7 @@ export function createWebWorkletMiniappHost(options) {
           line: entry.line,
         }),
       onLifecycle: () => {
-        options.onMiniappStateChange(host.snapshot().state !== "stopped");
+        options.onMiniappStateChange(host.running().length > 0);
         pushRuntime();
       },
     },
@@ -423,10 +423,12 @@ export function createWebWorkletMiniappHost(options) {
     },
 
     async stop() {
-      clearWatchdog();
-      devBadgeRef.current = false;
-      await stopPreviewHost();
       await host.stop();
+      if (host.running().length === 0) {
+        clearWatchdog();
+        devBadgeRef.current = false;
+        await stopPreviewHost();
+      }
       pushRuntime();
     },
 

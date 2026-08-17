@@ -397,6 +397,7 @@ function NativeInstalledPackagesCard({ scope }: { scope: NativeHarnessScope }) {
     setSelectedInstalledAppId,
     grantCapabilities,
     sendToWorklet,
+    miniappRuntime,
   } = scope;
   return (
     <View style={styles.card}>
@@ -430,7 +431,13 @@ function NativeInstalledPackagesCard({ scope }: { scope: NativeHarnessScope }) {
                   sendToWorklet({ type: "launch-miniapp", appId: pkg.appId })
                 }
               >
-                <Text style={styles.buttonLabel}>Launch</Text>
+                <Text style={styles.buttonLabel}>
+                  {miniappRuntime?.running?.some(
+                    (item) => item.appId === pkg.appId,
+                  ) || miniappRuntime?.appId === pkg.appId
+                    ? "Switch"
+                    : "Launch"}
+                </Text>
               </Pressable>
               {pkg.rollbackAvailable ? (
                 <Pressable

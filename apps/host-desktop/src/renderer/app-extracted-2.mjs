@@ -213,7 +213,10 @@ export function renderInstalledImpl(__scope) {
       item.className = "item-row";
       item.innerHTML = `<strong>${pkg.appId}</strong> v${pkg.version}`;
       const launch = document.createElement("button");
-      launch.textContent = "Launch";
+      const running = Array.isArray(__scope.runningApps)
+        ? __scope.runningApps.some((item) => item.appId === pkg.appId)
+        : pkg.appId === __scope.runningAppId;
+      launch.textContent = running ? "Switch" : "Launch";
       launch.addEventListener("click", () => {
         __scope.selectedAppId = pkg.appId;
         __scope.host?.send({ type: "launch-miniapp", appId: pkg.appId });

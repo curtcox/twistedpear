@@ -129,10 +129,10 @@ mini-app could call to change them.
 ## Lifecycle
 
 Mini-app lifecycle is shaped throughout by the host's own: on iOS and Android the OS
-suspends the host process and shows one app at a time, so a mini-app's execution is
-bounded by a foreground session it does not control. Which of the resulting limits the
-OS actually imposes — and which the runtime imposes on top — is recorded in
-[mobile-lifecycle.md](mobile-lifecycle.md).
+suspends the host process, so a mini-app's execution is bounded by a foreground session
+the host does not control. Several mini-apps may run inside that session; which of the
+remaining limits the OS actually imposes — and which the runtime imposes on top — is
+recorded in [mobile-lifecycle.md](mobile-lifecycle.md).
 
 The lifecycle state machine is:
 
@@ -179,11 +179,11 @@ the same rate/size enforcement as every broker call.
 - JS-level isolation may not resist determined escape on all hardware.
 - Watchdog thresholds may false-positive on low-end devices (H11).
 - Dev side-loading is localhost/adb-only, off by default, badged **DEV**.
-- One mini-app runs at a time, and none run while the host is backgrounded. Only the second
-  half is an OS limit: `MiniappHost` holds a single `active` slot, so `launch()` stops
-  whatever was running, while the OS constrains the host process rather than the number of
-  sandboxes inside it. Tracked as `MINIAPP-CONCURRENT`; see
-  [mobile-lifecycle.md](mobile-lifecycle.md) for the ledger of what this costs.
+- Several mini-apps may run while the host is foregrounded; none run while the host is
+  backgrounded. Message rate and KV quota are per-app; memory is per-sandbox at launch;
+  the OS judges the aggregate. A backgrounded mini-app keeps its grants but has no
+  drawing surface, and confirmations plus media capture require it to be foregrounded
+  (`FOREGROUND_REQUIRED`). See [mobile-lifecycle.md](mobile-lifecycle.md).
 - The default announce service is an in-memory broker fixture. Shipped host wrappers do not
   yet replace it with a Reticulum-backed adapter, so mini-app SDK announces do not cross
   host boundaries.

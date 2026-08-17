@@ -114,6 +114,14 @@ export interface MiniappRuntimeView {
   readonly state: string;
   readonly widgetTree: unknown | null;
   readonly devBadge?: boolean;
+  readonly running?: ReadonlyArray<MiniappRunningView>;
+}
+
+export interface MiniappRunningView {
+  readonly appId: string | null;
+  readonly publisherPublicKey: string | null;
+  readonly version: string | null;
+  readonly state: string;
 }
 
 export interface MiniappBenchmarkResult {

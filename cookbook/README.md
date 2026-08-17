@@ -111,10 +111,10 @@ they disagree with this cookbook, they win.
 
 These come up in nearly every chapter, so they are stated once here rather than nine times.
 
-1. **One app runs at a time, in the foreground, and only while you are looking at it.**
-   Nothing in this cookbook does work in the background, because nothing can. An app that
-   needs to react to a message while closed cannot be built — see
-   [LIMITATIONS.md §7](../LIMITATIONS.md).
+1. **Apps run only while TwistedPear is open.** Several mini-apps may run at once
+   inside the host, but nothing in this cookbook does work after you leave the host,
+   because the host itself is suspended. An app that needs to react to a message while
+   closed cannot be built — see [LIMITATIONS.md §7](../LIMITATIONS.md).
 2. **Every capability is deny-by-default and revocable mid-run.** A recipe that touches
    storage handles the case where storage vanishes, because the user can take it away from
    the host's Grants panel while the app is open. See

@@ -192,8 +192,9 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
     this.broker.register("device", "diagnostics", null, (_request, context) =>
       Promise.resolve(device().diagnostics(context.appId)),
     );
-    this.broker.register("device", "open", null, (request, context) =>
-      Promise.resolve(
+    this.broker.register("device", "open", null, (request, context) => {
+      this.assertForeground(context.appId, context.publisherPublicKey);
+      return Promise.resolve(
         device().open(
           context.appId,
           context.publisherPublicKey,
@@ -201,8 +202,8 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
           context.grantedCapabilities,
           request.payload as DeviceOpenRequest,
         ),
-      ),
-    );
+      );
+    });
     this.broker.register("device", "close", null, (request, context) =>
       Promise.resolve(
         device().close(
@@ -230,8 +231,9 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       );
       return { written: true };
     });
-    this.broker.register("device", "stream", null, (request, context) =>
-      Promise.resolve(
+    this.broker.register("device", "stream", null, (request, context) => {
+      this.assertForeground(context.appId, context.publisherPublicKey);
+      return Promise.resolve(
         device().stream(
           context.appId,
           context.declaredCapabilities,
@@ -242,8 +244,8 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
             constraints?: import("../device-manager.js").DeviceStreamConstraints;
           },
         ),
-      ),
-    );
+      );
+    });
     this.broker.register("device", "closeStream", null, (request, context) =>
       Promise.resolve(
         device().closeStream(

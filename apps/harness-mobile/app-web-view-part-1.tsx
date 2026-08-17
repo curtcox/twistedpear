@@ -646,6 +646,31 @@ function WebHarnessViewPart1Block6({ scope }: { scope: WebHarnessScope }) {
             ? ` · ${miniappRuntime.appId}@${miniappRuntime.version ?? "?"}`
             : ""}
         </Text>
+        {(miniappRuntime?.running?.length ?? 0) > 1 ? (
+          <View style={styles.buttonRow}>
+            {miniappRuntime?.running?.map((item) => {
+              const appId = item.appId;
+              if (appId === null) return null;
+              return (
+                <ActionButton
+                  key={appId}
+                  label={
+                    appId === miniappRuntime.appId ? `• ${appId}` : appId
+                  }
+                  onPress={() =>
+                    sendToWorker({
+                      type: "switch-miniapp",
+                      appId,
+                      ...(item.publisherPublicKey
+                        ? { publisherPublicKey: item.publisherPublicKey }
+                        : {}),
+                    })
+                  }
+                />
+              );
+            })}
+          </View>
+        ) : null}
         {miniappRuntime?.widgetTree ? (
           <View testID="miniapp-live-tree">
             <MiniappWidgetTree

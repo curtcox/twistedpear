@@ -208,11 +208,10 @@ limits iOS and Android impose from the ones this platform added on top.
   open (H11). Watchdog thresholds may false-positive on low-end devices.
 - Desktop Node Worker sandbox metrics: `conformance/miniapp-benchmark/measured-desktop.json`
   (`npm run test:miniapp-benchmark`; record with `MINIAPP_BENCHMARK_RECORD=1`).
-- One mini-app at a time in v1, and none while the host is backgrounded. The platform is
-  meant to run several at once whenever the host app itself is running — the single
-  `active` slot in `MiniappHost` is what prevents it, tracked as `MINIAPP-CONCURRENT` in
-  STATUS-SOFTWARE.md. Dev side-loading is localhost/adb-only, off by
-  default, and badged **DEV** in the UI.
+- Several mini-apps may run while the host is foregrounded, and none while the host is
+  backgrounded. The OS constrains the host process, not the number of sandboxes inside it.
+  Confirmations and media capture require the foreground app. Dev side-loading is
+  localhost/adb-only, off by default, and badged **DEV** in the UI.
 - **Realtime peer media is core-complete; shipping-host evidence is partial.** The broker/SDK,
   app-scoped link model, readiness/share policy, five-plane egress binding, TPD2 timing,
   receive sinks, WebCodecs Opus on desktop/web, Line Check app, and SPEC-STREAM conformance

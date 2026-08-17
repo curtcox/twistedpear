@@ -13,6 +13,8 @@ import type {
   ResourceLimitsSnapshot,
 } from "./shared.js";
 import { MiniappHostLayer1 } from "./layer-1.js";
+import type { ActiveApp } from "./shared.js";
+import { pickFallbackForeground } from "./running-apps.js";
 
 function applyNullableLimit(
   overrides: LimitOverrides,
@@ -70,16 +72,16 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
   getResourceLimits(appId: string): ResourceLimitsSnapshot {
     const overrides = this.limitOverrides.get(appId) ?? {};
     const memoryBytes = overrides.memoryBytes ?? null;
-    const running = this.active !== null && this.active.manifest.name === appId;
+    const app = this.appById(appId);
     return {
       appId,
       maxMessagesPerSecond: this.broker.getRateLimit(appId),
       kvQuotaBytes: overrides.kvQuotaBytes ?? this.options.kvQuotaBytes ?? null,
       memoryBytes,
       memoryPendingRestart:
-        running &&
+        app !== undefined &&
         memoryBytes !== null &&
-        memoryBytes !== this.active?.launchedMemoryBytes,
+        memoryBytes !== app.launchedMemoryBytes,
     };
   }
 
@@ -87,8 +89,12 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     manifest: LaunchManifest,
     bundle: Uint8Array,
   ): Promise<MiniappHostSnapshot> {
-    if (this.active !== null) {
-      await this.stop("superseded");
+    const existing = this.appByIdentity(
+      manifest.name,
+      manifest.publisherPublicKey,
+    );
+    if (existing !== undefined) {
+      await this.stopInstance(existing, "superseded");
     }
 
     const grants = await this.options.grantStore.get(
@@ -118,7 +124,7 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
       },
     );
 
-    this.active = {
+    const app: ActiveApp = {
       runtimeId: `runtime-${this.nextRuntimeId++}`,
       manifest,
       grants: grants ?? {
@@ -132,6 +138,9 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
       widgetTree: null,
       logs: [],
     };
+    const key = this.instanceKey(manifest.name, manifest.publisherPublicKey);
+    this.apps.set(key, app);
+    this.foregroundKey = key;
 
     const launched = await lifecycle.launch();
     this.logActive(manifest.name, `launched v${manifest.version}`);
@@ -139,67 +148,76 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     return this.snapshot();
   }
 
-  async suspend(reason = "host-suspended"): Promise<MiniappHostSnapshot> {
-    if (this.active === null) {
-      return this.snapshot();
+  switchForeground(
+    appId: string,
+    publisherPublicKey?: string,
+  ): MiniappHostSnapshot {
+    const app =
+      publisherPublicKey === undefined
+        ? this.appById(appId)
+        : this.appByIdentity(appId, publisherPublicKey);
+    if (app === undefined) {
+      throw new Error(`Mini-app is not running: ${appId}`);
     }
+    this.foregroundKey = this.instanceKey(
+      app.manifest.name,
+      app.manifest.publisherPublicKey,
+    );
+    return this.snapshot();
+  }
 
-    this.deviceService?.closeApp(this.active.manifest.name);
-    await this.inboundMedia?.closeApp(this.active.manifest.name);
-    const snapshot = await this.active.lifecycle.suspend(reason);
-    this.options.callbacks?.onLifecycle?.(snapshot);
+  async suspend(reason = "host-suspended"): Promise<MiniappHostSnapshot> {
+    for (const app of [...this.apps.values()]) {
+      this.deviceService?.closeApp(app.manifest.name);
+      await this.inboundMedia?.closeApp(app.manifest.name);
+      const snapshot = await app.lifecycle.suspend(reason);
+      this.options.callbacks?.onLifecycle?.(snapshot);
+    }
     return this.snapshot();
   }
 
   async resume(): Promise<MiniappHostSnapshot> {
-    if (this.active === null) {
-      return this.snapshot();
+    for (const app of [...this.apps.values()]) {
+      const snapshot = await app.lifecycle.resume();
+      this.options.callbacks?.onLifecycle?.(snapshot);
     }
-
-    const snapshot = await this.active.lifecycle.resume();
-    this.options.callbacks?.onLifecycle?.(snapshot);
     return this.snapshot();
   }
 
   async stop(reason = "stopped"): Promise<MiniappHostSnapshot> {
-    if (this.active === null) {
+    const foreground = this.foregroundApp();
+    if (foreground === null) {
       return this.snapshot();
     }
+    return this.stopInstance(foreground, reason);
+  }
 
-    const appId = this.active.manifest.name;
-    await this.peerService?.closeRuntime(appId, this.active.runtimeId);
-    this.deviceService?.closeApp(appId);
-    await this.inboundMedia?.closeApp(appId);
-    await this.cancelAiStreams(appId);
-    const snapshot = await this.active.lifecycle.stop(reason);
-    this.logActive(appId, `stopped (${reason})`);
-    this.options.callbacks?.onLifecycle?.(snapshot);
-    this.active = null;
+  async stopApp(
+    appId: string,
+    publisherPublicKey: string,
+    reason = "stopped",
+  ): Promise<MiniappHostSnapshot> {
+    const app = this.appByIdentity(appId, publisherPublicKey);
+    if (app === undefined) {
+      return this.snapshot();
+    }
+    return this.stopInstance(app, reason);
+  }
+
+  async stopAll(reason = "stopped"): Promise<MiniappHostSnapshot> {
+    for (const app of [...this.apps.values()]) {
+      await this.stopInstance(app, reason);
+    }
     return this.snapshot();
   }
 
   async watchdogPing(): Promise<MiniappHostSnapshot> {
-    if (this.active === null) {
-      return this.snapshot();
+    for (const app of [...this.apps.values()]) {
+      const snapshot = await app.lifecycle.watchdogPing();
+      if (snapshot.state === "crashed") {
+        await this.cleanupCrashed(app, snapshot);
+      }
     }
-
-    const snapshot = await this.active.lifecycle.watchdogPing();
-    if (snapshot.state === "crashed") {
-      await this.cancelAiStreams(snapshot.appId);
-      await this.peerService?.closeRuntime(
-        snapshot.appId,
-        this.active.runtimeId,
-      );
-      this.deviceService?.closeApp(snapshot.appId);
-      await this.inboundMedia?.closeApp(snapshot.appId);
-      this.logActive(
-        snapshot.appId,
-        `crashed (${snapshot.reason ?? "watchdog"})`,
-      );
-      this.active = null;
-      this.options.callbacks?.onLifecycle?.(snapshot);
-    }
-
     return this.snapshot();
   }
 
@@ -208,11 +226,12 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     event: string,
     value?: unknown,
   ): Promise<void> {
-    if (this.active === null) {
+    const foreground = this.foregroundApp();
+    if (foreground === null) {
       throw new Error("No mini-app is running");
     }
 
-    const tree = this.active.widgetTree;
+    const tree = foreground.widgetTree;
     if (tree === null || findWidgetNode(tree.root, nodeId) === null) {
       throw new Error(`Unknown widget node: ${nodeId}`);
     }
@@ -225,8 +244,8 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
         method: "event",
         payload: { nodeId, event, value },
       },
-      this.active.manifest,
-      this.active.grants.granted,
+      foreground.manifest,
+      foreground.grants.granted,
     );
   }
 
@@ -277,5 +296,45 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
       this.aiStreams.delete(streamId);
       await session.iterator.return?.();
     }
+  }
+
+  private async stopInstance(
+    app: ActiveApp,
+    reason: string,
+  ): Promise<MiniappHostSnapshot> {
+    const appId = app.manifest.name;
+    const key = this.instanceKey(appId, app.manifest.publisherPublicKey);
+    await this.peerService?.closeRuntime(appId, app.runtimeId);
+    this.deviceService?.closeApp(appId);
+    await this.inboundMedia?.closeApp(appId);
+    await this.cancelAiStreams(appId);
+    const snapshot = await app.lifecycle.stop(reason);
+    this.logActive(appId, `stopped (${reason})`);
+    this.options.callbacks?.onLifecycle?.(snapshot);
+    this.apps.delete(key);
+    if (this.foregroundKey === key) {
+      this.foregroundKey = pickFallbackForeground(this.apps);
+    }
+    return this.snapshot();
+  }
+
+  private async cleanupCrashed(
+    app: ActiveApp,
+    snapshot: ReturnType<ActiveApp["lifecycle"]["snapshot"]>,
+  ): Promise<void> {
+    const key = this.instanceKey(
+      app.manifest.name,
+      app.manifest.publisherPublicKey,
+    );
+    await this.cancelAiStreams(snapshot.appId);
+    await this.peerService?.closeRuntime(snapshot.appId, app.runtimeId);
+    this.deviceService?.closeApp(snapshot.appId);
+    await this.inboundMedia?.closeApp(snapshot.appId);
+    this.logActive(snapshot.appId, `crashed (${snapshot.reason ?? "watchdog"})`);
+    this.apps.delete(key);
+    if (this.foregroundKey === key) {
+      this.foregroundKey = pickFallbackForeground(this.apps);
+    }
+    this.options.callbacks?.onLifecycle?.(snapshot);
   }
 }

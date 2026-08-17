@@ -50,9 +50,9 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID                 | Status | Item                                                  | Evidence | Verify                                                                 |
-| ------------------ | ------ | ----------------------------------------------------- | -------- | ---------------------------------------------------------------------- |
-| MINIAPP-CONCURRENT | open   | Run several mini-apps at once inside one running host | —        | `npx vitest run packages/miniapp-runtime/test/concurrent-apps.test.ts` |
+| ID                 | Status | Item                                           | Evidence | Verify                                                            |
+| ------------------ | ------ | ---------------------------------------------- | -------- | ----------------------------------------------------------------- |
+| MINIAPP-APP-TO-APP | open   | Brokered channel between two running mini-apps | —        | `npx vitest run packages/miniapp-runtime/test/app-to-app.test.ts` |
 
 ## Optional and non-blocking backlog
 

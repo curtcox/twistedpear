@@ -272,8 +272,13 @@ export type HostToWorkletMessage =
       readonly error?: string;
     }
   | { readonly type: "launch-miniapp"; readonly appId: string }
+  | {
+      readonly type: "switch-miniapp";
+      readonly appId: string;
+      readonly publisherPublicKey?: string;
+    }
   | { readonly type: "benchmark-miniapp" }
-  | { readonly type: "stop-miniapp" }
+  | { readonly type: "stop-miniapp"; readonly reason?: string }
   | { readonly type: "suspend-miniapp" }
   | { readonly type: "resume-miniapp" }
   | {

@@ -365,7 +365,7 @@ export function createWorkletMiniappHost(options) {
           line: entry.line,
         }),
       onLifecycle: () => {
-        options.onMiniappStateChange(host.snapshot().state !== "stopped");
+        options.onMiniappStateChange(host.running().length > 0);
         pushRuntime();
       },
     },
@@ -469,10 +469,12 @@ export function createWorkletMiniappHost(options) {
     },
 
     async stop(reason = "stopped") {
-      clearWatchdog();
-      devBadgeRef.current = false;
-      await stopPreviewHost();
       await host.stop(reason);
+      if (host.running().length === 0) {
+        clearWatchdog();
+        devBadgeRef.current = false;
+        await stopPreviewHost();
+      }
       pushRuntime();
     },
 

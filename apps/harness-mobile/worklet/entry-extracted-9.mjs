@@ -108,6 +108,13 @@ export async function handleHostMessageTailImpl(context, message) {
     }
     return;
   }
+  if (message.type === "switch-miniapp") {
+    context
+      .ensureMiniappHost()
+      .switchForeground(message.appId, message.publisherPublicKey);
+    context.log(`Switched mini-app ${message.appId}`);
+    return;
+  }
   if (message.type === "stop-miniapp") {
     await context.ensureMiniappHost().stop();
     context.log("Stopped mini-app");

@@ -87,9 +87,8 @@ running host may hold. Several limits that read like design rules are really unf
 implementation, and the platform tracks them with revisit triggers that fail the build if
 they lapse. Do not design as though these were settled:
 
-- **Only one mini-app runs at a time.** Intended to change — the platform is meant to run
-  several at once whenever TwistedPear itself is running (`MINIAPP-CONCURRENT`).
-- **No app-to-app communication.** Deferred behind concurrency, not ruled out.
+- **No app-to-app communication.** Two apps can run at once; a brokered channel between
+  them is the next recovery (`MINIAPP-APP-TO-APP`).
 - **No suspend/resume events for your app.** The host observes both transitions today and
   simply does not forward them.
 - **No background execution on Android.** The host already runs a foreground service; what

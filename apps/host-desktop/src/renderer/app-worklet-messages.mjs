@@ -211,6 +211,7 @@ export function handleWorkletMessage(scope, message) {
       }
     } else {
       scope.runningAppId = message.runtime.appId;
+      scope.runningApps = message.runtime.running ?? [];
       if (scope.runningAppId === null) scope.miniappHostView = false;
       if (runningAppId === requestedAppId) scope.requestedAppLaunchTimer = null;
       document.body.classList.toggle(
@@ -222,6 +223,8 @@ export function handleWorkletMessage(scope, message) {
           scope.runningAppId === null || !scope.miniappHostView;
       if (miniappTitle)
         miniappTitle.textContent = scope.runningAppId ?? "Mini-app";
+      renderRunningApps(scope);
+      renderInstalled();
       if (scope.runningAppId !== null)
         host.send({ type: "get-limits", appId: scope.runningAppId });
       renderWidgetTree(
@@ -482,4 +485,33 @@ function peerQrAvailability() {
     state: "permission-required",
     reason: "Camera permission is requested only after Start camera",
   };
+}
+
+function renderRunningApps(scope) {
+  const root = document.querySelector("#running-apps");
+  if (root === null) return;
+  const running = Array.isArray(scope.runningApps) ? scope.runningApps : [];
+  const visible = running.filter((item) => typeof item.appId === "string");
+  root.hidden = visible.length < 2;
+  root.replaceChildren(
+    ...visible.map((item) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = item.appId;
+      button.className = "secondary";
+      if (item.appId === scope.runningAppId) {
+        button.setAttribute("aria-current", "true");
+      }
+      button.addEventListener("click", () => {
+        scope.host?.send({
+          type: "switch-miniapp",
+          appId: item.appId,
+          ...(typeof item.publisherPublicKey === "string"
+            ? { publisherPublicKey: item.publisherPublicKey }
+            : {}),
+        });
+      });
+      return button;
+    }),
+  );
 }

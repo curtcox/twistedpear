@@ -47,6 +47,7 @@ export interface MiniappHostLogEntry {
 
 export interface MiniappHostSnapshot {
   readonly appId: string | null;
+  readonly publisherPublicKey: string | null;
   readonly version: string | null;
   readonly state: string;
   readonly widgetTree: WidgetTree | null;

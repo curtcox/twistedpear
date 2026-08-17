@@ -54,6 +54,21 @@ main {
   text-transform: uppercase;
 }
 
+.running-apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.running-apps button {
+  font-size: 0.8rem;
+}
+
+.running-apps button[aria-current="true"] {
+  background: #1e3a5f;
+}
+
 body:not(.miniapp-running) .miniapp-toolbar {
   display: none;
 }

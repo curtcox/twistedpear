@@ -14,22 +14,26 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
   }
 
   private registerUiIdentityHandlers(): void {
-    this.broker.register("ui", "render", null, (request) => {
+    this.broker.register("ui", "render", null, (request, context) => {
       const tree = (request.payload as { tree: WidgetTree }).tree;
       validateWidgetTree(tree);
+      const app = this.appByIdentity(
+        context.appId,
+        context.publisherPublicKey,
+      );
       let patches: ReadonlyArray<WidgetPatch> = [];
-      if (this.active !== null) {
-        patches = diffWidgetTrees(this.active.widgetTree, tree);
-        this.active.widgetTree = tree;
+      if (app !== undefined) {
+        patches = diffWidgetTrees(app.widgetTree, tree);
+        app.widgetTree = tree;
         if (patches.length > 0) {
-          this.logActive(
-            this.active.manifest.name,
-            `ui ${patches.length} patch(es)`,
-          );
+          this.logActive(app.manifest.name, `ui ${patches.length} patch(es)`);
         }
       }
 
-      this.options.callbacks?.onWidgetTree?.(tree, patches);
+      const foreground = this.foregroundApp();
+      if (foreground !== null && foreground === app) {
+        this.options.callbacks?.onWidgetTree?.(tree, patches);
+      }
       return Promise.resolve({ accepted: true, patchCount: patches.length });
     });
 
@@ -39,8 +43,12 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       }),
     );
 
-    this.broker.register("ui", "event", null, async (request) => {
-      if (this.active === null) {
+    this.broker.register("ui", "event", null, async (request, context) => {
+      const app = this.appByIdentity(
+        context.appId,
+        context.publisherPublicKey,
+      );
+      if (app === undefined) {
         throw new Error("No mini-app is running");
       }
 
@@ -49,12 +57,12 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         event: string;
         value?: unknown;
       };
-      const tree = this.active.widgetTree;
+      const tree = app.widgetTree;
       if (tree === null || findWidgetNode(tree.root, payload.nodeId) === null) {
         throw new Error(`Unknown widget node: ${payload.nodeId}`);
       }
 
-      await this.active.lifecycle.deliverUiEvent(payload);
+      await app.lifecycle.deliverUiEvent(payload);
       return { delivered: true };
     });
 

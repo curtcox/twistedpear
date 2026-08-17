@@ -1,6 +1,6 @@
 {
   "$comment": "Utility withheld from mini-apps because of the mobile app lifecycle. Rendered as the ledger table in docs/mobile-lifecycle.md and enforced by conformance/doc-audit/mobile-lifecycle.test.mjs. Read docs/mobile-lifecycle.md before editing.",
-  "audited": "2026-08-16",
+  "audited": "2026-08-17",
   "causes": {
     "os": "The mobile OS forbids it. Nothing this repository can build changes the answer; only an OS capability, an entitlement, or a different host would.",
     "os-derived": "The OS forbids something adjacent, and this is our implementation of living within it. A different implementation could recover part of the utility.",
@@ -9,11 +9,11 @@
   "forbiddenClaims": [
     {
       "pattern": "one foreground mini-app, by design",
-      "why": "It is not a design choice. The OS suspends the host process; it does not limit how many sandboxes a running host may hold. See MLC-CONCURRENT-APPS."
+      "why": "It is not a design choice. The OS suspends the host process; it does not limit how many sandboxes a running host may hold."
     },
     {
       "pattern": "One foreground mini-app at a time in v1, by design",
-      "why": "Same claim in a different sentence. State it as an open implementation limit and name MINIAPP-CONCURRENT."
+      "why": "Same claim in a different sentence. Concurrent mini-apps have shipped; do not revive the single-slot limit as design."
     },
     {
       "pattern": "no background execution or ambient APIs, by design",
@@ -21,20 +21,6 @@
     }
   ],
   "rows": [
-    {
-      "id": "MLC-CONCURRENT-APPS",
-      "utility": "Several mini-apps running at once inside one running host",
-      "cause": "self-imposed",
-      "decision": "MiniappHost keeps a single `active: ActiveApp | null` slot, so launching a second app stops the first",
-      "evidence": [
-        "packages/miniapp-runtime/src/host/layer-1-base.ts",
-        "packages/worklet-core/src/miniapp-host-shared-core.mjs"
-      ],
-      "cost": "No companion apps, no cooperating pair, and app state is lost on every switch",
-      "unlock": "Per-app runtime instances, per-app broker routing and budget accounting, and a shell app switcher",
-      "revisit": { "work": "MINIAPP-CONCURRENT" },
-      "note": "The OS constrains the host process, not the sandboxes inside it. The dev-preview slot already runs a second MiniappHost concurrently in the same worklet, which is the existence proof."
-    },
     {
       "id": "MLC-BACKGROUND-IOS",
       "utility": "Mini-app code running while the host app is backgrounded on iOS",
@@ -89,9 +75,9 @@
       "decision": "App-to-app messaging and shared storage are deferred; grants are keyed per app and storage is per app",
       "evidence": ["LIMITATIONS.md", "docs/miniapp-runtime.md"],
       "cost": "No suite of cooperating apps; every app re-implements what its neighbour already has",
-      "unlock": "A brokered, separately granted app-to-app channel — which only becomes useful once two apps can run at once",
-      "revisit": { "work": "MINIAPP-CONCURRENT" },
-      "note": "Sequenced behind MLC-CONCURRENT-APPS, not blocked by the OS. Revisit when that work closes."
+      "unlock": "A brokered, separately granted app-to-app channel",
+      "revisit": { "work": "MINIAPP-APP-TO-APP" },
+      "note": "Sequenced behind concurrent mini-apps, which have shipped. Not blocked by the OS."
     },
     {
       "id": "MLC-ALWAYS-ON-ROLES",

@@ -334,6 +334,20 @@ export function createAppsBackendPreviewAction({
   };
 }
 
+export function bringToForegroundIfRunning(host, record) {
+  const match = host.running().find(
+    (item) =>
+      item.appId === record.appId &&
+      item.publisherPublicKey === record.manifest.publisherPublicKey,
+  );
+  if (match === undefined) return false;
+  host.switchForeground(
+    record.appId,
+    record.manifest.publisherPublicKey,
+  );
+  return true;
+}
+
 export async function launchWithCapabilityReview({
   record,
   grantStore,
@@ -389,6 +403,12 @@ export async function launchWithCapabilityReview({
     throw new Error("Grant at least one declared capability before launch");
   }
 
+  if (bringToForegroundIfRunning(host, record)) {
+    startWatchdog();
+    pushRuntime();
+    return;
+  }
+
   await host.launch(
     {
       name: record.appId,
@@ -420,6 +440,12 @@ export async function launchWithoutReview({
   );
   if (grants === null || grants.granted.length === 0) {
     throw new Error("Grant at least one declared capability before launch");
+  }
+
+  if (bringToForegroundIfRunning(host, record)) {
+    startWatchdog();
+    pushRuntime();
+    return;
   }
 
   await host.launch(
