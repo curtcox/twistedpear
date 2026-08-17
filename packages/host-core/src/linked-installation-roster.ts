@@ -17,6 +17,7 @@ import {
   decryptIdentityBackup,
 } from "./identity-backup.js";
 import {
+  asciiHexLower,
   createLinkedInstallation,
   verifyLinkedInstallationCertificate,
   type LinkedInstallationCertificate,
@@ -91,55 +92,71 @@ function isEntryShape(value: unknown): value is LinkedInstallationRosterEntry {
   );
 }
 
+async function loadRosterEntries(options: {
+  readonly store: LinkedInstallationKeyValueStore;
+  readonly provider: CryptoProvider;
+  readonly accountPublicKey: string;
+}): Promise<LinkedInstallationRosterEntry[]> {
+  const raw = await options.store.get(ROSTER_KEY);
+  if (raw === null) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw));
+  } catch {
+    throw new Error("invalid linked-installation roster");
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new Error("invalid linked-installation roster");
+  }
+  const snapshot = parsed as { version?: unknown; entries?: unknown };
+  if (snapshot.version !== 1 || !Array.isArray(snapshot.entries)) {
+    throw new Error("invalid linked-installation roster");
+  }
+  return snapshot.entries.flatMap((entry) => {
+    if (!isEntryShape(entry)) return [];
+    if (
+      asciiHexLower(entry.certificate.accountPublicKey) !==
+      options.accountPublicKey
+    ) {
+      return [];
+    }
+    if (
+      !verifyLinkedInstallationCertificate(options.provider, entry.certificate)
+    ) {
+      return [];
+    }
+    return [entry];
+  });
+}
+
+async function saveRosterEntries(
+  store: LinkedInstallationKeyValueStore,
+  entries: ReadonlyArray<LinkedInstallationRosterEntry>,
+): Promise<void> {
+  const snapshot: RosterSnapshot = { version: 1, entries: [...entries] };
+  await store.set(
+    ROSTER_KEY,
+    new TextEncoder().encode(JSON.stringify(snapshot)),
+  );
+}
+
 export function createKeyValueLinkedInstallationRoster(options: {
   readonly store: LinkedInstallationKeyValueStore;
   readonly provider: CryptoProvider;
   readonly accountPublicKey: string;
   readonly selfInstallationId: string;
 }): LinkedInstallationRoster {
-  const accountPublicKey = options.accountPublicKey.toLowerCase();
+  const accountPublicKey = asciiHexLower(options.accountPublicKey);
   const selfInstallationId = normalizeInstallationId(
     options.selfInstallationId,
   );
 
   async function load(): Promise<LinkedInstallationRosterEntry[]> {
-    const raw = await options.store.get(ROSTER_KEY);
-    if (raw === null) return [];
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(
-        new TextDecoder("utf-8", { fatal: true }).decode(raw),
-      );
-    } catch {
-      throw new Error("invalid linked-installation roster");
-    }
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      (parsed as RosterSnapshot).version !== 1 ||
-      !Array.isArray((parsed as RosterSnapshot).entries)
-    ) {
-      throw new Error("invalid linked-installation roster");
-    }
-    return (parsed as RosterSnapshot).entries.filter((entry) => {
-      if (!isEntryShape(entry)) return false;
-      if (entry.certificate.accountPublicKey.toLowerCase() !== accountPublicKey)
-        return false;
-      return verifyLinkedInstallationCertificate(
-        options.provider,
-        entry.certificate,
-      );
+    return loadRosterEntries({
+      store: options.store,
+      provider: options.provider,
+      accountPublicKey,
     });
-  }
-
-  async function save(
-    entries: ReadonlyArray<LinkedInstallationRosterEntry>,
-  ): Promise<void> {
-    const snapshot: RosterSnapshot = { version: 1, entries: [...entries] };
-    await options.store.set(
-      ROSTER_KEY,
-      new TextEncoder().encode(JSON.stringify(snapshot)),
-    );
   }
 
   return {
@@ -162,7 +179,7 @@ export function createKeyValueLinkedInstallationRoster(options: {
     },
     async merge(certificate, now) {
       if (!Number.isSafeInteger(now) || now < 0) return false;
-      if (certificate.accountPublicKey.toLowerCase() !== accountPublicKey)
+      if (asciiHexLower(certificate.accountPublicKey) !== accountPublicKey)
         return false;
       if (!verifyLinkedInstallationCertificate(options.provider, certificate))
         return false;
@@ -178,8 +195,8 @@ export function createKeyValueLinkedInstallationRoster(options: {
       );
       if (
         existing !== undefined &&
-        existing.certificate.installationPublicKey.toLowerCase() !==
-          certificate.installationPublicKey.toLowerCase()
+        asciiHexLower(existing.certificate.installationPublicKey) !==
+          asciiHexLower(certificate.installationPublicKey)
       ) {
         return false;
       }
@@ -188,7 +205,7 @@ export function createKeyValueLinkedInstallationRoster(options: {
         firstSeenAt: existing?.firstSeenAt ?? now,
         lastSeenAt: now,
       };
-      await save([
+      await saveRosterEntries(options.store, [
         ...entries.filter(
           (entry) => entry.certificate.installationId !== installationId,
         ),
@@ -204,7 +221,8 @@ export function createKeyValueLinkedInstallationRoster(options: {
       const entries = await load();
       if (!entries.some((entry) => entry.certificate.installationId === id))
         return false;
-      await save(
+      await saveRosterEntries(
+        options.store,
         entries.filter((entry) => entry.certificate.installationId !== id),
       );
       return true;
@@ -251,7 +269,7 @@ export function pairNewLinkedInstallation(options: {
   readonly certificate: LinkedInstallationCertificate;
 } {
   const advertised = identityBackupHash(options.backup);
-  if (advertised !== options.confirmedAccountHash.trim().toLowerCase()) {
+  if (advertised !== asciiHexLower(options.confirmedAccountHash.trim())) {
     throw new Error("Account hash confirmation does not match this backup");
   }
   const accountIdentity = decryptIdentityBackup(

@@ -13,7 +13,7 @@
     },
     "host-core.api.md": {
       "package": "packages/host-core",
-      "sha256": "ea900f15515c9b48041e6a4e38a41fd265498bd69cce2dfce32cb79248fa90fb"
+      "sha256": "a38fcfd6a67910de1bfc4f0682c9419855ecb0ea89cf368bd578385355792689"
     },
     "reticulum-ts.api.md": {
       "package": "packages/reticulum-ts",
@@ -35,6 +35,10 @@
       "package": "packages/miniapp-runtime",
       "sha256": "660355090a5e60d88152cd2987c0dd969df96e75693f5d381e4292b06ae79e14"
     },
+    "host-core-web.api.md": {
+      "package": "packages/host-core",
+      "sha256": "9379db637dd4e165b286a08c64cd368a3a65890c53c1cd7683a3ae690f49bbe3"
+    },
     "peer-discovery.api.md": {
       "package": "packages/peer-discovery",
       "sha256": "7670dddbe8f61938334590d1b574c9c572672d31ad5cecaf5ce7eb5a2ab5ad00"
@@ -46,10 +50,6 @@
     "reticulum-ts-web.api.md": {
       "package": "packages/reticulum-ts",
       "sha256": "fa8aafe1e2b72bf1ebd0ca17041e4dc1609b076bc9e82dd761a17e6881b89b55"
-    },
-    "host-core-web.api.md": {
-      "package": "packages/host-core",
-      "sha256": "aff7d0200b350c7f6d7bdca2c61baf909ab882cd9ccd29b3d823ae3886e04fb2"
     },
     "effects.api.md": {
       "package": "packages/effects",

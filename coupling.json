@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1207,
+  "modules": 1211,
   "components": 24,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -49,7 +49,7 @@
     },
     {
       "id": "scripts",
-      "modules": 181,
+      "modules": 182,
       "ca": 1,
       "ce": 9,
       "instability": 0.9,
@@ -101,7 +101,7 @@
     },
     {
       "id": "packages/miniapp-runtime",
-      "modules": 81,
+      "modules": 82,
       "ca": 12,
       "ce": 3,
       "instability": 0.2,
@@ -113,7 +113,7 @@
     },
     {
       "id": "packages/host-core",
-      "modules": 41,
+      "modules": 43,
       "ca": 6,
       "ce": 8,
       "instability": 0.57,

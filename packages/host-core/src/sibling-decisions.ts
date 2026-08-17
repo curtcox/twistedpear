@@ -77,9 +77,8 @@ export interface SiblingGrantStore {
 }
 
 /**
- * Held proposals. The journal will supply a durable implementation; the gate
- * only needs these four operations, which is what keeps it buildable before
- * the transport exists.
+ * Held proposals. A host that needs them to survive restart uses
+ * `createKeyValueSiblingProposalStore`; the in-memory store is for tests.
  */
 export interface SiblingProposalStore {
   put(proposal: SiblingProposal): Promise<void>;
@@ -207,9 +206,8 @@ export interface SiblingDecisionGateOptions {
   readonly grants: SiblingGrantStore;
   readonly proposals: SiblingProposalStore;
   /**
-   * Whether this installation id is a sibling this machine recognises. Injected
-   * because the roster does not exist yet (ID-ROSTER); until it does, a host
-   * supplies whatever it knows.
+   * Whether this installation id is a sibling this machine recognises.
+   * Hosts pass `roster.has`.
    */
   isKnownInstallation(installationId: string): Promise<boolean>;
   /** This machine's own installation id, so it never acts on its own echo. */

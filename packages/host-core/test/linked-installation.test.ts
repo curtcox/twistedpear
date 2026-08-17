@@ -8,6 +8,7 @@ import {
   deriveLinkedInstallationIdentity,
   encodeLinkedInstallationCertificate,
   linkedInstallationAnnounceAspects,
+  asciiHexLower,
   signLinkedInstallationCertificate,
   verifyLinkedInstallationCertificate,
 } from "../src/linked-installation.js";
@@ -155,5 +156,10 @@ describe("linked installation identities", () => {
       0x54, 0x50, 0x44, 0x56, 0x01,
     ]);
     expect(LINKED_INSTALLATION_ANNOUNCE_ASPECT).toBe("linked-device");
+  });
+
+  it("folds hex identities in ASCII rather than the default locale", () => {
+    expect(asciiHexLower("ABCdef")).toBe("abcdef");
+    expect(asciiHexLower("I")).toBe("i");
   });
 });

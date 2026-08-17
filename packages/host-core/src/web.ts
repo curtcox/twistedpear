@@ -70,32 +70,4 @@ export {
   type AppScopedIdentityOptions,
   type IdentityReadinessOptions,
 } from "./app-scoped-identity.js";
-export {
-  LINKED_INSTALLATION_ANNOUNCE_ASPECT,
-  LINKED_INSTALLATION_APP_NAME,
-  createLinkedInstallation,
-  createLinkedInstallationId,
-  decodeLinkedInstallationCertificate,
-  deriveLinkedInstallationIdentity,
-  encodeLinkedInstallationCertificate,
-  linkedInstallationAnnounceAspects,
-  linkedInstallationAnnounceFilter,
-  signLinkedInstallationCertificate,
-  verifyLinkedInstallationCertificate,
-  type LinkedInstallationCertificate,
-} from "./linked-installation.js";
-export {
-  LINKED_ACCOUNT_BACKUP_WARNING,
-  createKeyValueLinkedInstallationRoster,
-  exportLinkedAccountBackup,
-  pairNewLinkedInstallation,
-  type LinkedAccountBackupExport,
-  type LinkedInstallationKeyValueStore,
-  type LinkedInstallationRoster,
-  type LinkedInstallationRosterEntry,
-} from "./linked-installation-roster.js";
-export {
-  createLinkedInstallationAnnounce,
-  type LinkedInstallationAnnounceOptions,
-  type LinkedInstallationAnnounceSession,
-} from "./linked-installation-announce.js";
+export * from "./linked-installation-api.js";

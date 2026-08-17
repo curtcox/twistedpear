@@ -8,8 +8,10 @@ counterpart: docs/linked-devices.md
 -->
 
 **This document contains only work that is not yet built.** What ships today — the
-account-to-installation certificate format, locator v2, and the per-installation boundaries
-that already hold — is recorded in
+account-to-installation certificate format, roster and announce, the one-way linked-mode
+switch, account journal, sibling-decision chrome and store wiring, locator v2, and the
+per-installation boundaries that already hold —
+is recorded in
 [Device identity and user identity — current implementation](linked-devices.md). That live
 document overrides this plan if they disagree.
 
@@ -78,27 +80,12 @@ and every wire value keep their spelling.
 
 ## Remaining work
 
-**Account journal.** Encrypted, append-only, exchanged over certified installation
-destinations. Records are content-addressed, signed by the emitting installation certificate,
-deduplicated by record hash, and bounded by the same propagation and multipart limits as
-ordinary host traffic. Nothing in the journal applies itself — see decision 2.
-
-**Sibling-decision chrome and wiring.** The gate itself is built — see the live document for
-what it decides and guarantees. What remains is the surface and the effects: chrome that
-renders held proposals ("your laptop blocked this sender — apply here?"), the grant and
-revoke controls behind it, a durable proposal store to replace the in-memory one, and the
-code that turns an `apply` verdict into an actual write to the moderation and trust stores.
-Removal from the local roster stops journal fan-out, but v1 has no global revocation service,
-so offline installations learn of a removal only when they next sync. That limit must be
-stated in the UI rather than implied.
-
-**Linked-mode switch.** Enabling is a one-way network-address migration for that
-installation: the account/publisher hash stays stable while host and app serving destinations
-move to the installation identity. Show both hashes before confirming. Disabling is not
-offered, because returning the account key to live destination use could recreate the
-multi-host collision the design exists to prevent. Importing a backup or recovery words must
-not silently enable linked mode; joining an account stays an explicit, separate choice so
-ordinary disaster recovery does not change network-identity behaviour.
+**Host wiring for linked mode.** The one-way switch is built — see the live document. Shipping
+hosts still start unlinked: `createNodeHost` loads a single identity, and
+`createInstallationIdentityLoader` still falls back to the publisher key. Chrome that shows
+both hashes and calls `enable`, then registers host and app serving destinations under
+`identities().serving`, is what remains. Desktop and mobile still need to mount
+`createSiblingDecisionChrome` so held proposals are visible in the running host.
 
 ## Non-goals for v1
 
@@ -111,4 +98,4 @@ installation and every publisher signature.
 
 Archive this plan when linked mode can be enabled on desktop and mobile, held proposals are
 renderable and applicable through host chrome, capability grants are still proven not to
-travel once the journal exists, and the live document has absorbed each mechanism as it lands.
+travel, and the live document has absorbed each mechanism as it lands.

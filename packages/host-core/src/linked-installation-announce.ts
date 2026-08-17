@@ -13,6 +13,7 @@ import {
 } from "@twistedpear/reticulum-ts";
 import {
   LINKED_INSTALLATION_APP_NAME,
+  asciiHexLower,
   decodeLinkedInstallationCertificate,
   encodeLinkedInstallationCertificate,
   linkedInstallationAnnounceAspects,
@@ -35,6 +36,7 @@ export interface LinkedInstallationAnnounceOptions {
 
 export interface LinkedInstallationAnnounceSession {
   readonly destinationHash: string;
+  readonly destination: RegisteredDestination;
   announce(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -61,7 +63,9 @@ export async function createLinkedInstallationAnnounce(
     aspects,
   });
   const destinationHash = bytesToHex(destination.hash);
-  const ownPublicKey = bytesToHex(installationIdentity.getPublicKey());
+  const ownPublicKey = asciiHexLower(
+    bytesToHex(installationIdentity.getPublicKey()),
+  );
   const filter = linkedInstallationAnnounceFilter(
     provider,
     certificate.accountPublicKey,
@@ -83,12 +87,12 @@ export async function createLinkedInstallationAnnounce(
         return;
       }
       if (
-        bytesToHex(info.announcedIdentity.getPublicKey()) !==
-        heard.installationPublicKey.toLowerCase()
+        asciiHexLower(bytesToHex(info.announcedIdentity.getPublicKey())) !==
+        asciiHexLower(heard.installationPublicKey)
       ) {
         return;
       }
-      if (heard.installationPublicKey.toLowerCase() === ownPublicKey) return;
+      if (asciiHexLower(heard.installationPublicKey) === ownPublicKey) return;
       void roster.merge(heard, now());
     },
   });
@@ -106,13 +110,15 @@ export async function createLinkedInstallationAnnounce(
 
   return {
     destinationHash,
+    destination,
     announce,
-    async stop() {
+    stop() {
       stopped = true;
       if (announceTimer !== null) {
         clearInterval(announceTimer);
         announceTimer = null;
       }
+      return Promise.resolve();
     },
   };
 }

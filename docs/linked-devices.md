@@ -8,8 +8,8 @@ counterpart: docs/linked-devices-plan.md
 -->
 
 What the shipped code actually does about the boundary between **a user** and **one of
-that user's machines**. The remaining linked-account work — account journal and the
-one-way linked-mode switch — lives in
+that user's machines**. The remaining linked-account work — sibling-decision chrome —
+lives in
 [Device identity and user identity — delivery plan](linked-devices-plan.md). Where the two
 disagree, this file wins.
 
@@ -36,8 +36,8 @@ that is in force.
 
 ## What ships toward the distinction
 
-Three library pieces are implemented and tested, and are inert on the wire until a host
-enables linked mode.
+Five library pieces are implemented and tested. Shipping hosts still start unlinked;
+the one-way switch exists, but no host chrome calls it yet.
 
 **Account-to-installation certificates**
 ([packages/host-core/src/linked-installation.ts](../packages/host-core/src/linked-installation.ts)).
@@ -60,6 +60,21 @@ matches, the announced identity owns the certified installation key, and that
 installation id is not already bound to a different key. Shipping hosts still do not
 enable linked mode, so this destination is unused on the wire until a host opts in.
 
+**Linked-mode switch**
+([packages/host-core/src/linked-mode.ts](../packages/host-core/src/linked-mode.ts)).
+`previewLinkedModeSwitch` returns the account hash (publisher, unchanged) and the
+installation hash (where this host will live on the network) before anything is
+written. `enable` requires both hashes to be confirmed, persists a one-way flag, and
+from then on `identities().serving` is the derived installation while
+`identities().publisher` stays the vault/account identity. There is no disable:
+returning the account key to live destination use would recreate the multi-host
+collision. Importing an encrypted backup or recovery words restores the account
+identity and does not write the linked-mode store; pairing a new installation is the
+same — joining stays an explicit `enable` after the account hash was already
+confirmed. Host and app serving destinations that register under `serving`, and a
+v2 CAS locator that carries `servingPublicKey` separately from the publisher, are
+how the split shows up on the wire.
+
 **Pairing.** An existing installation exports the ordinary encrypted account backup
 (`TPIDBK01`). The header carries the account hash without the passphrase, so the new
 machine can show it and require confirmation before decrypting. A mismatched
@@ -67,7 +82,20 @@ confirmation throws and writes nothing. After a confirmed import, `pairNewLinked
 derives a fresh installation identity and certificate; the caller persists the roster
 entry. The transfer passphrase travels by a separate channel. The export warns that a
 link backup is equivalent to the account recovery words: whoever holds both becomes
-the account.
+the account. Pairing does not enable linked mode; that remains a separate confirmation
+of both hashes.
+
+**Account journal**
+([packages/host-core/src/account-journal.ts](../packages/host-core/src/account-journal.ts)).
+Records are content-addressed `TPJR\x01` payloads, signed by the emitting installation
+identity, encrypted under an account-derived AES-GCM key (`TPJE\x01`), and stored
+append-only, deduplicated by record hash. The decision class must be one of the four
+sibling classes; there is still no class that could carry a capability grant. Records are
+capped at the multipart budget (64 KiB, hard ceiling 1,000,000 bytes). Nothing in the
+journal applies itself — `accountJournalRecordAsProposal` is how a record is handed to
+`SiblingDecisionGate`. Fan-out uses the certified installation destination that already
+carries the `TPDV` certificate
+([packages/host-core/src/account-journal-exchange.ts](../packages/host-core/src/account-journal-exchange.ts)).
 
 **Locator v2** ([packages/cas-256t/src/locator.ts](../packages/cas-256t/src/locator.ts)).
 `servingPublicKey` is carried separately from `publisherPublicKey`, and v2 is emitted only
@@ -87,7 +115,7 @@ cross-installation synchronisation exists at all.**
 
 So a user may already grant the same app different capabilities on different machines, and
 trust a publisher on one machine and not another. The grant key has nowhere to put an account
-id, which is the property worth preserving when the journal lands — see the plan.
+id, which is the property the journal and the sibling gate preserve — see the plan.
 [grant-installation-scope.test.ts](../packages/miniapp-runtime/test/grant-installation-scope.test.ts)
 pins it: the key carries no account dimension, one machine's grant never reaches another, an
 unasked machine stays ungranted, and every persisted key — including the lifecycle authority
@@ -124,9 +152,9 @@ Both worklet hosts wire this by default
 ([worklet-core/src/miniapp-host.mjs](../packages/worklet-core/src/miniapp-host.mjs),
 [web-miniapp-host.mjs](../packages/worklet-core/src/web-miniapp-host.mjs)) through
 `createInstallationIdentityLoader`. On an unlinked host that loader resolves to the single
-host key in its _installation_ role; it is the one place to repoint when linked mode lands.
-Registering a live Destination under an app's announce aspects stays a separate concern; this
-is the identity that path must use.
+host key in its _installation_ role. Once a host calls `enable` on the linked-mode switch,
+this loader must return `identities().serving` so app-scoped identities follow the
+installation rather than the account. Shipping hosts have not made that call yet.
 
 This replaced a stub that returned `app:<appId>:<publisher-prefix>` as a destination hash and
 a `sign()` producing the literal text `signed:<payload>` — a forged signature reachable by any
@@ -175,10 +203,15 @@ other half of the guarantee in the table above — a grant given to an app on on
 no route to another. Both halves are pinned by tests.
 
 The roster predicate and the durable proposal store are injected, which is why the gate
-could ship before the roster (`ID-ROSTER`) and the journal (`ID-JOURNAL`). The roster now
-exists and is the intended `isKnownInstallation` implementation. The host chrome that
-renders held proposals, and the wiring that applies an `apply` verdict to the moderation
-and trust stores, are not built.
+could ship before the roster (`ID-ROSTER`) and the journal (`ID-JOURNAL`). Both now
+exist. `createSiblingDecisionChrome`
+([packages/host-core/src/sibling-decisions-wiring.ts](../packages/host-core/src/sibling-decisions-wiring.ts))
+turns an `apply` verdict into a write on `FileModerationStore` or `TrustStore`, persists
+held proposals in the host KV store, and shapes the prompt chrome renders ("Laptop blocked
+this sender — apply here?"). Grant and revoke are the same per-sibling, per-class controls
+the gate already had. Removing an installation from the local roster is not a global
+revocation; the chrome exposes that as `SIBLING_ROSTER_REMOVAL_NOTICE` rather than leaving
+it as a comment. Shipping hosts have not mounted this chrome yet.
 
 ## Naming: installation vs device
 

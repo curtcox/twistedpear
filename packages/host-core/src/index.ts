@@ -170,6 +170,20 @@ export {
   type SiblingRejectReason,
   type SiblingVerdict,
 } from "./sibling-decisions.js";
+export { createKeyValueSiblingProposalStore } from "./sibling-proposal-store.js";
+export {
+  SIBLING_ROSTER_REMOVAL_NOTICE,
+  applySiblingProposal,
+  createSiblingDecisionChrome,
+  decodeSiblingDecisionAction,
+  encodeSiblingDecisionAction,
+  siblingDecisionSummary,
+  type SiblingDecisionAction,
+  type SiblingDecisionChrome,
+  type SiblingHeldChromeItem,
+  type SiblingModerationAction,
+  type SiblingTrustAction,
+} from "./sibling-decisions-wiring.js";
 export {
   APP_SCOPED_IDENTITY_SALT,
   IDENTITY_UNAVAILABLE_CODE,
@@ -180,39 +194,7 @@ export {
   type AppScopedIdentityOptions,
   type IdentityReadinessOptions,
 } from "./app-scoped-identity.js";
-export {
-  LINKED_INSTALLATION_ANNOUNCE_ASPECT,
-  LINKED_INSTALLATION_APP_NAME,
-  LINKED_INSTALLATION_ID_BYTES,
-  LINKED_INSTALLATION_MAGIC,
-  LINKED_INSTALLATION_MAX_CERTIFICATE_BYTES,
-  LINKED_INSTALLATION_MAX_LABEL_BYTES,
-  createLinkedInstallation,
-  createLinkedInstallationId,
-  decodeLinkedInstallationCertificate,
-  deriveLinkedInstallationIdentity,
-  encodeLinkedInstallationCertificate,
-  linkedInstallationAnnounceAspects,
-  linkedInstallationAnnounceFilter,
-  signLinkedInstallationCertificate,
-  verifyLinkedInstallationCertificate,
-  type LinkedInstallationCertificate,
-} from "./linked-installation.js";
-export {
-  LINKED_ACCOUNT_BACKUP_WARNING,
-  createKeyValueLinkedInstallationRoster,
-  exportLinkedAccountBackup,
-  pairNewLinkedInstallation,
-  type LinkedAccountBackupExport,
-  type LinkedInstallationKeyValueStore,
-  type LinkedInstallationRoster,
-  type LinkedInstallationRosterEntry,
-} from "./linked-installation-roster.js";
-export {
-  createLinkedInstallationAnnounce,
-  type LinkedInstallationAnnounceOptions,
-  type LinkedInstallationAnnounceSession,
-} from "./linked-installation-announce.js";
+export * from "./linked-installation-api.js";
 export type {
   FetchPath,
   FetchPlane,

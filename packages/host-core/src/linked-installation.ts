@@ -42,7 +42,7 @@ export interface LinkedInstallationCertificate {
   readonly signature: string;
 }
 
-function concat(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
+export function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const out = new Uint8Array(
     parts.reduce((total, part) => total + part.length, 0),
   );
@@ -54,9 +54,9 @@ function concat(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   return out;
 }
 
-function encodeUint64(value: number): Uint8Array {
+export function encodeUint64(value: number): Uint8Array {
   if (!Number.isSafeInteger(value) || value < 0)
-    throw new Error("createdAt must be a non-negative safe integer");
+    throw new Error("value must be a non-negative safe integer");
   const out = new Uint8Array(8);
   let remaining = value;
   for (let index = 7; index >= 0; index -= 1) {
@@ -66,11 +66,11 @@ function encodeUint64(value: number): Uint8Array {
   return out;
 }
 
-function decodeUint64(bytes: Uint8Array): number {
+export function decodeUint64(bytes: Uint8Array): number {
   let value = 0;
   for (const byte of bytes) value = value * 256 + byte;
   if (!Number.isSafeInteger(value))
-    throw new Error("linked-installation timestamp is out of range");
+    throw new Error("uint64 timestamp is out of range");
   return value;
 }
 
@@ -103,7 +103,7 @@ function certificatePayload(
       `Installation label must be 1-${LINKED_INSTALLATION_MAX_LABEL_BYTES} UTF-8 bytes`,
     );
   }
-  return concat(
+  return concatBytes(
     LINKED_INSTALLATION_MAGIC,
     accountPublicKey,
     installationId,
@@ -114,12 +114,30 @@ function certificatePayload(
   );
 }
 
-function hexBytes(hex: string, length: number, name: string): Uint8Array {
+export function hexBytes(
+  hex: string,
+  length: number,
+  name: string,
+): Uint8Array {
   if (!new RegExp(`^[0-9a-f]{${length * 2}}$`, "i").test(hex))
     throw new Error(`Invalid ${name}`);
   return Uint8Array.from({ length }, (_, index) =>
     Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16),
   );
+}
+
+/**
+ * ASCII A–Z fold for hex identities. `toLowerCase()` is locale-sensitive:
+ * under a Turkish locale "I" becomes "ı", so an allowlist comparison can
+ * disagree with itself. Hex is ASCII, so this is the whole fold.
+ */
+export function asciiHexLower(value: string): string {
+  let folded = "";
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    folded += code >= 65 && code <= 90 ? String.fromCharCode(code + 32) : char;
+  }
+  return folded;
 }
 
 export function createLinkedInstallationId(provider: CryptoProvider): string {
@@ -216,7 +234,7 @@ export function verifyLinkedInstallationCertificate(
 export function encodeLinkedInstallationCertificate(
   certificate: LinkedInstallationCertificate,
 ): Uint8Array {
-  const bytes = concat(
+  const bytes = concatBytes(
     certificatePayload(certificate),
     hexBytes(certificate.signature, 64, "signature"),
   );

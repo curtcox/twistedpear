@@ -58,7 +58,7 @@ one-sided `counterpart:` all fail the build.
 | See the specification decomposition and per-spec conformance                    | [Specifications index](../specs/README.md)                                                             |
 | Look up a term used in the code, specs, or docs                                 | [Developer glossary](glossary.md)                                                                      |
 | Learn the platform interactively                                                | [Handbook mini-app](../apps/handbook/README.md)                                                        |
-| Check implemented and verified work                                             | [Completed-work evidence](../STATUS-COMPLETE.md) (index); [phase tables](../STATUS-COMPLETE-PHASES.md) |
+| Check implemented and verified work                                             | [Completed-work evidence](../STATUS-COMPLETE.md) (index); [early phases](complete-phases-early.md); [phase 2+ tables](../STATUS-COMPLETE-PHASES.md) |
 | Check remaining software work                                                   | [Software backlog](../STATUS-SOFTWARE.md)                                                              |
 | Check hardware- or account-gated work                                           | [Hardware status](../STATUS-HARDWARE.md)                                                               |
 | Check capability × host implementation / testing / validation                   | [Platform capabilities status](platform-capabilities-status.md)                                        |

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-16T21:03:46.547Z",
-  "commit": "8622cf186ad99fc40330de630cfc19030acbe364",
+  "generatedAt": "2026-08-17T20:20:55.004Z",
+  "commit": "889f08fdac3f11a960e89fe14100e2ae3abdf5d6",
   "counts": {
     "total": 11,
     "high": 1,
@@ -26,20 +26,20 @@
       "ask": "The log was edited or regenerated after QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT closed. Re-run the verification and close it again, or explain the edit."
     },
     {
-      "family": "gates",
-      "check": "unverified-record",
-      "severity": "medium",
-      "where": "checks.json",
-      "summary": "54 gate result(s) were measured at 788cde722641, not at HEAD",
-      "ask": "Re-run `npm run checks:status`, or import what CI already measured with `npm run checks:status:import`. A green recorded against another commit is not evidence about this one."
-    },
-    {
       "family": "closed",
       "check": "evidence-drift",
       "severity": "medium",
       "where": "apps/host-desktop/src/main/index.ts",
       "summary": "QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES closed 2026-08-07, but its evidence apps/host-desktop/src/main/index.ts changed on 2026-08-14",
       "ask": "Would `npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/no-floating-promises` still pass? Re-run it if apps/host-desktop/src/main/index.ts carries the behaviour QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "docs/linked-devices.md",
+      "summary": "ID-SIBLING-GATE closed 2026-08-10, but its evidence docs/linked-devices.md changed on 2026-08-17",
+      "ask": "Would `npx vitest run packages/host-core/test/sibling-decisions.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts` still pass? Re-run it if docs/linked-devices.md carries the behaviour ID-SIBLING-GATE claimed."
     },
     {
       "family": "closed",
@@ -62,7 +62,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "BUG-REACT-DOM-MISMATCH",
-      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 4 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
+      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 5 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
       "ask": "Did `npm run test:web-widget-renderer` actually exercise BUG-REACT-DOM-MISMATCH, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -70,7 +70,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "ID-APPSCOPE",
-      "summary": "ID-APPSCOPE (bug) closed 6 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
+      "summary": "ID-APPSCOPE (bug) closed 7 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
       "ask": "Did `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` actually exercise ID-APPSCOPE, or did it no-op? A check that cannot fail is not evidence."
     },
     {

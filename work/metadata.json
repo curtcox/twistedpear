@@ -350,6 +350,13 @@
       "requires": ["ID-ROSTER", "ID-SIBLING-GATE"],
       "verify": "npx vitest run packages/host-core/test/account-journal.test.ts",
       "added": "2026-08-10",
+      "completed": "2026-08-17",
+      "evidence": [
+        "packages/host-core/src/account-journal.ts",
+        "packages/host-core/src/account-journal-exchange.ts",
+        "packages/host-core/test/account-journal.test.ts",
+        "docs/linked-devices.md"
+      ],
       "notes": "Content-addressed records signed by the emitting installation certificate, deduplicated by record hash, bounded by the existing propagation and multipart limits. Records are proposals only; nothing applies itself. See docs/linked-devices-plan.md. Waits on ID-SIBLING-GATE so the record shape is dictated by the policy boundary rather than the transport."
     },
     "ID-LINKED-MODE": {
@@ -357,6 +364,12 @@
       "requires": ["ID-ROSTER"],
       "verify": "npx vitest run packages/host-core/test/linked-mode-switch.test.ts",
       "added": "2026-08-10",
+      "completed": "2026-08-17",
+      "evidence": [
+        "packages/host-core/src/linked-mode.ts",
+        "packages/host-core/test/linked-mode-switch.test.ts",
+        "docs/linked-devices.md"
+      ],
       "notes": "Enabling migrates host and app serving destinations to the installation identity while the account/publisher hash stays stable. Disabling is not offered. Importing a backup or recovery words must not silently enable linked mode. Also settle the user-facing name: the Devices panel already means peripherals. See docs/linked-devices-plan.md."
     },
     "ID-ROSTER": {
@@ -380,6 +393,13 @@
       "requires": ["ID-SIBLING-GATE", "ID-ROSTER"],
       "verify": "npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts",
       "added": "2026-08-10",
+      "completed": "2026-08-17",
+      "evidence": [
+        "packages/host-core/src/sibling-decisions-wiring.ts",
+        "packages/host-core/src/sibling-proposal-store.ts",
+        "packages/host-core/test/sibling-decisions-wiring.test.ts",
+        "docs/linked-devices.md"
+      ],
       "notes": "SiblingDecisionGate decides but applies nothing. Remaining: chrome rendering held proposals with grant and revoke controls, a durable SiblingProposalStore replacing createInMemorySiblingProposalStore, and the code turning an apply verdict into a write to FileModerationStore and TrustStore. Must state in the UI that removing an installation from the roster stops fan-out but does not revoke globally — offline installations learn of removal only when they next sync."
     },
     "ID-SIBLING-GATE": {

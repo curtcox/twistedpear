@@ -26,6 +26,41 @@ export function actionableWork(root = repoRoot(), options = {}) {
   return ranked(candidates);
 }
 
+/**
+ * @param {import("./lib.mjs").WorkItem[]} candidates
+ * @param {{ all?: boolean }} flags
+ */
+function printUnblocked(candidates, flags) {
+  if (candidates.length === 0) {
+    console.log("Nothing is unblocked right now.");
+    console.log(
+      "Run `npm run work:list` to see what everything is waiting on.",
+    );
+    return;
+  }
+  if (flags.all) {
+    console.log(`${candidates.length} item(s) unblocked, best first:\n`);
+    const width = idWidth(candidates);
+    for (const item of candidates) console.log(oneLine(item, width));
+    return;
+  }
+  const attention = nextAttention(candidates);
+  const pick = attention.then ?? attention.pick;
+  if (attention.start.length > 0) {
+    for (const line of startThen(attention.start, pick)) console.log(line);
+    console.log("");
+  }
+  if (pick) {
+    for (const line of detail(pick)) console.log(line);
+    console.log("");
+    const runnerUp = candidates.find((item) => item.id !== pick.id);
+    for (const line of explain(pick, runnerUp)) console.log(line);
+  }
+  console.log(
+    `\n${candidates.length - 1} other unblocked item(s): npm run work:unblocked`,
+  );
+}
+
 function main() {
   const flags = parseFlags(process.argv.slice(2));
   const all = flags.all === true;
@@ -41,32 +76,7 @@ function main() {
     return;
   }
 
-  if (candidates.length === 0) {
-    console.log("Nothing is unblocked right now.");
-    console.log(
-      "Run `npm run work:list` to see what everything is waiting on.",
-    );
-  } else if (all) {
-    console.log(`${candidates.length} item(s) unblocked, best first:\n`);
-    const width = idWidth(candidates);
-    for (const item of candidates) console.log(oneLine(item, width));
-  } else {
-    const attention = nextAttention(candidates);
-    const pick = attention.then ?? attention.pick;
-    if (attention.start.length > 0) {
-      for (const line of startThen(attention.start, pick)) console.log(line);
-      console.log("");
-    }
-    if (pick) {
-      for (const line of detail(pick)) console.log(line);
-      console.log("");
-      const runnerUp = candidates.find((item) => item.id !== pick.id);
-      for (const line of explain(pick, runnerUp)) console.log(line);
-    }
-    console.log(
-      `\n${candidates.length - 1} other unblocked item(s): npm run work:unblocked`,
-    );
-  }
+  printUnblocked(candidates, flags);
 
   // The audit has no scheduler behind it; this is the reminder that makes it
   // periodic, on the command every session already runs.

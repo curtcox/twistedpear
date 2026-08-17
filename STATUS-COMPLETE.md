@@ -61,6 +61,9 @@ Last audited: 2026-08-05.
 | LINT-RUFF-CONFIG                                    | done   | Make the lint:python gate actually read .config/ruff.toml                                                                                                                   | `scripts/languages/check.mjs`, `.config/ruff.toml`                                                                                                                                                                                                                                                                                                 | `npm run lint:python`                                                                                                                                                                                                                                                                                                                                                                |
 | ID-ROSTER                                           | done   | Installation roster, pairing, and linked-mode announce                                                                                                                      | `packages/host-core/src/linked-installation-roster.ts`, `packages/host-core/src/linked-installation-announce.ts`, `packages/host-core/src/linked-installation.ts`, `packages/host-core/src/identity-backup.ts`, `packages/host-core/test/linked-installation-roster.test.ts`, `docs/linked-devices.md`                                             | `npx vitest run packages/host-core/test/linked-installation-roster.test.ts`                                                                                                                                                                                                                                                                                                          |
 | WORK-UNATTENDED                                     | done   | Distinguish unattended work from hands-on work in work:next                                                                                                                 | `scripts/work/lib.mjs`, `scripts/work/next.mjs`, `scripts/work/render.mjs`, `conformance/doc-audit/work-ranking.test.mjs`, `docs/work-tracking.md`, `work/metadata.json`                                                                                                                                                                           | `npx vitest run conformance/doc-audit/work-ranking.test.mjs`                                                                                                                                                                                                                                                                                                                         |
+| ID-JOURNAL                                          | done   | Encrypted append-only account journal over certified installation destinations                                                                                              | `packages/host-core/src/account-journal.ts`, `packages/host-core/src/account-journal-exchange.ts`, `packages/host-core/test/account-journal.test.ts`, `docs/linked-devices.md`                                                                                                                                                                     | `npx vitest run packages/host-core/test/account-journal.test.ts`                                                                                                                                                                                                                                                                                                                     |
+| ID-LINKED-MODE                                      | done   | One-way linked-mode switch with both hashes shown before confirmation                                                                                                       | `packages/host-core/src/linked-mode.ts`, `packages/host-core/test/linked-mode-switch.test.ts`, `docs/linked-devices.md`                                                                                                                                                                                                                            | `npx vitest run packages/host-core/test/linked-mode-switch.test.ts`                                                                                                                                                                                                                                                                                                                  |
+| ID-SIBLING-CHROME                                   | done   | Chrome and store wiring for held sibling decisions                                                                                                                          | `packages/host-core/src/sibling-decisions-wiring.ts`, `packages/host-core/src/sibling-proposal-store.ts`, `packages/host-core/test/sibling-decisions-wiring.test.ts`, `docs/linked-devices.md`                                                                                                                                                     | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts`                                                                                                                                                                                                                                                                                                            |
 
 ---
 
@@ -79,113 +82,15 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 
 ---
 
-## Phase 0 — Feasibility spikes
+## Phase evidence
 
-| Item                                                 | Evidence                                                                                                         | Verify                                                        |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **S1** Bare worklet → Python RNS over TCP (headless) | `conformance/bare-device/run.mjs`, `apps/harness-mobile/worklet/`                                                | `npm run test:bare-device`                                    |
-| **S2** Packet capture / golden vectors               | `conformance/tools/packet-capture.ts`, `packages/reticulum-ts/test/capture-diff.test.ts`, `conformance/vectors/` | `npm test -- packages/reticulum-ts/test/capture-diff.test.ts` |
-| **S4** Hyperswarm on Bare                            | `conformance/bare-hyperswarm/run.mjs`                                                                            | `npm run test:bare-hyperswarm`                                |
-
----
-
-## Phase 1 — `reticulum-ts` + `lxmf-ts`
-
-### M0 — Scaffolding + conformance harness
-
-| Item                                         | Evidence                                            | Verify                                                           |
-| -------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------- |
-| Monorepo workspaces, strict TS, vitest, lint | `package.json`, `vitest.config.ts`, `tsconfig.json` | `npm run lint && npm test`                                       |
-| Docker reference images + compose topologies | `conformance/docker/`                               | `docker compose -f conformance/docker/docker-compose.yml config` |
-| Golden vector generator + committed vectors  | `conformance/vectors/`, `conformance/UPSTREAM.md`   | `npm test -- packages/reticulum-ts/test/golden-vectors.test.ts`  |
-| Capture-diff tool                            | `conformance/tools/packet-capture.ts`               | `npm test -- packages/reticulum-ts/test/capture-diff.test.ts`    |
-
-### M1 — Crypto core + identity
-
-| Item                                                    | Evidence                                            | Verify                                                          |
-| ------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------- |
-| `CryptoProvider` (node + pure)                          | `packages/reticulum-ts/src/crypto/`                 | `npm test -- packages/reticulum-ts/test/golden-vectors.test.ts` |
-| Identity keygen, sign/verify, encrypt/decrypt, ratchets | `packages/reticulum-ts/src/identity.ts`             | same                                                            |
-| Dual-provider cross-check (identical outputs)           | `packages/reticulum-ts/test/golden-vectors.test.ts` | `npm test`                                                      |
-
-### M2 — Wire format: packets, destinations, announces
-
-| Item                                                 | Evidence                                   | Verify                                                                                                  |
-| ---------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Packet encode/decode, all header types               | `packages/reticulum-ts/src/packet.ts`      | `packages/reticulum-ts/test/golden-vectors.test.ts`, `packages/reticulum-ts/test/negative-path.test.ts` |
-| Destination hashing (SINGLE/GROUP/PLAIN)             | `packages/reticulum-ts/src/destination.ts` | `packages/reticulum-ts/test/golden-vectors.test.ts`                                                     |
-| Announce construction, parsing, signature validation | `packages/reticulum-ts/src/announce.ts`    | `packages/reticulum-ts/test/golden-vectors.test.ts`, `packages/reticulum-ts/test/capture-diff.test.ts`  |
-| Bare smoke job (pure provider subset)                | `conformance/bare-smoke/run.mjs`           | `npm run test:bare-smoke` (CI: `bare-smoke`)                                                            |
-
-### M3 — Interfaces + live leaf node
-
-| Item                                                 | Evidence                                                                                | Verify                                           |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| TCPClient/TCPServer, UDP, Pipe interfaces            | `packages/reticulum-ts/src/interfaces/`                                                 | `packages/reticulum-ts/test/interfaces.test.ts`  |
-| `Reticulum` lifecycle, leaf routing                  | `packages/reticulum-ts/src/reticulum.ts`, `packages/reticulum-ts/src/transport/node.ts` | `packages/reticulum-ts/test/transport.test.ts`   |
-| TS ⇄ Python leaf over TCP (announce + data + proofs) | `packages/reticulum-ts/test/interop.test.ts`                                            | `INTEROP=1 npm run test:interop` (CI: `interop`) |
-| UDP loopback (unit + Bare)                           | `packages/reticulum-ts/test/transport.test.ts`, `conformance/bare-interop/tests.mjs`    | `npm run test:bare-interop`                      |
-
-### M4 — Links
-
-| Item                                     | Evidence                                                          | Verify                                    |
-| ---------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------- |
-| Link handshake, RTT, keepalive, teardown | `packages/reticulum-ts/src/link.ts`                               | `packages/reticulum-ts/test/link.test.ts` |
-| Channel + Buffer                         | `packages/reticulum-ts/src/channel.ts`                            | `packages/reticulum-ts/test/link.test.ts` |
-| TS ⇄ Python link over TCP                | `packages/reticulum-ts/test/interop.test.ts` (link-echo scenario) | `INTEROP=1 npm run test:interop`          |
-| Bare link interop                        | `conformance/bare-interop/tests.mjs`                              | `npm run test:bare-interop`               |
-
-### M5 — Resources
-
-| Item                                          | Evidence                                      | Verify                                                    |
-| --------------------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
-| Resource advertisement, segmentation, hashmap | `packages/reticulum-ts/src/resource.ts`       | `packages/reticulum-ts/test/resource.test.ts`             |
-| Pipe-peer transfer with integrity             | `packages/reticulum-ts/test/resource.test.ts` | `npm test -- packages/reticulum-ts/test/resource.test.ts` |
-
-### M6 — Transport-node routing
-
-| Item                                        | Evidence                                           | Verify                                                                                         |
-| ------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Transport mode, rebroadcast, path requests  | `packages/reticulum-ts/src/transport/transport.ts` | `packages/reticulum-ts/test/transport-node.test.ts`, `packages/reticulum-ts/test/rate.test.ts` |
-| Desktop host as route between Python leaves | `conformance/transport-role/run.mjs`               | `INTEROP=1 npm run test:transport-role` (CI: `desktop-interop`)                                |
-
-### M7 — LXMF client (`lxmf-ts`)
-
-| Item                                    | Evidence                                | Verify                                         |
-| --------------------------------------- | --------------------------------------- | ---------------------------------------------- |
-| LXMessage encode/decode/sign/verify     | `packages/lxmf-ts/src/message.ts`       | `packages/lxmf-ts/test/golden-vectors.test.ts` |
-| Opportunistic + direct delivery         | `packages/lxmf-ts/src/router.ts`        | `packages/lxmf-ts/test/router.test.ts`         |
-| Propagation-node client (sync API)      | `packages/lxmf-ts/src/propagation.ts`   | `packages/lxmf-ts/test/`                       |
-| TS ⇄ Python LXMF opportunistic over TCP | `packages/lxmf-ts/test/interop.test.ts` | `INTEROP=1 npm run test:interop`               |
-| Bare LXMF interop                       | `conformance/bare-interop/tests.mjs`    | `npm run test:bare-interop`                    |
-
-### M8 — Partial (software items done; see STATUS-SOFTWARE.md for soak/tag gaps)
-
-| Item                                                                       | Evidence                                                                                            | Verify                                                         |
-| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Negative-path conformance (malformed input)                                | `packages/reticulum-ts/test/negative-path.test.ts`                                                  | `npm test -- packages/reticulum-ts/test/negative-path.test.ts` |
-| Structure-aware fuzz (packet/announce + LXMF msgpack + resource/link wire) | `packages/reticulum-ts/test/fuzz.test.ts`, `packages/lxmf-ts/test/fuzz.test.ts`                     | `npm run test:fuzz` (CI: `fuzz`)                               |
-| Generated API docs (typedoc)                                               | `packages/reticulum-ts/typedoc.json`                                                                | `npm run docs:reticulum-ts` (CI: `docs`)                       |
-| Weekly upstream interop (unpinned RNS/LXMF)                                | `.github/workflows/nightly.yml` `upstream-interop`                                                  | Nightly job                                                    |
-| Crypto benchmarks recorded                                                 | `conformance/bare-runtime/baseline-node.json`, `conformance/bare-runtime/record-benchmark.mjs`      | `npm run test:bare-benchmark-compare`                          |
-| TS ⇄ Python over **UDP**                                                   | `conformance/scenarios/python/udp_echo.py`, `packages/reticulum-ts/test/interop.test.ts`            | `INTEROP=1 npm run test:interop`                               |
-| Resource transfer TS ⇄ Python (scaled)                                     | `conformance/scenarios/python/resource_echo.py`, `packages/reticulum-ts/test/interop.test.ts`       | `INTEROP=1 npm run test:interop` (`RESOURCE_INTEROP_SIZES`)    |
-| Resource transfer **resume after TCP flap**                                | `packages/reticulum-ts/test/interop.test.ts`, `conformance/scenarios/ts/harness.mjs` `composePause` | `INTEROP=1 npm run test:interop`                               |
-| Resource **100 MB** interop (nightly)                                      | `.github/workflows/nightly.yml` `resource-interop-100mb`                                            | Nightly job                                                    |
-| Link keepalive soak (CI tier)                                              | `conformance/link-soak/run.mjs`                                                                     | `INTEROP=1 npm run test:link-soak` (nightly `link-soak`)       |
-| Transport-node soak (CI tier)                                              | `conformance/transport-node-soak/run.mjs`                                                           | `INTEROP=1 npm run test:transport-node-soak` (nightly)         |
-| LXMF propagation via **lxmd** docker                                       | `conformance/scenarios/python/propagation_lxmd.py`, `conformance/propagation-interop/run.mjs`       | `INTEROP=1 npm run test:propagation-interop`                   |
-
----
-
----
-
-## Phase evidence (Phase 2 onward)
-
-Detailed tables for Phase 2 (interface layer) through Phase 6 (desktop host), web host, handbook, packages inventory, and cross-cutting software live in [STATUS-COMPLETE-PHASES.md](STATUS-COMPLETE-PHASES.md).
+Detailed tables live beside this index so the register `work:done` writes stays
+inside the file-size budget.
 
 | Section                          | Document                                                                                                                                           |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 — Feasibility spikes     | [docs/complete-phases-early.md#phase-0--feasibility-spikes](docs/complete-phases-early.md#phase-0--feasibility-spikes)                             |
+| Phase 1 — `reticulum-ts` + LXMF  | [docs/complete-phases-early.md#phase-1--reticulum-ts--lxmf-ts](docs/complete-phases-early.md#phase-1--reticulum-ts--lxmf-ts)                       |
 | Phase 2 — Interface layer        | [STATUS-COMPLETE-PHASES.md#phase-2--interface-layer](STATUS-COMPLETE-PHASES.md#phase-2--interface-layer)                                           |
 | Phase 3 — Distribution system    | [STATUS-COMPLETE-PHASES.md#phase-3--distribution-system](STATUS-COMPLETE-PHASES.md#phase-3--distribution-system)                                   |
 | Phase 4 — Mini-app runtime & SDK | [STATUS-COMPLETE-PHASES.md#phase-4--mini-app-runtime--sdk](STATUS-COMPLETE-PHASES.md#phase-4--mini-app-runtime--sdk)                               |

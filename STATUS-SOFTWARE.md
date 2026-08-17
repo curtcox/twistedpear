@@ -50,12 +50,9 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID                 | Status | Item                                                                           | Evidence | Verify                                                                    |
-| ------------------ | ------ | ------------------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------- |
-| ID-JOURNAL         | open   | Encrypted append-only account journal over certified installation destinations | —        | `npx vitest run packages/host-core/test/account-journal.test.ts`          |
-| ID-LINKED-MODE     | open   | One-way linked-mode switch with both hashes shown before confirmation          | —        | `npx vitest run packages/host-core/test/linked-mode-switch.test.ts`       |
-| ID-SIBLING-CHROME  | open   | Chrome and store wiring for held sibling decisions                             | —        | `npx vitest run packages/host-core/test/sibling-decisions-wiring.test.ts` |
-| MINIAPP-CONCURRENT | open   | Run several mini-apps at once inside one running host                          | —        | `npx vitest run packages/miniapp-runtime/test/concurrent-apps.test.ts`    |
+| ID                 | Status | Item                                                  | Evidence | Verify                                                                 |
+| ------------------ | ------ | ----------------------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| MINIAPP-CONCURRENT | open   | Run several mini-apps at once inside one running host | —        | `npx vitest run packages/miniapp-runtime/test/concurrent-apps.test.ts` |
 
 ## Optional and non-blocking backlog
 
