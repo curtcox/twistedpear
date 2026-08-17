@@ -1,5 +1,6 @@
 import { prepareBundleSource } from "./prepare-bundle.js";
 import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
+import { SandboxPing } from "./ping.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -52,6 +53,7 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
       string,
       { resolve: (value: unknown) => void; reject: (error: Error) => void }
     >();
+    const pings = new SandboxPing();
     let killed = false;
     let alive = true;
 
@@ -77,25 +79,11 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
           return Promise.resolve(false);
         }
 
-        return new Promise((resolve) => {
-          const id = `ping-${Date.now()}`;
-          const timer = setTimeout(() => {
-            pending.delete(id);
-            resolve(false);
-          }, timeoutMs);
-
-          pending.set(id, {
-            resolve: () => {
-              clearTimeout(timer);
-              resolve(true);
-            },
-            reject: () => {
-              clearTimeout(timer);
-              resolve(false);
-            },
-          });
-          worker.postMessage({ type: "ping", id });
-        });
+        return pings.request(
+          (message) => worker.postMessage(message),
+          pending,
+          timeoutMs,
+        );
       },
       kill(reason: string): Promise<void> {
         if (killed) {
@@ -104,6 +92,7 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
 
         killed = true;
         alive = false;
+        pings.dispose();
         worker.postMessage({ type: "kill", reason });
         worker.terminate();
         return Promise.resolve();

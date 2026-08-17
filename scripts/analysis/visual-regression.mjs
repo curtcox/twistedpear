@@ -25,6 +25,14 @@ export function changedImages(before, after) {
   );
 }
 
+/** Persist the just-captured pixels so a CI runner's PNGs can be reviewed. */
+export function writeCaptureArtifacts(generated, destinationDir) {
+  fs.mkdirSync(destinationDir, { recursive: true });
+  for (const [file, bytes] of generated) {
+    fs.writeFileSync(path.join(destinationDir, path.basename(file)), bytes);
+  }
+}
+
 function main() {
   const original = new Map(
     VISUAL_BASELINES.map((file) => [
@@ -62,6 +70,12 @@ function main() {
   }
 
   const changed = generated === null ? [] : changedImages(original, generated);
+  if (generated !== null) {
+    writeCaptureArtifacts(
+      generated,
+      path.join(ROOT, "artifacts/visual-regression/captures"),
+    );
+  }
   const ok = !commandFailed && (write || changed.length === 0);
   const artifact = path.join(ROOT, "artifacts/visual-regression.json");
   fs.mkdirSync(path.dirname(artifact), { recursive: true });

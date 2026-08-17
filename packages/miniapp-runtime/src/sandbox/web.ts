@@ -2,6 +2,7 @@ import { prepareBundleSource } from "./prepare-bundle.js";
 import { createBrowserWorkerBootstrapSource } from "./browser-worker-bootstrap.js";
 import { reviveJsonWireValue } from "./json-wire.js";
 import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
+import { SandboxPing } from "./ping.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -169,6 +170,7 @@ export class WebSandboxBackend implements SandboxBackend {
       hostPort,
       iframe,
       pending,
+      pings: new SandboxPing(),
       handleHostPortMessage,
       isKilled: () => killed,
       isAlive: () => alive && !killed,
@@ -249,6 +251,7 @@ function createSandboxInstance(input: {
     string,
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
   >;
+  pings: SandboxPing;
   handleHostPortMessage: (event: MessageEvent) => void;
   isKilled: () => boolean;
   isAlive: () => boolean;
@@ -259,6 +262,7 @@ function createSandboxInstance(input: {
     hostPort,
     iframe,
     pending,
+    pings,
     handleHostPortMessage,
     isKilled,
     isAlive,
@@ -278,30 +282,18 @@ function createSandboxInstance(input: {
       if (isKilled()) {
         return Promise.resolve(false);
       }
-      return new Promise((resolve) => {
-        const id = `ping-${Date.now()}`;
-        const timer = setTimeout(() => {
-          pending.delete(id);
-          resolve(false);
-        }, timeoutMs);
-        pending.set(id, {
-          resolve: () => {
-            clearTimeout(timer);
-            resolve(true);
-          },
-          reject: () => {
-            clearTimeout(timer);
-            resolve(false);
-          },
-        });
-        hostPort.postMessage({ type: "ping", id });
-      });
+      return pings.request(
+        (message) => hostPort.postMessage(message),
+        pending,
+        timeoutMs,
+      );
     },
     kill(reason: string): Promise<void> {
       if (isKilled()) {
         return Promise.resolve();
       }
       markKilled();
+      pings.dispose();
       hostPort.postMessage({ type: "kill", reason });
       hostPort.removeEventListener("message", handleHostPortMessage);
       hostPort.close();

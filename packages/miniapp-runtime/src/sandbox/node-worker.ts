@@ -1,6 +1,7 @@
 import { Worker } from "node:worker_threads";
 import { prepareBundleSource } from "./prepare-bundle.js";
 import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
+import { SandboxPing } from "./ping.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -117,11 +118,13 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
       string,
       { resolve: (value: unknown) => void; reject: (error: Error) => void }
     >();
+    const pings = new SandboxPing();
     let killed = false;
     let alive = true;
 
     worker.on("exit", () => {
       alive = false;
+      pings.dispose();
     });
     worker.on("message", (message: BrokerWireMessage) => {
       handleNodeWorkerMessage(worker, options, pending, message);
@@ -129,6 +132,7 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
 
     worker.on("error", (error: Error) => {
       alive = false;
+      pings.dispose();
       for (const [, waiter] of pending) {
         waiter.reject(error);
       }
@@ -153,25 +157,11 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
           return Promise.resolve(false);
         }
 
-        return new Promise((resolve) => {
-          const id = `ping-${Date.now()}`;
-          const timer = setTimeout(() => {
-            pending.delete(id);
-            resolve(false);
-          }, timeoutMs);
-
-          pending.set(id, {
-            resolve: () => {
-              clearTimeout(timer);
-              resolve(true);
-            },
-            reject: () => {
-              clearTimeout(timer);
-              resolve(false);
-            },
-          });
-          worker.postMessage({ type: "ping", id });
-        });
+        return pings.request(
+          (message) => worker.postMessage(message),
+          pending,
+          timeoutMs,
+        );
       },
       async kill(reason: string): Promise<void> {
         if (killed) {
@@ -180,6 +170,7 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
 
         killed = true;
         alive = false;
+        pings.dispose();
         worker.postMessage({ type: "kill", reason });
         await worker.terminate();
       },

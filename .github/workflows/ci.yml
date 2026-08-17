@@ -173,6 +173,7 @@ jobs:
             artifacts/web-examples/web-examples-firefox.json
             artifacts/web-examples/web-examples-webkit.json
             artifacts/visual-regression.json
+            artifacts/visual-regression
             artifacts/accessibility/accessibility.json
             artifacts/differential-fuzz/differential-fuzz.json
             reports/jscpd.json

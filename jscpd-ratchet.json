@@ -262,7 +262,6 @@
     "packages/miniapp-runtime/src/device-manager/layer-2-base.ts <-> packages/miniapp-runtime/src/device-manager/layer-3.ts",
     "packages/miniapp-runtime/src/device-manager/shared.ts <-> packages/miniapp-sdk/src/device.ts",
     "packages/miniapp-runtime/src/media-stream-peer-route.ts <-> packages/miniapp-runtime/src/media-stream-peer-route.ts",
-    "packages/miniapp-runtime/src/sandbox/node-worker.ts <-> packages/miniapp-runtime/src/sandbox/web.ts",
     "packages/miniapp-runtime/src/sandbox/node-worker.ts <-> packages/miniapp-runtime/src/sandbox/worker.ts",
     "packages/miniapp-runtime/src/services/ai-openrouter.ts <-> packages/miniapp-runtime/src/services/ai-openrouter.ts",
     "packages/miniapp-runtime/src/services/ai.ts <-> packages/miniapp-sdk/src/ai.ts",

@@ -1,7 +1,11 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   changedImages,
   VISUAL_BASELINES,
+  writeCaptureArtifacts,
 } from "../../scripts/analysis/visual-regression.mjs";
 
 describe("visual regression", () => {
@@ -26,5 +30,22 @@ describe("visual regression", () => {
         new Map([["screen", Buffer.from("after")]]),
       ),
     ).toEqual(["screen"]);
+  });
+
+  it("writes captured pixels under the basename so CI can upload them", () => {
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "twistedpear-visual-captures-"),
+    );
+    try {
+      writeCaptureArtifacts(
+        new Map([["guide/images/06-grants.png", Buffer.from("pixels")]]),
+        directory,
+      );
+      expect(
+        fs.readFileSync(path.join(directory, "06-grants.png"), "utf8"),
+      ).toBe("pixels");
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 });

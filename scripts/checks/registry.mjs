@@ -337,7 +337,7 @@ export const gates = [
     "visual:check",
     "pr",
     ["node", "chromium"],
-    ["artifacts/visual-regression.json"],
+    ["artifacts/visual-regression.json", "artifacts/visual-regression"],
     "generic",
     "macos-15",
   ),
