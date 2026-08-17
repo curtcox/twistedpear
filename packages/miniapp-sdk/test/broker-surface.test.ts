@@ -333,6 +333,48 @@ const cases: ReadonlyArray<SurfaceCase> = [
     method: "stopPreview",
     capability: "apps:preview",
   },
+  {
+    label: "apps.channel.open",
+    call: () => apps.channel.open({ appId: "notes" }),
+    namespace: "apps.channel",
+    method: "open",
+    capability: "apps:channel",
+    payload: { appId: "notes" },
+  },
+  {
+    label: "apps.channel.send",
+    call: () => apps.channel.send({ appId: "notes" }, "hi"),
+    namespace: "apps.channel",
+    method: "send",
+    capability: "apps:channel",
+    payload: { appId: "notes", payload: "hi" },
+  },
+  {
+    label: "apps.channel.receive",
+    call: () => apps.channel.receive(),
+    namespace: "apps.channel",
+    method: "receive",
+    capability: "apps:channel",
+    result: [],
+    expected: [],
+  },
+  {
+    label: "apps.channel.close",
+    call: () => apps.channel.close({ appId: "notes" }),
+    namespace: "apps.channel",
+    method: "close",
+    capability: "apps:channel",
+    payload: { appId: "notes" },
+  },
+  {
+    label: "apps.channel.peers",
+    call: () => apps.channel.peers(),
+    namespace: "apps.channel",
+    method: "peers",
+    capability: "apps:channel",
+    result: [],
+    expected: [],
+  },
 ];
 
 describe("broker surface", () => {

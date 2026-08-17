@@ -32,6 +32,7 @@ grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in th
 | `apps:publish`              | Publish signed apps so other users can find and install them (asks each time).         |
 | `apps:install`              | Ask the host to install apps from a 256t id (asks each time, with capability review).  |
 | `apps:preview`              | Run a built app in the host's sandboxed dev-preview slot.                              |
+| `apps:channel`              | Send and receive messages with another running mini-app named when you grant this.     |
 | `share:cas`                 | Store and retrieve bounded content-addressed data shared by 256t id.                   |
 | `peer:connect`              | Ask trusted host chrome to find, confirm, and connect an app-scoped peer.              |
 | `link:observe`              | Read app-scoped peer link quality and two-sided media readiness.                       |
@@ -45,11 +46,14 @@ Unknown capability strings block install. Adding a capability bumps `HOST_API_VE
 `workspace.patch()` and delta editor events require `0.7.0`.
 The `peers` namespace and `peer:connect` require host API `0.8.0`.
 The `links` namespace and realtime-media extensions require host API `0.12.0`.
+`apps:channel` requires host API `0.13.0`.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
-publish, install, and preview call raises a host-chrome confirmation dialog the
+publish, install, preview, and channel-open call raises a host-chrome confirmation dialog the
 mini-app cannot draw over or acknowledge (see
 [miniapp-runtime.md](miniapp-runtime.md) — Host confirmations).
+`apps:channel` names the destination app on that confirmation; both apps must grant
+the pair before messages copy through the broker.
 
 ## Namespaces
 
@@ -91,6 +95,13 @@ mini-app cannot draw over or acknowledge (see
 - `apps.preview(projectPrefix, manifest, grants)` / `apps.stopPreview()` — run
   the project in the host's sandboxed dev-preview slot (user confirmation;
   grants must be a subset of the manifest's declared capabilities).
+- `apps.channel.open({ appId, publisherPublicKey? })` — confirm a brokered
+  channel to a running mini-app named in host chrome. Both apps must grant the
+  pair. Shared storage is not included.
+- `apps.channel.send({ appId, publisherPublicKey? }, payload)` /
+  `apps.channel.receive()` / `apps.channel.close({ appId })` /
+  `apps.channel.peers()` — copy a UTF-8 payload (16 KiB cap) through the host
+  after both sides have granted; `receive` drains the caller's inbox.
 - `share.put(content)` / `share.get(t256)` — bounded content-addressed sharing.
 - `peers.request(options)` / `peers.listen(options)` — ask trusted host chrome to pair an
   app-scoped service. The host chooses from `mechanisms` (or `"any"`), handles permissions,
@@ -211,6 +222,7 @@ Run the CI exercises: `npm run test:examples`, `npm run test:handbook`, and
 
 - **React binding:** custom reconciler emitting the same widget-tree protocol (stretch; non-blocking).
 - **Hyperbee replication:** cross-device sync topics; v1 is local-only.
-- **Mini-app IPC:** shared storage and app-to-app messaging are intentionally deferred.
+- **Shared mini-app storage:** a channel copies messages through the broker;
+  apps still do not share a store.
 - **Transport-backed mini-app announces:** connect the broker's announce service to host
   Reticulum destinations/handlers; the current default is process-local.

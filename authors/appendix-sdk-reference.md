@@ -118,11 +118,16 @@ host-side. `ai.chatStream` requires host API `0.5.0`.
 | `apps.install(t256)`                            | `apps:install` | Yes, plus a capability review |                               |
 | `apps.preview(projectPrefix, manifest, grants)` | `apps:preview` | Yes, every call               |                               |
 | `apps.stopPreview()`                            | `apps:preview` |                               |                               |
+| `apps.channel.open({ appId, publisherPublicKey? })` | `apps:channel` | Yes, names the destination | `{ destination }` |
+| `apps.channel.send(destination, payload)`       | `apps:channel` |                               | `{ id }`                      |
+| `apps.channel.receive()`                        | `apps:channel` |                               | messages                      |
+| `apps.channel.close(destination)`               | `apps:channel` |                               |                               |
+| `apps.channel.peers()`                          | `apps:channel` |                               | running mutual grants         |
 
 "Confirmed" means a host-chrome dialog your app cannot draw over or acknowledge, auto-denied
 after 60 seconds. `grants` must be a subset of the project's declared capabilities.
 
-Requires host API `0.2.0`.
+Requires host API `0.2.0`. `apps.channel` requires host API `0.13.0`.
 
 ## share
 
@@ -143,7 +148,7 @@ components, props, or styles reject the whole tree.
 
 `identity`, `presence`, `announce:subscribe`, `announce:publish`, `lxmf:send`, `lxmf:receive`,
 `storage:kv`, `storage:hyperbee`, `resource:fetch`, `workspace`, `ai:chat`, `apps:package`,
-`apps:publish`, `apps:install`, `apps:preview`, `share:cas`.
+`apps:publish`, `apps:install`, `apps:preview`, `apps:channel`, `share:cas`.
 
 An unknown string blocks install.
 

@@ -17,6 +17,7 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
   protected registerServicesHandlers(): void {
     this.registerAiHandlers();
     this.registerAppsShareHandlers();
+    this.registerAppChannelHandlers();
     this.registerPeersLinksHandlers();
   }
 
@@ -237,6 +238,49 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
           content: bytes === null ? null : new TextDecoder().decode(bytes),
         };
       },
+    );
+  }
+
+  private registerAppChannelHandlers(): void {
+    const caller = (context: {
+      appId: string;
+      publisherPublicKey: string;
+    }) => ({
+      appId: context.appId,
+      publisherPublicKey: context.publisherPublicKey,
+    });
+    this.broker.register(
+      "apps.channel",
+      "open",
+      "apps:channel",
+      (request, context) =>
+        this.channelService.open(caller(context), request.payload),
+    );
+    this.broker.register(
+      "apps.channel",
+      "send",
+      "apps:channel",
+      (request, context) =>
+        this.channelService.send(caller(context), request.payload),
+    );
+    this.broker.register(
+      "apps.channel",
+      "receive",
+      "apps:channel",
+      (_request, context) => this.channelService.receive(caller(context)),
+    );
+    this.broker.register(
+      "apps.channel",
+      "close",
+      "apps:channel",
+      (request, context) =>
+        this.channelService.close(caller(context), request.payload),
+    );
+    this.broker.register(
+      "apps.channel",
+      "peers",
+      "apps:channel",
+      (_request, context) => this.channelService.peers(caller(context)),
     );
   }
 

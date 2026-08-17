@@ -17,14 +17,15 @@ host process, not the mini-apps inside it. Every candidate below is an attempt t
 mini-app paying for a restriction that was never placed on it.
 
 Concurrent mini-apps have shipped (`MINIAPP-CONCURRENT`): `MiniappHost` holds a per-app
-instance map, broker traffic and budgets are per app, and each shell has a switcher. The
-remaining rows are what that recovery makes worth attempting.
+instance map, broker traffic and budgets are per app, and each shell has a switcher. A
+brokered app-to-app channel has shipped (`MINIAPP-APP-TO-APP`): both sides grant a
+destination-named `apps:channel`, and payloads copy through the host. Shared storage is
+still withheld. The remaining rows are what those recoveries make worth attempting.
 
 ## Sequencing
 
 1. `MLC-LIFECYCLE-EVENTS` — tell an app what the host already knows.
-2. `MLC-APP-TO-APP` — a brokered channel between two running apps (`MINIAPP-APP-TO-APP`).
-3. `MLC-BACKGROUND-ANDROID` and `MLC-SCHEDULED-WAKE` — budgeted execution when the user is
+2. `MLC-BACKGROUND-ANDROID` and `MLC-SCHEDULED-WAKE` — budgeted execution when the user is
    elsewhere. Last, because both are rationing problems before they are API problems.
 
 ## Candidate 1 — lifecycle events for mini-apps
@@ -40,14 +41,7 @@ budget, and an app that overruns it must be killed rather than delaying the host
 quiesce. That argues for a strictly bounded synchronous checkpoint — a "write this blob
 now" call — rather than a general `onSuspend` in which arbitrary app code runs.
 
-## Candidate 2 — a channel between two running apps (`MINIAPP-APP-TO-APP`)
-
-Two apps can now run at once. The remaining work is a brokered channel, separately granted
-on both sides, with the destination app named on the grant screen. Shared storage is the
-harder half and probably should not follow — a channel keeps each app's data its own,
-while a shared store makes one app's compromise the other's.
-
-## Candidates 3 and 4 — background and scheduled execution
+## Candidates 2 and 3 — background and scheduled execution
 
 Android already runs a foreground service for mesh participation; nothing prevents mini-app
 execution inside it. iOS wake budgets (`fetch`, `processing`) already exist and are spent on

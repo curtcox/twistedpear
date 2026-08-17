@@ -29,6 +29,7 @@ export const CONFIRM_KIND_TITLES: Readonly<Record<ConfirmationKind, string>> = {
   "device-share-revoke": "Stop sharing this device?",
   "link-probe": "Measure this peer link?",
   "freenet-update": "Publish an irreversible Freenet contract update?",
+  "app-channel": "Allow messages to another mini-app?",
 };
 
 export function Row({

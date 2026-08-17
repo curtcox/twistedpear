@@ -34,6 +34,7 @@ export type MiniappCapability =
   | "apps:publish"
   | "apps:install"
   | "apps:preview"
+  | "apps:channel"
   | "share:cas"
   | "peer:connect"
   | "link:observe"
@@ -112,6 +113,11 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   {
     id: "apps:preview",
     description: "Run a built app in the host's sandboxed dev-preview slot.",
+  },
+  {
+    id: "apps:channel",
+    description:
+      "Send and receive messages with another running mini-app named when you grant this.",
   },
   {
     id: "share:cas",

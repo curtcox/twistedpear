@@ -201,6 +201,11 @@ export async function generateReferenceChapters() {
           "Run a built app in the host's sandboxed dev-preview slot.",
       },
       {
+        id: "apps:channel",
+        description:
+          "Send and receive messages with another running mini-app named when you grant this.",
+      },
+      {
         id: "share:cas",
         description:
           "Store and retrieve bounded content-addressed data shared by 256t id.",

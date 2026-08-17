@@ -16,3 +16,4 @@ export { PeerBrokerService } from "./peers.js";
 export { RelayBrokerService } from "./relay.js";
 export { FreenetBrokerService } from "./freenet.js";
 export { DeviceBrokerService } from "./device.js";
+export { AppChannelService } from "./app-channel.js";

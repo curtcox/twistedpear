@@ -291,6 +291,7 @@ export function handleWorkletMessage(scope, message) {
       "device-share-offer": "Share a device with this peer?",
       "device-share-revoke": "Stop sharing this device?",
       "link-probe": "Measure this peer link?",
+      "app-channel": "Allow messages to another mini-app?",
     };
     showHostModal({
       title: kindTitles[message.kind] ?? `Confirm ${message.kind}?`,

@@ -87,12 +87,12 @@ running host may hold. Several limits that read like design rules are really unf
 implementation, and the platform tracks them with revisit triggers that fail the build if
 they lapse. Do not design as though these were settled:
 
-- **No app-to-app communication.** Two apps can run at once; a brokered channel between
-  them is the next recovery (`MINIAPP-APP-TO-APP`).
 - **No suspend/resume events for your app.** The host observes both transitions today and
   simply does not forward them.
 - **No background execution on Android.** The host already runs a foreground service; what
   is missing is a decision about battery budgets, not a platform capability.
+- **No shared storage between mini-apps.** A brokered `apps:channel` copies messages after
+  both sides grant the named destination; a shared store is still withheld.
 
 The full ledger, with the cause of each row and what would lift it, is
 [docs/mobile-lifecycle.md](../docs/mobile-lifecycle.md).

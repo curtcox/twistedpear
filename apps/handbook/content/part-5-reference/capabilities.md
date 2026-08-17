@@ -26,6 +26,7 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`apps:publish`** — Publish signed apps so other users can find and install them (asks each time).
 - **`apps:install`** — Ask the host to install apps from a 256t id (asks each time, with capability review).
 - **`apps:preview`** — Run a built app in the host's sandboxed dev-preview slot.
+- **`apps:channel`** — Send and receive messages with another running mini-app named when you grant this.
 - **`share:cas`** — Store and retrieve bounded content-addressed data shared by 256t id.
 - **`peer:connect`** — Ask trusted host chrome to find, confirm, and connect an app-scoped peer.
 - **`link:observe`** — See which peers are reachable and how good the connection to each is.

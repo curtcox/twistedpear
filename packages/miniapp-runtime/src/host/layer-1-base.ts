@@ -14,6 +14,8 @@ import { RelayBrokerService } from "../services/relay.js";
 import { FreenetBrokerService } from "../services/freenet.js";
 import { DeviceBrokerService } from "../services/device.js";
 import { InboundMediaRouter } from "../media-stream.js";
+import { AppChannelService } from "../services/app-channel.js";
+import type { AppChannelResolveResult } from "../services/app-channel.js";
 import type { GrantRecord } from "../capabilities.js";
 import type { ConfirmationRequest } from "../confirm.js";
 import { AiServiceError } from "../services/ai.js";
@@ -54,6 +56,7 @@ export abstract class MiniappHostLayer1Base {
   protected readonly freenetService: FreenetBrokerService | null;
   protected readonly deviceService: DeviceBrokerService | null;
   protected readonly inboundMedia: InboundMediaRouter | null;
+  protected readonly channelService: AppChannelService;
   readonly workspace: WorkspaceService;
 
   protected readonly apps = new Map<string, ActiveApp>();
@@ -64,14 +67,12 @@ export abstract class MiniappHostLayer1Base {
   protected nextRuntimeId = 0;
 
   constructor(protected readonly options: MiniappHostOptions) {
+    const wrapped = this.withForegroundConfirmations(options);
     this.broker = createHostBroker(options, {
       now: () => this.now(),
       logActive: (appId, line) => this.logActive(appId, line),
     });
-    const services = createHostLayer1Services(
-      this.withForegroundConfirmations(options),
-      () => this.now(),
-    );
+    const services = createHostLayer1Services(wrapped, () => this.now());
     this.identityService = services.identityService;
     this.lxmfService = services.lxmfService;
     this.announceService = services.announceService;
@@ -87,6 +88,14 @@ export abstract class MiniappHostLayer1Base {
     this.deviceService = services.deviceService;
     this.inboundMedia = services.inboundMedia;
     this.workspace = services.workspace;
+    this.channelService = new AppChannelService(
+      {
+        resolvePeer: (appId, publisherPublicKey) =>
+          this.resolveChannelPeer(appId, publisherPublicKey),
+        now: () => this.now(),
+      },
+      wrapped.confirmationChannel,
+    );
     this.registerHandlers();
   }
 
@@ -119,6 +128,28 @@ export abstract class MiniappHostLayer1Base {
 
   protected appById(appId: string): ActiveApp | undefined {
     return findAppById(this.apps, appId);
+  }
+
+  protected resolveChannelPeer(
+    appId: string,
+    publisherPublicKey?: string,
+  ): AppChannelResolveResult {
+    if (publisherPublicKey !== undefined) {
+      const app = this.appByIdentity(appId, publisherPublicKey);
+      return app === undefined ? null : { appId, publisherPublicKey };
+    }
+    const matches: Array<{ appId: string; publisherPublicKey: string }> = [];
+    for (const app of this.apps.values()) {
+      if (app.manifest.name === appId) {
+        matches.push({
+          appId,
+          publisherPublicKey: app.manifest.publisherPublicKey,
+        });
+      }
+    }
+    if (matches.length === 0) return null;
+    if (matches.length > 1) return "ambiguous";
+    return matches[0] ?? null;
   }
 
   protected assertForeground(appId: string, publisherPublicKey: string): void {
@@ -163,6 +194,9 @@ export abstract class MiniappHostLayer1Base {
     if (capability === "peer:connect") {
       await this.closePeerRuntimeIfActive(appId, publisherPublicKey);
     }
+    if (capability === "apps:channel") {
+      this.channelService.dropApp({ appId, publisherPublicKey });
+    }
     if (capability.startsWith("device:")) {
       await this.closeDeviceSurfacesIfActive(appId);
     }
@@ -202,6 +236,7 @@ export abstract class MiniappHostLayer1Base {
   }
 
   async deleteGrants(appId: string, publisherPublicKey: string): Promise<void> {
+    this.channelService.dropApp({ appId, publisherPublicKey });
     await this.options.grantStore.delete(appId, publisherPublicKey);
   }
 

@@ -7,7 +7,7 @@ register: none
 -->
 
 Phase 4 introduces a host-rendered, brokered mini-app runtime. The current host API
-anchor is `HOST_API_VERSION = 0.12.0`; package `minHostApi` checks and capability
+anchor is `HOST_API_VERSION = 0.13.0`; package `minHostApi` checks and capability
 validation use that value.
 
 ## Isolation ADR
@@ -72,6 +72,9 @@ Host API `0.12.0` adds app-scoped link observation and budgeted probes, outbound
 share-policy visibility, inbound media routing to host-rendered sinks, and the separate
 raw-inbound gate. The sandbox receives opaque handles and coarse quality/readiness data;
 transport credentials and media plane objects remain host-owned.
+Host API `0.13.0` adds `apps:channel`: a brokered, destination-named channel between two
+running mini-apps. Opening it raises a host confirmation that names the other app; both
+sides must grant the pair. Payloads copy through the host. Shared storage is not included.
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are

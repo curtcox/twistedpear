@@ -34,7 +34,8 @@ Out of scope: host OS hardening, Electron renderer XSS, package signature crypto
 - Users grant capabilities at install; revocation applies on the next broker call.
 - Several mini-apps may run inside one host; only the foreground app is painted.
   Confirmations and media capture require the foreground app (`FOREGROUND_REQUIRED`).
-  Re-examine cross-app isolation as app-to-app messaging lands (`MINIAPP-APP-TO-APP`).
+  App-to-app messages copy through the broker only after both sides grant a
+  destination-named `apps:channel`; there is no shared store.
 - Host owns rendering; mini-apps submit data-only widget trees.
 
 ## Findings

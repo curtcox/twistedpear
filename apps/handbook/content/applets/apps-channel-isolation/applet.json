@@ -1,0 +1,14 @@
+{
+  "id": "apps-channel-isolation",
+  "group": "runtime",
+  "title": "App-to-app channel isolation",
+  "capabilities": ["apps:channel"],
+  "surfaces": ["apps.channel.open"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

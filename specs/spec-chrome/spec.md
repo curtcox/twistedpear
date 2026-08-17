@@ -23,8 +23,9 @@ Fixtures and future rules cite these ids; a fixture that attacks a rule names it
 - **CHROME-R1 (canonical descriptions).** Grant screens render exactly the
   descriptions from the capability registry ([SPEC-CAP](../spec-cap/spec.md)); app
   content cannot substitute its own wording.
-- **CHROME-R2 (double-gating).** Every `apps:*` package/publish/install/preview call
-  raises a host-chrome confirmation in addition to the grant.
+- **CHROME-R2 (double-gating).** Every `apps:*` package/publish/install/preview call,
+  and every `apps:channel` open, raises a host-chrome confirmation in addition to the grant.
+  The `app-channel` confirmation names the destination mini-app.
 - **CHROME-R3 (no draw-over).** App-rendered content can neither overlay nor visually
   imitate host chrome; confirmations render outside the app's drawing surface.
 - **CHROME-R4 (no synthetic acknowledgement).** No app-reachable API can accept,
@@ -34,9 +35,10 @@ Fixtures and future rules cite these ids; a fixture that attacks a rule names it
   [SPEC-SDK](../spec-sdk/spec.md) error taxonomy).
 - **CHROME-R6 (review material).** Confirmations display the material the user
   must review before approving: the `package` confirmation lists the declared
-  capability set, the `preview` confirmation lists the requested grants, and
-  the `install` confirmation identifies the package and the post-fetch review
-  step. (Recorded by the fixtures: at `install` time the capability list is
+  capability set, the `preview` confirmation lists the requested grants, the
+  `install` confirmation identifies the package and the post-fetch review
+  step, and the `app-channel` confirmation names the destination mini-app.
+  (Recorded by the fixtures: at `install` time the capability list is
   not yet known — the package has not been fetched — so capability review
   happens in the host's post-fetch review pipeline, which the install
   confirmation names.)

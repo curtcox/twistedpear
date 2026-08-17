@@ -35,6 +35,7 @@ Open an SDK chapter and tap **Run applet** for a single probe.
 - Workspace read/write — `workspace`
 - CAS share — `share:cas`
 - Package + preview — `apps:package`, `apps:preview`
+- App-to-app channel isolation — `apps:channel`
 - Publish + install — `apps:publish`, `apps:install`
 - OTA update — republish with bumped semver
 - AI chat / embedding configuration — `ai:chat`, `ai:embed`

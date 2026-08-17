@@ -74,3 +74,48 @@ export async function preview(
 export async function stopPreview(): Promise<void> {
   await callHost("apps", "stopPreview", undefined, "apps:preview");
 }
+
+export interface ChannelPeer {
+  readonly appId: string;
+  readonly publisherPublicKey: string;
+}
+
+export interface ChannelMessage {
+  readonly id: string;
+  readonly from: ChannelPeer;
+  readonly payload: string;
+  readonly sentAt: number;
+}
+
+export interface ChannelDestination {
+  readonly appId: string;
+  readonly publisherPublicKey?: string;
+}
+
+async function channelCall<T>(
+  method: string,
+  payload?: ChannelDestination & { payload?: string },
+): Promise<T> {
+  return (await callHost("apps.channel", method, payload, "apps:channel")) as T;
+}
+
+export const channel = {
+  open(destination: ChannelDestination): Promise<{ destination: ChannelPeer }> {
+    return channelCall("open", destination);
+  },
+  send(
+    destination: ChannelDestination,
+    payload: string,
+  ): Promise<{ id: string }> {
+    return channelCall("send", { ...destination, payload });
+  },
+  receive(): Promise<ReadonlyArray<ChannelMessage>> {
+    return channelCall("receive");
+  },
+  close(destination: ChannelDestination): Promise<{ closed: true }> {
+    return channelCall("close", destination);
+  },
+  peers(): Promise<ReadonlyArray<ChannelPeer>> {
+    return channelCall("peers");
+  },
+};

@@ -429,6 +429,13 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/app-to-app.test.ts",
       "added": "2026-08-17",
+      "completed": "2026-08-17",
+      "evidence": [
+        "packages/miniapp-runtime/test/app-to-app.test.ts",
+        "packages/miniapp-runtime/src/services/app-channel.ts",
+        "packages/miniapp-runtime/src/host/layer-1-handlers-services.ts",
+        "packages/miniapp-sdk/src/apps.ts"
+      ],
       "notes": "Sequenced behind MINIAPP-CONCURRENT. A brokered, separately granted channel with the destination app named on the grant screen. Shared storage is out of scope. Ledger row MLC-APP-TO-APP."
     },
     "MINIAPP-CONCURRENT": {

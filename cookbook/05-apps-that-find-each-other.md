@@ -101,9 +101,9 @@ Four things trip people up:
    short name such as `neighborhood-board`. An announce in the `neighborhood-board` namespace
    is invisible to a subscriber reading `swap-shelf`; there is no global feed.
 3. **"Apps" here means instances of the same mini-app.** Neighborhood board does not search
-   for Swap shelf. Separate mini-apps have separate identities and intended app namespaces;
-   this API is not general app-to-app IPC. See the SDK's explicit
-   [mini-app IPC non-promise](../docs/miniapp-sdk.md#future-work).
+   for Swap shelf. Separate mini-apps have separate identities and intended app namespaces.
+   This API is not general app-to-app IPC. For a brokered channel between two running
+   mini-apps, use `apps.channel` (`apps:channel`) — both sides grant the named destination.
 4. **A visible peer is necessary but not sufficient.** Check Link weather first. A peer count
    of zero means the transport cannot work; a non-zero count only proves interface-level
    reachability, not that the mini-app announce adapter exists or that the remote device is

@@ -38,8 +38,10 @@ in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Rules:
 
 - **Unknown capability strings block install.** There is no forward-compat waiver.
 - The `apps:*` capabilities are **double-gated**: beyond the lifecycle below, every
-  package/publish/install/preview call raises a host-chrome confirmation the app cannot
-  draw over or acknowledge ([SPEC-CHROME](../spec-chrome/spec.md)).
+  package/publish/install/preview call, and every `apps:channel` open, raises a host-chrome
+  confirmation the app cannot draw over or acknowledge ([SPEC-CHROME](../spec-chrome/spec.md)).
+  `apps:channel` names the destination app on that confirmation; messages copy only after
+  both apps have granted the pair.
 - A grant is scoped to one (app, capability) pair; nothing in this spec aggregates
   grants.
 - Grants remain live while a mini-app is running in the background. Confirmations

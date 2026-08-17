@@ -67,3 +67,11 @@ confirmation because accepted updates cannot be recalled. The read-only probe be
 uses a deliberately unknown key and never publishes data.
 
 {{applet:freenet-contract-read}}
+
+`apps:channel` is a brokered channel between two running mini-apps. Opening it
+raises a host confirmation that names the destination; both apps must grant the
+pair separately. Shared storage is not included. The probe below asks for a
+channel to an app that is not running and expects `CHANNEL_PEER_NOT_RUNNING`
+before any confirmation.
+
+{{applet:apps-channel-isolation}}

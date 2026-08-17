@@ -59,7 +59,8 @@ export type ConfirmationKind =
   | "device-share-offer"
   | "device-share-revoke"
   | "link-probe"
-  | "freenet-update";
+  | "freenet-update"
+  | "app-channel";
 
 export interface HostConfirmationRequestView {
   readonly token: string;

@@ -308,6 +308,10 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     this.deviceService?.closeApp(appId);
     await this.inboundMedia?.closeApp(appId);
     await this.cancelAiStreams(appId);
+    this.channelService.dropInbox({
+      appId,
+      publisherPublicKey: app.manifest.publisherPublicKey,
+    });
     const snapshot = await app.lifecycle.stop(reason);
     this.logActive(appId, `stopped (${reason})`);
     this.options.callbacks?.onLifecycle?.(snapshot);
@@ -330,7 +334,14 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     await this.peerService?.closeRuntime(snapshot.appId, app.runtimeId);
     this.deviceService?.closeApp(snapshot.appId);
     await this.inboundMedia?.closeApp(snapshot.appId);
-    this.logActive(snapshot.appId, `crashed (${snapshot.reason ?? "watchdog"})`);
+    this.channelService.dropInbox({
+      appId: snapshot.appId,
+      publisherPublicKey: app.manifest.publisherPublicKey,
+    });
+    this.logActive(
+      snapshot.appId,
+      `crashed (${snapshot.reason ?? "watchdog"})`,
+    );
     this.apps.delete(key);
     if (this.foregroundKey === key) {
       this.foregroundKey = pickFallbackForeground(this.apps);

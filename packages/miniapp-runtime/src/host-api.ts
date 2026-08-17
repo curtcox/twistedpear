@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.12.0";
+export const HOST_API_VERSION = "0.13.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -51,7 +51,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "freenet:contract adds brokered Freenet get/put/update with irreversible-update confirmation for put/update.",
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.12.0",
     note: "Per-peer link observation and budgeted probes, media-readiness types, outbound share-policy visibility, and raw-inbound stream gating.",
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "Brokered app-to-app channels: apps:channel, destination-named confirmation on both sides, no shared storage.",
   },
 ];

@@ -181,6 +181,18 @@ export type {
   WorkspaceLimits,
 } from "./services/workspace.js";
 export { AppsService, AppsServiceError } from "./services/apps.js";
+export {
+  APP_CHANNEL_MAX_INBOX,
+  APP_CHANNEL_MAX_PAYLOAD_BYTES,
+  AppChannelError,
+  AppChannelService,
+} from "./services/app-channel.js";
+export type {
+  AppChannelHost,
+  AppChannelMessage,
+  AppChannelPeer,
+  AppChannelResolveResult,
+} from "./services/app-channel.js";
 export type {
   AppManifestDraft,
   AppsBackend,

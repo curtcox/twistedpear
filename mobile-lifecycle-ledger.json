@@ -69,17 +69,6 @@
       "note": "The suspension is real and not removable. Being unable to react to it is not."
     },
     {
-      "id": "MLC-APP-TO-APP",
-      "utility": "One mini-app talking to another, or sharing storage with it",
-      "cause": "self-imposed",
-      "decision": "App-to-app messaging and shared storage are deferred; grants are keyed per app and storage is per app",
-      "evidence": ["LIMITATIONS.md", "docs/miniapp-runtime.md"],
-      "cost": "No suite of cooperating apps; every app re-implements what its neighbour already has",
-      "unlock": "A brokered, separately granted app-to-app channel",
-      "revisit": { "work": "MINIAPP-APP-TO-APP" },
-      "note": "Sequenced behind concurrent mini-apps, which have shipped. Not blocked by the OS."
-    },
-    {
       "id": "MLC-ALWAYS-ON-ROLES",
       "utility": "A phone carrying transport, seeding, or propagation for other peers",
       "cause": "os",

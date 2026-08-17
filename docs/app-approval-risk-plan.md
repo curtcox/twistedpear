@@ -70,7 +70,7 @@ an app asking the user to type their recovery phrase — needs **no capabilities
 do better: the generated registry gives each a `consentClass` of `low` / `elevated` /
 `sensitive` plus per-class defaults
 ([device-registry.gen.ts:4](../packages/protocol/src/device-registry.gen.ts), from
-[device-classes.json](../specs/spec-device/registry/device-classes.json)). The 23 core
+[device-classes.json](../specs/spec-device/registry/device-classes.json)). The 24 core
 capabilities have nothing. Nothing in the system can order `relay:configure` against
 `storage:kv`, so nothing can present them differently, gate them differently, or expire them
 differently.

@@ -116,7 +116,7 @@ Android emulator numbers using the Bare worker backend are recorded in
 | Constraint                          | Consequence for your design                                           | Permanent?                            |
 | ----------------------------------- | --------------------------------------------------------------------- | ------------------------------------- |
 | No execution while the host is away | Nothing happens while TwistedPear is not the app on screen.           | On iOS yes; on Android not inherently |
-| No app-to-app communication         | Two apps can run; they still cannot talk. `MINIAPP-APP-TO-APP`.       | No                                    |
+| No shared storage between apps      | A channel copies messages; each app's store stays its own.            | Yes, for v1                           |
 | No native modules                   | JavaScript only, no exceptions.                                       | Yes                                   |
 | Local-only storage                  | No sync, no backup, no cross-device state.                            | Yes, for v1                           |
 | Suspension is normal                | Persist as you go; there is no `onSuspend`.                           | Suspension yes; the missing hook no   |

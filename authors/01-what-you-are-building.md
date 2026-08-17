@@ -137,7 +137,7 @@ Read this list before you design, not after.
 | --------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Ship native code or link a native module                  | The sandbox runs JavaScript only.                                           |
 | Run while TwistedPear itself is not on screen             | The OS suspends the whole host app. On iOS this is permanent.               |
-| Talk to another mini-app _yet_                            | Two apps can run; a brokered channel between them is `MINIAPP-APP-TO-APP`.  |
+| Share storage with another mini-app                       | A channel copies messages; each app's store stays its own.              |
 | Open a socket, read a file, or call an arbitrary HTTP API | Everything goes through the broker; there is no general network capability. |
 | Assume a fast link                                        | A peer may be reachable only over LoRa at hundreds of bits per second.      |
 | Assume you are online                                     | Peers appear and disappear; LXMF delivery may be deferred for hours.        |
@@ -146,11 +146,10 @@ Read this list before you design, not after.
 The last one is a feature you benefit from: users can trust the install and publish prompts
 precisely because no app can forge them.
 
-The row marked _yet_ is worth reading carefully, because it is not the same kind of
-limit as the others. Mobile operating systems suspend the **host app** — they do not limit
-how many mini-apps a running host may hold. Several mini-apps may now run at once; they
-still cannot talk to each other (`MINIAPP-APP-TO-APP`), and they are told nothing about
-suspend/resume. The full ledger is
+Mobile operating systems suspend the **host app** — they do not limit how many mini-apps a
+running host may hold. Several mini-apps may run at once, and they may talk through a
+brokered `apps:channel` after both sides grant the named destination. They still do not
+share storage, and they are told nothing about suspend/resume. The full ledger is
 [docs/mobile-lifecycle.md](../docs/mobile-lifecycle.md).
 
 Design for a suite that may exist later. Do not assume you are the only app on the host.

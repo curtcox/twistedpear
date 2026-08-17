@@ -7,7 +7,8 @@ export type ConfirmationKind =
   | "device-session"
   | "device-stream"
   | "device-remote-grant"
-  | "freenet-update";
+  | "freenet-update"
+  | "app-channel";
 
 export interface ConfirmationRequest {
   readonly token: string;

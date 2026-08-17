@@ -162,9 +162,11 @@ retry out of. [Chapter 8](08-ai-and-authoring-apps.md) covers building on these.
 ## Capabilities you cannot have
 
 There is no capability for arbitrary network access, arbitrary filesystem access, native
-code, background execution, or talking to another mini-app. These are not missing features
-awaiting a version number; app-to-app messaging and shared storage are
+code, background execution, or shared storage between mini-apps. These are not missing
+features awaiting a version number; shared storage is
 [explicitly deferred](../docs/miniapp-sdk.md), and the rest follow from the sandbox model.
+Two running apps may exchange messages through `apps.channel` after both grant the named
+destination.
 
 If your design needs one of them, it is not a mini-app. See
 [LIMITATIONS.md §7](../LIMITATIONS.md).

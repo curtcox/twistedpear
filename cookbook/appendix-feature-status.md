@@ -96,10 +96,10 @@ Mobile operating systems suspend the host app; they do not cap how many mini-app
 host may hold. These are tracked with revisit triggers, so a recipe that exists only to work
 around one of them may become unnecessary:
 
-- **No app-to-app communication.** Two apps can run at once; a brokered channel between
-  them is tracked as `MINIAPP-APP-TO-APP`.
 - **No suspend/resume events**, so recipes persist on every write rather than saving state
   once on the way down.
 - **No background execution on Android**, though the host already runs a foreground service.
+- **No shared storage between mini-apps.** A brokered `apps:channel` copies messages after
+  both sides grant the named destination.
 
 The ledger is [docs/mobile-lifecycle.md](../docs/mobile-lifecycle.md).

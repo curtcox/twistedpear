@@ -33,16 +33,18 @@ Two restrictions do the work, and it matters exactly what each one binds:
 
 **Both restrictions bind the host process, not the mini-apps inside it.** That distinction
 is the whole reason this document has a ledger. The OS decides whether TwistedPear runs. It
-does not decide how many sandboxes a running TwistedPear may hold, whether they can talk to
-each other, or what they are told about their own lifecycle. Every limit of that second
-kind is ours, and it is on the ledger below with `self-imposed` next to it.
+does not decide how many sandboxes a running TwistedPear may hold, or what they are told
+about their own lifecycle. Every limit of that second kind is ours, and it is on the ledger
+below with `self-imposed` next to it.
 
 The platform therefore commits to the opposite default: **as long as the host app is
 running, running several mini-apps at once must be possible.** `MiniappHost` holds a
 per-app instance map keyed the way grants are (`appId + publisherPublicKey`). Launching a
 second app does not stop the first. Each shell has a switcher; only the foreground app's
 widget tree is painted. Grants stay live for a running background app; confirmations and
-media capture require it to be foregrounded (`FOREGROUND_REQUIRED`).
+media capture require it to be foregrounded (`FOREGROUND_REQUIRED`). Two running apps may
+exchange messages through a brokered `apps:channel` after both sides grant the named
+destination; they do not share storage.
 
 ## Decisions that follow from it
 
@@ -80,7 +82,6 @@ One row per piece of utility a mini-app does not get because of the mobile lifec
 | `MLC-BACKGROUND-ANDROID` | Mini-app code running inside the Android foreground service the host already runs | `self-imposed` | 2027-02-01                  |
 | `MLC-SCHEDULED-WAKE`     | A mini-app asking to be woken periodically to do bounded work                     | `self-imposed` | 2027-02-01                  |
 | `MLC-LIFECYCLE-EVENTS`   | A mini-app being told it is about to be suspended, and that it has resumed        | `self-imposed` | 2027-02-01                  |
-| `MLC-APP-TO-APP`         | One mini-app talking to another, or sharing storage with it                       | `self-imposed` | `MINIAPP-APP-TO-APP` closes |
 | `MLC-ALWAYS-ON-ROLES`    | A phone carrying transport, seeding, or propagation for other peers               | `os`           | 2027-02-01                  |
 
 The decision in force, the cost it carries, what would unlock it, and the files that show
@@ -88,9 +89,10 @@ it are recorded per row in [mobile-lifecycle-ledger.json](../mobile-lifecycle-le
 What it would take to clear the `self-imposed` rows is
 [mobile-lifecycle-plan.md](mobile-lifecycle-plan.md).
 
-Three of the six rows are `self-imposed`. That ratio is the finding: most of what
+Three of the five remaining rows are `self-imposed`. That ratio is the finding: most of what
 mini-apps cannot do is not what iOS and Android forbid, it is what the platform inherited
-from assuming they did.
+from assuming they did. Concurrent mini-apps and a brokered app-to-app channel have shipped;
+shared storage is still withheld by choice, not by the OS.
 
 ## How a row leaves the ledger
 

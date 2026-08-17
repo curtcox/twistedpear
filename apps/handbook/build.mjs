@@ -257,6 +257,7 @@ async function build() {
       "apps:publish",
       "apps:install",
       "apps:preview",
+      "apps:channel",
       "share:cas",
     ];
     capabilityDescriptions = new Map(
