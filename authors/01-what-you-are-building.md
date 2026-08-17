@@ -136,8 +136,9 @@ Read this list before you design, not after.
 | You cannot                                                | Because                                                                     |
 | --------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Ship native code or link a native module                  | The sandbox runs JavaScript only.                                           |
-| Run in the background, or run alongside another mini-app  | v1 runs one foreground mini-app, by design.                                 |
-| Talk to another mini-app                                  | App-to-app messaging and shared storage are deliberately deferred.          |
+| Run while TwistedPear itself is not on screen             | The OS suspends the whole host app. On iOS this is permanent.               |
+| Run alongside another mini-app _yet_                      | v1 runs one at a time. This is an open limit, not a rule — see below.       |
+| Talk to another mini-app _yet_                            | Deferred behind concurrency; there is no second app to talk to today.       |
 | Open a socket, read a file, or call an arbitrary HTTP API | Everything goes through the broker; there is no general network capability. |
 | Assume a fast link                                        | A peer may be reachable only over LoRa at hundreds of bits per second.      |
 | Assume you are online                                     | Peers appear and disappear; LXMF delivery may be deferred for hours.        |
@@ -145,6 +146,17 @@ Read this list before you design, not after.
 
 The last one is a feature you benefit from: users can trust the install and publish prompts
 precisely because no app can forge them.
+
+The two marked _yet_ are worth reading carefully, because they are not the same kind of
+limit as the others. Mobile operating systems suspend the **host app** — they do not limit
+how many mini-apps a running host may hold. The platform intends to run several at once
+whenever TwistedPear itself is running; v1 does not, because the runtime keeps a single
+slot for the active app. That is tracked work (`MINIAPP-CONCURRENT`), and the full ledger
+of what the mobile lifecycle costs you — separating what iOS and Android actually forbid
+from what the platform has not built yet — is
+[docs/mobile-lifecycle.md](../docs/mobile-lifecycle.md).
+
+Design for one app today. Do not design _against_ ever having two.
 
 > **⚠️ Works, with limits — the sandbox boundary is JavaScript-level.** The broker
 > chokepoint, deny-by-default grants, and data-only UI are implemented and covered by the

@@ -16,7 +16,11 @@ Status: enforced software policy — device energy measurements remain hardware 
 2. **Budget before fetch:** package and Resource transfers consult size budgets before
    starting; LoRa/RNode paths block bulk installs (&gt; 64 KiB default).
 3. **Foreground preference:** mini-apps run one at a time in foreground; no background
-   mini-app execution on any host.
+   mini-app execution on any host. On iOS the second half is unavoidable; on Android the
+   host's own foreground service could carry mini-app execution and does not, which is a
+   budgeting decision rather than a platform limit
+   ([mobile-lifecycle.md](mobile-lifecycle.md), rows `MLC-BACKGROUND-ANDROID` and
+   `MLC-SCHEDULED-WAKE`).
 4. **Measure then tune:** policy defaults are conservative; device soaks replace estimates.
 
 ## Interface bandwidth tiers
