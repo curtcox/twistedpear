@@ -167,6 +167,15 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain("verify-publication.mjs");
     expect(pagesWorkflow).toContain("if: matrix.id == 'rust-fuzz'");
     expect(pagesWorkflow).toContain("GITHUB_TOKEN: ${{ github.token }}");
+    // Imported-metric jobs must not list setup-java/setup-android: GitHub
+    // downloads every `uses:` at job start, `if:` or not, and that 429'd the
+    // provenance and benchmark publishes.
+    const evidenceJob = pagesWorkflow.slice(
+      pagesWorkflow.indexOf("static-analysis-evidence:"),
+      pagesWorkflow.indexOf("\n  build:"),
+    );
+    expect(evidenceJob).not.toContain("actions/setup-java");
+    expect(evidenceJob).not.toContain("android-actions/setup-android");
     expect(pagesWorkflow).toContain("security-events: read");
     const runner = fs.readFileSync(
       path.join(root, "scripts/checks/run.mjs"),

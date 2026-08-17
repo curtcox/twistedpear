@@ -32,6 +32,34 @@ export function normalizeAlerts(alerts) {
     .sort();
 }
 
+export const retryableAlertStatuses = new Set([429, 502, 503]);
+
+export function alertRetryDelayMs(attempt) {
+  return 500 * 2 ** (attempt - 1);
+}
+
+export async function fetchJsonWithRetry(
+  url,
+  options,
+  {
+    fetchImpl = globalThis.fetch,
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    attempts = 4,
+  } = {},
+) {
+  let response;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    response = await fetchImpl(url, options);
+    if (response.ok) return response.json();
+    if (!retryableAlertStatuses.has(response.status) || attempt === attempts) {
+      throw new Error(
+        `CodeQL alerts API returned ${response.status}: ${(await response.text()).slice(0, 240)}`,
+      );
+    }
+    await sleep(alertRetryDelayMs(attempt));
+  }
+}
+
 function token() {
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
@@ -60,15 +88,10 @@ async function fetchAlerts(repo, auth) {
         "user-agent": "twistedpear-codeql-gate",
       },
     };
-    const response = await fetch(
+    const batch = await fetchJsonWithRetry(
       `https://api.github.com/repos/${repo}/code-scanning/alerts?state=open&per_page=100&page=${page}`,
       timeout,
     );
-    if (!response.ok)
-      throw new Error(
-        `CodeQL alerts API returned ${response.status}: ${(await response.text()).slice(0, 240)}`,
-      );
-    const batch = await response.json();
     alerts.push(...batch);
     if (batch.length < 100) return alerts;
   }

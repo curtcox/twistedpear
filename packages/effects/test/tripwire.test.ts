@@ -82,7 +82,13 @@ describe("sans-io tripwire", () => {
     if (originals.setImmediate)
       violation(() => setImmediate(() => undefined), "setImmediate");
     if (originals.fetch)
-      violation(() => globalThis.fetch("https://example.invalid"), "fetch");
+      violation(
+        () =>
+          globalThis.fetch("https://example.invalid", {
+            signal: AbortSignal.abort(),
+          }),
+        "fetch",
+      );
     if (originals.performanceNow)
       violation(() => performance.now(), "performance.now");
     if (originals.getRandomValues)

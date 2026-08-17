@@ -16,7 +16,7 @@ on the macOS CI runner: desktop main, capability review, grants, host confirmati
 runtime controls, and an untrusted publisher. It compares PNG bytes exactly and restores
 the committed files after the comparison, whether the check passes or fails. The captured
 pixels are also written to `artifacts/visual-regression/captures/` so a runner-class
-mismatch can be reviewed without re-baselining on a different machine. Intentional
+mismatch can be reviewed without updating the baseline on a different machine. Intentional
 UI changes use `npm run visual:baseline`; reviewers inspect the updated images together
 with the UI change.
 
