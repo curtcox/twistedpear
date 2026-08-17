@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 import {
   gates,
   deferredOnPages,
+  gateRequiresJvm,
+  isOffPagesBuild,
   prebuildPrGates,
 } from "../../scripts/checks/registry.mjs";
 import { summarizeStaticAnalysis } from "../../scripts/site/static-analysis-metrics.mjs";
@@ -80,7 +82,8 @@ describe("static-analysis gate registry", () => {
   });
 
   it("drives CI and the report dashboard from the registry", () => {
-    expect(workflow).toContain("checks:matrix");
+    expect(workflow).toContain("checks:matrix -- --lacks-requires=jvm");
+    expect(workflow).toContain("checks:matrix -- --has-requires=jvm");
     expect(workflow).toContain(
       "scripts/checks/run.mjs --tier=pr --only=${{ matrix.id }}",
     );
@@ -144,6 +147,9 @@ describe("static-analysis gate registry", () => {
       "include: ${{ fromJSON(needs.static-analysis-plan.outputs.matrix) }}",
     );
     expect(pagesWorkflow).toContain(
+      "include: ${{ fromJSON(needs.static-analysis-plan.outputs.java-matrix) }}",
+    );
+    expect(pagesWorkflow).toContain(
       "SITE_REPORT_IMPORT_GATES: ${{ needs.static-analysis-plan.outputs.imports }}",
     );
     expect(pagesWorkflow).toContain('SITE_REPORT_ISOLATE: "1"');
@@ -167,15 +173,38 @@ describe("static-analysis gate registry", () => {
     expect(pagesWorkflow).toContain("verify-publication.mjs");
     expect(pagesWorkflow).toContain("if: matrix.id == 'rust-fuzz'");
     expect(pagesWorkflow).toContain("GITHUB_TOKEN: ${{ github.token }}");
-    // Imported-metric jobs must not list setup-java/setup-android: GitHub
+    // Non-JVM matrix jobs must not list setup-java/setup-android: GitHub
     // downloads every `uses:` at job start, `if:` or not, and that 429'd the
-    // provenance and benchmark publishes.
+    // provenance, benchmark, and lint publishes.
     const evidenceJob = pagesWorkflow.slice(
       pagesWorkflow.indexOf("static-analysis-evidence:"),
-      pagesWorkflow.indexOf("\n  build:"),
+      pagesWorkflow.indexOf("static-analysis-evidence-java:"),
     );
     expect(evidenceJob).not.toContain("actions/setup-java");
     expect(evidenceJob).not.toContain("android-actions/setup-android");
+    const javaEvidenceJob = pagesWorkflow.slice(
+      pagesWorkflow.indexOf("static-analysis-evidence-java:"),
+      pagesWorkflow.indexOf("\n  build:"),
+    );
+    expect(javaEvidenceJob).toContain("actions/setup-java");
+    const pagesBuildJob = pagesWorkflow.slice(
+      pagesWorkflow.indexOf("\n  build:"),
+      pagesWorkflow.indexOf("\n  deploy:"),
+    );
+    expect(pagesBuildJob).not.toContain("actions/setup-java");
+    expect(pagesBuildJob).not.toContain("android-actions/setup-android");
+    const ciAnalysisJob = workflow.slice(
+      workflow.indexOf("\n  static-analysis:"),
+      workflow.indexOf("static-analysis-java:"),
+    );
+    expect(ciAnalysisJob).not.toContain("actions/setup-java");
+    expect(ciAnalysisJob).not.toContain("android-actions/setup-android");
+    const nightlyWorkflow = fs.readFileSync(
+      path.join(root, ".github/workflows/nightly.yml"),
+      "utf8",
+    );
+    expect(nightlyWorkflow).not.toContain("actions/setup-java");
+    expect(nightlyWorkflow).not.toContain("android-actions/setup-android");
     expect(pagesWorkflow).toContain("security-events: read");
     const runner = fs.readFileSync(
       path.join(root, "scripts/checks/run.mjs"),
@@ -216,17 +245,22 @@ describe("static-analysis gate registry", () => {
     // run by the Pages build nor imported into it, so they must be absent from
     // both the evidence matrix and the import list.
     const imported = gates.filter(
-      (gate) =>
-        (gate.tier === "nightly" || gate.os !== "ubuntu-latest") &&
-        !deferredOnPages.has(gate.id),
+      (gate) => isOffPagesBuild(gate) && !deferredOnPages.has(gate.id),
     );
+    const javaImported = imported.filter(gateRequiresJvm);
+    const otherImported = imported.filter((gate) => !gateRequiresJvm(gate));
     expect(JSON.parse(outputs.matrix)).toEqual(
-      imported.map(({ id, tier, os: runner }) => ({ id, tier, runner })),
+      otherImported.map(({ id, tier, os: runner }) => ({ id, tier, runner })),
     );
+    expect(JSON.parse(outputs["java-matrix"])).toEqual(
+      javaImported.map(({ id, tier, os: runner }) => ({ id, tier, runner })),
+    );
+    expect(javaImported.length).toBeGreaterThan(0);
     expect(outputs.imports).toBe(imported.map((gate) => gate.id).join(","));
     expect(outputs.deferred).toBe([...deferredOnPages].join(","));
     for (const id of deferredOnPages) {
       expect(outputs.matrix).not.toContain(`"${id}"`);
+      expect(outputs["java-matrix"]).not.toContain(`"${id}"`);
       expect(outputs.imports.split(",")).not.toContain(id);
     }
 

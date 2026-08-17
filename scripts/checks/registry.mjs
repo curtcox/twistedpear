@@ -702,6 +702,22 @@ export const gates = [
 // ratchet floor in the meantime.
 export const deferredOnPages = new Set(["mutation"]);
 
+/** JVM-backed gates. GitHub downloads every `uses:` at job start, `if:` or
+ * not, so these must not share a matrix template with setup-java. */
+export function gateRequiresJvm(gate) {
+  return gate.requires.includes("jvm");
+}
+
+/** Nightly, non-Linux, and JVM gates publish evidence in parallel rather than
+ * running inside the Linux Pages build, which must not list setup-java. */
+export function isOffPagesBuild(gate) {
+  return (
+    gate.tier === "nightly" ||
+    gate.os !== "ubuntu-latest" ||
+    gateRequiresJvm(gate)
+  );
+}
+
 function gate(
   id,
   title,

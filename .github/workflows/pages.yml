@@ -29,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
+      java-matrix: ${{ steps.plan.outputs.java-matrix }}
       imports: ${{ steps.plan.outputs.imports }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -67,10 +68,9 @@ jobs:
       - name: Install lizard
         if: matrix.id == 'hotspots'
         run: python3 -m pip install lizard==1.23.0
-      # Kotlin/Android setup lives on the Linux Pages build job, not here.
-      # GitHub downloads every `uses:` at job start even when `if:` is false,
-      # so listing setup-java on these imported-metric jobs turned a GitHub
-      # 429 into red provenance and benchmark results.
+      # JVM/Android setup lives on static-analysis-evidence-java. GitHub
+      # downloads every `uses:` at job start, `if:` or not, and listing
+      # setup-java here 429'd provenance and benchmark publishes.
       - name: Install the fuzzing toolchain
         if: matrix.id == 'rust-fuzz'
         # Same two-toolchain install as nightly.yml: cargo-fuzz needs nightly
@@ -95,8 +95,67 @@ jobs:
           path: page-metric-evidence
           if-no-files-found: warn
 
+  static-analysis-evidence-java:
+    needs: static-analysis-plan
+    name: Published metric — ${{ matrix.id }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.static-analysis-plan.outputs.java-matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        if: matrix.id == 'kotlin-tests' || matrix.id == 'kotlin-coverage'
+      - name: Cache Gradle dependencies
+        if: matrix.id == 'kotlin-tests' || matrix.id == 'kotlin-coverage'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+      - run: npm ci
+      - name: Install ktlint
+        if: matrix.id == 'kotlin'
+        run: |
+          curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint
+          chmod +x ktlint
+          sudo install ktlint /usr/local/bin/ktlint
+      - name: Run metric-producing gate
+        run: node scripts/checks/run.mjs --tier=${{ matrix.tier }} --only=${{ matrix.id }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Stage metric evidence with repository-relative paths
+        if: always()
+        run: node scripts/checks/stage-evidence.mjs --gate=${{ matrix.id }} --into=page-metric-evidence
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: page-metric-${{ matrix.id }}
+          path: page-metric-evidence
+          if-no-files-found: warn
+
   build:
-    needs: [static-analysis-plan, static-analysis-evidence]
+    needs:
+      [
+        static-analysis-plan,
+        static-analysis-evidence,
+        static-analysis-evidence-java,
+      ]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -109,20 +168,6 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
-      - name: Cache Gradle dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
       - run: npm ci
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -141,12 +186,7 @@ jobs:
           python3 -m pip install ruff==0.15.16 mypy==2.1.0 lizard==1.23.0
           rustup toolchain install 1.97.1 --profile minimal --component clippy --component rustfmt
           cargo install cargo-deny --version 0.20.2 --locked
-          curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint
-          chmod +x ktlint
-          sudo install ktlint /usr/local/bin/ktlint
           npx playwright install --with-deps chromium
-      - name: Verify TLA+ tools
-        run: echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  formal/tla2tools.jar" | sha1sum --check
       # Resolved here rather than read from static-analysis-plan's outputs. This
       # job runs under always(), so it also runs when that job never produced
       # outputs — and an empty defer list silently puts the ~70 minute mutation

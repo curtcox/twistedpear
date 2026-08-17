@@ -21,6 +21,8 @@ const value = (name) =>
 const tier = value("tier") ?? "pr";
 const only = value("only");
 const requiredFilter = value("requires");
+const hasRequires = value("has-requires");
+const lacksRequires = value("lacks-requires");
 const matrix = args.includes("--matrix");
 
 function gitSha() {
@@ -43,6 +45,18 @@ if (requiredFilter) {
   const allowed = new Set(requiredFilter.split(","));
   selected = selected.filter((gate) =>
     gate.requires.every((requirement) => allowed.has(requirement)),
+  );
+}
+if (hasRequires) {
+  const needed = hasRequires.split(",");
+  selected = selected.filter((gate) =>
+    needed.every((requirement) => gate.requires.includes(requirement)),
+  );
+}
+if (lacksRequires) {
+  const forbidden = new Set(lacksRequires.split(","));
+  selected = selected.filter(
+    (gate) => !gate.requires.some((requirement) => forbidden.has(requirement)),
   );
 }
 if (only && selected.length === 0) {
