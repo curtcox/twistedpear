@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-17
+audited: 2026-08-18
 register: none
 -->
 
@@ -20,9 +20,11 @@ to the sticky PR dashboard. `ci-green` depends on every CI job and is the single
 protection check.
 
 Locally, `npm run check:all` runs PR gates whose prerequisites are installed and prints a
-reason for every skip. `npm run check:ci-base` is the compatible Node-only alias. Use
-`npm run check:all -- --only=<id>` for one gate and `--tier=nightly` for expensive gates.
-The complete gate and baseline inventory is in [Static analysis](static-analysis.md).
+reason for every skip. It starts one gate at a time after a RAM/swap/rival-heap
+preflight, and stops on the first failure. `npm run check:ci-base` is the compatible
+Node-only alias. Use `npm run check:all -- --only=<id>` for one gate and
+`--tier=nightly` for expensive gates. The complete gate and baseline inventory is in
+[Static analysis](static-analysis.md).
 
 The `miniapp-conformance` job also runs `npm run test:cookbook`: all 25 cookbook bundles
 are type/lint-checked against the SDK, validated, packed through the CLI, and launched far

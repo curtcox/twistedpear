@@ -224,6 +224,9 @@ describe("static-analysis gate registry", () => {
       "utf8",
     );
     expect(runner).toContain("writeGateResult");
+    expect(runner).toContain("judgeHeadroom");
+    expect(runner).toContain("--keep-going");
+    expect(runner).toContain("--force-headroom");
     expect(
       runner.slice(runner.indexOf("if (missing.length > 0)")).slice(0, 900),
     ).toContain("writeGateResult");

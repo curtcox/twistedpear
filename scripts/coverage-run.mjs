@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import {
+  coverageWorkerArgs,
+  formatRefusal,
+  judgeHeadroom,
+  snapshotHost,
+} from "./checks/headroom.mjs";
 
 // Every shipped source root the unit suite can reach. `apps/*` was excluded
 // until now, which meant the desktop main process, the mobile host bridges and
@@ -32,12 +38,23 @@ const vitestArgs = [
   // the more useful PR question: did the executable code changed here run?
   "--coverage.reporter=json",
   "--coverage.reportsDirectory=coverage",
+  ...coverageWorkerArgs(),
 ];
 // Baseline writes run the complete package/app unit workspace. The ratchet
 // script reads the resulting `coverage/coverage-summary.json` and writes
 // `coverage-ratchet.json`.
 if (process.argv.includes("--fast-baseline"))
   vitestArgs.splice(2, 0, "packages/protocol/test", "packages/effects/test");
+const headroom = judgeHeadroom(snapshotHost(), {
+  cost: "heavy",
+  force:
+    process.argv.includes("--force-headroom") ||
+    Boolean(process.env.TP_FORCE_HEADROOM),
+});
+if (!headroom.ok) {
+  console.error(formatRefusal("coverage", headroom));
+  process.exit(2);
+}
 const report = spawnSync(process.execPath, vitestArgs, {
   stdio: "inherit",
   env: { ...process.env, TP_COVERAGE: "1" },

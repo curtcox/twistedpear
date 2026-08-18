@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-14
+audited: 2026-08-18
 register: none
 -->
 
@@ -133,6 +133,11 @@ npm run checks:status:import           # what did CI measure? (report only)
 npm run checks:status:import -- --write
 npm run checks:status                  # run the gates here and record them
 ```
+
+A local `checks:status` is serial and preflighted: it refuses a heavy gate when
+the host is already swapping or Gradle/JDT heaps are resident on a <32 GB
+machine. Prefer the import on a 16 GB Mac. `--force-headroom` bypasses the
+probe that exists to stop a watchdog reset.
 
 CI does not commit `checks.json` back to the branch: that would put a write to
 `main` on the publish path and would still be wrong for anyone whose working

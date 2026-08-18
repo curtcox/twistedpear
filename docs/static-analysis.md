@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-17
+audited: 2026-08-18
 register: none
 counterpart: docs/static-analysis-plan.md
 -->
@@ -25,6 +25,15 @@ renderer, and runner OS. The registry drives:
   nightly or unavailable local gates; and
 - `conformance/checks/registry.test.mjs`, which checks declarations, npm scripts, CI
   consumption, dashboard consumption, artifact declarations, and unique IDs.
+
+Local runs are serial and preflighted. `scripts/checks/run.mjs` starts one gate at a
+time, samples RAM/swap/load and rival heaps (Gradle, JDT, leftover coverage) before
+each one, and stops on the first failure so a red coverage gate cannot stack the next
+PR gate onto a machine already in swap. Coverage itself pins `--maxWorkers=1` off CI.
+A refusal prints `REFUSE <id>: host headroom` and points at
+`npm run checks:status:import`; `--force-headroom` and `--keep-going` override, and
+are unsafe on a 16 GB host. CI skips the probe: each matrix job is already alone on
+its VM.
 
 `npm run check:ci-base` remains the Node-only PR alias used by existing runbooks. CI
 surfaces every registry gate separately and writes a step summary plus

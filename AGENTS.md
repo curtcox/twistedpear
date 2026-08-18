@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-23
+audited: 2026-08-18
 register: none
 -->
 
@@ -101,6 +101,13 @@ skipped locally rather than failing, so without the doctor a missing toolchain
 is invisible until the soak guard refuses the carried-forward result.
 
 `check:fast` runs `typecheck` (`tsc -b`) plus the Vitest unit suite.
+
+Do not run `npm run checks:status` or `coverage:check` on a contended 16 GB host.
+The local gate runner preflights RAM, swap, load, and rival Gradle/JDT/coverage
+heaps, then runs one gate at a time and stops on the first failure. A `REFUSE`
+means import what CI already measured (`npm run checks:status:import`) or rerun
+`--only=<id>` with the other IDEs closed — not `--force-headroom` while Devin
+and VS Code still hold Gradle daemons.
 
 For one test file:
 

@@ -6,6 +6,12 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { gates } from "./registry.mjs";
 import { requirementAvailable } from "../tools/requirements.mjs";
+import {
+  formatRefusal,
+  gateCost,
+  judgeHeadroom,
+  snapshotHost,
+} from "./headroom.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -24,6 +30,8 @@ const requiredFilter = value("requires");
 const hasRequires = value("has-requires");
 const lacksRequires = value("lacks-requires");
 const matrix = args.includes("--matrix");
+const forceHeadroom = args.includes("--force-headroom");
+const keepGoing = args.includes("--keep-going");
 
 function gitSha() {
   const result = spawnSync("git", ["rev-parse", "HEAD"], {
@@ -115,7 +123,11 @@ function writeGateResult(gate, { startedAt, exitCode, ok, stdout, stderr }) {
   }
 }
 
+// One gate at a time. Preflight host headroom before each spawn, and stop on
+// the first failure unless --keep-going. Continuing past a failed coverage
+// gate is how a 16 GB host reaches the SMC watchdog.
 let failed = 0;
+let refused = 0;
 for (const gate of selected) {
   const missing = gate.requires.filter(
     (requirement) => !requirementAvailable(requirement),
@@ -143,10 +155,34 @@ for (const gate of selected) {
     continue;
   }
 
+  const headroom = judgeHeadroom(snapshotHost(), {
+    cost: gateCost(gate.id),
+    force: forceHeadroom,
+  });
+  if (!headroom.ok) {
+    const message = formatRefusal(gate.id, headroom);
+    console.error(message);
+    writeGateResult(gate, {
+      startedAt,
+      exitCode: 2,
+      ok: false,
+      stdout: "",
+      stderr: message,
+    });
+    failed += 1;
+    refused += 1;
+    if (!keepGoing) break;
+    continue;
+  }
+
   console.log(`\n==> ${gate.title} (${gate.id})`);
   const result = spawnSync(gate.command[0], gate.command.slice(1), {
     cwd: ROOT,
-    env: { ...process.env, CHECK_ID: gate.id },
+    env: {
+      ...process.env,
+      CHECK_ID: gate.id,
+      ...(forceHeadroom ? { TP_FORCE_HEADROOM: "1" } : {}),
+    },
     encoding: "utf8",
     stdio: ["inherit", "pipe", "pipe"],
     maxBuffer: 64 * 1024 * 1024,
@@ -163,10 +199,13 @@ for (const gate of selected) {
     stdout,
     stderr,
   });
-  if (exitCode !== 0) failed += 1;
+  if (exitCode !== 0) {
+    failed += 1;
+    if (!keepGoing) break;
+  }
 }
 
 console.log(
   `\nStatic-analysis gates: ${selected.length - failed}/${selected.length} passed.`,
 );
-if (failed > 0) process.exit(1);
+if (failed > 0) process.exit(refused === failed ? 2 : 1);

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-23
+audited: 2026-08-18
 register: none
 -->
 
@@ -39,6 +39,9 @@ detailed phase-by-phase reference; `docs/ci-policy.md` records CI and nightly co
 ## Safety
 
 - Prefer one focused test while editing; do not launch the full matrix by default.
+- Do not run `npm run checks:status` or `coverage:check` on a 16 GB host that is
+  already swapping or running Gradle/JDT. The runner will refuse; import CI or
+  use `--only=` with other IDEs closed.
 - Use `:required` variants in gates where a missing platform must fail. Non-required
   simulator suites may skip.
 - Do not overwrite committed measured baselines or vectors unless the task explicitly

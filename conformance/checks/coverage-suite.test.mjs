@@ -17,5 +17,7 @@ describe("coverage suite", () => {
     expect(config).toContain('process.env.TP_COVERAGE === "1"');
     expect(run).toContain("conformance/cookbook/**");
     expect(config).toContain("conformance/cookbook/**");
+    expect(run).toContain("coverageWorkerArgs");
+    expect(run).toContain("judgeHeadroom");
   });
 });
