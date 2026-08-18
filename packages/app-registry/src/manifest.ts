@@ -1,6 +1,12 @@
 import { hexToBytes } from "@twistedpear/reticulum-ts";
+import {
+  PACKAGE_FORMAT_MAX,
+  PACKAGE_FORMAT_MIN,
+  parseCapabilityDeclarations,
+  type ManifestCapabilityEntry,
+} from "./capability-declaration.js";
 
-export const PACKAGE_FORMAT_VERSION = 1;
+export const PACKAGE_FORMAT_VERSION = PACKAGE_FORMAT_MAX;
 export const MANIFEST_SIGNING_FIELDS = [
   "formatVersion",
   "name",
@@ -25,7 +31,7 @@ export interface AppManifest {
   readonly name: string;
   readonly version: string;
   readonly entry: string;
-  readonly capabilities: ReadonlyArray<string>;
+  readonly capabilities: ReadonlyArray<ManifestCapabilityEntry>;
   readonly icon: string | null;
   readonly minHostApi: string;
   readonly files: ReadonlyArray<ManifestFileEntry>;
@@ -142,7 +148,10 @@ export function manifestSigningPayload(manifest: UnsignedManifest): Uint8Array {
 }
 
 function validateManifestMetadata(manifest: UnsignedManifest): void {
-  if (manifest.formatVersion !== PACKAGE_FORMAT_VERSION) {
+  if (
+    manifest.formatVersion < PACKAGE_FORMAT_MIN ||
+    manifest.formatVersion > PACKAGE_FORMAT_MAX
+  ) {
     throw new Error(`Unsupported format version: ${manifest.formatVersion}`);
   }
 
@@ -220,6 +229,7 @@ export function validateManifestStructure(manifest: UnsignedManifest): void {
   validateManifestReferences(manifest, paths);
   validateHex(manifest.driveKey, 64, "driveKey");
   validateHex(manifest.publisherPublicKey, 128, "publisherPublicKey");
+  parseCapabilityDeclarations(manifest.capabilities, manifest.formatVersion);
 }
 
 export function parseManifestJson(text: string): AppManifest {

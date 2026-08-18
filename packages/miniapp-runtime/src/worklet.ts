@@ -67,6 +67,19 @@ export type {
   ConfirmationResult,
   HostConfirmationChannel,
 } from "./confirm.js";
+export {
+  ConsentTranscript,
+  consentAuthorities,
+  consentDiscloses,
+  consentRecordFromConfirmation,
+  installReviewConsentRecord,
+} from "./consent-record.js";
+export type {
+  ConsentAuthority,
+  ConsentKind,
+  ConsentRecord,
+  ConsentSubject,
+} from "./consent-record.js";
 export { KvStorageBeeBackend } from "./services/storage-bee-kv.js";
 export { createOpenRouterBackend } from "./services/ai-openrouter.js";
 export type { OpenRouterBackendOptions } from "./services/ai-openrouter.js";

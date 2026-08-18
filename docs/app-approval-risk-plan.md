@@ -314,17 +314,12 @@ user-visible benefit at a fraction of the risk of getting the thresholds wrong.
 `APPR-FIRST-SEEN` landed in [app approval risk](app-approval-risk.md): a TTL-immune
 ledger keyed by `(appId, publisherKey, packageHash)`. `APPR-TRUST-DEGREE` landed:
 `source` maps to `direct` / `imported` / `introduced` and `isTrusted` takes a
-minimum degree. Remaining Phase 2 work:
-
-| ID                   | Type    | Requires          | Work                                                                                          |
-| -------------------- | ------- | ----------------- | --------------------------------------------------------------------------------------------- |
-| `APPR-OPTIONAL-CAPS` | feature | `APPR-RISK-CLASS` | A-7. Manifest v2 marks capabilities essential or optional; declining an optional one launches |
+minimum degree. `APPR-OPTIONAL-CAPS` landed with `CAP-MANIFEST-V2`: a v2 entry
+may set `optional: true`, and launch proceeds when every essential declaration
+is granted (an all-optional app may launch with an empty grant set).
 
 `APPR-UPDATE-DELTA` is executed: an update that adds a capability is named with its
 risk class and does not auto-activate.
-
-`APPR-OPTIONAL-CAPS` rides the same `formatVersion: 2` change as the scoping plan's
-`CAP-MANIFEST-V2` and should land with it, not as a second format bump.
 
 ### Phase 3 — the evaluator and the gates
 
@@ -337,10 +332,10 @@ Layer-3 vector. Remaining Phase 3 work:
 
 ### Phase 4 — attestations
 
-| ID                  | Type    | Requires           | Work                                                                                              |
-| ------------------- | ------- | ------------------ | ------------------------------------------------------------------------------------------------- |
-| `APPR-ATTESTATION`  | feature | `APPR-EVALUATE`    | §5.2 signed attestation type, announce-path distribution, verification                            |
-| `APPR-REVIEWER-SET` | feature | `APPR-ATTESTATION` | Scoped reviewer trust list, acquisition-provenance recording, and the independence rule (§5.2 #3) |
+Phase 4 is executed. `APPR-ATTESTATION` is the signed object and announce
+summary; `APPR-REVIEWER-SET` is the user's scoped list and the acquisition
+independence rule. Bootstrapping a reviewer set on a fresh device remains
+unsettled (plan §11).
 
 Deliberately last. It is the largest piece, the most speculative, and the only one that
 cannot be validated without other people — everything in Phases 0–3 improves the decision on
@@ -348,9 +343,11 @@ a single device with no network.
 
 ### Phase 5 — the normative record
 
-| ID               | Type | Requires            | Work                                                                                                                           |
-| ---------------- | ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `APPR-SPEC-RISK` | docs | `APPR-REVIEWER-SET` | SPEC-CAP grows the risk dimension; risk class in the `miniapp-sdk.md` table; LIMITATIONS §7 records the residual; F4 cross-ref |
+Phase 5 is executed. `APPR-SPEC-RISK` grew the risk dimension in
+[SPEC-CAP](../specs/spec-cap/spec.md), put risk class in the
+[miniapp-sdk.md](miniapp-sdk.md) table, recorded the residual in
+[LIMITATIONS.md](../LIMITATIONS.md) §7, and cross-referenced F4 without rewriting
+it (`CAP-SPEC-SCOPE` still owns that rewrite).
 
 ## 8. Risks
 
@@ -413,8 +410,8 @@ changed what the queue proposes; that ordering is the intent, not a side effect.
    argument for `sensitive` is that the second review is a real gate; the argument for
    `critical` is that it is authority over the approval system itself.
 3. **What are \_T_₁…\_T_₄ and _K_?** Needs the sim campaign, then a product call.
-4. **Does a `concern` attestation raise the bar, or only inform?** Raising it gives a trusted
-   reviewer a unilateral brake — desirable against a hostile author, and a denial-of-service
-   surface if that reviewer is compromised.
+4. **Does a `concern` attestation raise the bar, or only inform?** Decided with
+   `APPR-ATTESTATION`: a trusted concern zeros `attestationCount`, so review is
+   unmet and the override names it. That is the unilateral brake.
 5. **Do already-approved apps get re-evaluated when their tier changes** (a capability is
    reclassified, or a scoped grant lapses to unscoped), or does the tier bind at approval?

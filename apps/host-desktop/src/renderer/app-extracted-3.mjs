@@ -306,7 +306,7 @@ export function showHostModalImpl(
         capability.expiresAt != null
           ? ` · expires ${new Date(capability.expiresAt).toLocaleString()}`
           : "";
-      text.textContent = `${capability.id} — ${capability.description || ""}${expiry}`;
+      text.textContent = `${capability.id}${capability.optional === true ? " (optional)" : ""} — ${capability.description || ""}${capability.scopeLabel ? ` · ${capability.scopeLabel}` : ""}${expiry}`;
       label.append(input, text);
       __scope.modalEl.appendChild(label);
     }

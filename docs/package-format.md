@@ -1,8 +1,8 @@
-# TwistedPear Package Format (v1)
+# TwistedPear Package Format (v1 and v2)
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-08-18
 register: none
 -->
 
@@ -35,11 +35,15 @@ Signed mini-app packages for P2P distribution over Hyperdrive and Reticulum Reso
 
 ```json
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "com.example.hello",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": ["lxmf:send", "storage:kv"],
+  "capabilities": [
+    { "id": "lxmf:send", "scope": { "kind": "offer", "targetKind": "peer" } },
+    { "id": "announce:publish", "scope": { "kind": "own-namespace" } },
+    "storage:kv"
+  ],
   "icon": "icon.png",
   "minHostApi": "0.1.0",
   "files": [{ "path": "bundle.js", "sha256": "<hex>", "size": 1234 }],
@@ -48,6 +52,11 @@ Signed mini-app packages for P2P distribution over Hyperdrive and Reticulum Reso
   "signature": "<128-hex Ed25519 signature>"
 }
 ```
+
+`formatVersion: 1` packages with a string-only `capabilities` array still verify.
+A bare string under v2 keeps that unscoped meaning. `optional: true` marks a
+capability the user may decline and still launch. The host policy that refuses a
+scoped-set grant on a v1 package (`refuseUnscopedFormatV1Grant`) ships off.
 
 ### Signing payload
 

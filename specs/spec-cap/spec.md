@@ -34,7 +34,8 @@ Out of scope: how grant screens and confirmation dialogs are _rendered_
 
 The canonical registry is `CAPABILITY_DEFINITIONS` in
 [packages/miniapp-runtime](../../packages/miniapp-runtime/); the user-facing table is
-in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Risk class is assigned in
+in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Every capability also has a
+**risk class** — a second dimension of the taxonomy, assigned in
 [capability-risk.json](registry/capability-risk.json) and generated into
 [capability-risk.gen.ts](../../packages/protocol/src/capability-risk.gen.ts). Rules:
 
@@ -56,6 +57,58 @@ in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Risk class is assigned in
 - `device:stream:raw-inbound` is separate from `device:stream`; without it, accepted
   media terminates in host-rendered video/speaker sinks and raw frames do not enter the
   sandbox.
+
+### Risk class
+
+Four classes, floors from four questions on each registry row
+([app approval risk](../../docs/app-approval-risk.md)):
+
+| Class       | Meaning                                                                                                 |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
+| `benign`    | Local or read-only observation                                                                          |
+| `elevated`  | Today's capability-review dialog; identity, host-fixed AI/fetch, `low` device consent                   |
+| `sensitive` | App-chosen egress, irreversible publish/install, `elevated`/`sensitive` device tiers                    |
+| `critical`  | `relay:configure` only — misuse harms people who never approved the grant                               |
+
+`namesDestination` or `irreversibleOrThirdParty` floors at `sensitive`.
+`readsSensorSecretOrForeignData` floors at `elevated`. `standing` is recorded but is
+not a floor. `critical` requires `irreversibleOrThirdParty`. Device rows follow
+consent class except `device:share-policy:read`, which stays `benign`.
+
+App risk tier is the maximum requested class, promoted one step when a read authority
+and an egress authority co-occur (`appRiskTier`). Offer-bound destination grants drop
+from `sensitive` to `elevated` before the max is taken. `evaluateApproval` consumes
+that tier and returns which evidence is unmet; empty `unmet` is ordinary approval,
+and `overridable` is always true. The covering set is
+[conformance/vectors/approval.json](../../conformance/vectors/approval.json). There
+is no TLA+ twin — a model becomes necessary only if the override path grows states.
+
+Risk class never refuses a grant. It sets the evidence the host should gather, not a
+network-wide gate.
+
+### Scope
+
+A granted capability still does not name a destination. Destination-scoped authority
+is the host-authored `EgressOffer` lifecycle below — that machine is the scope
+dimension, with the same four cross-checked representations as the grant lifecycle.
+`assertEgressAllowed` is the permit function each emitting service runs after the
+capability check.
+
+Package format v2 lets a signed manifest declare the *shape* of that scope so the
+install review can distinguish "messages contacts you choose" from "messages anyone"
+before launch:
+
+| `scope.kind`     | Meaning                                                                 |
+| ---------------- | ----------------------------------------------------------------------- |
+| `offer`          | Live host-authored offers of the stated `targetKind`                    |
+| `own-namespace`  | This app's announce namespace only                                      |
+| omitted / string | v1 unscoped meaning                                                     |
+
+`lxmf:send` and `link:probe` take offers; `announce:publish` / `announce:subscribe`
+are own-namespace; `share:cas`, `peer:connect`, and `freenet:contract` stay
+host-fixed or per-operation confirmed ([capability scoping](../../docs/capability-scoping.md)).
+The host policy that refuses a scoped-set grant on a `formatVersion: 1` package
+(`refuseUnscopedFormatV1Grant`) ships off.
 
 ## Grant lifecycle
 
@@ -80,6 +133,12 @@ Guards are total over the event tape: an event whose guard fails, or that arrive
 phase with no matching edge, does not transition. Time enters only through event
 payloads (`at`, `ttlMs`) — the machine is pure per
 [SPEC-MACHINE](../spec-machine/spec.md).
+
+Host chrome appends a `ConsentRecord` (`packages/miniapp-runtime/src/consent-record.ts`)
+for every consent moment — confirmation, install review, and grant. The record is
+host-derived: canonical capability wording, never app-supplied copy.
+[`npm run test:hostile-authors`](../../conformance/hostile-authors/README.md) asserts
+INFORMED verdicts against that transcript.
 
 There is no "no expiry" grant: `approve` requires `ttlMs` and always sets `expiresAt`
 (a `ttlMs` of 0 expires at the approval instant). The executable table tolerates a null

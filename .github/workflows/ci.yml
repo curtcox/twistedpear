@@ -700,6 +700,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:hostile-apps
+      - run: npm run test:hostile-authors
       - run: npm run test:miniapp-benchmark
       - run: npm run test:sdk-interop
       - run: npm run test:dev-loop

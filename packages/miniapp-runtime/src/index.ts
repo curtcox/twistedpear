@@ -92,6 +92,19 @@ export type {
   HostConfirmationChannel,
 } from "./confirm.js";
 export {
+  ConsentTranscript,
+  consentAuthorities,
+  consentDiscloses,
+  consentRecordFromConfirmation,
+  installReviewConsentRecord,
+} from "./consent-record.js";
+export type {
+  ConsentAuthority,
+  ConsentKind,
+  ConsentRecord,
+  ConsentSubject,
+} from "./consent-record.js";
+export {
   NamespacedKvService,
   MiniappKvQuotaError,
 } from "./services/storage-kv.js";

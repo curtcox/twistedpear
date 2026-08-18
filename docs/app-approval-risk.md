@@ -38,7 +38,9 @@ its risk class and does not inherit the previous grant set
 (`capabilityUpdateDelta` / `grantsPreservedAcrossUpdate`). App risk tier is the
 maximum requested class, promoted one step when a read authority and an egress
 authority co-occur (`appRiskTier`). Offer-bound destination grants drop from
-`sensitive` to `elevated` before the max is taken.
+`sensitive` to `elevated` before the max is taken. A v2 capability entry may
+set `optional: true`; launch requires every essential declaration to be granted
+(`launchGrantsSatisfyDeclarations`) and does not require at least one grant.
 
 A first-seen ledger on `CatalogStore` records `(appId, publisherPublicKey,
 packageHash) → firstSeenAt` at ingest. It is saved with the catalog and is not
@@ -69,3 +71,16 @@ product call informed by the sim campaign. The executable table is
 [`conformance/vectors/approval.json`](../conformance/vectors/approval.json)
 (`npm run vectors:generate`). There is no TLA+ model — a model becomes
 necessary only if the override path grows states.
+
+A review is a signed `ReviewAttestation` of a `packageHash`, never of a
+publisher. Reviews travel like apps: a compact announce summary
+(`encodeReviewAnnounceData`) plus the freestanding signed object.
+`countTrustedAttestations` only counts keys the host already trusts, drops
+expired and self-signed reviews, and treats a trusted `concern` as a
+unilateral brake (`attestationCount` becomes 0 so `review` is unmet, still
+overridable). `ReviewerStore` is the user's own list: scoped (`sensitive` does
+not imply `critical`), and `independentReviewerKeys` refuses two keys from the
+same import batch plus any key that is the app's publisher. There is no global
+score. The normative record is [SPEC-CAP](../specs/spec-cap/spec.md) (risk
+dimension), the [miniapp-sdk.md](miniapp-sdk.md) table, and
+[LIMITATIONS.md](../LIMITATIONS.md) §7.

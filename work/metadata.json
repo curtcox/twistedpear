@@ -6,6 +6,12 @@
       "requires": ["APPR-EVALUATE"],
       "verify": "npx vitest run packages/app-registry/test/review-attestation.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/app-registry/src/review-attestation.ts",
+        "packages/app-registry/test/review-attestation.test.ts",
+        "docs/app-approval-risk.md"
+      ],
       "notes": "app-approval-risk-plan.md Phase 4 §5.2, finding A-6. A review is of an artifact, never of a publisher; reviews travel like apps do. Plan open question 4 — whether a 'concern' verdict raises the bar or only informs — is decided here: raising it gives a trusted reviewer a unilateral brake, desirable against a hostile author and a denial-of-service surface if that reviewer is compromised."
     },
     "APPR-DEVICE-AMBIENT": {
@@ -66,6 +72,12 @@
       "requires": ["APPR-RISK-CLASS", "CAP-MANIFEST-V2"],
       "verify": "npx vitest run packages/app-registry/test/optional-capabilities.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/app-registry/src/capability-declaration.ts",
+        "packages/app-registry/test/optional-capabilities.test.ts",
+        "packages/worklet-core/src/miniapp-host-shared-backends.mjs"
+      ],
       "notes": "app-approval-risk-plan.md Phase 2, finding A-7. Declining an optional capability still launches. Today launchWithCapabilityReview rejects an empty set, which teaches that declining is how you fail to launch. Rides the same formatVersion: 2 change as CAP-MANIFEST-V2 and should land with it, not as a second format bump."
     },
     "APPR-OVERRIDE-UX": {
@@ -87,6 +99,11 @@
       "requires": ["APPR-ATTESTATION"],
       "verify": "npx vitest run packages/app-registry/test/reviewer-set.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/app-registry/src/reviewer-set.ts",
+        "packages/app-registry/test/reviewer-set.test.ts"
+      ],
       "notes": "app-approval-risk-plan.md Phase 4 §5.2. An attestation counts only if the reviewer key is in the user's own list; no global score, no badge, no credential. K distinct keys are trivially Sybil-able, so the host refuses to count two keys that arrived in the same import, or any key from the app's own publisher, and displays the rest for the user to judge. Claiming to have solved Sybil resistance here would be the dishonest move. Deliberately last: the largest, most speculative piece, and the only one that cannot be validated without other people. Bootstrapping a reviewer set is explicitly unsettled (plan §11)."
     },
     "APPR-RISK-CLASS": {
@@ -109,6 +126,13 @@
       "requires": ["APPR-REVIEWER-SET"],
       "verify": "npm run test:doc-audit",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "specs/spec-cap/spec.md",
+        "docs/miniapp-sdk.md",
+        "LIMITATIONS.md",
+        "docs/security-review.md"
+      ],
       "notes": "app-approval-risk-plan.md Phase 5. Risk class in the miniapp-sdk.md table, LIMITATIONS §7 residual, and the F4 cross-reference."
     },
     "APPR-TIER": {
@@ -341,6 +365,12 @@
       "requires": ["CAP-EGRESS-WIRING"],
       "verify": "npx vitest run packages/app-registry/test/manifest-v2.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/app-registry/src/capability-declaration.ts",
+        "packages/app-registry/test/manifest-v2.test.ts",
+        "packages/worklet-core/src/miniapp-host-shared-backends.mjs"
+      ],
       "notes": "capability-scoping-plan.md Phase 3. formatVersion: 2, object-or-string capability entries, scope shape in the install review, v1 compatibility, and the host policy switch shipped off. Deliberately after Phase 2: shipping the format first would produce a signed declaration with nothing enforcing it."
     },
     "CAP-SPEC-SCOPE": {
@@ -348,6 +378,14 @@
       "requires": ["CAP-MANIFEST-V2"],
       "verify": "npm run test:doc-audit && npm run test:formal",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "specs/spec-cap/spec.md",
+        "docs/security-review.md",
+        "packages/miniapp-runtime/src/capabilities.ts",
+        "docs/miniapp-sdk.md",
+        "LIMITATIONS.md"
+      ],
       "notes": "capability-scoping-plan.md Phase 5. Scope across all four SPEC-CAP representations; rewrite security-review.md F4 (not silently, and not before the work lands); rewrite the capability descriptions in capabilities.ts and miniapp-sdk.md; update LIMITATIONS §7. Grant descriptions are the user's only account of what they approved, so they move with the enforcement — finding F-7."
     },
     "CAP-TTL": {
@@ -704,6 +742,13 @@
       "requires": ["HA-P0-BASELINE"],
       "verify": "node conformance/hostile-authors/run.mjs",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/src/consent-record.ts",
+        "packages/miniapp-runtime/test/consent-record.test.ts",
+        "conformance/hostile-authors/run.mjs",
+        "conformance/hostile-authors/README.md"
+      ],
       "notes": "hostile-author-plan.md P1 §5. Host chrome emits a structured record for every consent moment, and fixtures assert against the record rather than pixels — this is the oracle that makes an INFORMED verdict machine-checked rather than a belief about what the UI probably says. Buys the fixture oracle, a user-visible 'what did I approve' log, and a forcing function: authority conferred without a record is authority the user was never told about. Covers Surface 1/2/4/5 scenarios and wires test:hostile-authors into CI (add the npm script and the conformance/README.md and docs/README.md rows with it)."
     },
     "HA-P2-RENDER-ORACLE": {

@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-18T12:39:10.257Z",
-  "commit": "5003b836e72140d550c8eeb1c25ec8d36547214a",
+  "generatedAt": "2026-08-18T18:01:48.418Z",
+  "commit": "4995f227ad1e17cea218b4d64f681ba4bbfc8c87",
   "counts": {
-    "total": 20,
+    "total": 22,
     "high": 1,
-    "medium": 15,
+    "medium": 17,
     "low": 4
   },
   "ratchets": {
@@ -27,26 +27,10 @@
     },
     {
       "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-COVERAGE",
-      "summary": "coverage has been red since today: BleBridgeTest > encodes an advertisement FAILED / FAIL  |default| packages/cli/test/identity.test.ts > tp identity > creates an encrypted vault, exports it, and imports without changing the identity / Error: Test timed out in 60000ms.",
-      "ask": "Fix coverage before picking up anything else: `npm run coverage:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-VISUAL-REGRESSION",
-      "summary": "visual-regression has been red since today: guide/images/06-runtime-controls.png / guide/images/08-untrusted-publisher.png / Run npm run visual:baseline and review the image changes.",
-      "ask": "Fix visual-regression before picking up anything else: `npm run visual:check`."
-    },
-    {
-      "family": "gates",
       "check": "unverified-record",
       "severity": "medium",
       "where": "checks.json",
-      "summary": "55 gate result(s) were measured at 0ce8fdd3a05e, not at HEAD",
+      "summary": "55 gate result(s) were measured at 5003b836e721, not at HEAD",
       "ask": "Re-run `npm run checks:status`, or import what CI already measured with `npm run checks:status:import`. A green recorded against another commit is not evidence about this one."
     },
     {
@@ -64,6 +48,14 @@
       "where": "docs/linked-devices.md",
       "summary": "ID-SIBLING-GATE closed 2026-08-10, but its evidence docs/linked-devices.md changed on 2026-08-17",
       "ask": "Would `npx vitest run packages/host-core/test/sibling-decisions.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts` still pass? Re-run it if docs/linked-devices.md carries the behaviour ID-SIBLING-GATE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "docs/static-analysis.md",
+      "summary": "QL-HARNESS-MOBILE-TYPECHECK closed 2026-08-11, but its evidence docs/static-analysis.md changed on 2026-08-18",
+      "ask": "Would `npm run harness-mobile:typecheck` still pass? Re-run it if docs/static-analysis.md carries the behaviour QL-HARNESS-MOBILE-TYPECHECK claimed."
     },
     {
       "family": "closed",
@@ -101,8 +93,16 @@
       "family": "closed",
       "check": "instant-verification",
       "severity": "medium",
+      "where": "APPR-UPDATE-DELTA",
+      "summary": "APPR-UPDATE-DELTA (bug) closed 0 day(s) ago on a verification that ran in 600ms: `npx vitest run packages/app-registry/test/update-delta.test.ts`",
+      "ask": "Did `npx vitest run packages/app-registry/test/update-delta.test.ts` actually exercise APPR-UPDATE-DELTA, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "closed",
+      "check": "instant-verification",
+      "severity": "medium",
       "where": "BUG-REACT-DOM-MISMATCH",
-      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 5 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
+      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 6 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
       "ask": "Did `npm run test:web-widget-renderer` actually exercise BUG-REACT-DOM-MISMATCH, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -142,8 +142,24 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "ID-APPSCOPE",
-      "summary": "ID-APPSCOPE (bug) closed 7 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
+      "summary": "ID-APPSCOPE (bug) closed 8 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
       "ask": "Did `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` actually exercise ID-APPSCOPE, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "docs",
+      "check": "audit-date-behind-edits",
+      "severity": "medium",
+      "where": "docs/device-io.md",
+      "summary": "docs/device-io.md: audited 2026-08-02, last git edit 2026-08-18",
+      "ask": "Re-read docs/device-io.md against the code it describes, then move its `audited:` date — or fix what has drifted."
+    },
+    {
+      "family": "docs",
+      "check": "audit-date-behind-edits",
+      "severity": "medium",
+      "where": "specs/spec-device/spec.md",
+      "summary": "specs/spec-device/spec.md: audited 2026-07-23, last git edit 2026-08-18",
+      "ask": "Re-read specs/spec-device/spec.md against the code it describes, then move its `audited:` date — or fix what has drifted."
     },
     {
       "family": "closed",

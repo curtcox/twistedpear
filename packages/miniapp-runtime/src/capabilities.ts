@@ -65,12 +65,16 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinitionBase> = [
   },
   {
     id: "announce:subscribe",
-    description: "Receive announces in the app namespace.",
+    description: "Receive announces in this app's own namespace only.",
   },
-  { id: "announce:publish", description: "Publish the app destination." },
+  {
+    id: "announce:publish",
+    description: "Publish this app's own destination, not another app's.",
+  },
   {
     id: "lxmf:send",
-    description: "Send LXMF messages from the app destination.",
+    description:
+      "Send LXMF messages to contacts you choose in the host, from the app destination.",
   },
   {
     id: "lxmf:receive",
@@ -142,7 +146,7 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinitionBase> = [
   {
     id: "link:probe",
     description:
-      "Send a small test transmission to measure a connection (uses airtime and battery).",
+      "Send a small test transmission to a host-offered peer (uses airtime and battery).",
   },
   {
     id: "relay:configure",
@@ -192,12 +196,13 @@ export function isMiniappCapability(value: string): value is MiniappCapability {
 }
 
 export function validateManifestCapabilities(
-  capabilities: ReadonlyArray<string>,
+  capabilities: ReadonlyArray<string | { readonly id: string }>,
 ): MiniappCapability[] {
   const validated: MiniappCapability[] = [];
   const seen = new Set<string>();
 
-  for (const capability of capabilities) {
+  for (const entry of capabilities) {
+    const capability = typeof entry === "string" ? entry : entry.id;
     if (!isMiniappCapability(capability)) {
       throw new CapabilityError(
         "UNKNOWN_CAPABILITY",
@@ -232,7 +237,7 @@ export interface GrantRecord {
 export interface GrantSetOptions {
   readonly appId: string;
   readonly publisherPublicKey: string;
-  readonly declared: ReadonlyArray<string>;
+  readonly declared: ReadonlyArray<string | { readonly id: string }>;
   readonly requestedGrants: ReadonlyArray<string>;
   readonly now: number;
   readonly ttlMs: number;
@@ -578,7 +583,7 @@ export class GrantStore {
 
 export function assertCapabilityAllowed(options: {
   readonly capability: string;
-  readonly declared: ReadonlyArray<string>;
+  readonly declared: ReadonlyArray<string | { readonly id: string }>;
   readonly granted: ReadonlyArray<string>;
 }): MiniappCapability {
   const capabilities = validateManifestCapabilities([options.capability]);

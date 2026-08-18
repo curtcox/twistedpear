@@ -86,7 +86,8 @@ exit checklist before closing Phase 3.
 | ----------------------------- | ------------------------------------------------------------- | --------- |
 | UI golden (render model)      | `npm test -- packages/miniapp-runtime/test/ui-golden.test.ts` | M4        |
 | Hostile apps                  | `npm run test:hostile-apps`                                   | M2        |
-| Hostile-author baseline       | `node conformance/hostile-authors/baseline.mjs`               | P0        |
+| Hostile-author scenarios      | `npm run test:hostile-authors`                                | P1        |
+| Hostile-author P0 probes      | `node conformance/hostile-authors/baseline.mjs`               | P0        |
 | SDK interop                   | `npm run test:sdk-interop`                                    | M3        |
 | Dev loop                      | `npm run test:dev-loop`                                       | M6        |
 | Example apps                  | `npm run test:examples`                                       | M7        |

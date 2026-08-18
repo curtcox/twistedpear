@@ -2,6 +2,11 @@ import { MiniappBroker } from "../broker.js";
 import type { GrantRecord } from "../capabilities.js";
 import { grantTtlMsForCapabilities } from "../grant-ttl.js";
 import type { ConfirmationRequest } from "../confirm.js";
+import {
+  ConsentTranscript,
+  consentRecordFromConfirmation,
+  type ConsentRecord,
+} from "../consent-record.js";
 import { AiServiceError } from "../services/ai.js";
 import type {
   ActiveApp,
@@ -66,8 +71,11 @@ export abstract class MiniappHostLayer1Base {
   protected nextRuntimeId = 0;
   private egressOffers = initialEgressOfferStore();
   private nextEgressOfferId = 0;
+  readonly consentTranscript: ConsentTranscript;
 
   constructor(protected readonly options: MiniappHostOptions) {
+    this.consentTranscript =
+      options.consentTranscript ?? new ConsentTranscript();
     const wrapped = this.withForegroundConfirmations(options);
     this.broker = createHostBroker(options, {
       now: () => this.now(),
@@ -289,6 +297,10 @@ export abstract class MiniappHostLayer1Base {
     );
   }
 
+  recordConsent(record: ConsentRecord): void {
+    this.consentTranscript.append(record);
+  }
+
   protected logActive(appId: string, line: string): void {
     const entry = { appId, line, at: this.now() };
     const app = this.appById(appId);
@@ -310,9 +322,15 @@ export abstract class MiniappHostLayer1Base {
     return {
       ...options,
       confirmationChannel: {
-        confirm: (request: ConfirmationRequest) => {
+        confirm: async (request: ConfirmationRequest) => {
           this.assertForeground(request.appId, request.publisherPublicKey);
-          return channel.confirm(request);
+          const result = await channel.confirm(request);
+          if (result.approved) {
+            this.recordConsent(
+              consentRecordFromConfirmation(request, this.now()),
+            );
+          }
+          return result;
         },
       },
     };

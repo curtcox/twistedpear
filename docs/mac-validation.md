@@ -144,6 +144,7 @@ npm run test:budgets
 npm run test:harness-install
 npm run test:lan-mirror
 npm run test:hostile-apps
+npm run test:hostile-authors
 npm run test:sdk-interop
 npm run test:dev-loop
 npm run test:examples

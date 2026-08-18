@@ -61,7 +61,9 @@ export function createCatalogOps(deps) {
           installedAt: record?.installedAt ?? 0,
           rollbackAvailable:
             previous !== null && active !== null && active !== previous,
-          capabilities: record?.manifest.capabilities ?? [],
+          capabilities: (record?.manifest.capabilities ?? []).map((entry) =>
+            typeof entry === "string" ? entry : entry.id,
+          ),
           publisherPublicKey: record?.manifest.publisherPublicKey ?? "",
         };
       }),

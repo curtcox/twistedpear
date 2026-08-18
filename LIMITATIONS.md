@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-31
+audited: 2026-08-18
 register: none
 -->
 
@@ -226,7 +226,16 @@ limits iOS and Android impose from the ones this platform added on top.
 - No central registry means **no central moderation**: discovery is by announce/registry
   subscription, and malicious-app defense rests on signatures, capability grants, and
   user/community trust. LXMF block/mute lists and report records are local; exporting a report
-  does not submit it or cause a network-wide ban.
+  does not submit it or cause a network-wide ban. Capability **risk class**
+  ([SPEC-CAP](specs/spec-cap/spec.md), [app approval risk](docs/app-approval-risk.md))
+  sets the evidence the host should gather; unmet evidence is "could not verify" plus
+  override, never a refusal. The four-class assignment is argued, not measured.
+  Reviewer independence is acquisition-bounded, not Sybil-solved, and a fresh device
+  with an empty reviewer list gets no attestation benefit.
+  [security-review.md](docs/security-review.md) F4 records the residual: destination
+  scope is offer-bound where wired, v1 unscoped packages still install while the
+  refuse-v1 policy is off, and offer-authoring chrome is not yet a byproduct of
+  natural use.
 - Multipart propagation is a TwistedPear framing convention over ordinary signed LXMF
   messages, not an LXMF attachment standard. It defaults to 64 KiB, hard-stops at 1,000,000
   bytes, and uses 32-byte content frames with 16-byte titles to remain on the packet

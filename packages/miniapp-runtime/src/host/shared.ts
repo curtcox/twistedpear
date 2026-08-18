@@ -1,4 +1,5 @@
 import { GrantStore } from "../capabilities.js";
+import type { ConsentTranscript } from "../consent-record.js";
 import type { HostConfirmationChannel } from "../confirm.js";
 import { MiniappLifecycle } from "../lifecycle.js";
 import { type AnnounceBackend } from "../services/announce.js";
@@ -96,6 +97,8 @@ export interface MiniappHostOptions {
   ) => Promise<string>;
   readonly kvQuotaBytes?: number;
   readonly confirmationChannel?: HostConfirmationChannel;
+  /** Host-owned log of consent moments. Fixtures and chrome both read this. */
+  readonly consentTranscript?: ConsentTranscript;
   readonly aiBackend?: AiChatBackend;
   readonly workspaceLimits?: Partial<WorkspaceLimits>;
   readonly appsBackend?: AppsBackend;

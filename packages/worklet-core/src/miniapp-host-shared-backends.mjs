@@ -1,8 +1,11 @@
 /* global setTimeout */
 import {
   buildUnsignedManifest,
+  capabilityScopeLabel,
   compareSemver,
+  launchGrantsSatisfyDeclarations,
   packPackage,
+  parseCapabilityDeclarations,
   signManifest,
 } from "../../app-registry/dist/index.js";
 import { capabilityUpdateDelta } from "../../app-registry/dist/update-delta.js";
@@ -11,6 +14,7 @@ import {
   describeCapability,
   validateManifestCapabilities,
 } from "../../miniapp-runtime/dist/capabilities.js";
+import { installReviewConsentRecord } from "../../miniapp-runtime/dist/consent-record.js";
 import {
   grantTtlMsForCapabilities,
   isGrantLifecycleEffective,
@@ -39,14 +43,14 @@ export function createDevSideLoadMethod({
       throw new Error("Developer mode is disabled");
     }
 
-    validateManifestCapabilities(manifest.capabilities ?? []);
+    const declared = validateManifestCapabilities(manifest.capabilities ?? []);
     devBadgeRef.current = true;
     await host.launch(
       {
         name: manifest.name,
         version: manifest.version,
         entry: manifest.entry ?? "bundle.js",
-        capabilities: manifest.capabilities ?? [],
+        capabilities: declared,
         publisherPublicKey: manifest.publisherPublicKey ?? "dev",
       },
       bundleBytes,
@@ -398,7 +402,11 @@ export async function launchWithCapabilityReview({
   previousDeclared = [],
 }) {
   devBadgeRef.current = false;
-  const declared = validateManifestCapabilities(record.manifest.capabilities);
+  const declarations = parseCapabilityDeclarations(
+    record.manifest.capabilities,
+    record.manifest.formatVersion ?? 1,
+  );
+  const declared = validateManifestCapabilities(declarations);
   const at = now();
   const lifecycles = await grantStore.authority(
     record.appId,
@@ -421,21 +429,36 @@ export async function launchWithCapabilityReview({
     publisherPublicKey: record.manifest.publisherPublicKey,
     version: record.manifest.version,
     added: delta.added,
-    capabilities: declared.map((id) => ({
-      id,
-      description: describeCapability(id),
-      riskClass: riskClassForCapabilityId(id),
-      isNewSinceLastApproval: addedIds.has(id),
-      granted: preGranted.has(id) && !addedIds.has(id),
+    capabilities: declarations.map((declaration) => ({
+      id: declaration.id,
+      description: describeCapability(declaration.id),
+      riskClass: riskClassForCapabilityId(declaration.id),
+      isNewSinceLastApproval: addedIds.has(declaration.id),
+      granted: preGranted.has(declaration.id) && !addedIds.has(declaration.id),
       expiresAt:
-        preGranted.has(id) && !addedIds.has(id)
-          ? (lifecycles[id]?.expiresAt ?? null)
+        preGranted.has(declaration.id) && !addedIds.has(declaration.id)
+          ? (lifecycles[declaration.id]?.expiresAt ?? null)
           : null,
+      optional: declaration.optional,
+      scope: declaration.scope,
+      scopeLabel: capabilityScopeLabel(declaration.scope),
     })),
   });
   if (reply === null || reply.accept !== true) {
     throw new Error("Launch cancelled at capability review");
   }
+
+  host.recordConsent?.(
+    installReviewConsentRecord({
+      at,
+      token: `review:${record.appId}:${record.manifest.version}`,
+      appId: record.appId,
+      publisherPublicKey: record.manifest.publisherPublicKey,
+      packageId: record.packageHash ?? null,
+      capabilities: declared,
+      added: addedIds,
+    }),
+  );
 
   if (Array.isArray(reply.grants)) {
     await grantStore.set({
@@ -457,8 +480,8 @@ export async function launchWithCapabilityReview({
     record.appId,
     record.manifest.publisherPublicKey,
   );
-  if (grants === null || grants.granted.length === 0) {
-    throw new Error("Grant at least one declared capability before launch");
+  if (!launchGrantsSatisfyDeclarations(declarations, grants?.granted ?? [])) {
+    throw new Error("Grant every required capability before launch");
   }
 
   if (bringToForegroundIfRunning(host, record)) {
@@ -472,7 +495,7 @@ export async function launchWithCapabilityReview({
       name: record.appId,
       version: record.manifest.version,
       entry: record.manifest.entry,
-      capabilities: record.manifest.capabilities,
+      capabilities: declared,
       publisherPublicKey: record.manifest.publisherPublicKey,
     },
     bundle,
@@ -492,12 +515,17 @@ export async function launchWithoutReview({
   devBadgeRef,
 }) {
   devBadgeRef.current = false;
+  const declarations = parseCapabilityDeclarations(
+    record.manifest.capabilities,
+    record.manifest.formatVersion ?? 1,
+  );
+  const declared = validateManifestCapabilities(declarations);
   const grants = await grantStore.get(
     record.appId,
     record.manifest.publisherPublicKey,
   );
-  if (grants === null || grants.granted.length === 0) {
-    throw new Error("Grant at least one declared capability before launch");
+  if (!launchGrantsSatisfyDeclarations(declarations, grants?.granted ?? [])) {
+    throw new Error("Grant every required capability before launch");
   }
 
   if (bringToForegroundIfRunning(host, record)) {
@@ -511,7 +539,7 @@ export async function launchWithoutReview({
       name: record.appId,
       version: record.manifest.version,
       entry: record.manifest.entry,
-      capabilities: record.manifest.capabilities,
+      capabilities: declared,
       publisherPublicKey: record.manifest.publisherPublicKey,
     },
     bundle,

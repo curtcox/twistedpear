@@ -28,6 +28,10 @@ service that still names a destination.
 - `GrantStore.set` requires an explicit `ttlMs`; default follows `consentClass`
   (`CAP-TTL`).
 - `test:hostile-apps` probes those defects plus the zero-capability observation floor.
+- Package format v2 (`CAP-MANIFEST-V2`): new packs emit `formatVersion: 2` with
+  object-or-string capability entries (`scope` and `optional`). v1 string arrays
+  still verify. The host policy that refuses a scoped-set grant on a v1 package
+  ships **off** (`refuseUnscopedFormatV1Grant`).
 
 ## Egress offers
 
@@ -63,5 +67,4 @@ Open questions decided with this wiring:
 ## Not yet enforced at the broker
 
 - Host chrome that authors offers as a byproduct of natural use, plus list/revoke.
-- Package format v2 scoped declarations.
 - Per-offer `maxBytesPerDay` enforcement and broker attribution.

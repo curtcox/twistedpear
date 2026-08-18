@@ -234,6 +234,7 @@ export function buildStages(options) {
           npmScript("test:harness-install"),
           npmScript("test:lan-mirror"),
           npmScript("test:hostile-apps"),
+          npmScript("test:hostile-authors"),
           npmScript("test:sdk-interop"),
           npmScript("test:dev-loop"),
           npmScript("test:examples"),

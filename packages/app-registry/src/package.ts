@@ -1,5 +1,6 @@
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import { bytesToHex, equalBytes, hexToBytes } from "@twistedpear/reticulum-ts";
+import type { ManifestCapabilityEntry } from "./capability-declaration.js";
 import {
   PACKAGE_FORMAT_VERSION,
   compareSemver,
@@ -40,7 +41,8 @@ export interface PackOptions {
   readonly name: string;
   readonly version: string;
   readonly entry: string;
-  readonly capabilities?: ReadonlyArray<string>;
+  readonly capabilities?: ReadonlyArray<ManifestCapabilityEntry>;
+  readonly formatVersion?: number;
   readonly icon?: string | null;
   readonly minHostApi?: string;
   readonly driveKey: string;
@@ -114,7 +116,7 @@ export function buildUnsignedManifest(
   const fileEntries = hashFileEntries(provider, options.files);
 
   return {
-    formatVersion: PACKAGE_FORMAT_VERSION,
+    formatVersion: options.formatVersion ?? PACKAGE_FORMAT_VERSION,
     name: options.name,
     version: options.version,
     entry: options.entry,

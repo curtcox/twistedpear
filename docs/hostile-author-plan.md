@@ -273,7 +273,7 @@ table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), chained in the order below
 | Phase  | Work                                                                                                                                                                    | Exit criterion                                                                                                                          |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **P0** | Verify every "today" column above against the running code. No new mechanisms. Produce the findings list with real verdicts.                                            | [conformance/hostile-authors/README.md](../conformance/hostile-authors/README.md) catalog with each row's verdict measured, not guessed |
-| **P1** | `ConsentRecord` transcript (§5) + fixture driver + all Surface 1/2/4/5 scenarios that are broker- or transcript-observable. Wire `test:hostile-authors` into CI.        | Suite runs green or red on purpose; no scenario is "untestable"                                                                         |
+| **P1** | Executed. `ConsentRecord` in `packages/miniapp-runtime/src/consent-record.ts`; MiniappHost records confirmations; install-review records from `launchWithCapabilityReview`; `npm run test:hostile-authors` is the fixture driver. Surface 3 stays PENDING-P2. | Suite runs green with a verdict per scenario; no scenario is UNMEASURED                                                                 |
 | **P2** | Render oracle Layer A (CHROME-R7/R8 in `ui/validate.ts`) → Surface 3 scenarios; Layer B snapshot geometry → promote CHROME-R1 and R3 to normative.                      | SPEC-CHROME has no informative-only rules left                                                                                          |
 | **P3** | Fix P0/P1/P2 findings: confirmation rate limiting, host-derived summaries, confusable-name flagging, capability-delta review on update, per-app moderation granularity. | Every finding BLOCKED, INFORMED-with-transcript, or CONTAINED-with-a-metric                                                             |
 | **P4** | Scoped-egress scenarios against manifest v2 / `EgressOffer`; flip HA-30/HA-36 green as scoping Phase 2 lands. Hook rung 4 to the sim campaign.                          | F4 rewritten from acceptance into enumerated residual; LIMITATIONS §7 updated                                                           |
@@ -284,17 +284,16 @@ in both directions.
 
 ## 9. Registration chores
 
-The suite is not done when it runs. It is done when the repo knows about it:
+The suite is not done when it runs. It is done when the repo knows about it.
 
-- `package.json` — `test:hostile-authors`; nightly or PR tier per [ci-policy.md](ci-policy.md).
-- [conformance/README.md](../conformance/README.md) — suite table row.
-- [docs/README.md](README.md) — index row under "Security, quality, and validation".
-- [SPEC-CHROME](../specs/spec-chrome/spec.md) — R7/R8 text; R1/R3 promoted; normative-artifact links.
-- [SPEC-CAP](../specs/spec-cap/spec.md) — the consent transcript as a grant-lifecycle artifact.
-- [security-review.md](security-review.md) — F4 rewritten (per the scoping plan, **not**
-  silently edited before the work lands) and a new finding class for author deception.
+P1 registered: `test:hostile-authors` on the `miniapp-conformance` job,
+[conformance/README.md](../conformance/README.md), the docs index row, and the
+consent-transcript paragraph in [SPEC-CAP](../specs/spec-cap/spec.md). Remaining:
+
+- [SPEC-CHROME](../specs/spec-chrome/spec.md) — R7/R8 text; R1/R3 promoted (P2).
+- [security-review.md](security-review.md) — F4 rewritten (P4, not before scoping lands)
+  and a new finding class for author deception.
 - [LIMITATIONS.md](../LIMITATIONS.md) §7 — residuals that survive P3.
-- `checks.json` / ratchets — whatever `conformance/doc-audit` demands of a new suite.
 
 ## 10. What this plan will not settle
 

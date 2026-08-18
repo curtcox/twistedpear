@@ -1,4 +1,9 @@
-import { unpackPackage, verifyPackage } from "../../app-registry/dist/index.js";
+import {
+  capabilityScopeLabel,
+  parseCapabilityDeclarations,
+  unpackPackage,
+  verifyPackage,
+} from "../../app-registry/dist/index.js";
 import { toCatalogEntryLike, verify256t } from "../../cas-256t/dist/index.js";
 import {
   PackageResourceClient,
@@ -63,9 +68,11 @@ export function createInstallFromT256(deps) {
       hostApiVersion: HOST_API_VERSION,
       minVersion: installed.latestVersion(appId) ?? undefined,
     });
-    const declared = validateManifestCapabilities(
+    const declarations = parseCapabilityDeclarations(
       verified.manifest.capabilities,
+      verified.manifest.formatVersion ?? 1,
     );
+    validateManifestCapabilities(declarations);
     const trusted = await deps
       .ensureTrustStore()
       .isTrusted(verified.manifest.publisherPublicKey);
@@ -85,10 +92,13 @@ export function createInstallFromT256(deps) {
       publisherPublicKey: verified.manifest.publisherPublicKey,
       trusted,
       trustedLabel: trustedEntry?.label ?? null,
-      capabilities: declared.map((id) => ({
-        id,
-        description: id,
+      capabilities: declarations.map((declaration) => ({
+        id: declaration.id,
+        description: declaration.id,
         granted: false,
+        optional: declaration.optional,
+        scope: declaration.scope,
+        scopeLabel: capabilityScopeLabel(declaration.scope),
       })),
     });
     if (review === null || review.accept !== true) {

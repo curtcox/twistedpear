@@ -18,13 +18,13 @@ work lands.
 
 ## 1. The decision this plan implements
 
-[security-review.md](security-review.md) F4 currently accepts:
+[security-review.md](security-review.md) F4 previously accepted:
 
 > A granted capability allows full use of that host service for the app namespace.
 
 **That acceptance is withdrawn.** Least authority _within_ a granted capability is now a
-requirement for anything that emits bytes to a network. F4 is superseded by this plan and
-must be rewritten when Phase 2 lands, not silently edited before then.
+requirement for anything that emits bytes to a network. F4 is rewritten as an
+enumerated residual in `CAP-SPEC-SCOPE`.
 
 Package-format changes are in scope, so the fix is not limited to minting more capability
 ids the way device tiers do.
@@ -158,9 +158,11 @@ Remaining Phase 2 work:
 
 ### Phase 3 — scoped declarations (package format v2)
 
-| ID                | Type    | Requires            | Work                                                                                                                                                   |
-| ----------------- | ------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CAP-MANIFEST-V2` | feature | `CAP-EGRESS-WIRING` | `formatVersion: 2`, object-or-string capability entries, scope shape in the install review, v1 compatibility, and the host policy switch (shipped off) |
+Phase 3 is executed. `CAP-MANIFEST-V2` accepts `formatVersion: 1 | 2`, emits 2
+for new packs, parses object-or-string capability entries, shows `scope` in the
+install/launch review, and lands `refuseUnscopedFormatV1Grant` **off**.
+`APPR-OPTIONAL-CAPS` rode the same bump: `optional: true` is not required for
+launch.
 
 Deliberately after Phase 2: build the enforcement mechanism first, then generalize the
 declaration to describe something that exists. Shipping the format first would produce a
@@ -174,9 +176,11 @@ signed declaration with nothing enforcing it.
 
 ### Phase 5 — update the normative record
 
-| ID               | Type | Requires          | Work                                                                                                                                                                                                        |
-| ---------------- | ---- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CAP-SPEC-SCOPE` | docs | `CAP-MANIFEST-V2` | SPEC-CAP grows the scope dimension across all four representations; rewrite F4 in the security review; rewrite the capability descriptions in `capabilities.ts` and `miniapp-sdk.md`; update LIMITATIONS §7 |
+Phase 5 is executed. `CAP-SPEC-SCOPE` grew the scope dimension in
+[SPEC-CAP](../specs/spec-cap/spec.md) (declaration shape plus the existing offer
+machine's four representations), rewrote F4 from acceptance into an enumerated
+residual, moved grant descriptions with the enforcement, and updated
+[LIMITATIONS.md](../LIMITATIONS.md) §7.
 
 Grant descriptions are the user's only account of what they approved, so they are part of
 the security surface — finding F-7. They move with the enforcement or the enforcement is

@@ -9,7 +9,7 @@
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "31d678052549310f77bf0e269843b40567fad73d5a76ac0de324d2f5641c7895"
+      "sha256": "88a97ca73e26f958a7655234f3d2dc6e96458d6c47d151ed82046616ffa69804"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
@@ -33,7 +33,11 @@
     },
     "miniapp-runtime-worklet.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "8800b1f4efb77120f793421c697b08dd572478ff1e18536eec29c85b1343045d"
+      "sha256": "3251a8c9a893a7f71a8e5ce361bd659dadd56859288d0f01fa6daf370ebbdfd7"
+    },
+    "app-registry.api.md": {
+      "package": "packages/app-registry",
+      "sha256": "6dc6b768ac8c30e190e9fc683511e927ce1e1a80d16a1cc0b7abd5cd9368b66a"
     },
     "host-core-web.api.md": {
       "package": "packages/host-core",
@@ -50,10 +54,6 @@
     "reticulum-ts-web.api.md": {
       "package": "packages/reticulum-ts",
       "sha256": "fa8aafe1e2b72bf1ebd0ca17041e4dc1609b076bc9e82dd761a17e6881b89b55"
-    },
-    "app-registry.api.md": {
-      "package": "packages/app-registry",
-      "sha256": "cf85c7fec8791488b92e71adf21674356ceb47080c77753d33c133825350f2c1"
     },
     "effects.api.md": {
       "package": "packages/effects",

@@ -1,4 +1,18 @@
 export {
+  SCOPED_SET_CAPABILITY_IDS,
+  CapabilityDeclarationError,
+  capabilityDeclarationIds,
+  capabilityScopeLabel,
+  launchGrantsSatisfyDeclarations,
+  parseCapabilityDeclarations,
+  refuseUnscopedFormatV1Grant,
+} from "./capability-declaration.js";
+export type {
+  CapabilityDeclaration,
+  ManifestCapabilityEntry,
+  ManifestCapabilityScope,
+} from "./capability-declaration.js";
+export {
   PACKAGE_FORMAT_VERSION,
   MANIFEST_SIGNING_FIELDS,
   compareSemver,
@@ -77,3 +91,28 @@ export type {
   TrustedPublisher,
   TrustSource,
 } from "./trust.js";
+export {
+  REVIEW_ANNOUNCE_ASPECT,
+  REVIEW_ATTESTATION_FORMAT,
+  countTrustedAttestations,
+  decodeReviewAnnounceData,
+  encodeReviewAnnounceData,
+  reviewAnnounceSummary,
+  reviewDestinationName,
+  signReviewAttestation,
+  verifyReviewAttestation,
+} from "./review-attestation.js";
+export type {
+  AttestationTally,
+  ReviewAnnounceSummary,
+  ReviewAttestation,
+  ReviewBasis,
+  ReviewVerdict,
+  UnsignedReviewAttestation,
+} from "./review-attestation.js";
+export {
+  ReviewerStore,
+  independentReviewerKeys,
+  reviewerCoversScope,
+} from "./reviewer-set.js";
+export type { ReviewerScope, TrustedReviewer } from "./reviewer-set.js";

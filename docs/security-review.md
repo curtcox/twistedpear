@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-21
+audited: 2026-08-18
 register: none
 -->
 
@@ -70,10 +70,22 @@ on weak hardware (H11).
 **Mitigation:** deny-by-default broker, no ambient imports in sandbox bootstrap, hostile
 conformance + continuous fuzzing. Revisit after Bare Worker device measurements.
 
-### F4 — Residual: publisher trust (accepted by design)
+### F4 — Residual: destination-scoped egress (mitigated)
 
-A granted capability allows full use of that host service for the app namespace. Malicious
-but signed packages are a social/trust problem, not a sandbox bypass.
+A granted capability is no longer full use of that host service for any destination
+the app names. Destination-scoped authority is a host-authored `EgressOffer`;
+services that emit bytes call `assertEgressAllowed` after the capability check
+([capability scoping](capability-scoping.md)). Manifest v2 declares the scope shape
+the install review shows.
+
+**Still residual:**
+
+- The host policy that refuses a scoped-set grant on a `formatVersion: 1` package
+  ships off, so v1 string capabilities still install.
+- Offer-authoring chrome is still plan work (`CAP-EGRESS-CHROME`); tests mint offers
+  directly.
+- A live offer plus the grant is full use of that `(app, capability, target)`
+  triple. Publisher signature authenticates identity, not behaviour.
 
 ### F5 — Residual: cross-app storage (verified)
 

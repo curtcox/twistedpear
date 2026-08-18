@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-31
+audited: 2026-08-18
 register: none
 -->
 
@@ -13,32 +13,42 @@ private keys, sockets, filesystems, and Bare APIs are never exposed to app code.
 
 Capabilities are declared in `app.manifest.json` and granted by the user at install. The
 grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in the runtime).
+Risk class is assigned in
+[`capability-risk.json`](../specs/spec-cap/registry/capability-risk.json) and sets the
+approval evidence bar ([app approval risk](app-approval-risk.md)); it is not a refusal.
 
-| Capability                  | User-facing description                                                                |
-| --------------------------- | -------------------------------------------------------------------------------------- |
-| `identity`                  | Use an app-scoped identity for signing and addressing.                                 |
-| `presence`                  | Read coarse peer/interface presence and host info.                                     |
-| `announce:subscribe`        | Receive announces in the app namespace.                                                |
-| `announce:publish`          | Publish the app destination.                                                           |
-| `lxmf:send`                 | Send LXMF messages from the app destination.                                           |
-| `lxmf:receive`              | Receive LXMF messages for the app destination.                                         |
-| `storage:kv`                | Store local key/value data for this app.                                               |
-| `storage:hyperbee`          | Store ordered local Hyperbee data for this app.                                        |
-| `resource:fetch`            | Fetch package resources through host budget rules.                                     |
-| `workspace`                 | Read and write project source files in this app's private workspace.                   |
-| `ai:chat`                   | Send prompts to the host-configured AI service; prompts may include workspace content. |
-| `ai:embed`                  | Send bounded text to the host-configured embedding model and rank vectors locally.     |
-| `apps:package`              | Package and sign apps under this device's publisher identity (asks each time).         |
-| `apps:publish`              | Publish signed apps so other users can find and install them (asks each time).         |
-| `apps:install`              | Ask the host to install apps from a 256t id (asks each time, with capability review).  |
-| `apps:preview`              | Run a built app in the host's sandboxed dev-preview slot.                              |
-| `apps:channel`              | Send and receive messages with another running mini-app named when you grant this.     |
-| `share:cas`                 | Store and retrieve bounded content-addressed data shared by 256t id.                   |
-| `peer:connect`              | Ask trusted host chrome to find, confirm, and connect an app-scoped peer.              |
-| `link:observe`              | Read app-scoped peer link quality and two-sided media readiness.                       |
-| `link:probe`                | Request a bounded active measurement for one app-scoped peer.                          |
-| `device:share-policy:read`  | Read this app's live host-authored outbound media offers.                              |
-| `device:stream:raw-inbound` | Receive raw inbound media instead of a host-rendered sink.                             |
+| Capability                  | Risk        | User-facing description                                                                |
+| --------------------------- | ----------- | -------------------------------------------------------------------------------------- |
+| `identity`                  | elevated    | Use an app-scoped identity for signing and addressing.                                 |
+| `presence`                  | benign      | Read coarse peer/interface presence and host info.                                     |
+| `announce:subscribe`        | elevated    | Receive announces in this app's own namespace only.                            |
+| `announce:publish`          | elevated    | Publish this app's own destination, not another app's.                         |
+| `lxmf:send`                 | sensitive   | Send LXMF messages to contacts you choose in the host, from the app destination. |
+| `lxmf:receive`              | sensitive   | Receive LXMF messages for the app destination.                                         |
+| `storage:kv`                | benign      | Store local key/value data for this app.                                               |
+| `storage:hyperbee`          | benign      | Store ordered local Hyperbee data for this app.                                        |
+| `resource:fetch`            | elevated    | Fetch package resources through host budget rules.                                     |
+| `workspace`                 | benign      | Read and write project source files in this app's private workspace.                   |
+| `ai:chat`                   | elevated    | Send prompts to the host-configured AI service; prompts may include workspace content. |
+| `ai:embed`                  | elevated    | Send bounded text to the host-configured embedding model and rank vectors locally.     |
+| `apps:package`              | sensitive   | Package and sign apps under this device's publisher identity (asks each time).         |
+| `apps:publish`              | sensitive   | Publish signed apps so other users can find and install them (asks each time).         |
+| `apps:install`              | sensitive   | Ask the host to install apps from a 256t id (asks each time, with capability review).  |
+| `apps:preview`              | elevated    | Run a built app in the host's sandboxed dev-preview slot.                              |
+| `apps:channel`              | elevated    | Send and receive messages with another running mini-app named when you grant this.     |
+| `share:cas`                 | elevated    | Store and retrieve bounded content-addressed data shared by 256t id.                   |
+| `peer:connect`              | elevated    | Ask trusted host chrome to find, confirm, and connect an app-scoped peer.              |
+| `link:observe`              | benign      | See which peers are reachable and how good the connection to each is.          |
+| `link:probe`                | elevated    | Send a small test transmission to a host-offered peer (uses airtime and battery). |
+| `relay:read`                | benign      | Read host relay mode, interface status, and diagnostics.                               |
+| `relay:configure`           | critical    | Turn this device's radios, camera, microphone, speaker, and internet-push relaying on or off, and forward other people's traffic. This grant permits changes without another prompt. |
+| `freenet:contract`          | sensitive   | Read and publish Freenet contract state. Updates are published to a global network and cannot be recalled (asks each time for put/update). |
+| `device:share-policy:read`  | benign      | Read this app's live host-authored outbound media offers.                              |
+| `device:stream:raw-inbound` | sensitive   | Receive raw inbound media instead of a host-rendered sink.                             |
+
+Other device capabilities follow consent class and are listed with each class in
+[device-classes](device-classes/). The full assignment, including floor questions, is
+[capability-risk.json](../specs/spec-cap/registry/capability-risk.json).
 
 Unknown capability strings block install. Adding a capability bumps `HOST_API_VERSION` minor
 (the dev-environment capabilities above shipped in `0.2.0`; `host.info()` shipped in `0.3.0`).

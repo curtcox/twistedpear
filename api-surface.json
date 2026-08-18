@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "total": 7981,
-  "cap": 7978,
+  "total": 8045,
+  "cap": 8045,
   "packages": 19,
   "entryPoints": 44,
   "unresolved": 0,
-  "violations": 3,
+  "violations": 0,
   "findings": [
     {
       "name": "protocol",
       "entryPoints": {
-        ".": 5917
+        ".": 5926
       },
-      "total": 5917
+      "total": 5926
     },
     {
       "name": "reticulum-ts",
@@ -26,12 +26,12 @@
     {
       "name": "miniapp-runtime",
       "entryPoints": {
-        ".": 294,
-        "./worklet": 91,
+        ".": 306,
+        "./worklet": 100,
         "./sandbox/web": 2,
         "./ui": 13
       },
-      "total": 400
+      "total": 421
     },
     {
       "name": "host-core",
@@ -65,6 +65,13 @@
       "total": 136
     },
     {
+      "name": "app-registry",
+      "entryPoints": {
+        ".": 94
+      },
+      "total": 94
+    },
+    {
       "name": "bridge-hyper",
       "entryPoints": {
         ".": 46,
@@ -88,13 +95,6 @@
         ".": 64
       },
       "total": 64
-    },
-    {
-      "name": "app-registry",
-      "entryPoints": {
-        ".": 60
-      },
-      "total": 60
     },
     {
       "name": "sim-campaign",

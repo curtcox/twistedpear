@@ -28,7 +28,8 @@ Node-only alias. Use `npm run check:all -- --only=<id>` for one gate and
 
 The `miniapp-conformance` job also runs `npm run test:cookbook`: all 25 cookbook bundles
 are type/lint-checked against the SDK, validated, packed through the CLI, and launched far
-enough to render in the sandbox runtime.
+enough to render in the sandbox runtime. The same job runs `npm run test:hostile-authors`,
+the consent-transcript oracle for author-deception scenarios.
 
 The `ntfy-service` job runs `NTFY_SERVICE_REQUIRED=1 npm run test:ntfy-service`: a pinned
 ntfy container on a loopback port carries a real two-host peer-discovery pairing, and the

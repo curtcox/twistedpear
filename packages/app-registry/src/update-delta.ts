@@ -11,10 +11,19 @@ export interface CapabilityUpdateDelta {
   readonly retained: ReadonlyArray<string>;
 }
 
-function unique(ids: ReadonlyArray<string>): string[] {
+export type DeclaredCapabilityList = ReadonlyArray<
+  string | { readonly id: string }
+>;
+
+function entryId(entry: string | { readonly id: string }): string {
+  return typeof entry === "string" ? entry : entry.id;
+}
+
+function unique(ids: DeclaredCapabilityList): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const id of ids) {
+  for (const entry of ids) {
+    const id = entryId(entry);
     if (seen.has(id)) continue;
     seen.add(id);
     out.push(id);
@@ -35,8 +44,8 @@ function named(
  * implied to be granted.
  */
 export function capabilityUpdateDelta(
-  previousDeclared: ReadonlyArray<string>,
-  nextDeclared: ReadonlyArray<string>,
+  previousDeclared: DeclaredCapabilityList,
+  nextDeclared: DeclaredCapabilityList,
   riskClassFor: (id: string) => string,
 ): CapabilityUpdateDelta {
   const previous = unique(previousDeclared);
@@ -58,9 +67,9 @@ export function capabilityUpdateDelta(
  * An update that introduces a capability does not auto-activate it.
  */
 export function grantsPreservedAcrossUpdate(
-  previouslyGranted: ReadonlyArray<string>,
-  nextDeclared: ReadonlyArray<string>,
+  previouslyGranted: DeclaredCapabilityList,
+  nextDeclared: DeclaredCapabilityList,
 ): string[] {
-  const declared = new Set(nextDeclared);
+  const declared = new Set(unique(nextDeclared));
   return unique(previouslyGranted).filter((id) => declared.has(id));
 }

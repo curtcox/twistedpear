@@ -159,10 +159,17 @@ function HostReviewKindBody({
                     ? `install-grant-${capability.id}`
                     : `launch-grant-${capability.id}`
                 }
-                label={capability.id}
+                label={
+                  capability.optional === true
+                    ? `${capability.id} (optional)`
+                    : capability.id
+                }
                 value={modal.grants.includes(capability.id)}
                 onChange={(granted) => onGrantToggle(capability.id, granted)}
               />
+              {capability.scopeLabel !== undefined ? (
+                <Text style={styles.muted}>{capability.scopeLabel}</Text>
+              ) : null}
               {capability.expiresAt !== null ? (
                 <Text style={styles.muted}>
                   Expires{" "}

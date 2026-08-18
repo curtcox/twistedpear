@@ -69,6 +69,7 @@
     "test:dist-soak": "npm run build && node conformance/dist-soak/run.mjs",
     "test:chrome": "npm run build && node conformance/chrome/run.mjs",
     "test:hostile-apps": "npm run build && node conformance/hostile-apps/run.mjs",
+    "test:hostile-authors": "npm run build && node conformance/hostile-authors/run.mjs",
     "test:dev-loop": "npm run build && node conformance/dev-loop/run.mjs",
     "test:bind-loopback": "npm run build && node conformance/bind-loopback/run.mjs",
     "test:sdk-interop": "npm run build && node conformance/sdk-interop/run.mjs",
