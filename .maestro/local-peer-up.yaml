@@ -62,6 +62,11 @@ appId: network.twistedpear.harness
                   - tapOn: "http://localhost:8081"
             - runFlow:
                 when:
+                  visible: "http://.*:8081"
+                commands:
+                  - tapOn: "http://.*:8081"
+            - runFlow:
+                when:
                   visible: "Continue"
                 commands:
                   - tapOn: "Continue"

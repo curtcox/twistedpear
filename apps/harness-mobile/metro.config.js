@@ -39,6 +39,7 @@ const nativeNodeStubs = {
   fs: nodeEmptyStub,
   path: nodeEmptyStub,
   crypto: nodeEmptyStub,
+  buffer: path.resolve(harnessRoot, "stubs/buffer.js"),
 };
 
 const packageAliases = {

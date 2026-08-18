@@ -41,10 +41,26 @@ appId: network.twistedpear.harness
             visible: "http://10.0.2.2:8081"
           commands:
             - tapOn: "http://10.0.2.2:8081"
-      - extendedWaitUntil:
-          visible: "Continue"
-          timeout: 120000
-      - tapOn: "Continue"
+      - runFlow:
+          when:
+            visible: "http://.*:8081"
+          commands:
+            - tapOn: "http://.*:8081"
+      - runFlow:
+          when:
+            visible: "Connect"
+          commands:
+            - tapOn: "http://"
+            - eraseText
+            - inputText: "http://10.0.2.2:8081"
+            - tapOn: "Connect"
+      # Expo 57 often starts bundling immediately after tapping a server URL
+      # and never shows Continue.
+      - runFlow:
+          when:
+            visible: "Continue"
+          commands:
+            - tapOn: "Continue"
 - runFlow:
     when:
       visible: "Continue"

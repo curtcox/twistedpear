@@ -1,15 +1,9 @@
 apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
 apply from: new File(rootProject.rootDir, '../../../conformance/android-native/jacoco-module.gradle')
 
 group = 'network.twistedpear.harness'
 version = '0.0.0'
-
-def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
-apply from: expoModulesCorePlugin
-applyKotlinExpoModulesCorePlugin()
-useCoreDependencies()
-useDefaultAndroidSdkVersions()
-useExpoPublishing()
 
 android {
   namespace "expo.modules.twistedpear.usbserial"
