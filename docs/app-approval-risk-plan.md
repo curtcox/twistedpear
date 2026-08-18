@@ -2,9 +2,13 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-17
+audited: 2026-08-18
 register: software
+counterpart: docs/app-approval-risk.md
 -->
+
+**This is a plan, not a description of current behaviour.** What ships today is in
+[App approval risk](app-approval-risk.md). That live document wins if the two disagree.
 
 A plan to make app approval a function of the authority an app asks for, rather than one
 dialog that looks the same whether the app wants local key/value storage or the user's
@@ -313,11 +317,13 @@ without a grant and redacts lock holders; `APPR-FLOOR-PROBE` locks that floor in
 
 ### Phase 1 — classify and display (host API 0.13.0)
 
-| ID                | Type    | Requires          | Work                                                                                                                |
-| ----------------- | ------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `APPR-RISK-CLASS` | feature | —                 | A-2. `capability-risk.json` + generator + `capability-risk.gen.ts`; risk class beside every capability definition   |
-| `APPR-TIER`       | feature | `APPR-RISK-CLASS` | §3.2 tier derivation, including the co-occurrence promotion; unit-tested against a table of app shapes              |
-| `APPR-REVIEW-UX`  | feature | `APPR-TIER`       | Review dialog orders by risk, states the tier, and separates `benign` from the rest. **No new gates in this phase** |
+`APPR-RISK-CLASS` is executed: the generated registry and `CapabilityDefinition.riskClass`
+are described in [App approval risk](app-approval-risk.md). `APPR-TIER` is executed: the
+max-plus-promotion function is `appRiskTier`. Remaining Phase 1 work:
+
+| ID               | Type    | Requires    | Work                                                                                                                |
+| ---------------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| `APPR-REVIEW-UX` | feature | `APPR-TIER` | Review dialog orders by risk, states the tier, and separates `benign` from the rest. **No new gates in this phase** |
 
 Phase 1 ships no refusals. It makes the existing dialog honest, which is most of the
 user-visible benefit at a fraction of the risk of getting the thresholds wrong.
@@ -328,8 +334,10 @@ user-visible benefit at a fraction of the risk of getting the thresholds wrong.
 | -------------------- | ------- | ----------------- | --------------------------------------------------------------------------------------------- |
 | `APPR-FIRST-SEEN`    | feature | —                 | A-4. Persistent first-seen ledger keyed by `(appId, publisherKey, packageHash)`, TTL-immune   |
 | `APPR-TRUST-DEGREE`  | feature | —                 | A-5. `source` becomes a degree (§5.3) and is surfaced; `isTrusted` gains a degree argument    |
-| `APPR-UPDATE-DELTA`  | bug     | `APPR-RISK-CLASS` | A-7/HA-11. An update adding a capability re-reviews, naming the delta and its risk            |
 | `APPR-OPTIONAL-CAPS` | feature | `APPR-RISK-CLASS` | A-7. Manifest v2 marks capabilities essential or optional; declining an optional one launches |
+
+`APPR-UPDATE-DELTA` is executed: an update that adds a capability is named with its
+risk class and does not auto-activate.
 
 `APPR-OPTIONAL-CAPS` rides the same `formatVersion: 2` change as the scoping plan's
 `CAP-MANIFEST-V2` and should land with it, not as a second format bump.

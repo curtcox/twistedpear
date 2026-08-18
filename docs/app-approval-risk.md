@@ -1,0 +1,42 @@
+# App approval risk — current
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-08-18
+register: software
+counterpart: docs/app-approval-risk-plan.md
+-->
+
+**This describes the implementation as it exists now.** Remaining phases live in the
+[app approval risk plan](app-approval-risk-plan.md). Where the two disagree, this file
+wins.
+
+Capability risk class is data, not prose: every core and device capability has a row in
+[`specs/spec-cap/registry/capability-risk.json`](../specs/spec-cap/registry/capability-risk.json)
+that generates [`packages/protocol/src/capability-risk.gen.ts`](../packages/protocol/src/capability-risk.gen.ts)
+(`npm run generate:capability-risk`). `CapabilityDefinition` carries `riskClass` beside
+`id` and `description`. Revising an assignment is a registry edit plus regenerate.
+
+Four classes, floors from the four questions answered on each row:
+
+| Class       | Meaning in the current assignment                                                               |
+| ----------- | ----------------------------------------------------------------------------------------------- |
+| `benign`    | Local or read-only observation; no dialog tax once Phase 1 UX lands                             |
+| `elevated`  | Today's review dialog; includes identity, host-fixed AI/fetch, and `low` device consent classes |
+| `sensitive` | App-chosen egress, irreversible publish/install, and `elevated`/`sensitive` device tiers        |
+| `critical`  | `relay:configure` only — the one grant whose misuse harms people who never approved anything    |
+
+`namesDestination` or `irreversibleOrThirdParty` floors at `sensitive`.
+`readsSensorSecretOrForeignData` floors at `elevated`. `standing` is recorded but is not
+a floor: storage and presence are standing and still `benign`. `critical` requires
+`irreversibleOrThirdParty`. Device rows follow consent class (`low` → `elevated`,
+`elevated`/`sensitive` → `sensitive`) except `device:share-policy:read`, which stays
+`benign`.
+
+This phase ships no new refusals. An update that adds a capability is named with
+its risk class and does not inherit the previous grant set
+(`capabilityUpdateDelta` / `grantsPreservedAcrossUpdate`). App risk tier is the
+maximum requested class, promoted one step when a read authority and an egress
+authority co-occur (`appRiskTier`). Offer-bound destination grants drop from
+`sensitive` to `elevated` before the max is taken. Review UX and evidence gates
+are still plan work.

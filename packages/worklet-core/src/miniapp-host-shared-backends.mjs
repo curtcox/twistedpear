@@ -1,10 +1,13 @@
 /* global setTimeout */
 import {
   buildUnsignedManifest,
+  compareSemver,
   packPackage,
   signManifest,
 } from "../../app-registry/dist/index.js";
+import { capabilityUpdateDelta } from "../../app-registry/dist/update-delta.js";
 import {
+  CAPABILITY_DEFINITIONS,
   describeCapability,
   validateManifestCapabilities,
 } from "../../miniapp-runtime/dist/capabilities.js";
@@ -352,6 +355,35 @@ function bringToForegroundIfRunning(host, record) {
   return true;
 }
 
+function riskClassForCapabilityId(id) {
+  return (
+    CAPABILITY_DEFINITIONS.find((definition) => definition.id === id)
+      ?.riskClass ?? "elevated"
+  );
+}
+
+export function previousDeclaredCapabilities(installedStore, record) {
+  if (typeof installedStore.previousVersion === "function") {
+    const previousVersion = installedStore.previousVersion(record.appId);
+    if (previousVersion === null) return [];
+    return (
+      installedStore.get(record.appId, previousVersion)?.manifest
+        .capabilities ?? []
+    );
+  }
+  const installed =
+    typeof installedStore.listInstalled === "function"
+      ? installedStore.listInstalled()
+      : [];
+  const older = installed
+    .filter(
+      (entry) =>
+        entry.appId === record.appId && entry.version !== record.version,
+    )
+    .sort((left, right) => compareSemver(left.version, right.version));
+  return older.at(-1)?.manifest.capabilities ?? [];
+}
+
 export async function launchWithCapabilityReview({
   record,
   grantStore,
@@ -363,6 +395,7 @@ export async function launchWithCapabilityReview({
   pushRuntime,
   devBadgeRef,
   requestReview,
+  previousDeclared = [],
 }) {
   devBadgeRef.current = false;
   const declared = validateManifestCapabilities(record.manifest.capabilities);
@@ -377,17 +410,27 @@ export async function launchWithCapabilityReview({
     )?.granted.filter((id) => isGrantLifecycleEffective(lifecycles[id], at)) ??
       [],
   );
+  const delta = capabilityUpdateDelta(
+    previousDeclared,
+    declared,
+    riskClassForCapabilityId,
+  );
+  const addedIds = new Set(delta.added.map((entry) => entry.id));
   const reply = await requestReview({
     appId: record.appId,
     publisherPublicKey: record.manifest.publisherPublicKey,
     version: record.manifest.version,
+    added: delta.added,
     capabilities: declared.map((id) => ({
       id,
       description: describeCapability(id),
-      granted: preGranted.has(id),
-      expiresAt: preGranted.has(id)
-        ? (lifecycles[id]?.expiresAt ?? null)
-        : null,
+      riskClass: riskClassForCapabilityId(id),
+      isNewSinceLastApproval: addedIds.has(id),
+      granted: preGranted.has(id) && !addedIds.has(id),
+      expiresAt:
+        preGranted.has(id) && !addedIds.has(id)
+          ? (lifecycles[id]?.expiresAt ?? null)
+          : null,
     })),
   });
   if (reply === null || reply.accept !== true) {

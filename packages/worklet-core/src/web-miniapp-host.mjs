@@ -41,6 +41,7 @@ import {
   createWorkspaceFileCollector,
   launchWithCapabilityReview,
   launchWithoutReview,
+  previousDeclaredCapabilities,
 } from "./miniapp-host-shared.mjs";
 
 function hexToBytes(hex) {
@@ -407,6 +408,10 @@ export function createWebWorkletMiniappHost(options) {
       ) {
         await launchWithCapabilityReview({
           ...launchDeps,
+          previousDeclared: previousDeclaredCapabilities(
+            packageStorage,
+            record,
+          ),
           requestReview: async (review) =>
             options.requestHostReply({
               type: "launch-review",

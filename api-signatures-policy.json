@@ -5,11 +5,11 @@
   "entries": {
     "protocol.api.md": {
       "package": "packages/protocol",
-      "sha256": "043ccdeb9936bdfb02977b4f4ca352cf315e46e1c734f8876f8c484cd92e03ae"
+      "sha256": "5bb1448f80249b7a5390d875e3370650f26b1c6aec65d4a7e92d6e6fe94251d9"
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "c62ec1d61a24d7cf454dcb1f6e98692481ed7e44e0a4727c5b1079d9b9598eb2"
+      "sha256": "4c14d9882c4788034d414a342805b72c5957e501b11987daf007551714879243"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
@@ -33,7 +33,7 @@
     },
     "miniapp-runtime-worklet.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "c64ee0a826ce087c9b500a805614d60c77742b16fd78ed3f4c1b98c0cb714b63"
+      "sha256": "dbf223e101b34871bf2682d55c979facf254c257b9c78979ebac2754b88f5fa3"
     },
     "host-core-web.api.md": {
       "package": "packages/host-core",

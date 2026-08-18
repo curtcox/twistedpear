@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-20
+audited: 2026-08-18
 register: none
 -->
 
@@ -34,7 +34,9 @@ Out of scope: how grant screens and confirmation dialogs are _rendered_
 
 The canonical registry is `CAPABILITY_DEFINITIONS` in
 [packages/miniapp-runtime](../../packages/miniapp-runtime/); the user-facing table is
-in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Rules:
+in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Risk class is assigned in
+[capability-risk.json](registry/capability-risk.json) and generated into
+[capability-risk.gen.ts](../../packages/protocol/src/capability-risk.gen.ts). Rules:
 
 - **Unknown capability strings block install.** There is no forward-compat waiver.
 - The `apps:*` capabilities are **double-gated**: beyond the lifecycle below, every

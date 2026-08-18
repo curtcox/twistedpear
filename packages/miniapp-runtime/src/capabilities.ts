@@ -4,10 +4,12 @@ import {
   grantStoreKey as protocolGrantStoreKey,
   initialDecodeGrantRecordState,
   initialGrantHostState,
+  riskClassForCapability,
   shouldRejectDecodeGrantRecord,
   shouldUseDecodeGrantRecord,
   stepDecodeGrantRecordWithActions,
   stepGrantHost,
+  type CapabilityRiskClass,
   type GrantEvent,
   type GrantHostState,
   type GrantLifecycleState,
@@ -47,9 +49,12 @@ export type MiniappCapability =
 export interface CapabilityDefinition {
   readonly id: MiniappCapability;
   readonly description: string;
+  readonly riskClass: CapabilityRiskClass;
 }
 
-const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
+type CapabilityDefinitionBase = Omit<CapabilityDefinition, "riskClass">;
+
+const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinitionBase> = [
   {
     id: "identity",
     description: "Use an app-scoped identity for signing and addressing.",
@@ -161,7 +166,10 @@ export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
     id: entry.id as MiniappCapability,
     description: entry.description,
   })),
-];
+].map((definition) => ({
+  ...definition,
+  riskClass: riskClassForCapability(definition.id),
+}));
 
 const CAPABILITY_IDS = new Set<string>(
   CAPABILITY_DEFINITIONS.map((definition) => definition.id),

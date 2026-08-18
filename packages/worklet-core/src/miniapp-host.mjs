@@ -42,6 +42,7 @@ import {
   createWorkspaceFileCollector,
   launchWithCapabilityReview,
   launchWithoutReview,
+  previousDeclaredCapabilities,
 } from "./miniapp-host-shared.mjs";
 
 const BENCHMARK_ITERATIONS = 5;
@@ -454,6 +455,10 @@ export function createWorkletMiniappHost(options) {
       ) {
         await launchWithCapabilityReview({
           ...launchDeps,
+          previousDeclared: previousDeclaredCapabilities(
+            installedStore,
+            record,
+          ),
           requestReview: async (review) =>
             options.requestLaunchReview({
               token: generateConfirmationToken((length) =>

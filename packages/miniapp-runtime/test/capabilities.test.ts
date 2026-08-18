@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CAPABILITY_DEFINITIONS,
   CapabilityError,
   GrantStore,
   assertCapabilityAllowed,
@@ -25,6 +26,23 @@ class MemoryStore implements GrantKeyValueStore {
 }
 
 describe("mini-app capabilities", () => {
+  it("places a generated risk class beside every capability definition", () => {
+    expect(CAPABILITY_DEFINITIONS.length).toBeGreaterThan(0);
+    for (const definition of CAPABILITY_DEFINITIONS) {
+      expect(definition.riskClass, definition.id).toMatch(
+        /^(benign|elevated|sensitive|critical)$/,
+      );
+    }
+    expect(
+      CAPABILITY_DEFINITIONS.find((entry) => entry.id === "storage:kv")
+        ?.riskClass,
+    ).toBe("benign");
+    expect(
+      CAPABILITY_DEFINITIONS.find((entry) => entry.id === "relay:configure")
+        ?.riskClass,
+    ).toBe("critical");
+  });
+
   it("deduplicates known manifest capabilities", () => {
     expect(
       validateManifestCapabilities(["identity", "identity", "lxmf:send"]),

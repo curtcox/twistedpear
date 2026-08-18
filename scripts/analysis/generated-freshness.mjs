@@ -12,6 +12,7 @@ const ROOT = path.resolve(
 export const GENERATED_OUTPUTS = [
   "packages/effects/src/types.gen.ts",
   "packages/protocol/src/device-registry.gen.ts",
+  "packages/protocol/src/capability-risk.gen.ts",
   "packages/miniapp-runtime/src/device-capabilities.gen.ts",
   "apps/harness-mobile/worklet/store-posture.generated.mjs",
   "apps/harness-mobile/worklet/worklet.bundle.mjs",
@@ -21,6 +22,7 @@ export const GENERATED_OUTPUTS = [
 const STEPS = [
   [process.execPath, ["scripts/generate-event-types.mjs"]],
   [process.execPath, ["scripts/generate-device-registry.mjs"]],
+  [process.execPath, ["scripts/generate-capability-risk.mjs"]],
   ["npm", ["run", "build:worklet"]],
   ["npm", ["run", "build", "--workspace=host-desktop"]],
 ];

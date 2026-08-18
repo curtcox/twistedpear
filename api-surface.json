@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "total": 7953,
-  "cap": 7953,
+  "total": 7964,
+  "cap": 7964,
   "packages": 19,
   "entryPoints": 44,
   "unresolved": 0,
@@ -10,9 +10,9 @@
     {
       "name": "protocol",
       "entryPoints": {
-        ".": 5892
+        ".": 5903
       },
-      "total": 5892
+      "total": 5903
     },
     {
       "name": "reticulum-ts",

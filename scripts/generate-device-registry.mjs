@@ -48,6 +48,34 @@ function capabilityDescription(entry, tier) {
   return `${entry.description} (${tierLabel}; consent: ${tier.consentClass}).`;
 }
 
+/** Device capability rows derived from the class registry (tiers + cross-cutting). */
+export function collectDeviceCapabilities(registry) {
+  const capabilities = [];
+  for (const entry of registry.classes) {
+    for (const tier of entry.tiers) {
+      capabilities.push({
+        id: capabilityId(entry.id, tier.capabilitySuffix),
+        description: capabilityDescription(entry, tier),
+        classId: entry.id,
+        tierId: tier.id,
+        consentClass: tier.consentClass,
+        isDefaultTier: tier.default,
+      });
+    }
+  }
+  for (const cross of registry.crossCutting) {
+    capabilities.push({
+      id: cross.id,
+      description: cross.description,
+      classId: null,
+      tierId: null,
+      consentClass: cross.consentClass,
+      isDefaultTier: false,
+    });
+  }
+  return capabilities;
+}
+
 export function generateDeviceRegistry(registryPath = REGISTRY_PATH) {
   const registry = JSON.parse(readFileSync(registryPath, "utf8"));
   const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8"));
@@ -73,29 +101,7 @@ export function generateDeviceRegistry(registryPath = REGISTRY_PATH) {
     }
   }
 
-  const capabilities = [];
-  for (const entry of registry.classes) {
-    for (const tier of entry.tiers) {
-      capabilities.push({
-        id: capabilityId(entry.id, tier.capabilitySuffix),
-        description: capabilityDescription(entry, tier),
-        classId: entry.id,
-        tierId: tier.id,
-        consentClass: tier.consentClass,
-        isDefaultTier: tier.default,
-      });
-    }
-  }
-  for (const cross of registry.crossCutting) {
-    capabilities.push({
-      id: cross.id,
-      description: cross.description,
-      classId: null,
-      tierId: null,
-      consentClass: cross.consentClass,
-      isDefaultTier: false,
-    });
-  }
+  const capabilities = collectDeviceCapabilities(registry);
 
   const ids = new Set();
   for (const capability of capabilities) {

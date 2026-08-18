@@ -20,7 +20,7 @@
     "@twistedpear/ble-bridge": "file:./modules/ble-bridge",
     "@twistedpear/bonjour": "file:./modules/bonjour",
     "@twistedpear/effects": "0.0.0",
-    "@twistedpear/miniapp-runtime": "0.1.2",
+    "@twistedpear/miniapp-runtime": "0.1.3",
     "@twistedpear/multicast": "file:./modules/multicast",
     "@twistedpear/node-service": "file:./modules/node-service",
     "@twistedpear/peer-audio": "file:./modules/peer-audio",

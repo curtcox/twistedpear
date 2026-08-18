@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-14
+audited: 2026-08-18
 register: none
 -->
 
@@ -11,11 +11,12 @@ Per-capability matrix across every TwistedPear peer implementation type. This is
 [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) and [STATUS-HARDWARE.md](../STATUS-HARDWARE.md);
 completed evidence stays in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md).
 
-| Authority                    | Role                                                                                                                                                                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Capability id list           | `CAPABILITY_DEFINITIONS` in [`packages/miniapp-runtime/src/capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts) ∪ generated [`device-capabilities.gen.ts`](../packages/miniapp-runtime/src/device-capabilities.gen.ts) |
-| Peer implementation types    | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts)                                                                                                    |
-| Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()`                                                                                                                           |
+| Authority                    | Role                                                                                                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Capability id list           | `CAPABILITY_DEFINITIONS` in [`packages/miniapp-runtime/src/capabilities.ts`](../packages/miniapp-runtime/src/capabilities.ts) ∪ generated [`device-capabilities.gen.ts`](../packages/miniapp-runtime/src/device-capabilities.gen.ts)        |
+| Risk class                   | [`capability-risk.json`](../specs/spec-cap/registry/capability-risk.json) → [`capability-risk.gen.ts`](../packages/protocol/src/capability-risk.gen.ts) (`npm run generate:capability-risk`); see [app approval risk](app-approval-risk.md) |
+| Peer implementation types    | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts)                                                                                                           |
+| Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()`                                                                                                                                  |
 
 Current closed set: **24 core + 30 device = 54** capability ids. Current
 `HOST_API_VERSION` is **0.13.0**.
@@ -252,7 +253,7 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 
 When adding a capability:
 
-1. Extend `CAPABILITY_DEFINITIONS` or the device registry (then `npm run generate:device-registry`).
+1. Extend `CAPABILITY_DEFINITIONS` or the device registry (then `npm run generate:device-registry` and `npm run generate:capability-risk`).
 2. Bump `HOST_API_VERSION` when required by `addedInHostApi`.
 3. Update this matrix’s cells for each `HostPlatformId`.
 4. Keep STATUS-SOFTWARE / STATUS-HARDWARE as the backlog authorities; only change cells here

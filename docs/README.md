@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-05
+audited: 2026-08-18
 register: none
 -->
 
@@ -169,7 +169,7 @@ Protocol implementation details live in the
 | Sandbox threat model and findings                          | [Security review](security-review.md)                                                                       |
 | Whether a grant can be scoped to just the I/O an app needs | [Capability scoping audit](capability-scoping-audit.md), [remaining plan](capability-scoping-plan.md)       |
 | Adversarial scenarios for author deception of users        | [Hostile author plan](hostile-author-plan.md), [measured catalog](../conformance/hostile-authors/README.md) |
-| Making approval evidence proportionate to app risk         | [App approval risk plan](app-approval-risk-plan.md)                                                         |
+| Making approval evidence proportionate to app risk         | [App approval risk](app-approval-risk.md), [remaining plan](app-approval-risk-plan.md)                      |
 | CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                                   |
 | Full local validation workflow                             | [Single-Mac validation](mac-validation.md)                                                                  |
 | Evidence from the documented Mac validation run            | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md)                                |

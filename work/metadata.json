@@ -82,6 +82,14 @@
       "requires": [],
       "verify": "npx vitest run packages/protocol/test/capability-risk.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "specs/spec-cap/registry/capability-risk.json",
+        "packages/protocol/src/capability-risk.gen.ts",
+        "packages/protocol/test/capability-risk.test.ts",
+        "packages/miniapp-runtime/src/capabilities.ts",
+        "scripts/generate-capability-risk.mjs"
+      ],
       "notes": "app-approval-risk-plan.md Phase 1, finding A-2. specs/spec-cap/registry/capability-risk.json plus generator and capability-risk.gen.ts, the same shape and discipline as device-classes.json, so revising the assignment is a data change. The four-class assignment in §3.1 is argued, not measured, and is reviewed as part of this item."
     },
     "APPR-SPEC-RISK": {
@@ -96,6 +104,11 @@
       "requires": ["APPR-RISK-CLASS"],
       "verify": "npx vitest run packages/protocol/test/approval-tier.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/protocol/src/approval-tier.ts",
+        "packages/protocol/test/approval-tier.test.ts"
+      ],
       "notes": "app-approval-risk-plan.md Phase 1 §3.2. Not a sum: ten benign capabilities are not one sensitive one. The promotion rule catches the composition per-capability review misses — a microphone alone is a recorder, lxmf:send alone is a messenger, together they are a wiretap. Plan open question 1 asks whether max + promotion is the right function; validate against generated hostile app shapes before APPR-EVALUATE hardens it."
     },
     "APPR-TRUST-DEGREE": {
@@ -110,6 +123,12 @@
       "requires": ["APPR-RISK-CLASS"],
       "verify": "npx vitest run packages/app-registry/test/update-delta.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/app-registry/src/update-delta.ts",
+        "packages/app-registry/test/update-delta.test.ts",
+        "packages/worklet-core/src/miniapp-host-shared-backends.mjs"
+      ],
       "notes": "app-approval-risk-plan.md Phase 2, finding A-7 and hostile-author scenario HA-11. An update adding a capability must not auto-activate; the delta and its risk are named."
     },
     "BUG-AUDIT-FIX-POSTINSTALL": {

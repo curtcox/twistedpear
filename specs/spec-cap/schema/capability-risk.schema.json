@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://twistedpear.dev/specs/spec-cap/schema/capability-risk.schema.json",
+  "title": "CapabilityRiskRegistry",
+  "description": "Normative capability risk-class assignment for SPEC-CAP (host API 0.13.0+). Revising an assignment is a data change.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["hostApiVersion", "capabilities"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "hostApiVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/CapabilityRiskEntry" }
+    }
+  },
+  "$defs": {
+    "RiskClass": {
+      "type": "string",
+      "enum": ["benign", "elevated", "sensitive", "critical"]
+    },
+    "CapabilityRiskEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "riskClass",
+        "namesDestination",
+        "irreversibleOrThirdParty",
+        "readsSensorSecretOrForeignData",
+        "standing"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "riskClass": { "$ref": "#/$defs/RiskClass" },
+        "namesDestination": {
+          "description": "The app can name where bytes go. Floors the class at sensitive.",
+          "type": "boolean"
+        },
+        "irreversibleOrThirdParty": {
+          "description": "The effect is irreversible or visible to people who never approved this app. Floors the class at sensitive; required for critical.",
+          "type": "boolean"
+        },
+        "readsSensorSecretOrForeignData": {
+          "description": "Reads a sensor, a secret, or another party's data. Floors the class at elevated.",
+          "type": "boolean"
+        },
+        "standing": {
+          "description": "No per-operation confirmation; the grant stays live. Recorded for review, not a floor — standing benign grants (storage, presence) exist on purpose.",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

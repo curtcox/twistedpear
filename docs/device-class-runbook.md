@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-23
+audited: 2026-08-18
 register: software
 -->
 
@@ -15,19 +15,23 @@ driver.
 1. Append an entry to [`specs/spec-device/registry/device-classes.json`](../specs/spec-device/registry/device-classes.json)
    with `id`, `role`, `tiers`, `bandwidth`, `consentClass`, `degradationLadder`, and
    `addedInHostApi`.
-2. Regenerate:
+2. Add a matching row to [`specs/spec-cap/registry/capability-risk.json`](../specs/spec-cap/registry/capability-risk.json)
+   (`low` consent → `elevated` risk, `elevated`/`sensitive` consent → `sensitive` risk,
+   unless the class is read-only observation like `device:share-policy:read`).
+3. Regenerate:
 
 ```sh
 npm run generate:device-registry
+npm run generate:capability-risk
 ```
 
-3. Implement a host driver that satisfies `DeviceDriver` (`availability`, optional
+4. Implement a host driver that satisfies `DeviceDriver` (`availability`, optional
    `sense` / `actuate` / `stop`) and register it on the Device Manager.
-4. If the class needs host-side derived processing, add a pure function under
+5. If the class needs host-side derived processing, add a pure function under
    `packages/protocol` and call it from `DeviceManager.materializeSample`.
-5. Add focused tests that open/read (or write) the class and assert unknown capability
+6. Add focused tests that open/read (or write) the class and assert unknown capability
    strings still fail closed on older hosts via `minHostApi`.
-6. Bump `HOST_API_VERSION` only when `addedInHostApi` requires it.
+7. Bump `HOST_API_VERSION` only when `addedInHostApi` requires it.
 
 ## Smoke proof (scalar class)
 

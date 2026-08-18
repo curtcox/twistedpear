@@ -10,6 +10,7 @@ describe("generated freshness", () => {
       expect.arrayContaining([
         "packages/effects/src/types.gen.ts",
         "packages/protocol/src/device-registry.gen.ts",
+        "packages/protocol/src/capability-risk.gen.ts",
         "packages/miniapp-runtime/src/device-capabilities.gen.ts",
         "apps/harness-mobile/worklet/worklet.bundle.mjs",
         "apps/host-desktop/worklet/worklet.bundle",
