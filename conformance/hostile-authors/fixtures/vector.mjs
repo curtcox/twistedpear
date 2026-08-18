@@ -2,6 +2,7 @@
  * Surface 5 — the app as a vector against other users (HA-40…HA-43).
  */
 import { DEFAULT_ANNOUNCE_RATE_TARGET } from "../../../packages/protocol/dist/index.js";
+import { decideLxmfModeration } from "../../../packages/protocol/dist/index.js";
 import { denyCode, dispatch, makeHost } from "./harness.mjs";
 import {
   consentDiscloses,
@@ -58,10 +59,28 @@ export async function runVectorScenarios() {
   );
 
   const ha41 =
+    decideLxmfModeration(
+      {
+        blocked: new Set(),
+        muted: new Set(),
+        blockedApps: new Set(["inviter"]),
+      },
+      "ab".repeat(16),
+      "inviter",
+    ).disposition === "block" &&
+    decideLxmfModeration(
+      {
+        blocked: new Set(),
+        muted: new Set(),
+        blockedApps: new Set(["inviter"]),
+      },
+      "ab".repeat(16),
+      "notes",
+    ).disposition === "allow";
+
+  const ha42 =
     typeof DEFAULT_ANNOUNCE_RATE_TARGET === "number" &&
     DEFAULT_ANNOUNCE_RATE_TARGET > 0;
-
-  const ha42 = ha41;
 
   const install = await dispatch(
     host,
@@ -82,15 +101,22 @@ export async function runVectorScenarios() {
   return [
     {
       id: "HA-40",
-      measured: ha40Denied && !ha40Provenance ? "CONTAINED" : ha40Provenance ? "CONTAINED" : "UNCONTROLLED",
+      measured:
+        ha40Denied && !ha40Provenance
+          ? "CONTAINED"
+          : ha40Provenance
+            ? "CONTAINED"
+            : "UNCONTROLLED",
       note: ha40Denied
         ? "Invite send is offer-bound (EGRESS_DENIED without a peer offer). Recipients still do not see host-injected app provenance on the message."
         : "lxmf.send invite was not destination-scoped.",
     },
     {
       id: "HA-41",
-      measured: "UNCONTROLLED",
-      note: "Local moderation keys on source destination hash, not app id. No per-app block in this suite.",
+      measured: ha41 ? "BLOCKED" : "UNCONTROLLED",
+      note: ha41
+        ? "blockedApps blocks the hostile app id without blocking another app on the same source hash."
+        : "Per-app block did not distinguish inviter from notes.",
     },
     {
       id: "HA-42",

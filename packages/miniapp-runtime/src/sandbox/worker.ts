@@ -1,6 +1,8 @@
 import { prepareBundleSource } from "./prepare-bundle.js";
 import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
 import { SandboxPing } from "./ping.js";
+import { createCheckpointCollector } from "./checkpoint.js";
+import { lifecycleWorkerFragment } from "./lifecycle-worker-fragment.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -54,10 +56,15 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
       { resolve: (value: unknown) => void; reject: (error: Error) => void }
     >();
     const pings = new SandboxPing();
+    const checkpoints = createCheckpointCollector();
     let killed = false;
     let alive = true;
 
     worker.onmessage = (event: { data: unknown }) => {
+      if (checkpoints.handleMessage(event.data)) {
+        return;
+      }
+
       handleBareWorkerHostMessage(worker, options, pending, event.data);
     };
 
@@ -83,6 +90,16 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
           (message) => worker.postMessage(message),
           pending,
           timeoutMs,
+        );
+      },
+      checkpoint(budgetMs: number) {
+        if (killed) {
+          return Promise.resolve({ ok: false as const });
+        }
+
+        return checkpoints.request(
+          (message) => worker.postMessage(message),
+          budgetMs,
         );
       },
       kill(reason: string): Promise<void> {
@@ -134,7 +151,7 @@ const pending = new Map();
 let requestId = 0;
 let alive = true;
 let uiEventHandler = null;
-
+${lifecycleWorkerFragment("self.postMessage")}
 function callHost(namespace, method, payload, capability) {
   return new Promise((resolve, reject) => {
     const id = 'req-' + (requestId++);
@@ -168,7 +185,7 @@ const sdk = {
   storage: { kv: { get: (key) => callHost('storage.kv', 'get', { key }, 'storage:kv'), set: (key, value) => callHost('storage.kv', 'set', { key, value }, 'storage:kv'), delete: (key) => callHost('storage.kv', 'delete', { key }, 'storage:kv') }, bee: { open: () => callHost('storage.bee', 'open', undefined, 'storage:hyperbee'), get: (key) => callHost('storage.bee', 'get', { key }, 'storage:hyperbee'), put: (key, value) => callHost('storage.bee', 'put', { key, value }, 'storage:hyperbee'), del: (key) => callHost('storage.bee', 'del', { key }, 'storage:hyperbee'), list: (options) => callHost('storage.bee', 'list', options ?? {}, 'storage:hyperbee') } },
   resource: { fetch: (request) => callHost('resource', 'fetch', request, 'resource:fetch') },
   presence: { snapshot: () => callHost('presence', 'snapshot', undefined, 'presence') },
-  host: { info: () => callHost('host', 'info', undefined, 'presence') },
+  host: Object.assign({ info: () => callHost('host', 'info', undefined, 'presence') }, lifecycleHost),
   workspace: { list: (prefix) => callHost('workspace', 'list', { prefix }, 'workspace'), read: (path) => callHost('workspace', 'read', { path }, 'workspace').then((r) => r.content), write: (path, content) => callHost('workspace', 'write', { path, content }, 'workspace'), patch: (path, baseLength, edits) => callHost('workspace', 'patch', { path, baseLength, edits }, 'workspace'), remove: (path) => callHost('workspace', 'delete', { path }, 'workspace') },
   ai: {
     chat: (request) => callHost('ai', 'chat', request, 'ai:chat'),
@@ -203,6 +220,7 @@ self.onmessage = (event) => {
     alive = false;
     self.close();
   }
+  if (handleLifecycleMessage(message)) return;
   if (message.type === 'ui-event' && uiEventHandler !== null) {
     void Promise.resolve(uiEventHandler({ nodeId: message.nodeId, event: message.event, value: message.value }));
   }

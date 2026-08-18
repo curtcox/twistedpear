@@ -90,7 +90,7 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 | [SPEC-WIDGET](spec-widget/spec.md)               | Widget tree vocabulary and update/diff stream                              | **normative**                                  |
 | [SPEC-PRESENT](spec-present/spec.md)             | Layout and styling semantics, separate from vocabulary                     | stub                                           |
 | [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding                                        | **normative**                                  |
-| [SPEC-CHROME](spec-chrome/spec.md)               | Host confirmations, grant screens, draw-over rules                         | **normative** (R2/R4/R5/R6; R1/R3 informative) |
+| [SPEC-CHROME](spec-chrome/spec.md)               | Host confirmations, grant screens, draw-over rules                         | **normative**                                  |
 | [SPEC-DEVICE](spec-device/spec.md)               | Device-class registry, tiers, session lifecycle                            | stub                                           |
 | [SPEC-STREAM](spec-stream/spec.md)               | Peer-media readiness, admission, adaptation, framing, and stream lifecycle | **normative**                                  |
 
@@ -130,5 +130,4 @@ are the fourth representation and are not numbered.
    renderers.
 3. **Phase 3 — platform codification** (SPEC-PKG, SPEC-NAME, SPEC-SDK, SPEC-CHROME,
    Group A profiles): golden/hostile vectors and one-page adoption profiles over the
-   existing CI evidence. SPEC-CHROME grows its hostile-app fixtures into a
-   requirement-keyed suite; rules that cannot be fixture-tested stay informative.
+   existing CI evidence. SPEC-CHROME's requirement-keyed suite covers R1–R9.

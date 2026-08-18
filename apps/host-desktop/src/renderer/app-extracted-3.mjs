@@ -293,7 +293,18 @@ export function showHostModalImpl(
   /** @type {HTMLInputElement[]} */
   const capabilityInputs = [];
   if (capabilities !== null) {
+    let sawRestricted = false;
+    let benignHeading = false;
     for (const capability of capabilities) {
+      if (capability.riskClass !== "benign") {
+        sawRestricted = true;
+      } else if (sawRestricted && !benignHeading) {
+        const headingNote = document.createElement("p");
+        headingNote.className = "muted";
+        headingNote.textContent = "Also uses";
+        __scope.modalEl.appendChild(headingNote);
+        benignHeading = true;
+      }
       const label = document.createElement("label");
       label.className = "grant-row";
       const input = document.createElement("input");
@@ -306,7 +317,9 @@ export function showHostModalImpl(
         capability.expiresAt != null
           ? ` · expires ${new Date(capability.expiresAt).toLocaleString()}`
           : "";
-      text.textContent = `${capability.id}${capability.optional === true ? " (optional)" : ""} — ${capability.description || ""}${capability.scopeLabel ? ` · ${capability.scopeLabel}` : ""}${expiry}`;
+      const risk =
+        capability.riskClass != null ? ` [${capability.riskClass}]` : "";
+      text.textContent = `${capability.id}${capability.optional === true ? " (optional)" : ""}${risk} — ${capability.description || ""}${capability.scopeLabel ? ` · ${capability.scopeLabel}` : ""}${expiry}`;
       label.append(input, text);
       __scope.modalEl.appendChild(label);
     }

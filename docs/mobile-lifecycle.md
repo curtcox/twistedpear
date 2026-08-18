@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-17
+audited: 2026-08-18
 register: none
 counterpart: docs/mobile-lifecycle-plan.md
 -->
@@ -46,6 +46,12 @@ media capture require it to be foregrounded (`FOREGROUND_REQUIRED`). Two running
 exchange messages through a brokered `apps:channel` after both sides grant the named
 destination; they do not share storage.
 
+Host `suspend-node` / `resume-node` is forwarded into each sandbox. There is no general
+`onSuspend`: the app keeps a blob current with `host.setCheckpoint` (64 KiB), and
+will-suspend copies that blob under a 50 ms budget. Overrun kills the app rather than
+delaying host quiesce. `host.onResume` delivers the blob when the sandbox returns to
+running.
+
 ## Decisions that follow from it
 
 These are load-bearing choices whose cause is the mobile lifecycle. Each is documented in
@@ -81,7 +87,6 @@ One row per piece of utility a mini-app does not get because of the mobile lifec
 | `MLC-BACKGROUND-IOS`     | Mini-app code running while the host app is backgrounded on iOS                   | `os`           | 2027-02-01   |
 | `MLC-BACKGROUND-ANDROID` | Mini-app code running inside the Android foreground service the host already runs | `self-imposed` | 2027-02-01   |
 | `MLC-SCHEDULED-WAKE`     | A mini-app asking to be woken periodically to do bounded work                     | `self-imposed` | 2027-02-01   |
-| `MLC-LIFECYCLE-EVENTS`   | A mini-app being told it is about to be suspended, and that it has resumed        | `self-imposed` | 2027-02-01   |
 | `MLC-ALWAYS-ON-ROLES`    | A phone carrying transport, seeding, or propagation for other peers               | `os`           | 2027-02-01   |
 
 The decision in force, the cost it carries, what would unlock it, and the files that show
@@ -89,10 +94,10 @@ it are recorded per row in [mobile-lifecycle-ledger.json](../mobile-lifecycle-le
 What it would take to clear the `self-imposed` rows is
 [mobile-lifecycle-plan.md](mobile-lifecycle-plan.md).
 
-Three of the five remaining rows are `self-imposed`. That ratio is the finding: most of what
+Two of the four remaining rows are `self-imposed`. That ratio is the finding: most of what
 mini-apps cannot do is not what iOS and Android forbid, it is what the platform inherited
-from assuming they did. Concurrent mini-apps and a brokered app-to-app channel have shipped;
-shared storage is still withheld by choice, not by the OS.
+from assuming they did. Concurrent mini-apps, a brokered app-to-app channel, and suspend
+checkpoints have shipped; shared storage is still withheld by choice, not by the OS.
 
 ## How a row leaves the ledger
 

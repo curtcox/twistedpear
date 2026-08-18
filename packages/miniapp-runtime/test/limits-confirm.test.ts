@@ -258,6 +258,45 @@ describe("host confirmation channel", () => {
     expect(seen[0]?.summary).toEqual(request.summary);
   });
 
+  it("strips control characters from confirmation summaries", async () => {
+    const seen: ConfirmationRequest[] = [];
+    await requestHostConfirmation(
+      {
+        confirm: async (incoming) => {
+          seen.push(incoming);
+          return { approved: true };
+        },
+      },
+      {
+        ...request,
+        summary: { note: "Verified\nby host\u202E" },
+      },
+      effects,
+    );
+    expect(seen[0]?.summary.note).toBe("Verified by host");
+    expect(seen[0]?.summary.note?.includes("\n")).toBe(false);
+  });
+
+  it("rate-limits a burst of confirmations from one app", async () => {
+    const limiter = {
+      count: 0,
+      assert() {
+        this.count += 1;
+        if (this.count > 3) {
+          throw new ConfirmationError("CONFIRMATION_RATE_LIMITED", "rate");
+        }
+      },
+    };
+    const burstEffects = { ...effects, now: () => 1, limiter };
+    const channel = { confirm: async () => ({ approved: true }) };
+    for (let index = 0; index < 3; index += 1) {
+      await requestHostConfirmation(channel, request, burstEffects);
+    }
+    await expect(
+      requestHostConfirmation(channel, request, burstEffects),
+    ).rejects.toMatchObject({ code: "CONFIRMATION_RATE_LIMITED" });
+  });
+
   it("times out into a denial", async () => {
     const channel = { confirm: () => new Promise<never>(() => {}) };
     await expect(

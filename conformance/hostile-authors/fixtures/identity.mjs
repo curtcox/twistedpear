@@ -100,6 +100,7 @@ export async function runIdentityScenarios() {
     publisherPublicKey: first?.publisherPublicKey ?? "missing",
     packageId: handbook.packageHash,
     capabilities: ["storage:kv"],
+    confusableWith: catalog.confusableWith(first?.name ?? "Handbook"),
   });
   const ha01Informed = review.subject.confusableWith.includes("Hаndbook");
 
@@ -171,7 +172,11 @@ export async function runIdentityScenarios() {
         driveKey: "cd".repeat(32),
         version: "1.0.0",
       }),
-      install: async () => ({ appId: "hello", version: "1.0.0", trusted: true }),
+      install: async () => ({
+        appId: "hello",
+        version: "1.0.0",
+        trusted: true,
+      }),
       preview: async () => ({ launched: true }),
       stopPreview: async () => {},
     },
@@ -216,10 +221,17 @@ export async function runIdentityScenarios() {
   return [
     {
       id: "HA-01",
-      measured: ha01 && !ha01Informed ? "UNCONTROLLED" : ha01Informed ? "INFORMED" : "UNCONTROLLED",
-      note: ha01
-        ? "Two publisher keys both appear as Handbook / homoglyph; confusableWith is empty until P3."
-        : "Catalog ingest failed for the homoglyph pair.",
+      measured:
+        ha01 && !ha01Informed
+          ? "UNCONTROLLED"
+          : ha01Informed
+            ? "INFORMED"
+            : "UNCONTROLLED",
+      note: ha01Informed
+        ? "Two publisher keys both appear as Handbook / homoglyph; install-review confusableWith names the lookalike."
+        : ha01
+          ? "Two publisher keys both appear as Handbook / homoglyph; confusableWith is empty."
+          : "Catalog ingest failed for the homoglyph pair.",
     },
     {
       id: "HA-02",

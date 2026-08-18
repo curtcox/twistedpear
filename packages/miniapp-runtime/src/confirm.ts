@@ -31,6 +31,8 @@ export interface HostConfirmationChannel {
 export interface ConfirmationEffects {
   readonly randomBytes: (length: number) => Uint8Array;
   readonly delay: (ms: number) => Promise<void>;
+  readonly now?: () => number;
+  readonly limiter?: ConfirmationRateLimiter;
 }
 
 export class ConfirmationError extends Error {
@@ -38,7 +40,8 @@ export class ConfirmationError extends Error {
     readonly code:
       | "CONFIRMATION_UNAVAILABLE"
       | "CONFIRMATION_DENIED"
-      | "CONFIRMATION_TIMEOUT",
+      | "CONFIRMATION_TIMEOUT"
+      | "CONFIRMATION_RATE_LIMITED",
     message: string,
   ) {
     super(message);
@@ -47,6 +50,44 @@ export class ConfirmationError extends Error {
 }
 
 export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 60_000;
+export const DEFAULT_CONFIRMATION_RATE_MAX = 3;
+export const DEFAULT_CONFIRMATION_RATE_WINDOW_MS = 10_000;
+
+export class ConfirmationRateLimiter {
+  private readonly stamps = new Map<string, number[]>();
+
+  constructor(
+    readonly max: number = DEFAULT_CONFIRMATION_RATE_MAX,
+    readonly windowMs: number = DEFAULT_CONFIRMATION_RATE_WINDOW_MS,
+  ) {}
+
+  assert(appId: string, now: number): void {
+    const cutoff = now - this.windowMs;
+    const kept = (this.stamps.get(appId) ?? []).filter(
+      (stamp) => stamp > cutoff,
+    );
+    if (kept.length >= this.max) {
+      throw new ConfirmationError(
+        "CONFIRMATION_RATE_LIMITED",
+        `Confirmation rate for "${appId}" exceeds ${this.max} per ${this.windowMs}ms.`,
+      );
+    }
+    kept.push(now);
+    this.stamps.set(appId, kept);
+  }
+}
+
+const CONTROL_CHARS = /[\u0000-\u001F\u007F\u202A-\u202E\u2066-\u2069]/g;
+
+export function sanitizeConfirmationSummary(
+  summary: Readonly<Record<string, string>>,
+): Readonly<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(summary)) {
+    out[key] = value.replace(CONTROL_CHARS, " ").replace(/\s+/g, " ").trim();
+  }
+  return out;
+}
 
 export function generateConfirmationToken(
   randomBytes: (length: number) => Uint8Array,
@@ -70,8 +111,14 @@ export async function requestHostConfirmation(
     );
   }
 
+  const now = effects.now;
+  if (now !== undefined && effects.limiter !== undefined) {
+    effects.limiter.assert(request.appId, now());
+  }
+
   const tokenized: ConfirmationRequest = {
     ...request,
+    summary: sanitizeConfirmationSummary(request.summary),
     token: generateConfirmationToken(effects.randomBytes),
   };
   const timeout = effects

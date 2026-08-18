@@ -1,8 +1,12 @@
 /**
  * Surface 2 — what the user thinks they are approving (HA-10…HA-15).
  */
-import { AppsService, AppsServiceError } from "../../../packages/miniapp-runtime/dist/index.js";
 import {
+  AppsService,
+  AppsServiceError,
+} from "../../../packages/miniapp-runtime/dist/index.js";
+import {
+  ConfirmationError,
   GrantStore,
   MemoryKvStoreBackend,
   consentDiscloses,
@@ -41,7 +45,8 @@ export async function runConsentScenarios() {
     capabilities: ["lxmf:send", "resource:fetch"],
   });
   host.recordConsent(grant);
-  const ha10 = consentDiscloses(grant, "lxmf:send") &&
+  const ha10 =
+    consentDiscloses(grant, "lxmf:send") &&
     grant.authorities.find((row) => row.capability === "lxmf:send")
       ?.canonicalDescription === describeCapability("lxmf:send");
 
@@ -101,22 +106,47 @@ export async function runConsentScenarios() {
   );
   const ha12Blocked = !captured[0]?.summary.note?.includes("\n");
 
+  const limiter = {
+    stamps: /** @type {number[]} */ ([]),
+    assert(appId, now) {
+      const kept = this.stamps.filter((stamp) => now - stamp < 10_000);
+      if (kept.length >= 3) {
+        throw new ConfirmationError(
+          "CONFIRMATION_RATE_LIMITED",
+          `rate ${appId}`,
+        );
+      }
+      kept.push(now);
+      this.stamps = kept;
+    },
+  };
   let confirmCount = 0;
   for (let index = 0; index < 8; index += 1) {
-    await requestHostConfirmation(
-      { confirm: async () => ({ approved: true }) },
-      {
-        kind: "device-session",
-        appId: "cam",
-        publisherPublicKey: "pub",
-        summary: { classId: "camera" },
-      },
-      {
-        randomBytes: (length) => new Uint8Array(length),
-        delay: async () => {},
-      },
-    );
-    confirmCount += 1;
+    try {
+      await requestHostConfirmation(
+        { confirm: async () => ({ approved: true }) },
+        {
+          kind: "device-session",
+          appId: "cam",
+          publisherPublicKey: "pub",
+          summary: { classId: "camera" },
+        },
+        {
+          randomBytes: (length) => new Uint8Array(length),
+          delay: async () => {},
+          now: () => 1_000,
+          limiter,
+        },
+      );
+      confirmCount += 1;
+    } catch (error) {
+      if (
+        !(error instanceof ConfirmationError) ||
+        error.code !== "CONFIRMATION_RATE_LIMITED"
+      ) {
+        throw error;
+      }
+    }
   }
   const ha13Blocked = confirmCount < 8;
 
@@ -166,12 +196,12 @@ export async function runConsentScenarios() {
     {
       id: "HA-12",
       measured: ha12Blocked ? "BLOCKED" : "UNCONTROLLED",
-      note: "ConfirmationRequest.summary is still an unsanitized string map.",
+      note: "ConfirmationRequest.summary strips newlines and bidi overrides before chrome sees them.",
     },
     {
       id: "HA-13",
       measured: ha13Blocked ? "BLOCKED" : "UNCONTROLLED",
-      note: "Eight device-session confirmations in a row are all accepted; no rate limit.",
+      note: "A fourth device-session confirmation in the same window is CONFIRMATION_RATE_LIMITED.",
     },
     {
       id: "HA-14",

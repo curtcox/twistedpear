@@ -533,6 +533,7 @@ export function createMiniappHostOps(deps) {
             publisherPublicKey: review.publisherPublicKey,
             version: review.version,
             capabilities: review.capabilities,
+            riskTier: review.riskTier,
           });
         },
         onDeveloperModeChange(enabled) {

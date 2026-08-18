@@ -3,6 +3,10 @@ import type {
   SandboxInstance,
   SandboxSpawnOptions,
 } from "./sandbox/backend.js";
+import {
+  DEFAULT_CHECKPOINT_BUDGET_MS,
+  type SandboxCheckpointResult,
+} from "./sandbox/checkpoint.js";
 
 export type MiniappLifecycleState =
   "installed" | "launching" | "running" | "suspended" | "stopped" | "crashed";
@@ -24,6 +28,8 @@ export interface LifecycleOptions {
    * a timer behind.
    */
   readonly delay: (ms: number) => Promise<void>;
+  /** Hard budget for the will-suspend checkpoint ack. Overrun kills the app. */
+  readonly checkpointBudgetMs?: number;
 }
 
 export class MiniappLifecycle {
@@ -31,6 +37,7 @@ export class MiniappLifecycle {
   private state: MiniappLifecycleState = "installed";
   private reason: string | null = null;
   private updatedAt: number;
+  private storedCheckpoint: Uint8Array | null = null;
 
   constructor(
     private readonly backend: SandboxBackend,
@@ -59,6 +66,7 @@ export class MiniappLifecycle {
     }
 
     this.transition("launching", null);
+    this.storedCheckpoint = null;
     this.instance = await this.backend.spawn({
       ...this.spawnOptions,
       brokerEndpoint: this.spawnOptions.brokerEndpoint,
@@ -67,8 +75,21 @@ export class MiniappLifecycle {
     return this.snapshot();
   }
 
+  lastCheckpoint(): Uint8Array | null {
+    return this.storedCheckpoint;
+  }
+
   async suspend(reason = "host-suspended"): Promise<MiniappLifecycleSnapshot> {
     if (this.instance !== null) {
+      const collected = await this.collectCheckpoint();
+      if (!collected.ok) {
+        await this.instance.kill("checkpoint-overrun");
+        this.instance = null;
+        this.transition("crashed", "checkpoint-overrun");
+        return this.snapshot();
+      }
+
+      this.storedCheckpoint = collected.blob ?? null;
       await this.instance.postMessage({
         type: "lifecycle",
         state: "suspended",
@@ -85,7 +106,14 @@ export class MiniappLifecycle {
       return this.launch();
     }
 
-    await this.instance.postMessage({ type: "lifecycle", state: "running" });
+    await this.instance.postMessage({
+      type: "lifecycle",
+      state: "running",
+      checkpoint:
+        this.storedCheckpoint === null
+          ? null
+          : Array.from(this.storedCheckpoint),
+    });
     this.transition("running", null);
     return this.snapshot();
   }
@@ -153,6 +181,25 @@ export class MiniappLifecycle {
     this.state = state;
     this.reason = reason;
     this.updatedAt = this.now();
+  }
+
+  private async collectCheckpoint(): Promise<SandboxCheckpointResult> {
+    if (this.instance === null) {
+      return { ok: true, blob: null };
+    }
+
+    const budget =
+      this.options.checkpointBudgetMs ?? DEFAULT_CHECKPOINT_BUDGET_MS;
+    if (this.instance.checkpoint !== undefined) {
+      return this.instance.checkpoint(budget);
+    }
+
+    await this.instance.postMessage({
+      type: "lifecycle",
+      state: "will-suspend",
+    });
+    const alive = await this.instance.ping(budget);
+    return alive ? { ok: true, blob: null } : { ok: false };
   }
 
   private now(): number {

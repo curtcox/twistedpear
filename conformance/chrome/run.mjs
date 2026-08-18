@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // SPEC-CHROME conformance: fixtures keyed to the named requirements.
-// Each fixture cites the rule it attacks. R2/R4/R5/R6 are broker-observable
-// and enforced here; R1 (canonical descriptions) and R3 (no draw-over) are
-// render-level and stay informative until a snapshot-based check exists.
+// Each fixture cites the rule it attacks. R2/R4/R5/R6 are broker-observable;
+// R1/R3/R7 are snapshot geometry; R8/R9 are the widget-tree render oracle.
 import {
   GrantStore,
   MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
   createLoopbackBinding,
+  validateWidgetTree,
 } from "../../packages/miniapp-runtime/dist/index.js";
+import { runSnapshotFixtures } from "./snapshot.mjs";
 
 const CAPS = [
   "identity",
@@ -257,6 +258,101 @@ const APPS_CALLS = [
         typeof request.token === "string" && request.token.length === 32,
     ),
   );
+}
+
+runSnapshotFixtures(check);
+
+function expectInvalid(rule, name, tree, pattern) {
+  try {
+    validateWidgetTree(tree);
+    check(rule, name, false, "tree was accepted");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    check(rule, name, pattern.test(message), message);
+  }
+}
+
+expectInvalid(
+  "CHROME-R8",
+  "grant-screen imitation is rejected",
+  {
+    root: {
+      id: "root",
+      type: "view",
+      children: [
+        { id: "d", type: "button", props: { label: "Deny", event: "d" } },
+        { id: "a", type: "button", props: { label: "Approve", event: "a" } },
+      ],
+    },
+  },
+  /CHROME-R8/,
+);
+expectInvalid(
+  "CHROME-R9",
+  "recovery-phrase solicitation is rejected",
+  {
+    root: {
+      id: "ask",
+      type: "text",
+      props: { value: "Enter your recovery phrase" },
+    },
+  },
+  /CHROME-R9/,
+);
+
+{
+  const painted = [];
+  const binding = createLoopbackBinding();
+  const host = new MiniappHost({
+    backend: new NodeWorkerSandboxBackend(),
+    grantStore: new GrantStore(new MemoryKvStoreBackend()),
+    ...binding,
+    callbacks: {
+      onWidgetTree: (tree) => {
+        painted.push(tree.root?.children?.[0]?.props?.value);
+      },
+    },
+  });
+  const bundle = (label) =>
+    new TextEncoder().encode(`import { ui } from "@twistedpear/miniapp-sdk";
+await ui.render({
+  root: {
+    id: "root",
+    type: "view",
+    children: [{ id: "title", type: "text", props: { value: ${JSON.stringify(label)} } }]
+  }
+});
+`);
+  const manifest = (name) => ({
+    name,
+    version: "1.0.0",
+    entry: "bundle.js",
+    capabilities: [],
+    publisherPublicKey: "publisher-chrome-app",
+  });
+  await host.launch(manifest("alpha"), bundle("alpha"));
+  await host.launch(manifest("beta"), bundle("beta"));
+  const deadline = Date.now() + 8_000;
+  while (
+    Date.now() < deadline &&
+    host.snapshot().widgetTree?.root.children?.[0]?.props?.value !== "beta"
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  const running = host
+    .running()
+    .map((item) => item.appId)
+    .sort();
+  check(
+    "CHROME-R7",
+    "only the foreground app has a drawing surface",
+    host.snapshot().appId === "beta" &&
+      running.join(",") === "alpha,beta" &&
+      host.snapshot().widgetTree?.root.children?.[0]?.props?.value === "beta" &&
+      painted.at(-1) === "beta",
+    `appId=${host.snapshot().appId} running=${running} painted=${painted.at(-1)}`,
+  );
+  await host.stopAll();
 }
 
 process.exit(failed ? 1 : 0);

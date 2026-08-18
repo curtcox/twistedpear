@@ -25,7 +25,8 @@ small, and every item on it corresponds to something that has actually gone wron
 - [ ] Every capability degrades. Preview with each one switched off and confirm the app stays
       usable and explains itself ([Chapter 5](05-capabilities.md)).
 - [ ] No `CapabilityError` reaches the user as a raw string.
-- [ ] State persists as you go — there is no suspend hook, and suspension is normal.
+- [ ] `host.setCheckpoint` stays current — there is no general `onSuspend`, and
+      suspension is normal. Overrunning the 50 ms checkpoint budget kills the app.
 - [ ] Storage failures are handled. A write over quota fails; it does not evict.
 - [ ] No render loop. Watch the messages/sec counter in Runtime controls while you use the app
       normally ([Chapter 12](12-limits-and-budgets.md)).

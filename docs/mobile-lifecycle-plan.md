@@ -2,15 +2,15 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-17
+audited: 2026-08-18
 register: software
 counterpart: docs/mobile-lifecycle.md
 -->
 
-What it would take to clear the `self-imposed` rows of the ledger in
+What it would take to clear the remaining `self-imposed` rows of the ledger in
 [mobile-lifecycle.md](mobile-lifecycle.md), which is the document describing what the
-platform does today. Nothing here is built. Read the live document for current behaviour
-and for the ledger itself; this file is only the argument for what to do about it.
+platform does today. Read the live document for current behaviour and for the ledger
+itself; this file is only the argument for what remains.
 
 The organising claim is the one the live document states: the mobile OS constrains the
 host process, not the mini-apps inside it. Every candidate below is an attempt to stop a
@@ -24,27 +24,15 @@ still withheld. The remaining rows are what those recoveries make worth attempti
 
 ## Sequencing
 
-The three candidates are tracked as `MINIAPP-LIFECYCLE-EVENTS`,
-`MINIAPP-BACKGROUND-ANDROID`, and `MINIAPP-SCHEDULED-WAKE` in the **Backlog** table of
-[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), following the naming the shipped
-`MINIAPP-CONCURRENT` and `MINIAPP-APP-TO-APP` rows already use for ledger work.
+`MLC-LIFECYCLE-EVENTS` shipped as `MINIAPP-LIFECYCLE-EVENTS`: `host.setCheckpoint` /
+`host.onResume`, with a 50 ms will-suspend budget that kills on overrun. Current
+behaviour is in [mobile-lifecycle.md](mobile-lifecycle.md). The remaining candidates
+are tracked as `MINIAPP-BACKGROUND-ANDROID` and `MINIAPP-SCHEDULED-WAKE` in the
+**Backlog** table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md).
 
-1. `MLC-LIFECYCLE-EVENTS` — tell an app what the host already knows.
+1. ~~`MLC-LIFECYCLE-EVENTS`~~ — shipped.
 2. `MLC-BACKGROUND-ANDROID` and `MLC-SCHEDULED-WAKE` — budgeted execution when the user is
    elsewhere. Last, because both are rationing problems before they are API problems.
-
-## Candidate 1 — lifecycle events for mini-apps
-
-The host already receives `suspend-node` and `resume-node` and acts on them; the sandbox
-is told nothing. Forwarding them as SDK events costs little and removes the "persist on
-every write" tax that [the authoring guide](../authors/12-limits-and-budgets.md) currently
-imposes on every app author.
-
-The constraint that makes this non-trivial is the grace window. A suspend handler runs
-inside the same short window the host uses to quiesce interfaces, so it needs a hard
-budget, and an app that overruns it must be killed rather than delaying the host's own
-quiesce. That argues for a strictly bounded synchronous checkpoint — a "write this blob
-now" call — rather than a general `onSuspend` in which arbitrary app code runs.
 
 ## Candidates 2 and 3 — background and scheduled execution
 

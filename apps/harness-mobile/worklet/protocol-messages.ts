@@ -457,6 +457,7 @@ export type WorkletToHostMessage =
       readonly publisherPublicKey: string;
       readonly version: string;
       readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
+      readonly riskTier?: string;
     }
   | {
       readonly type: "install-review";
@@ -467,6 +468,7 @@ export type WorkletToHostMessage =
       readonly trusted: boolean;
       readonly trustedLabel: string | null;
       readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
+      readonly riskTier?: string;
     }
   | {
       readonly type: "install-256t-result";

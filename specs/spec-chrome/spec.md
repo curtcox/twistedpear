@@ -2,11 +2,11 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-20
+audited: 2026-08-18
 register: none
 -->
 
-**Group:** C (platform) · **Status:** normative for R2/R4/R5/R6, informative for R1/R3 · **Migration phase:** 3
+**Group:** C (platform) · **Status:** normative · **Migration phase:** 3
 
 ## Scope
 
@@ -18,7 +18,7 @@ area the web under-specifies; this spec exists so TwistedPear does better.
 
 ## Named requirements
 
-Fixtures and future rules cite these ids; a fixture that attacks a rule names it.
+Fixtures cite these ids; a fixture that attacks a rule names it.
 
 - **CHROME-R1 (canonical descriptions).** Grant screens render exactly the
   descriptions from the capability registry ([SPEC-CAP](../spec-cap/spec.md)); app
@@ -46,17 +46,25 @@ Fixtures and future rules cite these ids; a fixture that attacks a rule names it
   for the foreground mini-app. A concurrently running app that is not on
   screen has no drawing surface and cannot overlay chrome. Its widget tree is
   retained and painted when the user switches to it.
-
-R2, R4, R5, and R6 are fixture-testable (broker-observable); R1, R3, and R7 are
-render-level and stay informative until a snapshot-based check exists.
+- **CHROME-R8 (reserved lexicon).** App widget text cannot use reserved host-chrome
+  vocabulary: platform-name authority claims, copied capability-registry wording,
+  host-update banners, or an Approve/Deny (Allow/Not now) pair that imitates a
+  grant screen.
+- **CHROME-R9 (no secret solicitation).** App widget text cannot solicit a recovery
+  phrase, seed words, mnemonic, identity backup, or identity string.
 
 ## Normative artifacts (current locations)
 
 - Requirement-keyed fixture suite: [conformance/chrome/run.mjs](../../conformance/chrome/run.mjs)
-  (`npm run test:chrome`). Each fixture cites the rule it attacks and asserts a
-  broker-observable property:
+  (`npm run test:chrome`). Each fixture cites the rule it attacks:
+  - **CHROME-R1** — confirmation copy is `describeCapability()`; the app tree does
+    not carry that copy.
   - **CHROME-R2** — every `apps:*` call raises exactly one host-chrome
     confirmation _before_ the backend runs; a grant alone never suffices.
+  - **CHROME-R3** — snapshot geometry: the confirmation is a host layer above the
+    app surface; a full-bleed widget tree stays clipped inside the surface and
+    has no z-index with which to occlude chrome
+    ([chrome-geometry.ts](../../packages/widget-renderer-headless/src/chrome-geometry.ts)).
   - **CHROME-R4** — no app-reachable broker method (`host.confirm`,
     `apps.approve`, `ui.confirm`, …) can resolve a pending confirmation; all
     fail `UNKNOWN_METHOD` and the confirmation stays open until the chrome
@@ -66,10 +74,10 @@ render-level and stay informative until a snapshot-based check exists.
   - **CHROME-R6** — the `package`/`preview`/`install` confirmations carry the
     review material (declared capabilities, requested grants, package id +
     review note) and an unguessable token.
-- **R1 (canonical descriptions)** and **R3 (no draw-over)** are render-level
-  and stay **informative** until a snapshot-based check exists. **R7
-  (background has no surface)** is the same class: host-rendered UI is only
-  painted for the foreground mini-app.
+  - **CHROME-R7** — two concurrent apps: only the foreground app is painted.
+  - **CHROME-R8 / CHROME-R9** — `validateWidgetTree` rejects reserved lexicon and
+    secret solicitation (`ui/chrome-lexicon.ts`). Hostile-author HA-20…HA-24
+    assert `INVALID_WIDGET`.
 - Broader hostile-app fixtures: [conformance/hostile-apps](../../conformance/hostile-apps/)
   (`npm run test:hostile-apps`)
 - Double-gating of `apps:*` is partially captured by the grant model in
@@ -84,9 +92,6 @@ not silently approve, operations requiring chrome confirmation).
 
 ## To finish this spec
 
-Done for the fixture-testable set — `conformance/chrome/` keys fixtures to
-R2/R4/R5/R6, each citing the rule it attacks. R1 (canonical grant-screen
-descriptions), R3 (no draw-over), and R7 (background has no surface) remain
-render-level and stay informative until a snapshot-based check exists; this is
-the allowed partial-informative state for SPEC-CHROME per
-[specs/README.md](../README.md).
+Done — every named rule has a machine-checkable fixture. Layer A (R8/R9) is the
+deterministic validator; Layer B (R1/R3/R7) is the snapshot geometry that closed
+the previous informative-only gap.

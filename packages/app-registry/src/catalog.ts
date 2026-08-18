@@ -1,3 +1,4 @@
+import { confusableAmong } from "./confusable.js";
 import type { CryptoProvider, KeyValueStore } from "@twistedpear/reticulum-ts";
 import { Identity, hexToBytes, bytesToHex } from "@twistedpear/reticulum-ts";
 import type { AppAnnounceSummary } from "./announce.js";
@@ -84,6 +85,13 @@ export class CatalogStore {
     return this.entries.get(appId) ?? null;
   }
 
+  confusableWith(name: string): ReadonlyArray<string> {
+    return confusableAmong(
+      name,
+      this.list().map((entry) => entry.name),
+    );
+  }
+
   ingest(options: CatalogIngestOptions): CatalogEntry | null {
     const now = options.now ?? Date.now();
     const summary = decodeIngestSummary(options.appData);
@@ -137,10 +145,7 @@ export class CatalogStore {
     packageHash: string,
     at: number,
   ): number | null {
-    return this.firstSeen.ageMs(
-      { appId, publisherPublicKey, packageHash },
-      at,
-    );
+    return this.firstSeen.ageMs({ appId, publisherPublicKey, packageHash }, at);
   }
 
   private announceSignaturesHold(

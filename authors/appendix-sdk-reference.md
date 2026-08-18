@@ -69,10 +69,13 @@ All calls without a matching grant fail with a typed `CapabilityError`.
 
 ## presence and host
 
-| Call                  | Capability | Notes                                                                                                                |
-| --------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
-| `presence.snapshot()` | `presence` | Coarse peer/interface state                                                                                          |
-| `host.info()`         | `presence` | Platform id, host version, `HOST_API_VERSION`, enabled roles, interface types, quota snapshot, `grantedCapabilities` |
+| Call                     | Capability | Notes                                                                                                                |
+| ------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| `presence.snapshot()`    | `presence` | Coarse peer/interface state                                                                                          |
+| `host.info()`            | `presence` | Platform id, host version, `HOST_API_VERSION`, enabled roles, interface types, quota snapshot, `grantedCapabilities` |
+| `host.setCheckpoint(b)`  | none       | ≤64 KiB blob collected on suspend; 50 ms budget, overrun kills. No general `onSuspend`.                              |
+| `host.onResume(handler)` | none       | Delivers the checkpoint blob when the sandbox returns to running                                                     |
+| `host.getCheckpoint()`   | none       | Blob last passed to `setCheckpoint`, or `null`                                                                       |
 
 `host.info()` requires host API `0.3.0`.
 

@@ -18,6 +18,10 @@ import {
 } from "../../../packages/miniapp-runtime/dist/capabilities.js";
 import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/confirm.js";
 import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
+import {
+  presentCapabilityReview,
+  riskClassForCapabilityId,
+} from "../../../packages/worklet-core/src/capability-review.mjs";
 
 /**
  * Phase W3: install from 256t (inline or Resource fetch) + publisher trust store.
@@ -232,6 +236,14 @@ export function createWebInstallService(options) {
         throw new Error("Install review requires host UI");
       }
 
+      const presented = presentCapabilityReview(
+        declared.map((id) => ({
+          id,
+          description: describeCapability(id),
+          granted: false,
+          riskClass: riskClassForCapabilityId(id),
+        })),
+      );
       const review = await options.requestHostReply({
         type: "install-review",
         token: generateConfirmationToken((length) =>
@@ -242,11 +254,8 @@ export function createWebInstallService(options) {
         publisherPublicKey: verified.manifest.publisherPublicKey,
         trusted,
         trustedLabel: trustedEntry?.label ?? null,
-        capabilities: declared.map((id) => ({
-          id,
-          description: describeCapability(id),
-          granted: false,
-        })),
+        riskTier: presented.riskTier,
+        capabilities: presented.capabilities,
       });
 
       if (review === null || review.accept !== true) {

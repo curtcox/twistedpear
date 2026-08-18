@@ -119,7 +119,7 @@ Android emulator numbers using the Bare worker backend are recorded in
 | No shared storage between apps      | A channel copies messages; each app's store stays its own.  | Yes, for v1                           |
 | No native modules                   | JavaScript only, no exceptions.                             | Yes                                   |
 | Local-only storage                  | No sync, no backup, no cross-device state.                  | Yes, for v1                           |
-| Suspension is normal                | Persist as you go; there is no `onSuspend`.                 | Suspension yes; the missing hook no   |
+| Suspension is normal                | Keep `host.setCheckpoint` current; there is no `onSuspend`. | Suspension yes; the budget is ours    |
 
 The "Permanent?" column is not decoration. Rows marked _no_ are limits the platform
 imposes on itself and has committed to revisiting on a schedule that fails the build if it

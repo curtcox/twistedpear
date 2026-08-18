@@ -247,7 +247,7 @@ export function handleWorkletMessage(scope, message) {
         ? `Install ${message.appId} v${message.version} from trusted publisher "${message.trustedLabel ?? "?"}"?`
         : `Install ${message.appId} v${message.version} from UNTRUSTED publisher?`,
       fingerprint: message.publisherPublicKey,
-      rows: [["Capabilities requested", message.capabilities.length]],
+      rows: reviewRiskRows(message),
       capabilities: message.capabilities,
       confirmLabel: "Install",
       onDone: (accept, grants) => {
@@ -414,6 +414,15 @@ function handleConfirmRequest(scope, message) {
   });
 }
 
+function reviewRiskRows(message) {
+  const rows = [];
+  if (message.riskTier != null) {
+    rows.push(["Risk tier", message.riskTier]);
+  }
+  rows.push(["Capabilities requested", message.capabilities.length]);
+  return rows;
+}
+
 function handleLaunchReview(scope, message) {
   const { host, requestedAppId, showHostModal } = scope;
   if (requestedAppId !== null && message.appId === requestedAppId) {
@@ -429,7 +438,7 @@ function handleLaunchReview(scope, message) {
   showHostModal({
     title: `Run ${message.appId} v${message.version}?`,
     fingerprint: message.publisherPublicKey,
-    rows: [["Capabilities requested", message.capabilities.length]],
+    rows: reviewRiskRows(message),
     capabilities: message.capabilities,
     confirmLabel: "Run",
     onDone: (accept, grants) => {

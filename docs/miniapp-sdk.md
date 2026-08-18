@@ -80,7 +80,14 @@ the pair before messages copy through the broker.
 - `host.info()` — platform id, host version, `HOST_API_VERSION`, enabled roles,
   available interface types, quota snapshot, and `grantedCapabilities` for the
   calling app (requires `presence`).
-- `ui.render(tree)` — submit a validated widget tree.
+- `host.setCheckpoint(bytes)` — store a ≤64 KiB blob in the sandbox for the next
+  suspend. Local; it does not cross the broker. Overrunning the 50 ms will-suspend
+  ack kills the app.
+- `host.onResume(handler)` — receive that blob when the sandbox returns to running.
+  There is no general `onSuspend`.
+- `host.getCheckpoint()` — the blob last passed to `setCheckpoint`, or `null`.
+- `ui.render(tree)` — submit a validated widget tree. Trees that imitate host chrome
+  (CHROME-R8) or solicit secrets (CHROME-R9) fail `INVALID_WIDGET`.
 - `ui.onEvent(handler)` — subscribe to host UI events (tap, input change, etc.).
 - `workspace.list/read/write/patch/remove(path)` — per-app project source files.
   `patch(path, baseLength, edits)` applies ordered, non-overlapping UTF-16 text edits and

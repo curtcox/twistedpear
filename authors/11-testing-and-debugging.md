@@ -83,9 +83,9 @@ a busy loop."
 installed → launching → running → suspended → stopped
 ```
 
-Crashes and watchdog kills go to `crashed`. There is no `onSuspend` hook — **persist as you
-go**. Anything you were holding only in memory when the user backgrounded the app or the host
-suspended it is gone.
+Crashes and watchdog kills go to `crashed`. There is no general `onSuspend`. Keep
+`host.setCheckpoint` current while you run; `host.onResume` delivers that blob when the
+sandbox returns. Anything you never checkpointed is gone.
 
 Suspension is not exotic. On a phone it is the normal case.
 

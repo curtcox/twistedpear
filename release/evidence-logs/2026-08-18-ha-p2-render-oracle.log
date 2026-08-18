@@ -1,0 +1,50 @@
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  13:21:59
+   Duration  991ms (transform 652ms, setup 0ms, import 904ms, tests 5ms, environment 0ms)
+
+
+> twistedpear@0.0.0 test:chrome
+> npm run build && node conformance/chrome/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+PASS CHROME-R2 apps.package confirmed then executed
+PASS CHROME-R2 apps.package confirmation precedes backend execution
+PASS CHROME-R2 apps.publish confirmed then executed
+PASS CHROME-R2 apps.publish confirmation precedes backend execution
+PASS CHROME-R2 apps.install confirmed then executed
+PASS CHROME-R2 apps.install confirmation precedes backend execution
+PASS CHROME-R2 apps.preview confirmed then executed
+PASS CHROME-R2 apps.preview confirmation precedes backend execution
+PASS CHROME-R4 host.confirm is not reachable
+PASS CHROME-R4 host.acknowledge is not reachable
+PASS CHROME-R4 apps.confirm is not reachable
+PASS CHROME-R4 apps.approve is not reachable
+PASS CHROME-R4 ui.confirm is not reachable
+PASS CHROME-R4 confirm.approve is not reachable
+PASS CHROME-R4 confirmation still pending after app-side attempts
+PASS CHROME-R4 only the chrome channel resolves the confirmation (denied)
+PASS CHROME-R5 headless apps.package refused with CONFIRMATION_UNAVAILABLE
+PASS CHROME-R5 headless apps.publish refused with CONFIRMATION_UNAVAILABLE
+PASS CHROME-R5 headless apps.install refused with CONFIRMATION_UNAVAILABLE
+PASS CHROME-R5 headless apps.preview refused with CONFIRMATION_UNAVAILABLE
+PASS CHROME-R5 backend never invoked without confirmation
+PASS CHROME-R6 package confirmation lists the declared capabilities
+PASS CHROME-R6 preview confirmation lists the requested grants
+PASS CHROME-R6 install confirmation identifies the package and the review step
+PASS CHROME-R6 every confirmation carries an unguessable token
+PASS CHROME-R1 confirmation copy uses the capability registry wording
+PASS CHROME-R1 app tree cannot carry the confirmation title
+PASS CHROME-R3 confirmation is a host layer above the app surface
+PASS CHROME-R3 full-bleed app boxes stay inside the app surface
+PASS CHROME-R3 widget styles cannot raise z-index over chrome
+PASS CHROME-R8 grant-screen imitation is rejected
+PASS CHROME-R9 recovery-phrase solicitation is rejected
+PASS CHROME-R7 only the foreground app has a drawing surface

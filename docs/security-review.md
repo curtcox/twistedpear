@@ -21,7 +21,7 @@ hardware debt ([STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H11).
 | Broker dispatch + rate/size limits | `packages/miniapp-runtime/src/broker.ts`      | `broker.test.ts`, `hostile-apps` |
 | Capability grants                  | `capabilities.ts`, `GrantStore`               | `host.test.ts` grant matrix      |
 | Host handlers                      | `host.ts`                                     | `hostile-apps`, `test:examples`  |
-| Widget tree validation             | `ui/validate.ts`                              | `hostile-apps` UI abuse cases    |
+| Widget tree validation             | `ui/validate.ts`, `ui/chrome-lexicon.ts`      | `hostile-apps`, `test:chrome`, HA-20…HA-24 |
 | Sandbox backends                   | `sandbox/node-worker.ts`, `sandbox/worker.ts` | `hostile-apps` escape probes     |
 | Reticulum wire parsers             | `reticulum-ts`, `lxmf-ts`                     | `npm run test:fuzz`              |
 
@@ -86,6 +86,17 @@ the install review shows.
   directly.
 - A live offer plus the grant is full use of that `(app, capability, target)`
   triple. Publisher signature authenticates identity, not behaviour.
+
+### F9 — Residual: author deception of the user (enumerated)
+
+Malicious but signed packages are a social/trust problem. The
+[hostile-author catalog](../conformance/hostile-authors/README.md) measures 27 scenarios
+against consent transcripts, the render oracle (CHROME-R8/R9), and egress offers. None
+land UNCONTROLLED. What remains is publisher trust plus the F4 residuals: v1 packages
+still install, offer-authoring chrome is still plan work, and a live offer is full use
+of that destination.
+
+**Evidence:** `npm run test:hostile-authors`
 
 ### F5 — Residual: cross-app storage (verified)
 
@@ -198,6 +209,7 @@ roles ship beyond the current desktop/headless and mobile-grant surfaces.
 npm run build
 npm test -- packages/miniapp-runtime/test/broker.test.ts packages/miniapp-runtime/test/host.test.ts
 npm run test:hostile-apps
+npm run test:hostile-authors
 npm run test:fuzz
 ```
 

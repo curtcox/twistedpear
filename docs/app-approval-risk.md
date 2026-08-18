@@ -33,7 +33,9 @@ a floor: storage and presence are standing and still `benign`. `critical` requir
 `elevated`/`sensitive` → `sensitive`) except `device:share-policy:read`, which stays
 `benign`.
 
-This phase ships no new refusals. An update that adds a capability is named with
+This phase ships no new refusals. The review dialog orders capabilities by risk
+class, states the app `riskTier`, and groups `benign` grants last. An update that
+adds a capability is named with
 its risk class and does not inherit the previous grant set
 (`capabilityUpdateDelta` / `grantsPreservedAcrossUpdate`). App risk tier is the
 maximum requested class, promoted one step when a read authority and an egress

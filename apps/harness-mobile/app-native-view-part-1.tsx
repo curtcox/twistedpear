@@ -57,10 +57,20 @@ function NativeHostReviewModal({ scope }: { scope: NativeHarnessScope }) {
             <Text style={styles.rowLabel}>
               Publisher: {hostReview.review.publisherPublicKey}
             </Text>
+            {hostReview.review.riskTier !== undefined ? (
+              <Text style={styles.muted}>
+                Risk tier: {hostReview.review.riskTier}
+              </Text>
+            ) : null}
             {hostReview.review.capabilities.map((capability) => (
               <View key={capability.id} style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>{capability.id}</Text>
+                  <Text style={styles.rowLabel}>
+                    {capability.id}
+                    {capability.riskClass !== undefined
+                      ? ` [${capability.riskClass}]`
+                      : ""}
+                  </Text>
                   <Text style={styles.muted}>{capability.description}</Text>
                 </View>
                 <Switch

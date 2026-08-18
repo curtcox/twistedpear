@@ -92,6 +92,12 @@
       "requires": ["APPR-TIER"],
       "verify": "npx vitest run packages/worklet-core/test/capability-review.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/worklet-core/test/capability-review.test.ts",
+        "packages/worklet-core/src/capability-review.mjs",
+        "apps/host-desktop/src/renderer/app-extracted-3.mjs"
+      ],
       "notes": "app-approval-risk-plan.md Phase 1, finding A-3. No new gates in this phase — it makes the existing dialog honest, which is most of the user-visible benefit at a fraction of the risk of getting thresholds wrong."
     },
     "APPR-REVIEWER-SET": {
@@ -446,6 +452,12 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/device-scalar-sensors.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/device-scalar-sensors.test.ts",
+        "packages/miniapp-runtime/src/device-manager/layer-2-samples.ts",
+        "packages/miniapp-runtime/src/device-manager/shared.ts"
+      ],
       "notes": "device-io-plan.md phase 7: proximity, barometer, thermometer, hygrometer, ambient-light. Registry entries land with their drivers and need no API change; battery and thermal stay coarse buckets because precise curves are a fingerprinting vector."
     },
     "DOC-OPTIONAL-BACKLOG": {
@@ -756,6 +768,16 @@
       "requires": ["HA-P1-TRANSCRIPT"],
       "verify": "npx vitest run packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts && npm run test:chrome",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/src/ui/chrome-lexicon.ts",
+        "packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts",
+        "packages/widget-renderer-headless/src/chrome-geometry.ts",
+        "conformance/chrome/run.mjs",
+        "conformance/chrome/snapshot.mjs",
+        "conformance/hostile-authors/fixtures/impersonation.mjs",
+        "specs/spec-chrome/spec.md"
+      ],
       "notes": "hostile-author-plan.md P2, Surface 3. Layer A is a deterministic validator pass in ui/validate.ts rejecting reserved chrome vocabulary, chrome-imitating layout signatures, and secret-solicitation patterns — proposed CHROME-R7 (reserved lexicon) and CHROME-R8 (no secret solicitation). Layer B is snapshot geometry proving confirmations render outside the app surface and cannot be occluded, which is the 'snapshot-based check' SPEC-CHROME's own text is waiting on. Layer A is where the value is; Layer B is what closes the spec. HA-21 — an app asking the user to type their recovery phrase — is the highest-severity scenario in the catalog and needs no capabilities at all."
     },
     "HA-P3-FINDINGS": {
@@ -763,6 +785,17 @@
       "requires": ["HA-P2-RENDER-ORACLE"],
       "verify": "node conformance/hostile-authors/run.mjs",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/src/confirm.ts",
+        "packages/app-registry/src/confusable.ts",
+        "packages/protocol/src/lxmf-moderation.ts",
+        "packages/host-core/src/moderation-store.ts",
+        "conformance/hostile-authors/fixtures/consent.mjs",
+        "conformance/hostile-authors/fixtures/identity.mjs",
+        "conformance/hostile-authors/fixtures/vector.mjs",
+        "conformance/hostile-authors/README.md"
+      ],
       "notes": "hostile-author-plan.md P3: confirmation rate limiting, host-derived confirmation summaries, confusable-name flagging, capability-delta review on update, per-app moderation granularity. Exit is that every finding is BLOCKED, INFORMED-with-transcript, or CONTAINED-with-a-metric. Scope may overlap APPR-UPDATE-DELTA; close whichever lands second against the other's evidence rather than duplicating the fix."
     },
     "HA-P4-SCOPED-EGRESS": {
@@ -770,6 +803,13 @@
       "requires": ["HA-P3-FINDINGS", "CAP-EGRESS-WIRING"],
       "verify": "node conformance/hostile-authors/run.mjs",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "docs/security-review.md",
+        "LIMITATIONS.md",
+        "conformance/hostile-authors/README.md",
+        "docs/hostile-author-plan.md"
+      ],
       "notes": "hostile-author-plan.md P4. HA-30 (granted lxmf:send used to ship the contact list) and HA-36 (benign until a remote flag arrives) are the plan's load-bearing scenarios: they cannot be resolved by better dialogs, only by EgressOffer. Written red now and standing as the acceptance test for the scoping work. Exit rewrites security-review.md F4 from an accepting sentence into an enumerated residual and updates LIMITATIONS §7."
     },
     "ID-APPSCOPE": {
@@ -918,6 +958,12 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/lifecycle-events.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/lifecycle-events.test.ts",
+        "packages/miniapp-runtime/src/lifecycle.ts",
+        "packages/miniapp-sdk/src/host.ts"
+      ],
       "notes": "mobile-lifecycle-plan.md candidate 1; ledger row MLC-LIFECYCLE-EVENTS. The host already receives suspend-node and resume-node and acts on them; the sandbox is told nothing, which is why authors/12-limits-and-budgets.md imposes a persist-on-every-write tax on every app. The grace window is what makes it non-trivial: a suspend handler runs inside the same short window the host uses to quiesce interfaces, so it needs a hard budget and an overrunning app must be killed rather than delaying the quiesce. That argues for a strictly bounded synchronous checkpoint, not a general onSuspend running arbitrary app code."
     },
     "MINIAPP-SCHEDULED-WAKE": {

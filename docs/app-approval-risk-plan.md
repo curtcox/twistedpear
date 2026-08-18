@@ -302,14 +302,9 @@ without a grant and redacts lock holders; `APPR-FLOOR-PROBE` locks that floor in
 
 `APPR-RISK-CLASS` is executed: the generated registry and `CapabilityDefinition.riskClass`
 are described in [App approval risk](app-approval-risk.md). `APPR-TIER` is executed: the
-max-plus-promotion function is `appRiskTier`. Remaining Phase 1 work:
-
-| ID               | Type    | Requires    | Work                                                                                                                |
-| ---------------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
-| `APPR-REVIEW-UX` | feature | `APPR-TIER` | Review dialog orders by risk, states the tier, and separates `benign` from the rest. **No new gates in this phase** |
-
-Phase 1 ships no refusals. It makes the existing dialog honest, which is most of the
-user-visible benefit at a fraction of the risk of getting the thresholds wrong.
+max-plus-promotion function is `appRiskTier`. `APPR-REVIEW-UX` is executed: the review
+payload is ordered by risk, states `riskTier`, and groups `benign` last. Phase 1 is
+complete. No new gates shipped in this phase.
 
 `APPR-FIRST-SEEN` landed in [app approval risk](app-approval-risk.md): a TTL-immune
 ledger keyed by `(appId, publisherKey, packageHash)`. `APPR-TRUST-DEGREE` landed:
@@ -319,7 +314,9 @@ may set `optional: true`, and launch proceeds when every essential declaration
 is granted (an all-optional app may launch with an empty grant set).
 
 `APPR-UPDATE-DELTA` is executed: an update that adds a capability is named with its
-risk class and does not auto-activate.
+risk class and does not auto-activate. `APPR-REVIEW-UX` is executed: the review
+payload is ordered high-risk first, carries `riskTier`, and groups `benign`
+capabilities under "Also uses".
 
 ### Phase 3 — the evaluator and the gates
 

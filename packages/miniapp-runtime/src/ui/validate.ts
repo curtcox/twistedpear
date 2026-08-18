@@ -1,3 +1,4 @@
+import { chromeLexiconViolation } from "./chrome-lexicon.js";
 import {
   CODE_EDITOR_LANGUAGES,
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
@@ -175,5 +176,7 @@ export function validateWidgetTree(
   };
 
   visit(tree.root, 1);
+  const chrome = chromeLexiconViolation(tree);
+  if (chrome !== null) invalidWidget(chrome);
   return tree;
 }

@@ -15,9 +15,10 @@ TwistedPear has no central moderation authority. Safety controls are local polic
   administrator; exporting does not transmit it.
 
 Block wins if a source appears in both lists. Entries use the authenticated 16-byte LXMF
-source destination hash, rendered as 32 lowercase hexadecimal characters. The router applies
-the same policy after signature validation for opportunistic, direct-link, and propagated
-deliveries.
+source destination hash, rendered as 32 lowercase hexadecimal characters, **or** an app
+id (`blockedApps`) so a hostile mini-app can be blocked without blocking every message
+from the same person. The router applies the same policy after signature validation for
+opportunistic, direct-link, and propagated deliveries.
 
 Node hosts persist `moderation.json` atomically with mode `0600`. The desktop worklet uses its
 private key-value store, and its **Safety** settings panel manages both lists and local reports.

@@ -1,3 +1,5 @@
+import type { SandboxCheckpointResult } from "./checkpoint.js";
+
 export interface SandboxLimits {
   readonly memoryBytes?: number;
   readonly maxMessageBytes?: number;
@@ -18,6 +20,11 @@ export interface SandboxInstance {
   ping(timeoutMs: number): Promise<boolean>;
   isAlive(): boolean;
   kill(reason: string): Promise<void>;
+  /**
+   * Ask the worker for its stored checkpoint within `budgetMs`. Optional so
+   * proxy backends can fall back to a ping as the overrun detector.
+   */
+  checkpoint?(budgetMs: number): Promise<SandboxCheckpointResult>;
 }
 
 export interface SandboxBackend {

@@ -1,6 +1,6 @@
 {
   "$comment": "Utility withheld from mini-apps because of the mobile app lifecycle. Rendered as the ledger table in docs/mobile-lifecycle.md and enforced by conformance/doc-audit/mobile-lifecycle.test.mjs. Read docs/mobile-lifecycle.md before editing.",
-  "audited": "2026-08-17",
+  "audited": "2026-08-18",
   "causes": {
     "os": "The mobile OS forbids it. Nothing this repository can build changes the answer; only an OS capability, an entitlement, or a different host would.",
     "os-derived": "The OS forbids something adjacent, and this is our implementation of living within it. A different implementation could recover part of the utility.",
@@ -53,20 +53,6 @@
       "unlock": "A capability over the wake budgets the host already holds — `fetch`/`processing` on iOS, WorkManager on Android — with a hard per-app budget",
       "revisit": { "after": "2027-02-01" },
       "note": "The scarce resource is the wake budget, which is per-host, not per-app. Any grant here is a rationing decision before it is an API."
-    },
-    {
-      "id": "MLC-LIFECYCLE-EVENTS",
-      "utility": "A mini-app being told it is about to be suspended, and that it has resumed",
-      "cause": "self-imposed",
-      "decision": "The host receives `suspend-node` / `resume-node` and does not forward either to the sandbox; apps are told to persist as they go",
-      "evidence": [
-        "packages/miniapp-runtime/src/lifecycle.ts",
-        "authors/12-limits-and-budgets.md"
-      ],
-      "cost": "No checkpoint on the way down and no cheap catch-up on the way back; every write must assume it is the last one",
-      "unlock": "Deliver the transitions the host already observes to the sandbox as SDK events, with a bounded grace budget for the suspend handler",
-      "revisit": { "after": "2027-02-01" },
-      "note": "The suspension is real and not removable. Being unable to react to it is not."
     },
     {
       "id": "MLC-ALWAYS-ON-ROLES",

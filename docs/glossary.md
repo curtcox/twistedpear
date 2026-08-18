@@ -88,7 +88,7 @@ a twinned machine).
 
 **Chrome (host chrome)** — UI the host renders outside the app's drawing
 surface: grant screens, confirmations, the Devices panel, the active-use
-banner. Apps can neither draw over it nor acknowledge it. Rules CHROME-R1–R6 in
+banner. Apps can neither draw over it nor acknowledge it. Rules CHROME-R1–R9 in
 [SPEC-CHROME](../specs/spec-chrome/spec.md). Unrelated to the Chromium browser
 embedded by the desktop host.
 

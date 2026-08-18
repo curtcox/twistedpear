@@ -184,13 +184,17 @@ limits iOS and Android impose from the ones this platform added on top.
   apps needing exotic hardware) won't fit; the tiered-APK channel was deliberately deferred.
 - **Mini-app limits inherited from the mobile lifecycle are tracked, not accepted.** The
   remaining self-imposed entries in the [mobile lifecycle ledger](docs/mobile-lifecycle.md) —
-  suspend/resume events and Android background execution — are limits no mobile OS imposes.
+  Android background execution and scheduled wake — are limits no mobile OS imposes.
   They carry revisit triggers that fail `npm run test:doc-audit` if they lapse. Do not cite
-  them here as permanent trade-offs. Concurrent mini-apps and a brokered `apps:channel` have
-  shipped; shared storage is still withheld by choice.
+  them here as permanent trade-offs. Concurrent mini-apps, a brokered `apps:channel`, and
+  suspend checkpoints have shipped; shared storage is still withheld by choice.
 - JS sandboxing inside one runtime is a real attack surface. Phase 7 completed a software-tier
   adversarial review of the broker chokepoint ([docs/security-review.md](docs/security-review.md));
   mini-app installation still trusts the publisher signature for declared behavior.
+  Destination-scoped egress (`EgressOffer`) and the hostile-author catalog
+  (`npm run test:hostile-authors`) bound that trust: no catalog scenario is
+  UNCONTROLLED. Residuals are v1 unscoped packages, offer-authoring chrome
+  (`CAP-EGRESS-CHROME`), and that a live offer is full use of that destination.
 - Phase 4 ships a broker chokepoint, deny-by-default capability grants, data-only widget
   trees, and hostile-input conformance tests. Capability substitution and broker UI-event
   forgery gaps found in review are fixed; **Bare Worker hostile parity on device** remains

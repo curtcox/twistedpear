@@ -22,6 +22,18 @@ describe("FileModerationStore", () => {
     expect(statSync(path).mode & 0o777).toBe(0o600);
   });
 
+  it("blocks a named app without blocking another app on the same source", () => {
+    const path = join(
+      mkdtempSync(join(tmpdir(), "tp-moderation-app-")),
+      "moderation.json",
+    );
+    const store = new FileModerationStore(path, () => 7);
+    store.blockApp("inviter");
+    expect(store.disposition(ALICE, "inviter")).toBe("block");
+    expect(store.disposition(ALICE, "notes")).toBe("allow");
+    expect(store.list().blockedApps).toEqual(["inviter"]);
+  });
+
   it("records local-only reports and exports a portable JSON record", () => {
     const path = join(
       mkdtempSync(join(tmpdir(), "tp-reports-")),

@@ -14,6 +14,11 @@ import {
   HOST_API_VERSION,
   validateManifestCapabilities,
 } from "../../miniapp-runtime/dist/worklet.js";
+import { describeCapability } from "../../miniapp-runtime/dist/capabilities.js";
+import {
+  presentCapabilityReview,
+  riskClassForCapabilityId,
+} from "./capability-review.mjs";
 
 export function createInstallFromT256(deps) {
   return async function installFromT256(t256) {
@@ -82,6 +87,17 @@ export function createInstallFromT256(deps) {
             entry.publisherPublicKey === verified.manifest.publisherPublicKey,
         )
       : undefined;
+    const presented = presentCapabilityReview(
+      declarations.map((declaration) => ({
+        id: declaration.id,
+        description: describeCapability(declaration.id),
+        granted: false,
+        optional: declaration.optional,
+        scope: declaration.scope,
+        scopeLabel: capabilityScopeLabel(declaration.scope),
+        riskClass: riskClassForCapabilityId(declaration.id),
+      })),
+    );
     const review = await deps.requestHostReply({
       type: "install-review",
       token: generateConfirmationToken((length) =>
@@ -92,14 +108,8 @@ export function createInstallFromT256(deps) {
       publisherPublicKey: verified.manifest.publisherPublicKey,
       trusted,
       trustedLabel: trustedEntry?.label ?? null,
-      capabilities: declarations.map((declaration) => ({
-        id: declaration.id,
-        description: declaration.id,
-        granted: false,
-        optional: declaration.optional,
-        scope: declaration.scope,
-        scopeLabel: capabilityScopeLabel(declaration.scope),
-      })),
+      riskTier: presented.riskTier,
+      capabilities: presented.capabilities,
     });
     if (review === null || review.accept !== true) {
       throw new Error("Install cancelled at capability review");

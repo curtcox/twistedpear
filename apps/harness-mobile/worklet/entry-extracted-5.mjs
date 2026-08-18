@@ -323,6 +323,7 @@ export function ensureMiniappHostImpl(context) {
           publisherPublicKey: review.publisherPublicKey,
           version: review.version,
           capabilities: review.capabilities,
+          riskTier: review.riskTier,
         });
       },
       getHostInfoSnapshot: () => {

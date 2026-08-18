@@ -25,6 +25,7 @@ export interface ModerationSnapshot {
   readonly version: 1;
   readonly blocked: ReadonlyArray<ModerationEntry>;
   readonly muted: ReadonlyArray<ModerationEntry>;
+  readonly blockedApps: ReadonlyArray<string>;
   readonly reports: ReadonlyArray<LocalReportRecord>;
 }
 
@@ -32,14 +33,24 @@ const EMPTY_SNAPSHOT: ModerationSnapshot = {
   version: 1,
   blocked: [],
   muted: [],
+  blockedApps: [],
   reports: [],
 };
 const HASH_PATTERN = /^[0-9a-f]{32}$/;
+const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._:-]{0,127}$/i;
 
 function normalizeHash(sourceHash: string): string {
   const normalized = sourceHash.trim().toLowerCase();
   if (!HASH_PATTERN.test(normalized))
     throw new Error("LXMF source hash must be 32 hexadecimal characters");
+  return normalized;
+}
+
+function normalizeAppId(appId: string): string {
+  const normalized = appId.trim().toLowerCase();
+  if (!APP_ID_PATTERN.test(normalized)) {
+    throw new Error("App id for moderation must be 1-128 URL-safe characters");
+  }
   return normalized;
 }
 
@@ -53,7 +64,17 @@ function parseSnapshot(value: unknown): ModerationSnapshot {
   ) {
     throw new Error("Invalid moderation store");
   }
-  return candidate as ModerationSnapshot;
+  return {
+    version: 1,
+    blocked: candidate.blocked,
+    muted: candidate.muted,
+    blockedApps: Array.isArray(candidate.blockedApps)
+      ? candidate.blockedApps.filter(
+          (id): id is string => typeof id === "string",
+        )
+      : [],
+    reports: candidate.reports,
+  };
 }
 
 export class FileModerationStore {
@@ -72,13 +93,38 @@ export class FileModerationStore {
     return structuredClone(this.snapshot);
   }
 
-  disposition(sourceHash: string): "allow" | "mute" | "block" {
+  disposition(sourceHash: string, appId?: string): "allow" | "mute" | "block" {
+    if (
+      appId !== undefined &&
+      this.snapshot.blockedApps.includes(normalizeAppId(appId))
+    ) {
+      return "block";
+    }
     const normalized = normalizeHash(sourceHash);
     if (this.snapshot.blocked.some((entry) => entry.sourceHash === normalized))
       return "block";
     if (this.snapshot.muted.some((entry) => entry.sourceHash === normalized))
       return "mute";
     return "allow";
+  }
+
+  blockApp(appId: string): void {
+    const id = normalizeAppId(appId);
+    if (this.snapshot.blockedApps.includes(id)) return;
+    this.snapshot = {
+      ...this.snapshot,
+      blockedApps: [...this.snapshot.blockedApps, id],
+    };
+    this.persist();
+  }
+
+  unblockApp(appId: string): void {
+    const id = normalizeAppId(appId);
+    this.snapshot = {
+      ...this.snapshot,
+      blockedApps: this.snapshot.blockedApps.filter((entry) => entry !== id),
+    };
+    this.persist();
   }
 
   block(sourceHash: string, label: string | null = null): void {

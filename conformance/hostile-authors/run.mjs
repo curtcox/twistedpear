@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /**
- * Hostile-author P1 fixture driver. Every Surface 1/2/4/5 scenario is
- * broker- or transcript-observable. Surface 3 is PENDING-P2 until the
- * render oracle lands. The suite is green when every id has a verdict —
- * UNCONTROLLED is a finding, not a crash.
+ * Hostile-author fixture driver. Every scenario is broker-, transcript-,
+ * or render-oracle-observable. The suite is green when every id has a
+ * verdict — UNCONTROLLED is a finding, not a crash.
  */
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -32,7 +31,7 @@ function render(rows) {
     "Measured verdicts for the 27 scenarios in",
     "[hostile-author-plan.md](../../docs/hostile-author-plan.md) §6.",
     "P1 fixtures assert against the `ConsentRecord` transcript and the broker.",
-    "Surface 3 stays `PENDING-P2` until the render oracle lands.",
+    "Surface 3 is the CHROME-R8/R9 render oracle.",
     "",
     "| Id | Expected | Measured | Evidence |",
     "| --- | --- | --- | --- |",
@@ -50,7 +49,6 @@ function render(rows) {
     "BLOCKED then INFORMED": 0,
     UNCONTROLLED: 0,
     UNMEASURED: 0,
-    "PENDING-P2": 0,
     "EXPECTED-RED": 0,
   };
   for (const row of rows) {
@@ -58,7 +56,7 @@ function render(rows) {
   }
   lines.push(
     "",
-    `Counts: ${counts.BLOCKED} BLOCKED, ${counts.CONTAINED} CONTAINED, ${counts.INFORMED} INFORMED, ${counts["INFORMED + CONTAINED"]} INFORMED+CONTAINED, ${counts["BLOCKED then INFORMED"]} BLOCKED-then-INFORMED, ${counts.UNCONTROLLED} UNCONTROLLED, ${counts["PENDING-P2"] + counts["EXPECTED-RED"]} PENDING-P2, ${counts.UNMEASURED} UNMEASURED.`,
+    `Counts: ${counts.BLOCKED} BLOCKED, ${counts.CONTAINED} CONTAINED, ${counts.INFORMED} INFORMED, ${counts["INFORMED + CONTAINED"]} INFORMED+CONTAINED, ${counts["BLOCKED then INFORMED"]} BLOCKED-then-INFORMED, ${counts.UNCONTROLLED} UNCONTROLLED, ${counts["EXPECTED-RED"]} PENDING-PLANNED, ${counts.UNMEASURED} UNMEASURED.`,
     "",
     "UNMEASURED is a driver bug. Re-run with `npm run test:hostile-authors`.",
     "",
@@ -92,7 +90,9 @@ async function main() {
       note: hit.note,
     });
     const mark = hit.measured === scenario.expected ? "PASS" : "FINDING";
-    console.log(`${mark} ${scenario.id} expected=${scenario.expected} measured=${hit.measured}`);
+    console.log(
+      `${mark} ${scenario.id} expected=${scenario.expected} measured=${hit.measured}`,
+    );
   }
   if (missing.length > 0) {
     console.error(`missing fixtures: ${missing.join(", ")}`);

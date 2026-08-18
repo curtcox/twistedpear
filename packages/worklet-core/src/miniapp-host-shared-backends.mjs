@@ -10,7 +10,10 @@ import {
 } from "../../app-registry/dist/index.js";
 import { capabilityUpdateDelta } from "../../app-registry/dist/update-delta.js";
 import {
-  CAPABILITY_DEFINITIONS,
+  presentCapabilityReview,
+  riskClassForCapabilityId,
+} from "./capability-review.mjs";
+import {
   describeCapability,
   validateManifestCapabilities,
 } from "../../miniapp-runtime/dist/capabilities.js";
@@ -359,13 +362,6 @@ function bringToForegroundIfRunning(host, record) {
   return true;
 }
 
-function riskClassForCapabilityId(id) {
-  return (
-    CAPABILITY_DEFINITIONS.find((definition) => definition.id === id)
-      ?.riskClass ?? "elevated"
-  );
-}
-
 export function previousDeclaredCapabilities(installedStore, record) {
   if (typeof installedStore.previousVersion === "function") {
     const previousVersion = installedStore.previousVersion(record.appId);
@@ -424,12 +420,8 @@ export async function launchWithCapabilityReview({
     riskClassForCapabilityId,
   );
   const addedIds = new Set(delta.added.map((entry) => entry.id));
-  const reply = await requestReview({
-    appId: record.appId,
-    publisherPublicKey: record.manifest.publisherPublicKey,
-    version: record.manifest.version,
-    added: delta.added,
-    capabilities: declarations.map((declaration) => ({
+  const presented = presentCapabilityReview(
+    declarations.map((declaration) => ({
       id: declaration.id,
       description: describeCapability(declaration.id),
       riskClass: riskClassForCapabilityId(declaration.id),
@@ -443,6 +435,14 @@ export async function launchWithCapabilityReview({
       scope: declaration.scope,
       scopeLabel: capabilityScopeLabel(declaration.scope),
     })),
+  );
+  const reply = await requestReview({
+    appId: record.appId,
+    publisherPublicKey: record.manifest.publisherPublicKey,
+    version: record.manifest.version,
+    added: delta.added,
+    riskTier: presented.riskTier,
+    capabilities: presented.capabilities,
   });
   if (reply === null || reply.accept !== true) {
     throw new Error("Launch cancelled at capability review");

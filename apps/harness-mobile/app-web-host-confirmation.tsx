@@ -147,6 +147,9 @@ function HostReviewKindBody({
         <Text style={styles.muted}>
           Publisher key: {modal.review.publisherPublicKey}
         </Text>
+        {modal.review.riskTier !== undefined ? (
+          <Text style={styles.muted}>Risk tier: {modal.review.riskTier}</Text>
+        ) : null}
         <Text style={styles.muted}>
           Capabilities requested: {modal.review.capabilities.length}
         </Text>
@@ -167,6 +170,9 @@ function HostReviewKindBody({
                 value={modal.grants.includes(capability.id)}
                 onChange={(granted) => onGrantToggle(capability.id, granted)}
               />
+              {capability.riskClass !== undefined ? (
+                <Text style={styles.muted}>{capability.riskClass}</Text>
+              ) : null}
               {capability.scopeLabel !== undefined ? (
                 <Text style={styles.muted}>{capability.scopeLabel}</Text>
               ) : null}

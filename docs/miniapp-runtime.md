@@ -146,7 +146,8 @@ Crashes and watchdog kills transition to `crashed`. Updating an installed packag
 it runs does not replace live code; the new version activates on the next launch.
 
 Watchdog: an unresponsive sandbox (ping timeout) is killed. Memory ceilings are enforced
-by the sandbox backend where supported.
+by the sandbox backend where supported. Host suspend collects a `host.setCheckpoint` blob
+(64 KiB) under a 50 ms budget and kills on overrun; `host.onResume` delivers the blob.
 
 Force-quit is always available: `stop("user-forced")` terminates the worker outright
 (busy-loop-proof) and is surfaced as a Force quit button in the desktop host.

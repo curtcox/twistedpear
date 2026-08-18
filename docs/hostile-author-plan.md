@@ -34,9 +34,7 @@ That sentence draws a boundary and then leaves the far side unexamined. Three th
 far side are already known to be soft:
 
 1. **CHROME-R1 (canonical descriptions)** and **CHROME-R3 (no draw-over)** — the two rules
-   that exist specifically to stop deception — are _informative and untested_, "until a
-   snapshot-based check exists." The rules against lying to the user are the ones with no
-   fixtures.
+   that exist specifically to stop deception — are fixture-tested (P2 render oracle).
 2. **A grant names no destination.** Per the [capability scoping audit](capability-scoping-audit.md),
    a plausibly-justified `lxmf:send` grant is a general exfiltration channel. Social
    engineering only has to win the grant dialog once.
@@ -203,11 +201,11 @@ each is the first phase's job, not a claim this document makes.
 
 | Id    | Scenario                                                                                                   | Expected | Today (unverified)                  |
 | ----- | ---------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------- |
-| HA-20 | App renders a widget tree imitating the grant screen, harvesting a tap                                     | BLOCKED  | CHROME-R3, unchecked                |
-| HA-21 | App UI asks the user to type their [identity backup](identity-backup.md) recovery phrase, then egresses it | BLOCKED  | **Highest severity in the catalog** |
-| HA-22 | App draws its own softened "permissions" screen before the real one (CHROME-R1)                            | BLOCKED  | Unchecked                           |
-| HA-23 | App renders a fake "host update required — approve to continue" banner driving the user to a real dialog   | BLOCKED  | Unchecked                           |
-| HA-24 | App claims host authority it lacks ("TwistedPear has verified this publisher")                             | BLOCKED  | Needs the reserved-lexicon oracle   |
+| HA-20 | App renders a widget tree imitating the grant screen, harvesting a tap                                     | BLOCKED  | BLOCKED by CHROME-R8 layout oracle  |
+| HA-21 | App UI asks the user to type their [identity backup](identity-backup.md) recovery phrase, then egresses it | BLOCKED  | BLOCKED by CHROME-R9                |
+| HA-22 | App draws its own softened "permissions" screen before the real one (CHROME-R1)                            | BLOCKED  | BLOCKED by CHROME-R8 lexicon        |
+| HA-23 | App renders a fake "host update required — approve to continue" banner driving the user to a real dialog   | BLOCKED  | BLOCKED by CHROME-R8 lexicon        |
+| HA-24 | App claims host authority it lacks ("TwistedPear has verified this publisher")                             | BLOCKED  | BLOCKED by CHROME-R8 lexicon        |
 
 **The render oracle, in two layers.** Because the host renders data-only widget trees, most
 of this is decidable _structurally_, without pixels:
@@ -216,14 +214,14 @@ of this is decidable _structurally_, without pixels:
   reserved chrome vocabulary in app text (platform name as an authority claim, capability
   registry strings, "approve"/"deny" pairs styled as a system prompt), chrome-imitating
   layout signatures, and secret-solicitation patterns (recovery phrase, seed words, identity
-  string). Proposed ids **CHROME-R7** (reserved lexicon) and **CHROME-R8** (no
-  secret solicitation). Runs in `ui/validate.ts` alongside the existing depth/node limits.
-- **Layer B (snapshot, web + desktop host):** geometry assertions that confirmations render
-  outside the app surface and cannot be occluded — the missing "snapshot-based check" that
-  SPEC-CHROME's own text is waiting on. This is what promotes R1 and R3 from informative to
+  string). **CHROME-R8** (reserved lexicon) and **CHROME-R9** (no secret solicitation).
+  (CHROME-R7 was already claimed by concurrent mini-apps: background has no surface.)
+  Runs in `ui/chrome-lexicon.ts` via `ui/validate.ts`.
+- **Layer B (snapshot):** geometry assertions that confirmations render outside the app
+  surface and cannot be occluded. This is what promoted R1 and R3 from informative to
   normative.
 
-Layer A is where the value is; Layer B is what closes the spec.
+Executed in P2.
 
 ### Surface 4 — Egress after consent
 
@@ -273,10 +271,10 @@ table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), chained in the order below
 | Phase  | Work                                                                                                                                                                    | Exit criterion                                                                                                                          |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **P0** | Verify every "today" column above against the running code. No new mechanisms. Produce the findings list with real verdicts.                                            | [conformance/hostile-authors/README.md](../conformance/hostile-authors/README.md) catalog with each row's verdict measured, not guessed |
-| **P1** | Executed. `ConsentRecord` in `packages/miniapp-runtime/src/consent-record.ts`; MiniappHost records confirmations; install-review records from `launchWithCapabilityReview`; `npm run test:hostile-authors` is the fixture driver. Surface 3 stays PENDING-P2. | Suite runs green with a verdict per scenario; no scenario is UNMEASURED                                                                 |
-| **P2** | Render oracle Layer A (CHROME-R7/R8 in `ui/validate.ts`) → Surface 3 scenarios; Layer B snapshot geometry → promote CHROME-R1 and R3 to normative.                      | SPEC-CHROME has no informative-only rules left                                                                                          |
-| **P3** | Fix P0/P1/P2 findings: confirmation rate limiting, host-derived summaries, confusable-name flagging, capability-delta review on update, per-app moderation granularity. | Every finding BLOCKED, INFORMED-with-transcript, or CONTAINED-with-a-metric                                                             |
-| **P4** | Scoped-egress scenarios against manifest v2 / `EgressOffer`; flip HA-30/HA-36 green as scoping Phase 2 lands. Hook rung 4 to the sim campaign.                          | F4 rewritten from acceptance into enumerated residual; LIMITATIONS §7 updated                                                           |
+| **P1** | Executed. `ConsentRecord` in `packages/miniapp-runtime/src/consent-record.ts`; MiniappHost records confirmations; install-review records from `launchWithCapabilityReview`; `npm run test:hostile-authors` is the fixture driver. | Suite runs green with a verdict per scenario; no scenario is UNMEASURED |
+| **P2** | Executed. Render oracle Layer A (CHROME-R8/R9 in `ui/chrome-lexicon.ts`) → Surface 3 scenarios; Layer B snapshot geometry in `conformance/chrome` promoted CHROME-R1, R3, and R7 to normative. | SPEC-CHROME has no informative-only rules left |
+| **P3** | Executed. Confirmation summaries are sanitized, confirmations are rate-limited, catalog `confusableWith` folds homoglyphs, and `blockedApps` gives per-app moderation. | Every finding BLOCKED, INFORMED-with-transcript, or CONTAINED-with-a-metric |
+| **P4** | Executed. HA-30/HA-36 are BLOCKED/CONTAINED against `EgressOffer`. F4 is an enumerated residual; F9 records author deception; LIMITATIONS §7 names what remains. | F4 rewritten from acceptance into enumerated residual; LIMITATIONS §7 updated |
 
 P0 is deliberately separate. Writing fixtures before measuring the baseline produces
 fixtures that encode assumptions; several of my "likely finding" guesses above will be wrong
@@ -286,14 +284,9 @@ in both directions.
 
 The suite is not done when it runs. It is done when the repo knows about it.
 
-P1 registered: `test:hostile-authors` on the `miniapp-conformance` job,
-[conformance/README.md](../conformance/README.md), the docs index row, and the
-consent-transcript paragraph in [SPEC-CAP](../specs/spec-cap/spec.md). Remaining:
-
-- [SPEC-CHROME](../specs/spec-chrome/spec.md) — R7/R8 text; R1/R3 promoted (P2).
-- [security-review.md](security-review.md) — F4 rewritten (P4, not before scoping lands)
-  and a new finding class for author deception.
-- [LIMITATIONS.md](../LIMITATIONS.md) §7 — residuals that survive P3.
+P1 registered. P2–P4 executed: SPEC-CHROME is fully normative, Surface 3 is BLOCKED,
+F4/F9 and LIMITATIONS §7 name the enumerated residual. Rung 4 (generated/colluding
+authors) remains the sim-campaign hook.
 
 ## 10. What this plan will not settle
 

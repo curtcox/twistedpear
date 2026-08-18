@@ -1,4 +1,5 @@
 import {
+  ConfirmationRateLimiter,
   requestHostConfirmation,
   type ConfirmationEffects,
   type HostConfirmationChannel,
@@ -49,6 +50,8 @@ function nodeConfirmationEffects(): ConfirmationEffects {
     delay(ms: number): Promise<void> {
       return new Promise((resolve) => setTimeout(resolve, ms));
     },
+    now: () => Date.now(),
+    limiter: new ConfirmationRateLimiter(),
   };
 }
 

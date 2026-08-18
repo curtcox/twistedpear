@@ -77,6 +77,7 @@ export interface LaunchReviewCapabilityView {
   readonly expiresAt: number | null;
   readonly optional?: boolean;
   readonly scopeLabel?: string;
+  readonly riskClass?: string;
 }
 
 export interface LaunchReviewRequestView {
@@ -85,6 +86,7 @@ export interface LaunchReviewRequestView {
   readonly publisherPublicKey: string;
   readonly version: string;
   readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
+  readonly riskTier?: string;
 }
 
 export interface InstallReviewRequestView {
@@ -95,6 +97,7 @@ export interface InstallReviewRequestView {
   readonly trusted: boolean;
   readonly trustedLabel: string | null;
   readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
+  readonly riskTier?: string;
 }
 
 export interface Install256tResultView {

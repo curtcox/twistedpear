@@ -85,6 +85,7 @@ exit checklist before closing Phase 3.
 | Suite                         | Command                                                       | Milestone |
 | ----------------------------- | ------------------------------------------------------------- | --------- |
 | UI golden (render model)      | `npm test -- packages/miniapp-runtime/test/ui-golden.test.ts` | M4        |
+| Host chrome conduct           | `npm run test:chrome`                                         | R1–R9     |
 | Hostile apps                  | `npm run test:hostile-apps`                                   | M2        |
 | Hostile-author scenarios      | `npm run test:hostile-authors`                                | P1        |
 | Hostile-author P0 probes      | `node conformance/hostile-authors/baseline.mjs`               | P0        |

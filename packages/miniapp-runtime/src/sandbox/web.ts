@@ -3,6 +3,7 @@ import { createBrowserWorkerBootstrapSource } from "./browser-worker-bootstrap.j
 import { reviveJsonWireValue } from "./json-wire.js";
 import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
 import { SandboxPing } from "./ping.js";
+import { createCheckpointCollector } from "./checkpoint.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -117,6 +118,7 @@ export class WebSandboxBackend implements SandboxBackend {
       string,
       { resolve: (value: unknown) => void; reject: (error: Error) => void }
     >();
+    const checkpoints = createCheckpointCollector();
     let killed = false;
     let alive = true;
 
@@ -125,6 +127,7 @@ export class WebSandboxBackend implements SandboxBackend {
       pending,
       options,
       backend: this,
+      checkpoints,
       get killed() {
         return killed;
       },
@@ -171,6 +174,7 @@ export class WebSandboxBackend implements SandboxBackend {
       iframe,
       pending,
       pings: new SandboxPing(),
+      checkpoints,
       handleHostPortMessage,
       isKilled: () => killed,
       isAlive: () => alive && !killed,
@@ -190,6 +194,7 @@ interface SpawnPortState {
   >;
   readonly options: SandboxSpawnOptions;
   readonly backend: WebSandboxBackend;
+  readonly checkpoints: ReturnType<typeof createCheckpointCollector>;
   readonly killed: boolean;
   readonly alive: boolean;
   setAlive(next: boolean): void;
@@ -232,6 +237,10 @@ function handleSandboxHostPortMessage(
     return;
   }
 
+  if (state.checkpoints.handleMessage(message)) {
+    return;
+  }
+
   dispatchWorkerBrokerMessage(message, {
     worker: state.hostPort,
     pending: state.pending,
@@ -252,6 +261,7 @@ function createSandboxInstance(input: {
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
   >;
   pings: SandboxPing;
+  checkpoints: ReturnType<typeof createCheckpointCollector>;
   handleHostPortMessage: (event: MessageEvent) => void;
   isKilled: () => boolean;
   isAlive: () => boolean;
@@ -263,6 +273,7 @@ function createSandboxInstance(input: {
     iframe,
     pending,
     pings,
+    checkpoints,
     handleHostPortMessage,
     isKilled,
     isAlive,
@@ -286,6 +297,15 @@ function createSandboxInstance(input: {
         (message) => hostPort.postMessage(message),
         pending,
         timeoutMs,
+      );
+    },
+    checkpoint(budgetMs: number) {
+      if (isKilled()) {
+        return Promise.resolve({ ok: false as const });
+      }
+      return checkpoints.request(
+        (message) => hostPort.postMessage(message),
+        budgetMs,
       );
     },
     kill(reason: string): Promise<void> {
