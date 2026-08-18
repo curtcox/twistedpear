@@ -136,19 +136,20 @@ window to repackage.
 Phase 0 and Phase 1 are independent of everything else and should land first — they are
 small, they close live defects, and none of them waits on a design decision.
 
+F-2 (`CAP-ANNOUNCE-SCOPE`) is closed: the broker and announce services reject a namespace
+other than the calling app's own and bound `appData` to the RNS announce ceiling.
+F-3 (`CAP-FREENET-READ`) is closed: `freenet.get` is limited to keys this app published or
+a host-authored allowlist.
+F-4 (`CAP-DEVICE-FAILCLOSED`) is closed: elevated device sessions and NFC writes fail
+closed unless the host sets `allowUnconfirmedDeviceSessions`.
+F-6 (`CAP-GRANT-STALE`) is closed: a deleted grant record denies on the next dispatch
+instead of falling back to the capabilities captured at launch.
+`CAP-HOSTILE-PROBES` is closed: `test:hostile-apps` now probes those four defects plus
+the zero-capability observation floor.
+
 ### Phase 0 — close the concrete defects (host API 0.13.0)
 
-| ID                      | Type    | Work                                                                                                                      |
-| ----------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `CAP-ANNOUNCE-SCOPE`    | bug     | F-2. Reject a namespace other than the app's own in `announce.publish`/`subscribe`, mirroring `peers.ts`; bound `appData` |
-| `CAP-DEVICE-FAILCLOSED` | bug     | F-4. `maybeConfirmSession` and `confirmNfcWrite` fail closed; a host wanting the old behaviour names an explicit option   |
-| `CAP-FREENET-READ`      | bug     | F-3. Scope `freenet.get` to app-derived keys or a host-authored allowlist; budget and surface reads                       |
-| `CAP-GRANT-STALE`       | bug     | F-6. Drop the launch-time fallback in `host/layer-2.ts` so a deleted grant record denies immediately                      |
-| `CAP-HOSTILE-PROBES`    | quality | `test:hostile-apps` probes for cross-app announce, unconfirmed Freenet reads, and confirmation-absent device sessions     |
-
-`CAP-HOSTILE-PROBES` is listed last but should be written **first** for each defect — the
-probe is the regression proof, and three of these four are one-line fixes whose absence of a
-test is the actual reason they survived a security review.
+Phase 0 is executed. Remaining work starts at Phase 1.
 
 ### Phase 1 — TTL becomes real (host API 0.13.0)
 

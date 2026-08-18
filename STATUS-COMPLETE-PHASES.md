@@ -25,6 +25,7 @@ Last audited: 2026-08-05.
 | Phase 6 — Desktop host           | [#phase-6--desktop-host--network-health](#phase-6--desktop-host--network-health)                 |
 | Packages delivered               | [#packages-delivered-monorepo-inventory](#packages-delivered-monorepo-inventory)                 |
 | Cross-cutting software           | [#cross-cutting-software-2026-07-07--2026-07-08](#cross-cutting-software-2026-07-07--2026-07-08) |
+| Capability scoping Phase 0       | [#capability-scoping-and-hostile-author-phase-0](#capability-scoping-and-hostile-author-phase-0) |
 
 ---
 
@@ -462,3 +463,19 @@ CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
 | LIMITATIONS §1 crypto benchmarks     | [LIMITATIONS.md](LIMITATIONS.md) §1, `conformance/bare-runtime/baseline-node.json`                | `npm run test:bare-benchmark-compare`                   |
 | iOS full-loop PR path filter         | `.github/workflows/ci.yml` `ios-sim`                                                              | touch `packages/miniapp-runtime/**` etc.                |
 | `mirrorFrom` polling timeout         | `packages/bridge-hyper/src/core/drive.ts`                                                         | `npm test -- packages/bridge-hyper/test`                |
+
+---
+
+## Capability scoping and hostile-author Phase 0
+
+Moved out of [STATUS-COMPLETE.md](STATUS-COMPLETE.md) so that register stays under the markdown danger threshold.
+
+| ID                    | Status | Item                                                                          | Evidence                                                                                                                         | Verify                                                                           |
+| --------------------- | ------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| CAP-ANNOUNCE-SCOPE    | done   | Announce namespace is app-controlled and unvalidated                          | `packages/miniapp-runtime/test/announce-scope.test.ts`, `packages/miniapp-runtime/src/services/announce.ts`                      | `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts`            |
+| CAP-GRANT-STALE       | done   | Launch-time grant fallback keeps a deleted grant alive                        | `packages/miniapp-runtime/test/grant-stale-launch.test.ts`, `packages/miniapp-runtime/src/host/layer-1-base.ts`                  | `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts`        |
+| CAP-DEVICE-FAILCLOSED | done   | Device session and NFC write confirmations do not fail closed                 | `packages/miniapp-runtime/test/device-confirm-failclosed.test.ts`, `packages/miniapp-runtime/src/device-manager/layer-1-base.ts` | `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts` |
+| CAP-FREENET-READ      | done   | freenet.get reads any contract key with no scope or budget                    | `packages/miniapp-runtime/test/freenet-read-scope.test.ts`, `packages/miniapp-runtime/src/services/freenet.ts`                   | `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts`        |
+| CAP-HOSTILE-PROBES    | done   | Hostile-app probes for cross-app announce, Freenet reads, device confirmation | `conformance/hostile-apps/capability-probes.mjs`, `conformance/hostile-apps/README.md`                                           | `npm run test:hostile-apps`                                                      |
+| APPR-FLOOR-PROBE      | done   | Zero-capability app observes nothing — the risk floor as a test               | `conformance/hostile-apps/capability-probes.mjs`, `conformance/hostile-apps/README.md`                                           | `npm run test:hostile-apps`                                                      |
+| HA-P0-BASELINE        | done   | Measure the hostile-author scenarios against the running code                 | `conformance/hostile-authors/README.md`, `conformance/hostile-authors/baseline.mjs`, `conformance/hostile-authors/catalog.mjs`   | `node conformance/hostile-authors/baseline.mjs`                                  |

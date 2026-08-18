@@ -1,13 +1,12 @@
 /**
- * Handbook applet: announce.publish then announce.subscribe in a local namespace.
+ * Handbook applet: announce.publish then announce.subscribe in the app namespace.
  */
 export async function run(sdk, report) {
   const started = Date.now();
-  const namespace = "handbook-probe";
   const payload = new TextEncoder().encode(`announce-${started}`);
   try {
-    await sdk.announce.publish(payload, namespace);
-    const events = await sdk.announce.subscribe(namespace);
+    await sdk.announce.publish(payload);
+    const events = await sdk.announce.subscribe();
     if (!Array.isArray(events)) {
       report({
         status: "fail",
@@ -28,7 +27,7 @@ export async function run(sdk, report) {
 
     report({
       status: "pass",
-      details: `Published and observed ${events.length} announce(s) in ${namespace}`,
+      details: `Published and observed ${events.length} announce(s) in the app namespace`,
       timings: { ms: Date.now() - started },
     });
   } catch (error) {

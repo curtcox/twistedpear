@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-17T20:20:55.004Z",
-  "commit": "889f08fdac3f11a960e89fe14100e2ae3abdf5d6",
+  "generatedAt": "2026-08-18T12:39:10.257Z",
+  "commit": "5003b836e72140d550c8eeb1c25ec8d36547214a",
   "counts": {
-    "total": 11,
+    "total": 20,
     "high": 1,
-    "medium": 6,
+    "medium": 15,
     "low": 4
   },
   "ratchets": {
@@ -24,6 +24,30 @@
       "where": "release/evidence-logs/2026-08-14-ql-complexity-typescript-eslint-ban-ts-comment.log",
       "summary": "QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT: the evidence log no longer hashes to the digest recorded at close",
       "ask": "The log was edited or regenerated after QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT closed. Re-run the verification and close it again, or explain the edit."
+    },
+    {
+      "family": "gates",
+      "check": "red",
+      "severity": "medium",
+      "where": "GATE-COVERAGE",
+      "summary": "coverage has been red since today: BleBridgeTest > encodes an advertisement FAILED / FAIL  |default| packages/cli/test/identity.test.ts > tp identity > creates an encrypted vault, exports it, and imports without changing the identity / Error: Test timed out in 60000ms.",
+      "ask": "Fix coverage before picking up anything else: `npm run coverage:check`."
+    },
+    {
+      "family": "gates",
+      "check": "red",
+      "severity": "medium",
+      "where": "GATE-VISUAL-REGRESSION",
+      "summary": "visual-regression has been red since today: guide/images/06-runtime-controls.png / guide/images/08-untrusted-publisher.png / Run npm run visual:baseline and review the image changes.",
+      "ask": "Fix visual-regression before picking up anything else: `npm run visual:check`."
+    },
+    {
+      "family": "gates",
+      "check": "unverified-record",
+      "severity": "medium",
+      "where": "checks.json",
+      "summary": "55 gate result(s) were measured at 0ce8fdd3a05e, not at HEAD",
+      "ask": "Re-run `npm run checks:status`, or import what CI already measured with `npm run checks:status:import`. A green recorded against another commit is not evidence about this one."
     },
     {
       "family": "closed",
@@ -45,6 +69,14 @@
       "family": "closed",
       "check": "evidence-drift",
       "severity": "medium",
+      "where": "packages/host-core/src/sibling-decisions.ts",
+      "summary": "ID-SIBLING-GATE closed 2026-08-10, but its evidence packages/host-core/src/sibling-decisions.ts changed on 2026-08-17",
+      "ask": "Would `npx vitest run packages/host-core/test/sibling-decisions.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts` still pass? Re-run it if packages/host-core/src/sibling-decisions.ts carries the behaviour ID-SIBLING-GATE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
       "where": "packages/lxmf-ts/src/propagation.ts",
       "summary": "QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES closed 2026-08-07, but its evidence packages/lxmf-ts/src/propagation.ts changed on 2026-08-14",
       "ask": "Would `npm run lint:typed && node scripts/work/ratchet-clear.mjs --kind=typed --rule=@typescript-eslint/no-floating-promises` still pass? Re-run it if packages/lxmf-ts/src/propagation.ts carries the behaviour QL-TYPED-TYPESCRIPT-ESLINT-NO-FLOATING-PROMISES claimed."
@@ -59,11 +91,51 @@
     },
     {
       "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/test/grant-installation-scope.test.ts",
+      "summary": "ID-APPSCOPE closed 2026-08-10, but its evidence packages/miniapp-runtime/test/grant-installation-scope.test.ts changed on 2026-08-17",
+      "ask": "Would `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` still pass? Re-run it if packages/miniapp-runtime/test/grant-installation-scope.test.ts carries the behaviour ID-APPSCOPE claimed."
+    },
+    {
+      "family": "closed",
       "check": "instant-verification",
       "severity": "medium",
       "where": "BUG-REACT-DOM-MISMATCH",
       "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 5 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
       "ask": "Did `npm run test:web-widget-renderer` actually exercise BUG-REACT-DOM-MISMATCH, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "closed",
+      "check": "instant-verification",
+      "severity": "medium",
+      "where": "CAP-ANNOUNCE-SCOPE",
+      "summary": "CAP-ANNOUNCE-SCOPE (bug) closed 0 day(s) ago on a verification that ran in 1891ms: `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts`",
+      "ask": "Did `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts` actually exercise CAP-ANNOUNCE-SCOPE, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "closed",
+      "check": "instant-verification",
+      "severity": "medium",
+      "where": "CAP-DEVICE-FAILCLOSED",
+      "summary": "CAP-DEVICE-FAILCLOSED (bug) closed 0 day(s) ago on a verification that ran in 1528ms: `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts`",
+      "ask": "Did `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts` actually exercise CAP-DEVICE-FAILCLOSED, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "closed",
+      "check": "instant-verification",
+      "severity": "medium",
+      "where": "CAP-FREENET-READ",
+      "summary": "CAP-FREENET-READ (bug) closed 0 day(s) ago on a verification that ran in 1504ms: `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts`",
+      "ask": "Did `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts` actually exercise CAP-FREENET-READ, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "closed",
+      "check": "instant-verification",
+      "severity": "medium",
+      "where": "CAP-GRANT-STALE",
+      "summary": "CAP-GRANT-STALE (bug) closed 0 day(s) ago on a verification that ran in 1816ms: `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts`",
+      "ask": "Did `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts` actually exercise CAP-GRANT-STALE, or did it no-op? A check that cannot fail is not evidence."
     },
     {
       "family": "closed",

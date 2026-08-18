@@ -360,7 +360,14 @@ async function createHost(name = "", hostOptions = {}) {
     "triage-notes":
       '{"subject":"Water pump inspection","location":"North shelter","severity":"high","action":"Send maintenance crew"}',
   };
-  const announceService = hostOptions.announceService ?? new AnnounceService();
+  const announceService =
+    hostOptions.announceService ??
+    (name === "app-relay"
+      ? new TransportBackedAnnounceService(
+          "publisher-alpha",
+          new MemoryAnnounceTransport(),
+        )
+      : new AnnounceService());
   let peerSessionManager = hostOptions.peerSessionManager;
   if (name === "link-weather" && peerSessionManager === undefined) {
     const registry = new PeerDiscoveryRegistry();
@@ -408,9 +415,8 @@ async function createHost(name = "", hostOptions = {}) {
   }
   if (name === "app-relay") {
     await announceService.publish(
-      "publisher-alpha",
-      encoder.encode(JSON.stringify({ name: "Trail map", t256: fakeT256 })),
       "app-relay",
+      encoder.encode(JSON.stringify({ name: "Trail map", t256: fakeT256 })),
     );
   }
   const host = new MiniappHost({
@@ -532,6 +538,7 @@ async function createHost(name = "", hostOptions = {}) {
             },
           },
           deviceManager: new DeviceManager({
+            allowUnconfirmedDeviceSessions: true,
             drivers: [createSimulatedRawMicrophoneDriver()],
             linkSupply: async () => [
               {
@@ -931,17 +938,22 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
   const encoder = new TextEncoder();
 
   it("neighborhood-board stores and renders a post announced by a peer", async () => {
-    const { host, announceService } = await createHost("neighborhood-board");
+    const announceService = new TransportBackedAnnounceService(
+      "peer-9c31f7a2e4b0",
+      new MemoryAnnounceTransport(),
+    );
+    const { host } = await createHost("neighborhood-board", {
+      announceService,
+    });
     try {
       await announceService.publish(
-        "peer-9c31f7a2e4b0",
+        "neighborhood-board",
         encoder.encode(
           JSON.stringify({
             text: "Water at the school entrance",
             at: "2026-07-21T09:14:00.000Z",
           }),
         ),
-        "neighborhood-board",
       );
       await launchApp(host, "neighborhood-board");
       const text = await waitForText(host, "Water at the school entrance");
@@ -993,26 +1005,22 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
       // A peer runs arbitrary code and can send anything. None of these may take down the
       // subscription loop or reach the board, but a valid post published alongside them must.
       await announceService.publish(
-        "peer-garbage",
+        "neighborhood-board",
         new Uint8Array([0xff, 0x00, 0x10]),
-        "neighborhood-board",
       );
       await announceService.publish(
-        "peer-wrongtype",
+        "neighborhood-board",
         encoder.encode(JSON.stringify({ text: 42 })),
-        "neighborhood-board",
       );
       await announceService.publish(
-        "peer-nullpayload",
+        "neighborhood-board",
         encoder.encode("null"),
-        "neighborhood-board",
       );
       await announceService.publish(
-        "peer-9c31f7a2e4b0",
+        "neighborhood-board",
         encoder.encode(
           JSON.stringify({ text: "Real post", at: "2026-07-21T09:14:00.000Z" }),
         ),
-        "neighborhood-board",
       );
       await launchApp(host, "neighborhood-board");
       const text = await waitForText(host, "Real post");
@@ -1025,12 +1033,15 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
   }, 20_000);
 
   it("swap-shelf stores and renders a listing announced by a peer", async () => {
-    const { host, announceService } = await createHost("swap-shelf");
+    const announceService = new TransportBackedAnnounceService(
+      "peer-3f0a5b1c9d22",
+      new MemoryAnnounceTransport(),
+    );
+    const { host } = await createHost("swap-shelf", { announceService });
     try {
       await announceService.publish(
-        "peer-3f0a5b1c9d22",
-        encoder.encode(JSON.stringify({ i: "Camping stove, works, free" })),
         "swap-shelf",
+        encoder.encode(JSON.stringify({ i: "Camping stove, works, free" })),
       );
       await launchApp(host, "swap-shelf");
       const text = await waitForText(host, "Camping stove, works, free");
@@ -1047,14 +1058,12 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
     const { host, announceService } = await createHost("swap-shelf");
     try {
       await announceService.publish(
-        "peer-garbage",
-        new Uint8Array([0xff, 0x00, 0x10]),
         "swap-shelf",
+        new Uint8Array([0xff, 0x00, 0x10]),
       );
       await announceService.publish(
-        "peer-3f0a5b1c9d22",
-        encoder.encode(JSON.stringify({ i: "Hand-crank radio" })),
         "swap-shelf",
+        encoder.encode(JSON.stringify({ i: "Hand-crank radio" })),
       );
       await launchApp(host, "swap-shelf");
       await waitForText(host, "Hand-crank radio");
@@ -1068,7 +1077,7 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
     try {
       // A neighborhood-board post must never surface in swap-shelf: namespaces do not cross.
       await announceService.publish(
-        "peer-9c31f7a2e4b0",
+        "neighborhood-board",
         encoder.encode(
           JSON.stringify({
             text: "Water at the school entrance",

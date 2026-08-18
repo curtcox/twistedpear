@@ -307,13 +307,9 @@ floor leaks.
 
 ### Phase 0 — restore the risk floor (host API 0.13.0)
 
-| ID                    | Type    | Work                                                                                                                                           |
-| --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `APPR-DEVICE-AMBIENT` | bug     | A-1. `device.inventory`/`device.diagnostics` require a capability, or return only host-neutral facts; drop `holder` from the unprivileged path |
-| `APPR-FLOOR-PROBE`    | quality | A hostile fixture asserting a `capabilities: []` app can observe nothing about the host or other apps — the floor as a regression test         |
-
-Write `APPR-FLOOR-PROBE` first; it is the statement of the invariant, and its absence is why
-A-1 survived a security review.
+Phase 0 is executed. `APPR-DEVICE-AMBIENT` denies device inventory and diagnostics
+without a grant and redacts lock holders; `APPR-FLOOR-PROBE` locks that floor in
+`test:hostile-apps`.
 
 ### Phase 1 — classify and display (host API 0.13.0)
 
@@ -384,8 +380,9 @@ npm test -- packages/miniapp-runtime/test/capabilities.test.ts
 npm run test:hostile-apps
 ```
 
-`test:hostile-apps` does **not** probe ambient authority for a zero-capability app (A-1);
-that gap is `APPR-FLOOR-PROBE`.
+`test:hostile-apps` probes ambient authority for a zero-capability app (A-1):
+`device.inventory`, `device.diagnostics`, `host.info`, presence, announce, relay, and
+Freenet reads all refuse.
 
 ## 10. Registering this work
 

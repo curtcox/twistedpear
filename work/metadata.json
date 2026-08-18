@@ -41,6 +41,12 @@
       "requires": [],
       "verify": "npm run test:hostile-apps",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "conformance/hostile-apps/capability-probes.mjs",
+        "conformance/hostile-apps/run.mjs",
+        "conformance/hostile-apps/README.md"
+      ],
       "notes": "app-approval-risk-plan.md Phase 0. A hostile fixture asserting a capabilities: [] app can observe nothing about the host or other apps. Written before APPR-DEVICE-AMBIENT: it is the statement of the invariant, and its absence is why A-1 survived a security review."
     },
     "APPR-OPTIONAL-CAPS": {
@@ -194,6 +200,11 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/announce-scope.test.ts",
+        "packages/miniapp-runtime/src/services/announce.ts"
+      ],
       "notes": "capability-scoping-plan.md Phase 0, audit finding F-2. Reject a namespace other than the app's own in announce.publish/subscribe, mirroring peers.ts; bound appData."
     },
     "CAP-BUDGETS": {
@@ -208,6 +219,12 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/device-confirm-failclosed.test.ts",
+        "packages/miniapp-runtime/src/device-manager/layer-1-base.ts",
+        "packages/miniapp-runtime/src/device-manager/layer-2-samples.ts"
+      ],
       "notes": "capability-scoping-plan.md Phase 0, audit finding F-4. maybeConfirmSession and confirmNfcWrite fail closed; a host wanting the old behaviour names an explicit option."
     },
     "CAP-EGRESS-CHROME": {
@@ -236,6 +253,11 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/freenet-read-scope.test.ts",
+        "packages/miniapp-runtime/src/services/freenet.ts"
+      ],
       "notes": "capability-scoping-plan.md Phase 0, audit finding F-3. Scope freenet.get to app-derived keys or a host-authored allowlist; budget and surface reads."
     },
     "CAP-GRANT-STALE": {
@@ -243,6 +265,12 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/grant-stale-launch.test.ts",
+        "packages/miniapp-runtime/src/host/layer-1-base.ts",
+        "packages/miniapp-runtime/src/capabilities.ts"
+      ],
       "notes": "capability-scoping-plan.md Phase 0, audit finding F-6. Drop the launch-time fallback in host/layer-2.ts so a deleted grant record denies immediately."
     },
     "CAP-HOSTILE-PROBES": {
@@ -250,6 +278,12 @@
       "requires": [],
       "verify": "npm run test:hostile-apps",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "conformance/hostile-apps/capability-probes.mjs",
+        "conformance/hostile-apps/run.mjs",
+        "conformance/hostile-apps/README.md"
+      ],
       "notes": "capability-scoping-plan.md Phase 0. Listed last in the plan's table but written first: the probe is the regression proof, and three of the four Phase 0 defects are one-line fixes whose absence of a test is why they survived a security review."
     },
     "CAP-MANIFEST-V2": {
@@ -601,6 +635,12 @@
       "requires": [],
       "verify": "node conformance/hostile-authors/baseline.mjs",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "conformance/hostile-authors/README.md",
+        "conformance/hostile-authors/baseline.mjs",
+        "conformance/hostile-authors/catalog.mjs"
+      ],
       "notes": "hostile-author-plan.md P0. The plan's 'Today' column is an unverified code read; this item replaces every guess with a measured verdict in conformance/hostile-authors/README.md. Deliberately separate and first: writing fixtures before measuring the baseline produces fixtures that encode assumptions, and several 'likely finding' guesses will be wrong in both directions."
     },
     "HA-P1-TRANSCRIPT": {

@@ -1,4 +1,9 @@
-import type { AnnounceBackend, AnnounceEvent } from "./announce.js";
+import {
+  boundAnnounceAppData,
+  resolveAnnounceNamespace,
+  type AnnounceBackend,
+  type AnnounceEvent,
+} from "./announce.js";
 
 export interface AnnounceTransport {
   publish(namespace: string, event: AnnounceEvent): Promise<void>;
@@ -11,22 +16,22 @@ export class TransportBackedAnnounceService implements AnnounceBackend {
     private readonly destination: string,
     private readonly transport: AnnounceTransport,
   ) {}
-  publish(
+  async publish(
     appId: string,
     appData = new Uint8Array(),
     namespace?: string,
   ): Promise<void> {
-    return this.transport.publish(namespace ?? `miniapp-announce:${appId}`, {
+    return this.transport.publish(resolveAnnounceNamespace(appId, namespace), {
       destination: this.destination,
-      appData,
+      appData: boundAnnounceAppData(appData),
       receivedAt: Date.now(),
     });
   }
-  subscribe(
+  async subscribe(
     appId: string,
     namespace?: string,
   ): Promise<ReadonlyArray<AnnounceEvent>> {
-    return this.transport.snapshot(namespace ?? `miniapp-announce:${appId}`);
+    return this.transport.snapshot(resolveAnnounceNamespace(appId, namespace));
   }
 }
 

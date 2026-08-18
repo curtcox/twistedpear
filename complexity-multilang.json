@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 617,
-  "functions": 7117,
-  "groups": 4310,
+  "files": 619,
+  "functions": 7145,
+  "groups": 4334,
   "exemptions": 91,
   "violations": 0,
   "stale": 0,
@@ -189,7 +189,7 @@
       "key": "conformance/sdk-interop/run.mjs::main",
       "file": "conformance/sdk-interop/run.mjs",
       "name": "main",
-      "line": 54,
+      "line": 49,
       "tier": "tooling",
       "ccn": 32,
       "nloc": 350,
@@ -202,7 +202,7 @@
       "key": "conformance/handbook/run.mjs::main",
       "file": "conformance/handbook/run.mjs",
       "name": "main",
-      "line": 281,
+      "line": 288,
       "tier": "tooling",
       "ccn": 31,
       "nloc": 268,
@@ -305,13 +305,13 @@
       "key": "conformance/hostile-apps/run.mjs::main",
       "file": "conformance/hostile-apps/run.mjs",
       "name": "main",
-      "line": 75,
+      "line": 76,
       "tier": "tooling",
       "ccn": 23,
-      "nloc": 299,
+      "nloc": 296,
       "pinned": {
         "ccn": 23,
-        "nloc": 299
+        "nloc": 296
       }
     },
     {
@@ -586,7 +586,7 @@
       "key": "conformance/handbook/mobile-slice.mjs::runHandbookMobileSlice",
       "file": "conformance/handbook/mobile-slice.mjs",
       "name": "runHandbookMobileSlice",
-      "line": 347,
+      "line": 350,
       "tier": "tooling",
       "ccn": 17,
       "pinned": {

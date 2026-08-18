@@ -14,6 +14,7 @@ describe("two-host realtime media loopback", () => {
     const frames: Uint8Array[] = [];
     const closeEgress = vi.fn(async () => {});
     const sender = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedRawMicrophoneDriver()],
       now: () => now,
       linkSupply: async () => [

@@ -336,7 +336,7 @@ export const gates = [
     "Critical desktop visual regression",
     "visual:check",
     "pr",
-    ["node", "chromium"],
+    ["node", "chromium", "pinned-macos-runner"],
     ["artifacts/visual-regression.json", "artifacts/visual-regression"],
     "generic",
     "macos-15",

@@ -16,9 +16,11 @@ on the macOS CI runner: desktop main, capability review, grants, host confirmati
 runtime controls, and an untrusted publisher. It compares PNG bytes exactly and restores
 the committed files after the comparison, whether the check passes or fails. The captured
 pixels are also written to `artifacts/visual-regression/captures/` so a runner-class
-mismatch can be reviewed without updating the baseline on a different machine. Intentional
-UI changes use `npm run visual:baseline`; reviewers inspect the updated images together
-with the UI change.
+mismatch can be reviewed without updating the baseline on a different machine. The
+`visual-regression` gate therefore requires `pinned-macos-runner` and skips locally:
+a different Mac's font rasterizer is not a reason to rewrite the PNGs. Intentional
+UI changes use `npm run visual:baseline` on that same macos-15 runner; reviewers
+inspect the updated images together with the UI change.
 
 `npm run test:ui-invariants` complements those pixels with behavior. It loads the real
 desktop renderer against a controlled preload bridge and proves that publisher identity

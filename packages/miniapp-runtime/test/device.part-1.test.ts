@@ -93,6 +93,7 @@ describe("device capabilities", () => {
 describe("DeviceManager Phase 1", () => {
   it("inventories simulated drivers and reports unsupported otherwise", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [
         createSimulatedLocationDriver(),
         createSimulatedAmbientLightDriver(40),
@@ -110,6 +111,7 @@ describe("DeviceManager Phase 1", () => {
 
   it("opens coarse location and ambient-light sessions end-to-end", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [
         createSimulatedLocationDriver({
           latitude: 37.7749,
@@ -166,6 +168,7 @@ describe("DeviceManager Phase 1", () => {
 
   it("enforces arbitration locks between sessions", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedLocationDriver()],
       now: () => 1,
     });
@@ -183,6 +186,7 @@ describe("DeviceManager Phase 1", () => {
 
   it("denies open without grant", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedLocationDriver()],
       now: () => 1,
     });
@@ -204,6 +208,7 @@ describe("host API version", () => {
 describe("DeviceManager Phase 2 derived sensors", () => {
   it("opens precise location and derived camera/mic/motion sessions", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [
         createSimulatedLocationDriver({
           latitude: 37.7749,
@@ -299,6 +304,7 @@ describe("DeviceManager Phase 2 derived sensors", () => {
 
   it("opens speaker:pcm with platform voice-duplex options", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedSpeakerDriver()],
       now: () => 1,
     });
@@ -327,6 +333,7 @@ describe("DeviceManager Phase 3 actuators", () => {
     const ttsLog = { commands: [], stopped: 0 };
     const hapticsLog = { commands: [], stopped: 0 };
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [
         createSimulatedTorchDriver(torchLog),
         createSimulatedSpeakerDriver(speakerLog),
@@ -435,6 +442,7 @@ describe("DeviceManager Phase 3 actuators", () => {
     const nfcLog = { commands: [], stopped: 0 };
     const confirmations: string[] = [];
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedNfcDriver(nfcLog)],
       now: () => 5_000,
       confirmationChannel: {
@@ -473,6 +481,7 @@ describe("DeviceManager Phase 3 actuators", () => {
 describe("DeviceManager Phase 4 raw tiers + sidecar", () => {
   it("delivers sanitized camera frames over the sidecar", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedRawCameraDriver()],
       now: () => 20_000,
     });
@@ -498,6 +507,7 @@ describe("DeviceManager Phase 4 raw tiers + sidecar", () => {
 
   it("never emits raw fields from a derived camera session", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedCameraDriver()],
       now: () => 21_000,
     });
@@ -519,6 +529,7 @@ describe("DeviceManager Phase 4 raw tiers + sidecar", () => {
 
   it("denies frames when only derived is granted", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedRawCameraDriver()],
       now: () => 22_000,
     });
@@ -533,6 +544,7 @@ describe("DeviceManager Phase 4 raw tiers + sidecar", () => {
 
   it("sanitizes pcm and motion samples and supports screen-capture frames", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [
         createSimulatedRawMicrophoneDriver(),
         createSimulatedRawMotionDriver(),

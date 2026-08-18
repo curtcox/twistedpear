@@ -201,7 +201,7 @@ export abstract class MiniappHostLayer1Base {
 
   async deleteGrants(appId: string, publisherPublicKey: string): Promise<void> {
     this.channelService.dropApp({ appId, publisherPublicKey });
-    await this.options.grantStore.delete(appId, publisherPublicKey);
+    await this.options.grantStore.delete(appId, publisherPublicKey, this.now());
   }
 
   protected registerHandlers(): void {

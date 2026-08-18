@@ -33,6 +33,28 @@ export function writeCaptureArtifacts(generated, destinationDir) {
   }
 }
 
+/**
+ * Exact-pixel baselines are captured on the GitHub `macos-15` runner. Other
+ * Macs rasterize system fonts and form controls differently, so a mismatch
+ * there is a runner-class difference, not a reason to rewrite the PNGs.
+ */
+export function isPinnedMacosRunner(
+  env = process.env,
+  platform = process.platform,
+) {
+  return Boolean(env.GITHUB_ACTIONS) && platform === "darwin";
+}
+
+export function mismatchAdvice(onPinnedHost) {
+  return onPinnedHost
+    ? "Run npm run visual:baseline and review the image changes."
+    : [
+        "Runner-class mismatch: do not run visual:baseline here.",
+        "Exact-pixel baselines are owned by the macos-15 CI runner;",
+        "review artifacts/visual-regression/captures/.",
+      ].join(" ");
+}
+
 function main() {
   const original = new Map(
     VISUAL_BASELINES.map((file) => [
@@ -95,7 +117,7 @@ function main() {
   if (!write && changed.length > 0) {
     console.error("Visual regression: rendered pixels changed:");
     for (const file of changed) console.error(`  ${file}`);
-    console.error("Run npm run visual:baseline and review the image changes.");
+    console.error(mismatchAdvice(isPinnedMacosRunner()));
     process.exit(1);
   }
   console.log(

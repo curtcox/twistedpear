@@ -219,7 +219,7 @@
     },
     "conformance/hostile-apps/run.mjs::main": {
       "ccn": 23,
-      "nloc": 299
+      "nloc": 296
     },
     "conformance/i2p-interop/run.mjs::withI2pInterface": {
       "ccn": 19

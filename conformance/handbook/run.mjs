@@ -278,6 +278,13 @@ function makeAppsBackend() {
   };
 }
 
+function simulatedDeviceManager() {
+  return createSimulatedDeviceManager({
+    now: () => Date.now(),
+    allowUnconfirmedDeviceSessions: true,
+  });
+}
+
 async function main() {
   buildHandbook();
   const catalog = loadCatalog();
@@ -310,7 +317,7 @@ async function main() {
     grantStore: new GrantStore(store),
     kvBackend: store,
     beeBackend: new KvStorageBeeBackend(store),
-    deviceManager: createSimulatedDeviceManager({ now: () => Date.now() }),
+    deviceManager: simulatedDeviceManager(),
     peerSessionManager: makePeerSessionManager(),
     relayService: makeRelayService(),
     presenceBackend: {
@@ -626,7 +633,7 @@ async function main() {
       grantStore: new GrantStore(store),
       kvBackend: store,
       beeBackend: new KvStorageBeeBackend(store),
-      deviceManager: createSimulatedDeviceManager({ now: () => Date.now() }),
+      deviceManager: simulatedDeviceManager(),
       peerSessionManager: makePeerSessionManager(),
       relayService: makeRelayService(),
       casBackend,

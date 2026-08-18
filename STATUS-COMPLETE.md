@@ -69,6 +69,9 @@ Last audited: 2026-08-05.
 | CAP-TTL                                             | done   | Grants have no TTL, contradicting SPEC-CAP                                                                                                                                  | `packages/miniapp-runtime/src/grant-ttl.ts`, `packages/miniapp-runtime/test/grant-ttl.test.ts`                                                                                                                                                                                                                                                     | `npx vitest run packages/miniapp-runtime/test/grant-ttl.test.ts`                                                                                                                                                                                                                                                                                                                     |
 | APPR-DEVICE-AMBIENT                                 | done   | Zero-capability apps observe device inventory and lock holders                                                                                                              | `packages/miniapp-runtime/test/ambient-authority.test.ts`, `packages/miniapp-runtime/src/host/layer-1-handlers-device.ts`, `packages/miniapp-runtime/src/services/device.ts`, `packages/miniapp-sdk/src/device.ts`                                                                                                                                 | `npx vitest run packages/miniapp-runtime/test/ambient-authority.test.ts`                                                                                                                                                                                                                                                                                                             |
 
+Closed capability-scoping and hostile-author Phase 0 rows live in
+[STATUS-COMPLETE-PHASES.md](STATUS-COMPLETE-PHASES.md#capability-scoping-and-hostile-author-phase-0).
+
 ---
 
 ## How to read this document
@@ -104,6 +107,7 @@ inside the file-size budget.
 | Phase 6 — Desktop host           | [STATUS-COMPLETE-PHASES.md#phase-6--desktop-host--network-health](STATUS-COMPLETE-PHASES.md#phase-6--desktop-host--network-health)                 |
 | Packages delivered               | [STATUS-COMPLETE-PHASES.md#packages-delivered-monorepo-inventory](STATUS-COMPLETE-PHASES.md#packages-delivered-monorepo-inventory)                 |
 | Cross-cutting software           | [STATUS-COMPLETE-PHASES.md#cross-cutting-software-2026-07-07--2026-07-08](STATUS-COMPLETE-PHASES.md#cross-cutting-software-2026-07-07--2026-07-08) |
+| Capability scoping Phase 0       | [STATUS-COMPLETE-PHASES.md#capability-scoping-and-hostile-author-phase-0](STATUS-COMPLETE-PHASES.md#capability-scoping-and-hostile-author-phase-0) |
 
 ## Release evidence log
 

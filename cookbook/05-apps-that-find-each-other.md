@@ -96,10 +96,12 @@ Four things trip people up:
    way [Link weather](#link-weather) polls `presence.snapshot()`, and for the same reason:
    there is no event to await.
 2. **Both sides must use the exact same namespace.** These samples pass the same explicit
-   string to both calls. If both calls omit it, the runtime uses the calling app's default
-   `miniapp-announce:<appId>` namespace. Omitting it on only one call cannot match an explicit
-   short name such as `neighborhood-board`. An announce in the `neighborhood-board` namespace
-   is invisible to a subscriber reading `swap-shelf`; there is no global feed.
+   string to both calls — and that string must be the app's own name. The host rejects a
+   namespace that is not the calling app id, the default `miniapp-announce:<appId>` prefix,
+   or a sub-topic under that prefix. If both calls omit the argument, they meet on the
+   default prefix. Omitting it on only one call cannot match an explicit short name such as
+   `neighborhood-board`. An announce in the `neighborhood-board` namespace is invisible to a
+   subscriber reading `swap-shelf`; there is no global feed.
 3. **"Apps" here means instances of the same mini-app.** Neighborhood board does not search
    for Swap shelf. Separate mini-apps have separate identities and intended app namespaces.
    This API is not general app-to-app IPC. For a brokered channel between two running

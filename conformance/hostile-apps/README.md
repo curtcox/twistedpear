@@ -18,5 +18,7 @@ Phase 4 hostile fixtures target the sandbox and broker chokepoint:
 
 The current checked-in tests cover watchdog kill, escape probes, broker throttling,
 widget rejection (unknown component, depth bomb, node bomb, bad props), and 100
-launch/stop cycles on the Node worker backend. Device Bare and emulator fixtures are
-added as the selected backend is wired into the mobile surface.
+launch/stop cycles on the Node worker backend. Capability probes cover cross-app
+announce, unconfirmed Freenet reads, confirmation-absent device sessions, stale
+grants after revoke, and the zero-capability observation floor. Device Bare and
+emulator fixtures are added as the selected backend is wired into the mobile surface.

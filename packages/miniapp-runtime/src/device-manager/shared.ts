@@ -290,6 +290,11 @@ export interface DeviceManagerOptions {
   readonly drivers?: ReadonlyArray<DeviceDriver>;
   readonly confirmationChannel?: HostConfirmationChannel;
   readonly confirmationEffects?: ConfirmationEffects;
+  /**
+   * Named exemption for the fail-closed confirmation rule. Shipping hosts omit
+   * this; tests and a host that deliberately skips chrome must set it.
+   */
+  readonly allowUnconfirmedDeviceSessions?: boolean;
   readonly now?: () => number;
   readonly randomBytes?: (length: number) => Uint8Array;
   /** When set, named holders (e.g. relay interfaces) occupy the arbitration lock. */

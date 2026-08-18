@@ -108,6 +108,8 @@ export interface MiniappHostOptions {
   readonly relayMutation?: (notice: RelayMutationNotice) => void;
   /** Optional Freenet contract-state backend (desktop/headless when a node is configured). */
   readonly freenetBackend?: FreenetContractBackend;
+  /** Host-authored contract keys this app may read without having published them. */
+  readonly freenetReadAllowlist?: ReadonlyArray<string>;
   /** Host-owned device manager (inventory, sessions, drivers). */
   readonly deviceManager?: DeviceManager;
   readonly inboundMediaBackend?: InboundMediaBackend;

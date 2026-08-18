@@ -65,6 +65,7 @@ describe("node host MiniappHost wiring", () => {
           async update() {},
         },
         deviceManager: createSimulatedDeviceManager({ now: () => 1_000 }),
+        freenetReadAllowlist: ["ab".repeat(32)],
       });
 
       const relayManifest = {
@@ -119,7 +120,6 @@ describe("node host MiniappHost wiring", () => {
           id: "inv",
           namespace: "device",
           method: "inventory",
-          capability: "presence",
           payload: {},
         },
         deviceManifest,

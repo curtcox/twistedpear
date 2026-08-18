@@ -19,6 +19,7 @@ describe("DeviceManager Phase 5 streaming", () => {
   it("lets host chrome author, list, revoke, and restart-clear share offers", async () => {
     let now = 28_000;
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       now: () => now,
       requestShareOffer: async ({ appId, purpose }) => {
         expect(appId).toBe("line-check");
@@ -66,6 +67,7 @@ describe("DeviceManager Phase 5 streaming", () => {
 
   it("uses host link supply and treats app candidates only as ceilings", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedCameraDriver()],
       now: () => 29_000,
       linkSupply: async () => [
@@ -126,6 +128,7 @@ describe("DeviceManager Phase 5 streaming", () => {
   it("enforces the host-authored maximum quality rung", async () => {
     let now = 29_500;
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedRawCameraDriver()],
       now: () => now,
       linkSupply: async () => [
@@ -185,6 +188,7 @@ describe("DeviceManager Phase 5 streaming (continued)", () => {
   it("requires device:stream and admits with degradation on thin links", async () => {
     const sent: Uint8Array[] = [];
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedCameraDriver()],
       now: () => 30_000,
       linkSupply: async () => [
@@ -264,6 +268,7 @@ describe("DeviceManager Phase 5 streaming (continued)", () => {
     const opened: string[] = [];
     const closed: string[] = [];
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [
         createSimulatedRawMicrophoneDriver({
           sampleRate: 48_000,
@@ -349,6 +354,7 @@ describe("DeviceManager Phase 5 streaming (continued)", () => {
 describe("DeviceManager Phase 5 streaming (continued)", () => {
   it("falls back to a CAS snapshot when no live bandwidth remains", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedCameraDriver()],
       now: () => 31_000,
       linkSupply: async () => [
@@ -399,6 +405,7 @@ describe("DeviceManager Phase 5 streaming (continued)", () => {
 describe("DeviceManager Phase 6 remote acquisition", () => {
   it("is off by default and requires host enable + per-peer grant", async () => {
     const serving = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedCameraDriver()],
       now: () => 40_000,
     });
@@ -435,8 +442,12 @@ describe("DeviceManager Phase 6 remote acquisition", () => {
   });
 
   it("two-host path: requester needs device:remote; serving enforces grant", async () => {
-    const requester = new DeviceManager({ now: () => 41_000 });
+    const requester = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
+      now: () => 41_000,
+    });
     const serving = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedLocationDriver()],
       now: () => 41_000,
     });
@@ -471,6 +482,7 @@ describe("DeviceManager Phase 6 remote acquisition", () => {
 
   it("refuses re-serving a remote session to a third peer", async () => {
     const serving = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedCameraDriver()],
       now: () => 42_000,
     });
@@ -504,6 +516,7 @@ describe("DeviceManager Phase 6 remote acquisition", () => {
 
   it("drops grants on simulated restart and enforces concurrency", async () => {
     const serving = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedCameraDriver()],
       now: () => 43_000,
       maxRemoteSessions: 1,
@@ -538,6 +551,7 @@ describe("DeviceManager Phase 7 hardening", () => {
   it("blocks payment AIDs on nfc:apdu writes", async () => {
     const log = { commands: [], stopped: 0 };
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedNfcDriver(log)],
       now: () => 50_000,
     });
@@ -571,6 +585,7 @@ describe("DeviceManager Phase 7 hardening", () => {
 
   it("returns biometric assertions without templates", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [createSimulatedBiometricDriver(true)],
       now: () => 51_000,
     });
@@ -596,6 +611,7 @@ describe("DeviceManager Phase 7 hardening", () => {
 
   it("reads simulated STT transcripts", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [
         createSimulatedSttDriver({
           text: "pairing code one two",
@@ -628,6 +644,7 @@ describe("DeviceManager Phase 7 hardening", () => {
 
   it("reads scalar sensors added only via the registry path", async () => {
     const manager = new DeviceManager({
+      allowUnconfirmedDeviceSessions: true,
       drivers: [
         createSimulatedScalarDriver("proximity", { near: true }),
         createSimulatedScalarDriver("barometer", { hPa: 1013.25 }),
@@ -666,6 +683,7 @@ describe("DeviceManager host chrome", () => {
     let chromeTicks = 0;
     const manager = createSimulatedDeviceManager({
       now: () => 60_000,
+      allowUnconfirmedDeviceSessions: true,
       onChromeChange: () => {
         chromeTicks += 1;
       },
@@ -723,7 +741,10 @@ describe("DeviceManager host chrome", () => {
   });
 
   it("toggles remote acquisition from host chrome", () => {
-    const manager = createSimulatedDeviceManager({ now: () => 61_000 });
+    const manager = createSimulatedDeviceManager({
+      now: () => 61_000,
+      allowUnconfirmedDeviceSessions: true,
+    });
     expect(manager.isRemoteAcquisitionEnabled()).toBe(false);
     manager.setRemoteAcquisitionEnabled(true);
     expect(manager.isRemoteAcquisitionEnabled()).toBe(true);
@@ -735,6 +756,7 @@ describe("DeviceManager host chrome", () => {
     const senses: string[] = [];
     const manager = createSimulatedDeviceManager({
       now: () => 62_000,
+      allowUnconfirmedDeviceSessions: true,
       drivers: createHybridDeviceDrivers(["location"], {
         availability: () => "available",
         sense: async (classId) => {

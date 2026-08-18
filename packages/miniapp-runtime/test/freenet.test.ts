@@ -58,10 +58,12 @@ describe("freenet:contract capability", () => {
     expect(response.error?.code).toBe("FREENET_UNCONFIGURED");
   });
 
-  it("gates put behind confirmation and allows get without confirmation", async () => {
+  it("gates put behind confirmation and denies get of unpublished keys", async () => {
     const puts: string[] = [];
+    const gets: string[] = [];
     const backend: FreenetContractBackend = {
       async get(keyHex) {
+        gets.push(keyHex);
         return { keyHex, stateHex: "aa" };
       },
       async put(options) {
@@ -86,7 +88,7 @@ describe("freenet:contract capability", () => {
       ["freenet:contract"],
     );
 
-    const got = await host.dispatchRaw(
+    const denied = await host.dispatchRaw(
       {
         id: "1",
         namespace: "freenet",
@@ -96,7 +98,8 @@ describe("freenet:contract capability", () => {
       manifest,
       ["freenet:contract"],
     );
-    expect(got.result).toEqual({ keyHex: "abcd", stateHex: "aa" });
+    expect(denied.error?.code).toBe("FREENET_KEY_DENIED");
+    expect(gets).toEqual([]);
     expect(confirm).not.toHaveBeenCalled();
 
     const put = await host.dispatchRaw(
@@ -116,5 +119,18 @@ describe("freenet:contract capability", () => {
     expect(confirm.mock.calls[0]![0].summary.note).toContain(
       "cannot be recalled",
     );
+
+    const got = await host.dispatchRaw(
+      {
+        id: "3",
+        namespace: "freenet",
+        method: "get",
+        payload: { keyHex: "bb" },
+      },
+      manifest,
+      ["freenet:contract"],
+    );
+    expect(got.result).toEqual({ keyHex: "bb", stateHex: "aa" });
+    expect(gets).toEqual(["bb"]);
   });
 });

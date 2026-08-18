@@ -27,8 +27,36 @@ export function createMiniappAnnounceService(options) {
   const destinations = new Map();
   const handlers = new Set();
 
+  function ownNamespace(appId) {
+    return `miniapp-announce:${appId}`;
+  }
+
+  function resolveNamespace(appId, namespace) {
+    const own = ownNamespace(appId);
+    if (namespace === undefined || namespace === own || namespace === appId)
+      return own;
+    if (typeof namespace === "string" && namespace.startsWith(`${own}/`)) {
+      return namespace;
+    }
+    const error = new Error("Cross-app announce namespaces are not permitted");
+    error.code = "ANNOUNCE_CROSS_APP_SCOPE";
+    error.name = "AnnounceServiceError";
+    throw error;
+  }
+
+  function boundAppData(appData) {
+    const payload = appData ?? new Uint8Array();
+    if (payload.length > 383) {
+      const error = new Error(`Announce appData exceeds 383 bytes`);
+      error.code = "ANNOUNCE_BAD_REQUEST";
+      error.name = "AnnounceServiceError";
+      throw error;
+    }
+    return payload;
+  }
+
   function aspectFor(appId, namespace) {
-    const scope = namespace ?? `miniapp-announce:${appId}`;
+    const scope = resolveNamespace(appId, namespace);
     return bytesToHex(
       provider.sha256(new TextEncoder().encode(scope)).subarray(0, 16),
     );
@@ -59,7 +87,7 @@ export function createMiniappAnnounceService(options) {
         });
         destinations.set(aspect, destination);
       }
-      const payload = appData ?? new Uint8Array();
+      const payload = boundAppData(appData);
       await destination.announce({ appData: payload });
       const bucket = buckets.get(aspect) ?? [];
       bucket.push({

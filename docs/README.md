@@ -164,19 +164,19 @@ Protocol implementation details live in the
 
 ## Security, quality, and validation
 
-| Topic                                                      | Document                                                                                              |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Sandbox threat model and findings                          | [Security review](security-review.md)                                                                 |
-| Whether a grant can be scoped to just the I/O an app needs | [Capability scoping audit](capability-scoping-audit.md), [remaining plan](capability-scoping-plan.md) |
-| Adversarial scenarios for author deception of users        | [Hostile author plan](hostile-author-plan.md)                                                         |
-| Making approval evidence proportionate to app risk         | [App approval risk plan](app-approval-risk-plan.md)                                                   |
-| CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                             |
-| Full local validation workflow                             | [Single-Mac validation](mac-validation.md)                                                            |
-| Evidence from the documented Mac validation run            | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md)                          |
-| Sans-IO boundary and enforcement                           | [Sans-IO protocol discipline](sansio.md)                                                              |
-| Source-file size thresholds and the decomposition ratchet  | [File-size classification](file-sizes.md)                                                             |
-| Static analysis gates, baselines, and local runner         | [Static analysis](static-analysis.md), [remaining plan](static-analysis-plan.md)                      |
-| Mutation score floors and what they cover                  | [Mutation testing](mutation-testing.md)                                                               |
+| Topic                                                      | Document                                                                                                    |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Sandbox threat model and findings                          | [Security review](security-review.md)                                                                       |
+| Whether a grant can be scoped to just the I/O an app needs | [Capability scoping audit](capability-scoping-audit.md), [remaining plan](capability-scoping-plan.md)       |
+| Adversarial scenarios for author deception of users        | [Hostile author plan](hostile-author-plan.md), [measured catalog](../conformance/hostile-authors/README.md) |
+| Making approval evidence proportionate to app risk         | [App approval risk plan](app-approval-risk-plan.md)                                                         |
+| CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                                   |
+| Full local validation workflow                             | [Single-Mac validation](mac-validation.md)                                                                  |
+| Evidence from the documented Mac validation run            | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md)                                |
+| Sans-IO boundary and enforcement                           | [Sans-IO protocol discipline](sansio.md)                                                                    |
+| Source-file size thresholds and the decomposition ratchet  | [File-size classification](file-sizes.md)                                                                   |
+| Static analysis gates, baselines, and local runner         | [Static analysis](static-analysis.md), [remaining plan](static-analysis-plan.md)                            |
+| Mutation score floors and what they cover                  | [Mutation testing](mutation-testing.md)                                                                     |
 
 Additional focused runbooks are indexed from the
 [conformance overview](../conformance/README.md).

@@ -177,6 +177,9 @@ function createFreenetService(
     : new FreenetBrokerService(
         options.freenetBackend,
         options.confirmationChannel,
+        new Set(
+          (options.freenetReadAllowlist ?? []).map((key) => key.toLowerCase()),
+        ),
       );
 }
 

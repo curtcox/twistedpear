@@ -248,7 +248,10 @@ function createHandbookHost(store, options) {
       grantStore: new GrantStore(store),
       kvBackend: store,
       beeBackend: new KvStorageBeeBackend(store),
-      deviceManager: createSimulatedDeviceManager({ now: () => Date.now() }),
+      deviceManager: createSimulatedDeviceManager({
+        now: () => Date.now(),
+        allowUnconfirmedDeviceSessions: true,
+      }),
       peerSessionManager: makePeerSessionManager(),
       relayService: makeRelayService(),
       presenceBackend: {

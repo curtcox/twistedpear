@@ -2,8 +2,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { gates } from "../../scripts/checks/registry.mjs";
 import {
   changedImages,
+  isPinnedMacosRunner,
+  mismatchAdvice,
   VISUAL_BASELINES,
   writeCaptureArtifacts,
 } from "../../scripts/analysis/visual-regression.mjs";
@@ -30,6 +33,28 @@ describe("visual regression", () => {
         new Map([["screen", Buffer.from("after")]]),
       ),
     ).toEqual(["screen"]);
+  });
+
+  it("treats only GitHub Actions on macOS as the pinned visual host", () => {
+    expect(isPinnedMacosRunner({ GITHUB_ACTIONS: "true" }, "darwin")).toBe(
+      true,
+    );
+    expect(isPinnedMacosRunner({ GITHUB_ACTIONS: "true" }, "linux")).toBe(
+      false,
+    );
+    expect(isPinnedMacosRunner({ CI: "true" }, "darwin")).toBe(false);
+    expect(isPinnedMacosRunner({}, "darwin")).toBe(false);
+  });
+
+  it("tells a non-pinned host not to rewrite the committed baselines", () => {
+    expect(mismatchAdvice(false)).toMatch(/do not run visual:baseline/);
+    expect(mismatchAdvice(true)).toMatch(/visual:baseline/);
+  });
+
+  it("skips the gate off the pinned GitHub macos runner", () => {
+    expect(
+      gates.find((gate) => gate.id === "visual-regression")?.requires,
+    ).toContain("pinned-macos-runner");
   });
 
   it("writes captured pixels under the basename so CI can upload them", () => {

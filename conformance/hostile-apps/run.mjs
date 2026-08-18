@@ -13,6 +13,7 @@ import {
   validateWidgetTree,
   WidgetValidationError,
 } from "../../packages/miniapp-runtime/dist/index.js";
+import { runCapabilityProbes } from "./capability-probes.mjs";
 
 class MemoryStore {
   values = new Map();
@@ -400,13 +401,17 @@ while (true) {
   await capabilitySwapHost.stop();
 
   await forgeryHost.stop();
+}
 
+async function run() {
+  await main();
+  await runCapabilityProbes();
   console.log(
-    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, and launch/stop cycles passed",
+    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, launch/stop cycles, and capability probes passed",
   );
 }
 
-main().catch((error) => {
+run().catch((error) => {
   console.error(error);
   process.exit(1);
 });

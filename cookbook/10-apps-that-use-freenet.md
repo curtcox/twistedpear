@@ -40,7 +40,8 @@ if (record !== null) {
 ```
 
 The mini-app sees only a key and state bytes. The host owns the configured node
-URL and optional auth token.
+URL and optional auth token. `get` is limited to keys this app published (via
+`put`/`update`) or a host-authored allowlist; an arbitrary key is denied.
 
 Writing looks similarly small in app code:
 

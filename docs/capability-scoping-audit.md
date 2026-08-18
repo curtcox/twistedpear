@@ -273,7 +273,6 @@ npm run formal:grant
 npm run test:hostile-apps
 ```
 
-`test:hostile-apps` covers capability substitution, UI-event forgery, broker flood, and
-widget-tree abuse. It does **not** currently probe cross-app announce namespaces (F-2),
-unconfirmed Freenet reads (F-3), or confirmation-channel-absent device sessions (F-4);
-those are the natural first tests to add alongside any fix.
+`test:hostile-apps` covers capability substitution, UI-event forgery, broker flood,
+widget-tree abuse, cross-app announce namespaces (F-2), unconfirmed Freenet reads (F-3),
+confirmation-channel-absent device sessions (F-4), and stale grants after revoke (F-6).

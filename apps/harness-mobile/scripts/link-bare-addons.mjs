@@ -4,6 +4,10 @@
  * addon folders. Prefer linking each `"addon": true` package under node_modules
  * (the CocoaPods `node link` helper often exits before async bare-link finishes,
  * and walking only the repo root can miss nested addons).
+ *
+ * `bare-link` >= 3 is an async generator that takes `{ hosts, out }`. Awaiting
+ * the generator without consuming it is a no-op, which used to leave the
+ * jniLibs addons directory empty.
  */
 import { createRequire } from "node:module";
 import { mkdirSync, readdirSync, readFileSync, existsSync } from "node:fs";
@@ -27,9 +31,6 @@ const targets = {
     // (`src/main/addons`), not the top-level `android/addons` path.
     out: join(bareKitRoot, "android/src/main/addons"),
     target: ["android-arm", "android-arm64", "android-ia32", "android-x64"],
-    // bare-kit's android/link.js passes this so patchelf --add-needed wires
-    // each addon .so to libbare-kit.so; without it dlopen fails at runtime.
-    needs: ["libbare-kit.so"],
   },
 };
 
@@ -74,8 +75,28 @@ function maybePushAddon(dir, found) {
   }
 }
 
+/** Consume bare-link's async generator so the copies actually land. */
+async function linkAddons(addonPath, options) {
+  for await (const artifact of link(addonPath, options)) {
+    void artifact;
+  }
+}
+
+function abiDirs(out) {
+  if (!existsSync(out)) return [];
+  return readdirSync(out, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(out, entry.name));
+}
+
+function linkedTcp(out) {
+  return abiDirs(out).some((dir) =>
+    readdirSync(dir).some((name) => name.includes("bare-tcp")),
+  );
+}
+
 const platform = process.argv[2] === "android" ? "android" : "ios";
-const { out, target, needs } = targets[platform];
+const { out, target } = targets[platform];
 mkdirSync(out, { recursive: true });
 
 const addons = listAddonPackages(nodeModules);
@@ -95,10 +116,9 @@ for (const addonPath of addons) {
       console.log("skipped (no prebuilds for this platform)");
       continue;
     }
-    await link(addonPath, {
-      target: available,
+    await linkAddons(addonPath, {
+      hosts: available,
       out,
-      ...(needs === undefined ? {} : { needs }),
     });
     console.log("ok");
   } catch (error) {
@@ -108,12 +128,7 @@ for (const addonPath of addons) {
   }
 }
 
-const linkedTcp = existsSync(join(out, "arm64-v8a"))
-  ? readdirSync(join(out, "arm64-v8a")).some((name) =>
-      name.includes("bare-tcp"),
-    )
-  : false;
-if (platform === "android" && !linkedTcp) {
+if (platform === "android" && !linkedTcp(out)) {
   throw new Error(
     `bare-tcp was not linked into ${out} (android TCP peer will stay offline)`,
   );

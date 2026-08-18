@@ -67,16 +67,22 @@ describe("publish", () => {
     ]);
   });
 
-  it("separates namespaces from the default app scope", async () => {
+  it("treats the app-id short name as an alias of the default prefix", async () => {
     const harness = service();
 
     await harness.service.publish("hello", new Uint8Array([1]));
-    await harness.service.publish("hello", new Uint8Array([2]), "shared");
+    await harness.service.publish("hello", new Uint8Array([2]), "hello");
 
-    expect(harness.registered).toHaveLength(2);
-    expect(harness.registered[0]?.aspects[1]).not.toBe(
-      harness.registered[1]?.aspects[1],
-    );
+    expect(harness.registered).toHaveLength(1);
+    expect(harness.announced).toHaveLength(2);
+  });
+
+  it("rejects a namespace that is not the calling app's own", async () => {
+    const harness = service();
+
+    await expect(
+      harness.service.publish("hello", new Uint8Array([1]), "other"),
+    ).rejects.toMatchObject({ code: "ANNOUNCE_CROSS_APP_SCOPE" });
   });
 
   it("announces an empty payload when none is supplied", async () => {

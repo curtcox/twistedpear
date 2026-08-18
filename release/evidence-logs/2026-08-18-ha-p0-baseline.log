@@ -1,0 +1,48 @@
+# Hostile-author catalog
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-08-18
+register: software
+counterpart: docs/hostile-author-plan.md
+-->
+
+Measured verdicts for the 27 scenarios in
+[hostile-author-plan.md](../../docs/hostile-author-plan.md) §6.
+P0 records what the tree does today. It does not add mechanisms.
+
+| Id | Expected | Measured | Evidence |
+| --- | --- | --- | --- |
+| HA-01 | INFORMED | UNCONTROLLED | `packages/app-registry/src/catalog.ts` — Catalog appId is publisherKeyHash:name; two keys both appear. No confusable-name flag. |
+| HA-02 | BLOCKED | BLOCKED | `packages/app-registry/src/catalog.ts` — canAcceptIngest refuses a pinned publisher-key mismatch for the same catalog id. |
+| HA-03 | INFORMED | UNMEASURED | `packages/miniapp-runtime/src/confirm.ts` — trust-import confirmation kind exists; wording is not transcript-checked. |
+| HA-04 | INFORMED | UNMEASURED | `packages/miniapp-runtime/src/confirm.ts` — install confirmation exists; post-fetch review is not transcript-checked. |
+| HA-05 | INFORMED | UNMEASURED | `packages/miniapp-runtime/src/capabilities.ts` — apps:install is confirmation-gated; the second review is not a separate transcript. |
+| HA-10 | INFORMED | UNMEASURED | `packages/miniapp-runtime/src/capabilities.ts` — Canonical grant text exists; destination-picked-by-app is not transcript-checked. |
+| HA-11 | BLOCKED then INFORMED | UNCONTROLLED | `packages/miniapp-runtime/src/confirm.ts` — No capability-delta review on update. APPR-UPDATE-DELTA is still open. |
+| HA-12 | BLOCKED | UNCONTROLLED | `packages/miniapp-runtime/src/confirm.ts` — ConfirmationRequest.summary is an unsanitized string map. |
+| HA-13 | BLOCKED | UNCONTROLLED | `packages/miniapp-runtime/src/confirm.ts` — Timeout exists; no confirmation rate limit or tap debounce. |
+| HA-14 | BLOCKED | BLOCKED | `packages/miniapp-runtime/test/apps.test.ts` — AppsService.preview rejects grants outside the declared manifest. |
+| HA-15 | INFORMED | UNMEASURED | `packages/miniapp-runtime/src/confirm.ts` — No consent transcript to mark unused authorities. |
+| HA-20 | BLOCKED | UNMEASURED | `packages/miniapp-runtime/src/ui/validate.ts` — Render oracle (CHROME-R7/R8) is P2. Widget validation has no reserved-lexicon pass. |
+| HA-21 | BLOCKED | UNMEASURED | `packages/miniapp-runtime/src/ui/validate.ts` — Highest severity in the catalog. No secret-solicitation validator yet. |
+| HA-22 | BLOCKED | UNMEASURED | `packages/miniapp-runtime/src/ui/validate.ts` — Softened permissions screen is a render-oracle check. |
+| HA-23 | BLOCKED | UNMEASURED | `packages/miniapp-runtime/src/ui/validate.ts` — Fake host-update banner is a render-oracle check. |
+| HA-24 | BLOCKED | UNMEASURED | `packages/miniapp-runtime/src/ui/validate.ts` — Reserved-lexicon oracle is P2. |
+| HA-30 | BLOCKED | UNCONTROLLED | `packages/miniapp-runtime/src/capabilities.ts` — Granted lxmf:send names no destination. Security-review F4. CAP-EGRESS-OFFER is open. |
+| HA-31 | INFORMED + CONTAINED | CONTAINED | `packages/miniapp-runtime/src/services/ai.ts` — Host-fixed endpoint and budgets exist; grant wording is not transcript-checked. |
+| HA-32 | CONTAINED | CONTAINED | `conformance/hostile-apps/capability-probes.mjs` — Own-namespace plus announce appData ceiling. Not destination-scoped. |
+| HA-33 | BLOCKED | BLOCKED | `conformance/hostile-apps/capability-probes.mjs` — announce:subscribe into another app's namespace is ANNOUNCE_CROSS_APP_SCOPE. |
+| HA-34 | CONTAINED | CONTAINED | `packages/miniapp-runtime/src/services/resource.ts` — Fetch names a host resource id, not an app URL. Destination is host-fixed. |
+| HA-35 | BLOCKED | BLOCKED | `conformance/hostile-apps/capability-probes.mjs` — GrantStore.delete denies the next dispatch. In-flight streams are not asserted here. |
+| HA-36 | CONTAINED | UNCONTROLLED | `packages/miniapp-runtime/src/capabilities.ts` — Benign-until-flag requires destination scoping. CAP-EGRESS-OFFER is open. |
+| HA-40 | CONTAINED | UNMEASURED | `packages/miniapp-runtime/src/capabilities.ts` — Invite provenance is not a broker-observable in this baseline. |
+| HA-41 | BLOCKED | UNCONTROLLED | `docs/local-moderation.md` — Local moderation keys on source destination hash, not app id. |
+| HA-42 | CONTAINED | CONTAINED | `packages/protocol/src/announce-rate.ts` — Transport announce ingress is rate-limited. App-level publish still uses broker quotas. |
+| HA-43 | INFORMED | UNMEASURED | `packages/miniapp-runtime/src/confirm.ts` — Same install confirmation as HA-04; lure-from-contact is not separately checked. |
+
+Counts: 4 BLOCKED, 4 CONTAINED, 7 UNCONTROLLED, 12 UNMEASURED.
+
+UNMEASURED is not a pass: INFORMED cannot be decided without a consent
+transcript (P1) or the render oracle (P2). Re-run with
+`node conformance/hostile-authors/baseline.mjs`.

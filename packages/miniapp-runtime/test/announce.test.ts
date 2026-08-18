@@ -19,15 +19,13 @@ describe("announce service", () => {
     const first = new TextEncoder().encode("first");
     const second = new TextEncoder().encode("second");
 
-    await service.publish("peer-a", first, "board");
-    const snapshot = await service.subscribe("board-app", "board");
-    await service.publish("peer-b", second, "board");
+    await service.publish("board", first);
+    const snapshot = await service.subscribe("board");
+    await service.publish("board", second);
 
     expect(snapshot.map((event) => event.appData)).toEqual([first]);
     expect(
-      (await service.subscribe("board-app", "board")).map(
-        (event) => event.appData,
-      ),
+      (await service.subscribe("board")).map((event) => event.appData),
     ).toEqual([first, second]);
   });
 
@@ -38,9 +36,8 @@ describe("announce service", () => {
     await leftHostService.publish(
       "board",
       new TextEncoder().encode("local only"),
-      "board",
     );
 
-    expect(await rightHostService.subscribe("board", "board")).toEqual([]);
+    expect(await rightHostService.subscribe("board")).toEqual([]);
   });
 });

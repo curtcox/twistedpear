@@ -138,8 +138,14 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       }
       return this.freenetService;
     };
-    this.broker.register("freenet", "get", "freenet:contract", (request) =>
-      Promise.resolve(freenet().get(request.payload as { keyHex: unknown })),
+    this.broker.register(
+      "freenet",
+      "get",
+      "freenet:contract",
+      (request, context) =>
+        Promise.resolve(
+          freenet().get(context, request.payload as { keyHex: unknown }),
+        ),
     );
     this.broker.register(
       "freenet",
@@ -190,8 +196,7 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       "device",
       "inventory",
       "presence",
-      (_request, context) =>
-        Promise.resolve(device().inventory(context.appId)),
+      (_request, context) => Promise.resolve(device().inventory(context.appId)),
     );
     this.broker.register(
       "device",
@@ -199,10 +204,7 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       "presence",
       (_request, context) =>
         Promise.resolve(
-          device().diagnostics(
-            context.appId,
-            context.grantedCapabilities,
-          ),
+          device().diagnostics(context.appId, context.grantedCapabilities),
         ),
     );
     this.broker.register("device", "open", null, (request, context) => {

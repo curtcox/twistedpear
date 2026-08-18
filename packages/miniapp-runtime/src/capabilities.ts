@@ -547,8 +547,24 @@ export class GrantStore {
     };
   }
 
-  async delete(appId: string, publisherPublicKey: string): Promise<void> {
-    await this.store.delete(grantStoreKey(appId, publisherPublicKey));
+  async delete(
+    appId: string,
+    publisherPublicKey: string,
+    now = 0,
+  ): Promise<void> {
+    const existing = await this.get(appId, publisherPublicKey);
+    if (existing === null) {
+      await this.store.delete(grantStoreKey(appId, publisherPublicKey));
+      return;
+    }
+    await this.set({
+      appId,
+      publisherPublicKey,
+      declared: existing.granted,
+      requestedGrants: [],
+      now,
+      ttlMs: 1,
+    });
   }
 }
 

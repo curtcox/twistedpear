@@ -445,7 +445,7 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
   }): Promise<void> {
     const effects = this.options.confirmationEffects;
     if (effects === undefined) {
-      if (this.options.confirmationChannel === undefined) return;
+      if (this.options.allowUnconfirmedDeviceSessions === true) return;
       throw new DeviceError(
         "DEVICE_DENIED",
         "Confirmation effects are required for NFC writes.",

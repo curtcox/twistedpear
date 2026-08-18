@@ -20,6 +20,53 @@ export interface AnnounceBackend {
   ): Promise<ReadonlyArray<AnnounceEvent>>;
 }
 
+const ANNOUNCE_NAMESPACE_PREFIX = "miniapp-announce:";
+/** Matches the RNS announce app_data ceiling used by app-registry. */
+export const MAX_ANNOUNCE_APP_DATA_BYTES = 383;
+
+class AnnounceServiceError extends Error {
+  constructor(
+    readonly code: "ANNOUNCE_CROSS_APP_SCOPE" | "ANNOUNCE_BAD_REQUEST",
+    message: string,
+  ) {
+    super(message);
+    this.name = "AnnounceServiceError";
+  }
+}
+
+function announceNamespaceFor(appId: string): string {
+  return `${ANNOUNCE_NAMESPACE_PREFIX}${appId}`;
+}
+
+/**
+ * Own-namespace policy: omitted (default prefix), the app id, the default
+ * prefix, or a sub-topic under that prefix. Anything else is a cross-app escape.
+ */
+export function resolveAnnounceNamespace(
+  appId: string,
+  namespace?: string,
+): string {
+  const own = announceNamespaceFor(appId);
+  if (namespace === undefined || namespace === own || namespace === appId)
+    return own;
+  if (namespace.startsWith(`${own}/`)) return namespace;
+  throw new AnnounceServiceError(
+    "ANNOUNCE_CROSS_APP_SCOPE",
+    "Cross-app announce namespaces are not permitted",
+  );
+}
+
+export function boundAnnounceAppData(appData?: Uint8Array): Uint8Array {
+  const bytes = appData ?? new Uint8Array();
+  if (bytes.length > MAX_ANNOUNCE_APP_DATA_BYTES) {
+    throw new AnnounceServiceError(
+      "ANNOUNCE_BAD_REQUEST",
+      `Announce appData exceeds ${MAX_ANNOUNCE_APP_DATA_BYTES} bytes`,
+    );
+  }
+  return bytes;
+}
+
 export class AnnounceService implements AnnounceBackend {
   private readonly events = new Map<string, AnnounceEvent[]>();
 
@@ -28,11 +75,12 @@ export class AnnounceService implements AnnounceBackend {
     appData?: Uint8Array,
     namespace?: string,
   ): Promise<void> {
-    const key = namespace ?? this.namespaceFor(appId);
+    const key = resolveAnnounceNamespace(appId, namespace);
+    const payload = boundAnnounceAppData(appData);
     const bucket = this.events.get(key) ?? [];
     bucket.push({
       destination: appId,
-      appData: appData ?? new Uint8Array(),
+      appData: payload,
       receivedAt: Date.now(),
     });
     this.events.set(key, bucket);
@@ -43,11 +91,7 @@ export class AnnounceService implements AnnounceBackend {
     appId: string,
     namespace?: string,
   ): Promise<ReadonlyArray<AnnounceEvent>> {
-    const key = namespace ?? this.namespaceFor(appId);
+    const key = resolveAnnounceNamespace(appId, namespace);
     return Promise.resolve([...(this.events.get(key) ?? [])]);
-  }
-
-  private namespaceFor(appId: string): string {
-    return `miniapp-announce:${appId}`;
   }
 }

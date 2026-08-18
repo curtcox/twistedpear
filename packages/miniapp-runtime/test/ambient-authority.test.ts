@@ -16,7 +16,10 @@ describe("ambient device authority", () => {
 
   async function hostWithCameraHeld() {
     const store = new MemoryKvStoreBackend();
-    const deviceManager = createSimulatedDeviceManager({ now: () => 10_000 });
+    const deviceManager = createSimulatedDeviceManager({
+      now: () => 10_000,
+      allowUnconfirmedDeviceSessions: true,
+    });
     await deviceManager.open(
       "other-app",
       "other-publisher",

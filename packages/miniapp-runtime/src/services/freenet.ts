@@ -6,7 +6,8 @@ import {
 
 export class FreenetBrokerServiceError extends Error {
   constructor(
-    readonly code: "FREENET_UNCONFIGURED" | "FREENET_BAD_REQUEST",
+    readonly code:
+      "FREENET_UNCONFIGURED" | "FREENET_BAD_REQUEST" | "FREENET_KEY_DENIED",
     message: string,
   ) {
     super(message);
@@ -68,15 +69,20 @@ function requireHex(label: string, value: unknown): string {
 }
 
 export class FreenetBrokerService {
+  private readonly writtenKeys = new Map<string, Set<string>>();
+
   constructor(
     private readonly backend: FreenetContractBackend,
     private readonly confirmationChannel: HostConfirmationChannel | undefined,
+    private readonly readAllowlist: ReadonlySet<string> = new Set(),
   ) {}
 
-  async get(payload: {
-    keyHex: unknown;
-  }): Promise<{ keyHex: string; stateHex: string } | null> {
+  async get(
+    context: { appId: string },
+    payload: { keyHex: unknown },
+  ): Promise<{ keyHex: string; stateHex: string } | null> {
     const keyHex = requireHex("keyHex", payload.keyHex);
+    this.assertReadable(context.appId, keyHex);
     return this.backend.get(keyHex);
   }
 
@@ -102,7 +108,9 @@ export class FreenetBrokerService {
       },
       confirmationEffects,
     );
-    return this.backend.put({ wasmHex, parametersHex, stateHex });
+    const result = await this.backend.put({ wasmHex, parametersHex, stateHex });
+    this.keysFor(context.appId).add(result.keyHex);
+    return result;
   }
 
   async update(
@@ -128,6 +136,25 @@ export class FreenetBrokerService {
       confirmationEffects,
     );
     await this.backend.update({ keyHex, codeHashHex, stateHex });
+    this.keysFor(context.appId).add(keyHex);
     return { updated: true };
+  }
+
+  private keysFor(appId: string): Set<string> {
+    const existing = this.writtenKeys.get(appId);
+    if (existing !== undefined) return existing;
+    const created = new Set<string>();
+    this.writtenKeys.set(appId, created);
+    return created;
+  }
+
+  private assertReadable(appId: string, keyHex: string): void {
+    if (this.readAllowlist.has(keyHex) || this.keysFor(appId).has(keyHex)) {
+      return;
+    }
+    throw new FreenetBrokerServiceError(
+      "FREENET_KEY_DENIED",
+      "Freenet reads are limited to keys this app published or the host allowlisted",
+    );
   }
 }

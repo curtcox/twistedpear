@@ -18,7 +18,9 @@ function redactDeviceDiagnostics(
   }
   return entries.map(({ holder: _holder, reason, ...rest }) => {
     const hostReason =
-      reason !== undefined && !reason.startsWith("held by ") ? reason : undefined;
+      reason !== undefined && !reason.startsWith("held by ")
+        ? reason
+        : undefined;
     return hostReason === undefined ? rest : { ...rest, reason: hostReason };
   });
 }
@@ -44,9 +46,9 @@ export class DeviceBrokerService {
     _appId: string,
     granted: ReadonlyArray<string>,
   ): Promise<ReadonlyArray<DeviceDiagnostic>> {
-    return this.manager.diagnostics().then((entries) =>
-      redactDeviceDiagnostics(entries, granted),
-    );
+    return this.manager
+      .diagnostics()
+      .then((entries) => redactDeviceDiagnostics(entries, granted));
   }
 
   open(

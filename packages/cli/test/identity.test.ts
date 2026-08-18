@@ -21,6 +21,8 @@ import {
 import { runIdentity, runInit } from "../src/commands/index.js";
 
 describe("tp identity", () => {
+  // Production-strength scrypt (N=32768, p=3) on init/export/import can exceed
+  // Vitest's default timeout when V8 coverage instrumentation is enabled.
   it("creates an encrypted vault, exports it, and imports without changing the identity", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "tp-cli-identity-"));
     const vaultPassphrase = "local vault passphrase";
@@ -72,7 +74,7 @@ describe("tp identity", () => {
       log.mockRestore();
       rmSync(cwd, { recursive: true, force: true });
     }
-  });
+  }, 120_000);
 
   it("migrates a legacy raw identity during init without changing it", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "tp-cli-legacy-"));
@@ -97,7 +99,7 @@ describe("tp identity", () => {
       log.mockRestore();
       rmSync(cwd, { recursive: true, force: true });
     }
-  });
+  }, 120_000);
 });
 
 describe("tp identity recovery and import", () => {
@@ -161,7 +163,7 @@ describe("tp identity recovery and import", () => {
       log.mockRestore();
       rmSync(cwd, { recursive: true, force: true });
     }
-  });
+  }, 120_000);
 
   // This exercises several production-strength password KDF operations and can exceed
   // Vitest's default timeout when V8 coverage instrumentation is enabled on CI runners.

@@ -1,0 +1,9 @@
+
+> twistedpear@0.0.0 test:hostile-apps
+> npm run build && node conformance/hostile-apps/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, launch/stop cycles, and capability probes passed

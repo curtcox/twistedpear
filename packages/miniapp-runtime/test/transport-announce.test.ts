@@ -22,4 +22,15 @@ describe("transport-backed announce service", () => {
     expect(new TextDecoder().decode(heard[0]?.appData)).toBe("hello");
     expect(await right.subscribe("shelf", "shelf")).toEqual([]);
   });
+
+  it("rejects a namespace that is not the calling app's own", async () => {
+    const transport = new MemoryAnnounceTransport();
+    const left = new TransportBackedAnnounceService(
+      "left-destination",
+      transport,
+    );
+    await expect(
+      left.publish("board", new TextEncoder().encode("hello"), "other"),
+    ).rejects.toMatchObject({ code: "ANNOUNCE_CROSS_APP_SCOPE" });
+  });
 });

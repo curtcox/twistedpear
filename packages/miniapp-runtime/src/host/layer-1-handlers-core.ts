@@ -1,4 +1,8 @@
 import { NamespacedKvService } from "../services/storage-kv.js";
+import {
+  boundAnnounceAppData,
+  resolveAnnounceNamespace,
+} from "../services/announce.js";
 import { diffWidgetTrees, type WidgetPatch } from "../ui/diff.js";
 import { validateWidgetTree } from "../ui/validate.js";
 import type { WidgetTree } from "../ui/schema.js";
@@ -225,8 +229,8 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
           { appData?: Uint8Array; namespace?: string } | undefined;
         await this.announceService.publish(
           context.appId,
-          payload?.appData,
-          payload?.namespace,
+          boundAnnounceAppData(payload?.appData),
+          resolveAnnounceNamespace(context.appId, payload?.namespace),
         );
         return { published: true };
       },
@@ -235,13 +239,12 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "announce",
       "subscribe",
       "announce:subscribe",
-      (request, context) => {
-        const namespace = (
-          request.payload as { namespace?: string } | undefined
-        )?.namespace;
-        return Promise.resolve(
-          this.announceService.subscribe(context.appId, namespace),
+      async (request, context) => {
+        const namespace = resolveAnnounceNamespace(
+          context.appId,
+          (request.payload as { namespace?: string } | undefined)?.namespace,
         );
+        return this.announceService.subscribe(context.appId, namespace);
       },
     );
     this.broker.register(

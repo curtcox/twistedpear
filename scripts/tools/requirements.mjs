@@ -135,6 +135,16 @@ export const REQUIREMENTS = {
     probe: () => process.platform === "darwin",
     manual: "a macOS host; this gate is skipped elsewhere",
   },
+  // Exact-pixel PNGs are captured on the GitHub macos-15 runner. A local Mac
+  // has Chromium and can run `visual:check`, but its font rasterizer will not
+  // match the committed baselines — and rewriting them here would turn CI red.
+  "pinned-macos-runner": {
+    why: "exact-pixel visual baselines belong to the GitHub macos-15 runner",
+    probe: () =>
+      Boolean(process.env.GITHUB_ACTIONS) && process.platform === "darwin",
+    manual:
+      "this gate runs in CI on macos-15; other machines skip it so a different rasterizer cannot rewrite the baselines",
+  },
   network: {
     why: "reaching the npm advisory database and GitHub",
     // A DNS lookup is enough, and cheap: this asks "can we reach the registry",

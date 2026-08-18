@@ -17,24 +17,19 @@ import {
   CapabilityError,
 } from "../../packages/miniapp-runtime/dist/index.js";
 
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
+function createMemoryStore() {
+  const values = new Map();
+  return {
+    get: async (key) => values.get(key) ?? null,
+    set: async (key, value) => {
+      values.set(key, value);
+    },
+    delete: async (key) => {
+      values.delete(key);
+    },
+    list: async (prefix) =>
+      [...values.keys()].filter((key) => key.startsWith(prefix)),
+  };
 }
 
 function manifest(appId, capabilities) {
@@ -52,7 +47,7 @@ async function dispatch(host, request, appManifest, grants) {
 }
 
 async function main() {
-  const store = new MemoryStore();
+  const store = createMemoryStore();
   const beePath = mkdtempSync(join(tmpdir(), "sdk-interop-bee-"));
   const beeBackend = new CorestoreBeeBackend(beePath, 128);
   await beeBackend.ready();

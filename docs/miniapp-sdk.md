@@ -61,8 +61,8 @@ the pair before messages copy through the broker.
 - `identity.sign(payload)` — brokered signing; private keys never cross the boundary.
 - `lxmf.send({ to, subject, body })` — send via host LXMF router.
 - `lxmf.receive()` — inbox namespaced to the app destination.
-- `announce.publish(appData, namespace?)` — publish in app namespace.
-- `announce.subscribe(namespace?)` — subscribe to announces.
+- `announce.publish(appData, namespace?)` — publish in the calling app's namespace. The host rejects any other namespace.
+- `announce.subscribe(namespace?)` — subscribe to announces in the calling app's namespace. The host rejects any other namespace.
 - `storage.kv.get/set/delete(key, value?)` — local per-app KV with byte quota.
 - `storage.bee.open/get/put/del/list` — local-only Hyperbee CRUD.
 - `resource.fetch({ resourceId, budgetBytes? })` — host-budgeted Resource fetch.

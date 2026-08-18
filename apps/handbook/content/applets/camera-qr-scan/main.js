@@ -31,11 +31,14 @@ export async function run(sdk, report) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const notGranted =
-      /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const denied = /CAPABILITY_DENIED|has not been granted|Capability/i.test(
+      message,
+    );
     report({
-      status: notGranted ? "not-granted" : "fail",
-      details: message,
+      status: denied ? "not-granted" : "fail",
+      details: denied
+        ? message
+        : `${message}\n\nGuided procedure:\n${procedure}`,
       timings: { ms: Date.now() - started },
     });
   }
