@@ -34,6 +34,12 @@
       "requires": [],
       "verify": "npx vitest run packages/app-registry/test/first-seen.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/app-registry/src/first-seen.ts",
+        "packages/app-registry/src/catalog.ts",
+        "packages/app-registry/test/first-seen.test.ts"
+      ],
       "notes": "app-approval-risk-plan.md Phase 2, finding A-4 and §5.1. (appId, publisherKey, packageHash) -> firstSeenAt, written on catalog ingest and not subject to the seven-day catalog TTL. A publisher-signed publishedAt is attacker-chosen, so age must come from observers; a changed package is a new hash and resets its own clock. The cheapest item in the plan and the one that makes 'unchanged for a minimum period' measurable at all."
     },
     "APPR-FLOOR-PROBE": {
@@ -116,6 +122,12 @@
       "requires": [],
       "verify": "npx vitest run packages/app-registry/test/trust-degree.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/app-registry/src/trust.ts",
+        "packages/app-registry/test/trust-degree.test.ts",
+        "docs/app-approval-risk.md"
+      ],
       "notes": "app-approval-risk-plan.md Phase 2, finding A-5 and §5.3. TrustStore already records source: qr|paste|manual and no code reads it. Promote it to direct/imported/introduced and surface it; isTrusted gains a degree argument. This is where the 'paste this identity string' lure stops being a coin flip: a lure can reach imported and cannot reach direct."
     },
     "APPR-UPDATE-DELTA": {
@@ -258,6 +270,13 @@
       "requires": ["CAP-TTL"],
       "verify": "npx vitest run packages/protocol/test/egress-offer.test.ts && npm run test:formal",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/protocol/src/egress-offer.ts",
+        "packages/protocol/test/egress-offer.test.ts",
+        "specs/spec-cap/model/egress_offer.tla",
+        "conformance/vectors/egress-offer.json"
+      ],
       "notes": "capability-scoping-plan.md Phase 2. Sans-IO egress-offer.ts in packages/protocol modelled on device-share.ts, with the four representations SPEC-CAP requires: TLA+ model, checked traces, executable table, Layer-3 vector. The formal cost is stated up front rather than discovered in review."
     },
     "CAP-EGRESS-WIRING": {
@@ -343,6 +362,12 @@
       "requires": [],
       "verify": "npm run test:doc-audit",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "docs/device-classes/README.md",
+        "scripts/generate-device-class-pages.mjs",
+        "docs/device-io.md"
+      ],
       "notes": "device-io-plan.md phase 7. One reference page per class, in the shape ble-interface.md already establishes."
     },
     "DEV-CLASS-RUNBOOK-PROOF": {

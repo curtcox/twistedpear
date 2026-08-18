@@ -13,3 +13,19 @@ export {
   type AppRiskTierOptions,
   type AppRiskTierResult,
 } from "../approval-tier.js";
+export {
+  egressOfferMachine,
+  egressOfferPermits,
+  initialEgressOfferState,
+  initialEgressOfferStore,
+  isEgressOfferLive,
+  stepEgressOffer,
+  stepEgressOfferStore,
+  type EgressOffer,
+  type EgressOfferConstraints,
+  type EgressOfferEvent,
+  type EgressOfferFields,
+  type EgressOfferPhase,
+  type EgressOfferState,
+  type EgressTargetKind,
+} from "../egress-offer.js";

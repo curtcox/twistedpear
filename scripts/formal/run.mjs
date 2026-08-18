@@ -54,6 +54,11 @@ const MODELS = [
     config: "../specs/spec-authority/model/recovery-quorum.cfg",
     spec: "../specs/spec-authority/model/recovery_quorum.tla",
   },
+  {
+    id: "egress-offer",
+    config: "../specs/spec-cap/model/egress_offer.cfg",
+    spec: "../specs/spec-cap/model/egress_offer.tla",
+  },
 ];
 
 function run(command, args, cwd = ROOT) {

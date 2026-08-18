@@ -1,0 +1,129 @@
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  11:44:06
+   Duration  774ms (transform 533ms, setup 22ms, import 666ms, tests 5ms, environment 0ms)
+
+
+> twistedpear@0.0.0 test:formal
+> node scripts/formal/run.mjs
+
+grant TLA+ relation conforms across 7 legal edges
+escrow TLA+ relation conforms across 6 legal edges
+recovery TLA+ relation conforms across 5 legal edges
+device-session TLA+ relation conforms across 10 legal edges
+stream TLA+ relation conforms across 12 legal edges
+egress-offer TLA+ relation conforms across 6 legal edges
+symbolic model inventory is complete (4 models)
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 2 and seed -1965408581588518477 with 1 worker on 8 cores with 3641MB heap and 64MB offheap memory [pid: 10939] (Mac OS X 26.5.2 aarch64, Microsoft 25.0.4 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /Users/curt/me/twistedpear/specs/spec-cap/model/grant.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/Naturals.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/Sequences.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/TLC.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/FiniteSets.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module grant
+Starting... (2026-08-18 11:44:07)
+Implied-temporal checking--satisfiability problem has 1 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-08-18 11:44:07.
+Progress(3) at 2026-08-18 11:44:07: 8 states generated, 6 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 6 total distinct states at (2026-08-18 11:44:07)
+Finished checking temporal properties in 00s at 2026-08-18 11:44:07
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 6.5E-19
+8 states generated, 6 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 3.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 3 and the 95th percentile is 3).
+Finished in 00s at (2026-08-18 11:44:07)
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 121 and seed -2522268966606722442 with 1 worker on 8 cores with 3641MB heap and 64MB offheap memory [pid: 10972] (Mac OS X 26.5.2 aarch64, Microsoft 25.0.4 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /Users/curt/me/twistedpear/specs/spec-authority/model/escrow.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/Naturals.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/FiniteSets.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/TLC.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/Sequences.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module escrow
+Starting... (2026-08-18 11:44:08)
+Implied-temporal checking--satisfiability problem has 1 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-08-18 11:44:08.
+Progress(4) at 2026-08-18 11:44:08: 10 states generated, 9 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 9 total distinct states at (2026-08-18 11:44:08)
+Finished checking temporal properties in 00s at 2026-08-18 11:44:08
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 4.9E-19
+10 states generated, 9 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 4.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 4 and the 95th percentile is 4).
+Finished in 00s at (2026-08-18 11:44:08)
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 20 and seed -9005638273315126116 with 1 worker on 8 cores with 3641MB heap and 64MB offheap memory [pid: 10995] (Mac OS X 26.5.2 aarch64, Microsoft 25.0.4 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /Users/curt/me/twistedpear/specs/spec-authority/model/recovery_quorum.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/Naturals.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/FiniteSets.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/TLC.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/Sequences.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module recovery_quorum
+Starting... (2026-08-18 11:44:09)
+Implied-temporal checking--satisfiability problem has 1 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-08-18 11:44:09.
+Progress(6) at 2026-08-18 11:44:09: 46 states generated, 29 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 29 total distinct states at (2026-08-18 11:44:09)
+Finished checking temporal properties in 00s at 2026-08-18 11:44:09
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 2.7E-17
+46 states generated, 29 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 6.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 5 and the 95th percentile is 4).
+Finished in 00s at (2026-08-18 11:44:09)
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 34 and seed -4700217975132866651 with 1 worker on 8 cores with 3641MB heap and 64MB offheap memory [pid: 11026] (Mac OS X 26.5.2 aarch64, Microsoft 25.0.4 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /Users/curt/me/twistedpear/specs/spec-cap/model/egress_offer.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/Naturals.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/Sequences.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/TLC.tla
+Parsing file /private/var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/FiniteSets.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module egress_offer
+Starting... (2026-08-18 11:44:09)
+Implied-temporal checking--satisfiability problem has 1 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-08-18 11:44:09.
+Progress(3) at 2026-08-18 11:44:09: 7 states generated, 4 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 4 total distinct states at (2026-08-18 11:44:09)
+Finished checking temporal properties in 00s at 2026-08-18 11:44:09
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 6.5E-19
+7 states generated, 4 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 3.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 2 and the 95th percentile is 2).
+Finished in 00s at (2026-08-18 11:44:09)
+formal: machine-conformance=ok, symbolic-inventory=ok, tlc=ok

@@ -20,6 +20,7 @@ behaviour and does not override this one.
 | Which device classes exist and what tiers/consent class/ladder each declares                | [`specs/spec-device/registry/device-classes.json`](../specs/spec-device/registry/device-classes.json)                                                                                            |
 | Normative behaviour                                                                         | [SPEC-DEVICE](../specs/spec-device/spec.md), with vectors under [`specs/spec-device/`](../specs/spec-device/) and recorded tapes under [`specs/spec-device/tapes/`](../specs/spec-device/tapes/) |
 | How to add a class                                                                          | [Add a device class (runbook)](device-class-runbook.md)                                                                                                                                          |
+| Per-class reference (role, tiers, data flow, bandwidth, ladder)                             | [Device class reference](device-classes/README.md)                                                                                                                                               |
 | Realtime audio/video between peers, built on these classes                                  | [Realtime peer media](realtime-media.md)                                                                                                                                                         |
 
 ## Architecture

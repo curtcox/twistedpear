@@ -174,6 +174,7 @@ source plus output together. Important examples:
 - `packages/protocol/src/device-registry.gen.ts` and
   `packages/miniapp-runtime/src/device-capabilities.gen.ts` —
   `npm run generate:device-registry`
+- `docs/device-classes/*.md` — same command (per-class reference pages)
 - `packages/protocol/src/capability-risk.gen.ts` —
   `npm run generate:capability-risk`
 - `apps/harness-mobile/worklet/worklet.bundle.mjs` — `npm run build:worklet`

@@ -10,6 +10,7 @@ import {
   deviceSessionMachine,
   encodeDeviceStreamFrame,
   escrowMachine,
+  egressOfferMachine,
   grantMachine,
   initialMediaReadinessState,
   recoveryQuorumMachine,
@@ -49,6 +50,12 @@ const definitions = {
     model: "../specs/spec-stream/model/stream.tla",
     traces: "../specs/spec-stream/model/stream-conformance-traces.json",
     vector: "stream.json",
+  },
+  "egress-offer": {
+    machine: egressOfferMachine,
+    model: "../specs/spec-cap/model/egress_offer.tla",
+    traces: "../specs/spec-cap/model/egress-offer-conformance-traces.json",
+    vector: "egress-offer.json",
   },
 };
 

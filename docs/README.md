@@ -158,7 +158,7 @@ Protocol implementation details live in the
 
 | Topic                                                        | Document                                                                                                       |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Expose device sensors and actuators to mini-apps             | [Device I/O — current](device-io.md), [plan](device-io-plan.md), [add a device class](device-class-runbook.md) |
+| Expose device sensors and actuators to mini-apps             | [Device I/O — current](device-io.md), [plan](device-io-plan.md), [add a device class](device-class-runbook.md), [per-class reference](device-classes/README.md) |
 | Per-peer link quality and realtime audio/video between peers | [Realtime peer media — current](realtime-media.md), [plan](realtime-media-plan.md)                             |
 | Per-capability status including `device:*`                   | [Platform capabilities status](platform-capabilities-status.md)                                                |
 
@@ -167,7 +167,7 @@ Protocol implementation details live in the
 | Topic                                                      | Document                                                                                                    |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Sandbox threat model and findings                          | [Security review](security-review.md)                                                                       |
-| Whether a grant can be scoped to just the I/O an app needs | [Capability scoping audit](capability-scoping-audit.md), [remaining plan](capability-scoping-plan.md)       |
+| Whether a grant can be scoped to just the I/O an app needs | [Capability scoping — current](capability-scoping.md), [plan](capability-scoping-plan.md), [audit](capability-scoping-audit.md) |
 | Adversarial scenarios for author deception of users        | [Hostile author plan](hostile-author-plan.md), [measured catalog](../conformance/hostile-authors/README.md) |
 | Making approval evidence proportionate to app risk         | [App approval risk](app-approval-risk.md), [remaining plan](app-approval-risk-plan.md)                      |
 | CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                                   |

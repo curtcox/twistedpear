@@ -61,10 +61,19 @@ export type {
   CatalogStoreOptions,
   InstalledPackageRecord,
 } from "./catalog.js";
+export { FirstSeenLedger, firstSeenKey } from "./first-seen.js";
+export type { FirstSeenObservation } from "./first-seen.js";
 export {
   TrustStore,
   TrustStoreError,
+  TRUST_DEGREE_RANK,
   decodePublisherIdentity256t,
   encodePublisherIdentity256t,
+  trustDegreeFromSource,
 } from "./trust.js";
-export type { TrustKeyValueStore, TrustedPublisher } from "./trust.js";
+export type {
+  TrustDegree,
+  TrustKeyValueStore,
+  TrustedPublisher,
+  TrustSource,
+} from "./trust.js";

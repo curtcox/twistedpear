@@ -19,9 +19,24 @@ export const GENERATED_OUTPUTS = [
   "apps/host-desktop/worklet/worklet.bundle",
 ];
 
+function deviceClassPages() {
+  const dir = path.join(ROOT, "docs/device-classes");
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.endsWith(".md"))
+    .sort()
+    .map((name) => `docs/device-classes/${name}`);
+}
+
+export function allGeneratedOutputs() {
+  return [...GENERATED_OUTPUTS, ...deviceClassPages()];
+}
+
 const STEPS = [
   [process.execPath, ["scripts/generate-event-types.mjs"]],
   [process.execPath, ["scripts/generate-device-registry.mjs"]],
+  [process.execPath, ["scripts/generate-device-class-pages.mjs"]],
   [process.execPath, ["scripts/generate-capability-risk.mjs"]],
   ["npm", ["run", "build:worklet"]],
   ["npm", ["run", "build", "--workspace=host-desktop"]],
@@ -29,7 +44,7 @@ const STEPS = [
 
 function snapshot() {
   return new Map(
-    GENERATED_OUTPUTS.map((relative) => [
+    allGeneratedOutputs().map((relative) => [
       relative,
       fs.readFileSync(path.join(ROOT, relative)),
     ]),
@@ -80,7 +95,7 @@ function main() {
     version: 1,
     ok,
     failedCommand,
-    checked: GENERATED_OUTPUTS,
+    checked: allGeneratedOutputs(),
     stale,
   });
 
@@ -95,7 +110,7 @@ function main() {
     process.exit(1);
   }
   console.log(
-    `Generated freshness: ${GENERATED_OUTPUTS.length} committed outputs match their generators.`,
+    `Generated freshness: ${allGeneratedOutputs().length} committed outputs match their generators.`,
   );
 }
 

@@ -2,15 +2,19 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-17
+audited: 2026-08-18
 register: software
+counterpart: docs/capability-scoping.md
 -->
+
+**This is a plan, not a description of current behaviour.** What ships today is in
+[Capability scoping](capability-scoping.md). That live document wins if the two disagree.
 
 The plan to close the findings in the
 [capability scoping audit](capability-scoping-audit.md). What ships today is described by
-[SPEC-CAP](../specs/spec-cap/spec.md) (taxonomy and grant lifecycle) and
-[miniapp-sdk.md](miniapp-sdk.md) (the capability table); when this plan disagrees with
-those, they win until the work lands.
+[capability scoping](capability-scoping.md), [SPEC-CAP](../specs/spec-cap/spec.md), and
+[miniapp-sdk.md](miniapp-sdk.md); when this plan disagrees with those, they win until the
+work lands.
 
 ## 1. The decision this plan implements
 
@@ -47,29 +51,8 @@ Generalize the one destination-scoped authority that already works. `ShareOffer`
 ([device-share.ts](../packages/protocol/src/device-share.ts)) binds
 `(appId, targetKind, targetId, classId, tierId, maxRung, expiresAt)`, is authored in
 trusted host chrome, and is readable but never writable by the app. Widen the target
-vocabulary and it covers every row of the scoped set:
-
-```ts
-interface EgressOffer {
-  readonly id: string;
-  readonly appId: string;
-  readonly capability: MiniappCapability;
-  readonly targetKind:
-    "peer" | "group" | "namespace" | "key-prefix" | "cas-id" | "address";
-  readonly targetId: string;
-  /** Exactly what host chrome showed the user when it authored this. */
-  readonly displayLabel: string;
-  readonly constraints: {
-    readonly tierId?: string; // media tier / device tier
-    readonly maxRung?: string; // media ladder ceiling
-    readonly maxBytesPerDay?: number; // Phase 4
-  };
-  readonly grantedAt: number;
-  readonly expiresAt: number;
-  readonly phase: "active" | "expired" | "revoked";
-  readonly revokedAt: number | null;
-}
-```
+vocabulary and it covers every row of the scoped set. The type and lifecycle machine
+are in [capability scoping](capability-scoping.md).
 
 Enforcement splits along the line the code already draws:
 
@@ -163,15 +146,12 @@ conformance gap, and it is the cheapest available reduction in standing authorit
 
 ### Phase 2 — the egress offer (host API 0.14.0)
 
+`CAP-EGRESS-OFFER` landed in [capability scoping](capability-scoping.md). Remaining Phase 2 work:
+
 | ID                  | Type    | Requires           | Work                                                                                                                                                                                           |
 | ------------------- | ------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CAP-EGRESS-OFFER`  | feature | `CAP-TTL`          | Sans-IO `egress-offer.ts` in `packages/protocol`, modelled on `device-share.ts`; TLA+ model, checked traces, executable table, and Layer-3 vector — the four representations SPEC-CAP requires |
 | `CAP-EGRESS-WIRING` | feature | `CAP-EGRESS-OFFER` | `assertEgressAllowed` in each scoped service; `ShareOffer` re-expressed on the general machine with SPEC-STREAM's guarantee preserved                                                          |
 | `CAP-EGRESS-CHROME` | feature | `CAP-EGRESS-OFFER` | Desktop, mobile, and web chrome that authors offers as a byproduct of natural use (§3); offer list and revoke in host settings                                                                 |
-
-`CAP-EGRESS-OFFER` carries the formal cost: SPEC-CAP is the repository's exemplar spec, so a
-new normative machine needs all four cross-checked representations and a `formal:` command.
-Budget for that explicitly rather than discovering it during review.
 
 ### Phase 3 — scoped declarations (package format v2)
 
@@ -216,7 +196,6 @@ intent, not a side effect.
 | Risk                                                                                   | Mitigation                                                                                                                     |
 | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | **Offer authoring becomes a dialog users blanket-approve**, making the control theatre | §3 constraint: offers are a byproduct of natural use. A capability that cannot meet it moves to host-fixed destination instead |
-| Phase 2's formal obligation is discovered late and stalls the phase                    | `CAP-EGRESS-OFFER` states the four-representation cost up front and is sized for it                                            |
 | Every existing app and all 25 cookbook samples break                                   | v1 strings keep their meaning; the host policy ships off in Phase 3 and turns on a release later                               |
 | Phase 0 fixes get folded into Phase 2 and slip with it                                 | Phase 0 and 1 have no dependency on the design; they ship on 0.13.0 independently                                              |
 | Scoping the taxonomy without scoping `relay:configure`, which turns radios on          | Explicitly out of scope here and named as a separate review, not silently omitted                                              |

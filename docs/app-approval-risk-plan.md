@@ -328,12 +328,13 @@ max-plus-promotion function is `appRiskTier`. Remaining Phase 1 work:
 Phase 1 ships no refusals. It makes the existing dialog honest, which is most of the
 user-visible benefit at a fraction of the risk of getting the thresholds wrong.
 
-### Phase 2 — evidence that already exists (host API 0.14.0)
+`APPR-FIRST-SEEN` landed in [app approval risk](app-approval-risk.md): a TTL-immune
+ledger keyed by `(appId, publisherKey, packageHash)`. `APPR-TRUST-DEGREE` landed:
+`source` maps to `direct` / `imported` / `introduced` and `isTrusted` takes a
+minimum degree. Remaining Phase 2 work:
 
 | ID                   | Type    | Requires          | Work                                                                                          |
 | -------------------- | ------- | ----------------- | --------------------------------------------------------------------------------------------- |
-| `APPR-FIRST-SEEN`    | feature | —                 | A-4. Persistent first-seen ledger keyed by `(appId, publisherKey, packageHash)`, TTL-immune   |
-| `APPR-TRUST-DEGREE`  | feature | —                 | A-5. `source` becomes a degree (§5.3) and is surfaced; `isTrusted` gains a degree argument    |
 | `APPR-OPTIONAL-CAPS` | feature | `APPR-RISK-CLASS` | A-7. Manifest v2 marks capabilities essential or optional; declining an optional one launches |
 
 `APPR-UPDATE-DELTA` is executed: an update that adds a capability is named with its

@@ -5,7 +5,7 @@ import {
 } from "../../scripts/analysis/generated-freshness.mjs";
 
 describe("generated freshness", () => {
-  it("covers schema outputs and both shipping worklet bundles", () => {
+  it("covers schema outputs, device-class pages, and both shipping worklet bundles", () => {
     expect(GENERATED_OUTPUTS).toEqual(
       expect.arrayContaining([
         "packages/effects/src/types.gen.ts",

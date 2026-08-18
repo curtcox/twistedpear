@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "total": 7964,
-  "cap": 7964,
+  "total": 7981,
+  "cap": 7978,
   "packages": 19,
   "entryPoints": 44,
   "unresolved": 0,
-  "violations": 0,
+  "violations": 3,
   "findings": [
     {
       "name": "protocol",
       "entryPoints": {
-        ".": 5903
+        ".": 5917
       },
-      "total": 5903
+      "total": 5917
     },
     {
       "name": "reticulum-ts",
@@ -92,9 +92,9 @@
     {
       "name": "app-registry",
       "entryPoints": {
-        ".": 57
+        ".": 60
       },
-      "total": 57
+      "total": 60
     },
     {
       "name": "sim-campaign",

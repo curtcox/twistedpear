@@ -38,5 +38,15 @@ its risk class and does not inherit the previous grant set
 (`capabilityUpdateDelta` / `grantsPreservedAcrossUpdate`). App risk tier is the
 maximum requested class, promoted one step when a read authority and an egress
 authority co-occur (`appRiskTier`). Offer-bound destination grants drop from
-`sensitive` to `elevated` before the max is taken. Review UX and evidence gates
-are still plan work.
+`sensitive` to `elevated` before the max is taken.
+
+A first-seen ledger on `CatalogStore` records `(appId, publisherPublicKey,
+packageHash) → firstSeenAt` at ingest. It is saved with the catalog and is not
+subject to the seven-day catalog TTL, so "unchanged for a minimum period" is
+measurable after an entry expires. A new package hash starts its own clock.
+
+Publisher trust is a degree, not a boolean. `TrustStore` still records how a key
+was acquired (`qr` / `manual` → `direct`, `paste` → `imported`, `introduced` →
+`introduced`); `isTrusted(key, minimum?)` compares ranks so a pasted lure can
+satisfy `imported` and cannot satisfy `direct`. Review UX and evidence gates are
+still plan work.

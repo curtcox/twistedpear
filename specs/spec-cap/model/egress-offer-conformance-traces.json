@@ -1,0 +1,12 @@
+{
+  "schema": "twistedpear.tla-traces-v1",
+  "model": "specs/spec-cap/model/egress-offer.tla",
+  "edges": [
+    ["absent", "grant", "active"],
+    ["active", "grant", "active"],
+    ["expired", "grant", "active"],
+    ["revoked", "grant", "active"],
+    ["active", "ttl/expired", "expired"],
+    ["active", "revoke", "revoked"]
+  ]
+}

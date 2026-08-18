@@ -1,0 +1,13 @@
+
+> twistedpear@0.0.0 test:doc-audit
+> vitest run conformance/doc-audit
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  21 passed (21)
+      Tests  228 passed (228)
+   Start at  11:43:55
+   Duration  5.57s (transform 813ms, setup 0ms, import 2.37s, tests 18.95s, environment 2ms)
+

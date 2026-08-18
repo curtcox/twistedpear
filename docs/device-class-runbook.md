@@ -25,6 +25,8 @@ npm run generate:device-registry
 npm run generate:capability-risk
 ```
 
+The first command also regenerates [per-class reference pages](device-classes/README.md).
+
 4. Implement a host driver that satisfies `DeviceDriver` (`availability`, optional
    `sense` / `actuate` / `stop`) and register it on the Device Manager.
 5. If the class needs host-side derived processing, add a pure function under

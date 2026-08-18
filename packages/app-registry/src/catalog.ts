@@ -2,6 +2,7 @@ import type { CryptoProvider, KeyValueStore } from "@twistedpear/reticulum-ts";
 import { Identity, hexToBytes, bytesToHex } from "@twistedpear/reticulum-ts";
 import type { AppAnnounceSummary } from "./announce.js";
 import { decodeAppAnnounceData, verifyAppAnnounceSummary } from "./announce.js";
+import { FirstSeenLedger } from "./first-seen.js";
 import { compareSemver, type AppManifest } from "./manifest.js";
 import { verifyManifestSignature } from "./signing.js";
 
@@ -52,6 +53,7 @@ export class CatalogStore {
   private readonly entries = new Map<string, CatalogEntry>();
   private readonly pinnedKeys = new Map<string, string>();
   private readonly publisherCounts = new Map<string, number>();
+  private readonly firstSeen = new FirstSeenLedger();
 
   constructor(
     private readonly provider: CryptoProvider,
@@ -110,7 +112,35 @@ export class CatalogStore {
       this.pinnedKeys.set(appId, summary.publisherKeyHash);
     }
     this.entries.set(appId, entry);
+    this.firstSeen.record(
+      {
+        appId,
+        publisherPublicKey: entry.publisherPublicKey,
+        packageHash: entry.packageHash,
+      },
+      now,
+    );
     return entry;
+  }
+
+  firstSeenAt(
+    appId: string,
+    publisherPublicKey: string,
+    packageHash: string,
+  ): number | null {
+    return this.firstSeen.get({ appId, publisherPublicKey, packageHash });
+  }
+
+  firstSeenAgeMs(
+    appId: string,
+    publisherPublicKey: string,
+    packageHash: string,
+    at: number,
+  ): number | null {
+    return this.firstSeen.ageMs(
+      { appId, publisherPublicKey, packageHash },
+      at,
+    );
   }
 
   private announceSignaturesHold(
@@ -214,6 +244,7 @@ export class CatalogStore {
       entries: [...this.entries.entries()],
       pinnedKeys: [...this.pinnedKeys.entries()],
       publisherCounts: [...this.publisherCounts.entries()],
+      firstSeen: this.firstSeen.snapshot(),
     };
 
     await store.set(
@@ -232,11 +263,13 @@ export class CatalogStore {
       entries: ReadonlyArray<[string, CatalogEntry]>;
       pinnedKeys: ReadonlyArray<[string, string]>;
       publisherCounts: ReadonlyArray<[string, number]>;
+      firstSeen?: ReadonlyArray<readonly [string, number]>;
     };
 
     this.entries.clear();
     this.pinnedKeys.clear();
     this.publisherCounts.clear();
+    this.firstSeen.restore(payload.firstSeen ?? []);
 
     for (const [key, value] of payload.entries) {
       this.entries.set(key, value);

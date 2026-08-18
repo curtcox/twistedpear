@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   deviceSessionMachine,
+  egressOfferMachine,
   escrowMachine,
   grantMachine,
   recoveryQuorumMachine,
@@ -12,6 +13,7 @@ const machines = [
   ["escrow", escrowMachine],
   ["recovery", recoveryQuorumMachine],
   ["device-session", deviceSessionMachine],
+  ["egress-offer", egressOfferMachine],
 ] as const;
 
 describe("formal twin conformance honesty", () => {

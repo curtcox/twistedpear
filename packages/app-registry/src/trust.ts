@@ -1,11 +1,26 @@
 import { bytesToHex, hexToBytes } from "@twistedpear/reticulum-ts";
 import { decode256t, encode256t } from "@twistedpear/cas-256t";
 
+export type TrustSource = "qr" | "paste" | "manual" | "introduced";
+export type TrustDegree = "direct" | "imported" | "introduced";
+
 export interface TrustedPublisher {
   readonly publisherPublicKey: string;
   readonly label: string;
   readonly addedAt: number;
-  readonly source: "qr" | "paste" | "manual";
+  readonly source: TrustSource;
+}
+
+export const TRUST_DEGREE_RANK: Readonly<Record<TrustDegree, number>> = {
+  introduced: 1,
+  imported: 1,
+  direct: 2,
+};
+
+export function trustDegreeFromSource(source: TrustSource): TrustDegree {
+  if (source === "qr" || source === "manual") return "direct";
+  if (source === "introduced") return "introduced";
+  return "imported";
 }
 
 export interface TrustKeyValueStore {
@@ -68,10 +83,26 @@ export class TrustStore {
     return next;
   }
 
-  async isTrusted(publisherPublicKey: string): Promise<boolean> {
-    return (await this.list()).some(
-      (entry) => entry.publisherPublicKey === publisherPublicKey,
+  async isTrusted(
+    publisherPublicKey: string,
+    minimum?: TrustDegree,
+  ): Promise<boolean> {
+    const entry = (await this.list()).find(
+      (candidate) => candidate.publisherPublicKey === publisherPublicKey,
     );
+    if (entry === undefined) return false;
+    if (minimum === undefined) return true;
+    return (
+      TRUST_DEGREE_RANK[trustDegreeFromSource(entry.source)] >=
+      TRUST_DEGREE_RANK[minimum]
+    );
+  }
+
+  async degreeOf(publisherPublicKey: string): Promise<TrustDegree | null> {
+    const entry = (await this.list()).find(
+      (candidate) => candidate.publisherPublicKey === publisherPublicKey,
+    );
+    return entry === undefined ? null : trustDegreeFromSource(entry.source);
   }
 
   private async save(entries: ReadonlyArray<TrustedPublisher>): Promise<void> {
