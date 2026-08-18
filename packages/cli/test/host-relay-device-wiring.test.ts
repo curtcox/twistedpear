@@ -101,16 +101,29 @@ describe("node host MiniappHost wiring", () => {
       expect(setMode.ok).toBe(true);
       expect(session.interfaceManager.status().mode).toBe("bridge");
 
+      const deviceManifest = {
+        name: "node-device",
+        version: "1",
+        entry: "bundle.js",
+        publisherPublicKey: "publisher",
+        capabilities: ["presence"],
+      };
+      await host.setGrants(
+        "node-device",
+        "publisher",
+        ["presence"],
+        ["presence"],
+      );
       const inventory = await host.dispatchRaw(
-        { id: "inv", namespace: "device", method: "inventory", payload: {} },
         {
-          name: "node-device",
-          version: "1",
-          entry: "bundle.js",
-          publisherPublicKey: "publisher",
-          capabilities: [],
+          id: "inv",
+          namespace: "device",
+          method: "inventory",
+          capability: "presence",
+          payload: {},
         },
-        [],
+        deviceManifest,
+        ["presence"],
       );
       expect(inventory.ok).toBe(true);
       const entries = inventory.result as Array<{

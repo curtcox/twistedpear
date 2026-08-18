@@ -13,6 +13,13 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/ambient-authority.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/ambient-authority.test.ts",
+        "packages/miniapp-runtime/src/host/layer-1-handlers-device.ts",
+        "packages/miniapp-runtime/src/services/device.ts",
+        "packages/miniapp-sdk/src/device.ts"
+      ],
       "notes": "app-approval-risk-plan.md Phase 0, finding A-1. device.inventory/device.diagnostics register with null capability and reach real host state; holder is app:${appId}, making polling a zero-permission cross-app side channel. Require a capability or return only host-neutral facts, and drop holder from the unprivileged path. The load-bearing finding: a risk model whose zero point is not zero is incoherent before it starts."
     },
     "APPR-EVALUATE": {

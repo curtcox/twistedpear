@@ -185,12 +185,25 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
       }
       return this.deviceService;
     };
-    // inventory/diagnostics: no capability. open/close/read: capability checked inside DeviceManager.
-    this.broker.register("device", "inventory", null, (_request, context) =>
-      Promise.resolve(device().inventory(context.appId)),
+    // inventory/diagnostics: presence-gated; holder redacted unless a device:* grant.
+    this.broker.register(
+      "device",
+      "inventory",
+      "presence",
+      (_request, context) =>
+        Promise.resolve(device().inventory(context.appId)),
     );
-    this.broker.register("device", "diagnostics", null, (_request, context) =>
-      Promise.resolve(device().diagnostics(context.appId)),
+    this.broker.register(
+      "device",
+      "diagnostics",
+      "presence",
+      (_request, context) =>
+        Promise.resolve(
+          device().diagnostics(
+            context.appId,
+            context.grantedCapabilities,
+          ),
+        ),
     );
     this.broker.register("device", "open", null, (request, context) => {
       this.assertForeground(context.appId, context.publisherPublicKey);

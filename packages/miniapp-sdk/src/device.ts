@@ -125,13 +125,13 @@ async function deviceCall<T>(
   }
 }
 
-/** Discovery — no capability required; returns only what this host has. */
+/** Discovery — requires presence; diagnostics omit lock holders without device:* grants. */
 export async function inventory(): Promise<ReadonlyArray<DeviceDescriptor>> {
-  return deviceCall("inventory");
+  return deviceCall("inventory", undefined, "presence");
 }
 
 export async function diagnostics(): Promise<ReadonlyArray<DeviceDiagnostic>> {
-  return deviceCall("diagnostics");
+  return deviceCall("diagnostics", undefined, "presence");
 }
 
 /** Session lifecycle — capability + consent gates are enforced by the host. */

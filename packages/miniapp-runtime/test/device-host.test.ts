@@ -29,9 +29,15 @@ describe("MiniappHost device broker path", () => {
       kvBackend: store,
     });
     const response = await host.dispatchRaw(
-      { id: "1", namespace: "device", method: "inventory", payload: {} },
-      manifest,
-      [],
+      {
+        id: "1",
+        namespace: "device",
+        method: "inventory",
+        capability: "presence",
+        payload: {},
+      },
+      { ...manifest, capabilities: ["presence"] },
+      ["presence"],
     );
     expect(response.error?.code).toBe("DEVICE_UNCONFIGURED");
   });
@@ -47,9 +53,15 @@ describe("MiniappHost device broker path", () => {
     });
 
     const inventory = await host.dispatchRaw(
-      { id: "inv", namespace: "device", method: "inventory", payload: {} },
-      manifest,
-      [],
+      {
+        id: "inv",
+        namespace: "device",
+        method: "inventory",
+        capability: "presence",
+        payload: {},
+      },
+      { ...manifest, capabilities: ["presence"] },
+      ["presence"],
     );
     expect(inventory.ok).toBe(true);
     const entries = inventory.result as Array<{

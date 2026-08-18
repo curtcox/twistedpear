@@ -8,6 +8,7 @@ Agregore
 agua
 alikes
 APDU
+APPR
 APPSCOPE
 attributability
 Autobase
@@ -47,6 +48,7 @@ DXOS
 Endo
 está
 evictable
+FAILCLOSED
 Fediverse
 formedness
 freenet

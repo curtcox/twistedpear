@@ -24,7 +24,7 @@ beforeEach(() => {
 const SESSION = { handle: "session-1" } as device.DeviceSession;
 
 describe("device discovery", () => {
-  it("asks for the inventory and diagnostics without a capability", async () => {
+  it("asks for the inventory and diagnostics with presence", async () => {
     respond = () => ({ ok: true, result: [] });
 
     await device.inventory();
@@ -35,7 +35,7 @@ describe("device discovery", () => {
       "diagnostics",
     ]);
     expect(calls.every((call) => call.namespace === "device")).toBe(true);
-    expect(calls.every((call) => call.capability === undefined)).toBe(true);
+    expect(calls.every((call) => call.capability === "presence")).toBe(true);
   });
 });
 

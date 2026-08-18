@@ -9,6 +9,20 @@ import {
   type DeviceSessionHandle,
 } from "../device-manager.js";
 
+function redactDeviceDiagnostics(
+  entries: ReadonlyArray<DeviceDiagnostic>,
+  granted: ReadonlyArray<string>,
+): ReadonlyArray<DeviceDiagnostic> {
+  if (granted.some((capability) => capability.startsWith("device:"))) {
+    return entries;
+  }
+  return entries.map(({ holder: _holder, reason, ...rest }) => {
+    const hostReason =
+      reason !== undefined && !reason.startsWith("held by ") ? reason : undefined;
+    return hostReason === undefined ? rest : { ...rest, reason: hostReason };
+  });
+}
+
 export class DeviceBrokerServiceError extends Error {
   constructor(
     readonly code: string,
@@ -26,8 +40,13 @@ export class DeviceBrokerService {
     return this.manager.inventory();
   }
 
-  diagnostics(_appId: string): Promise<ReadonlyArray<DeviceDiagnostic>> {
-    return this.manager.diagnostics();
+  diagnostics(
+    _appId: string,
+    granted: ReadonlyArray<string>,
+  ): Promise<ReadonlyArray<DeviceDiagnostic>> {
+    return this.manager.diagnostics().then((entries) =>
+      redactDeviceDiagnostics(entries, granted),
+    );
   }
 
   open(
