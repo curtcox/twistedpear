@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * E5 Bare Worker benchmark on Android emulator (Phase 3/4 emulator lab).
- * Assumes E1 installed via Hyperdrive; records spawn/kill/busy-loop metrics from the harness UI.
+ * Records spawn/kill/busy-loop/WASM metrics from the in-host benchmark control.
+ * E1 Hyperdrive fixture metadata is recorded when present, not required.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -10,8 +11,8 @@ import { fileURLToPath } from "node:url";
 import {
   adb,
   launchHarness,
+  maestro,
   maestroAvailable,
-  maestroWithFixtureEnv,
   requireDevice,
   waitForBootComplete,
 } from "./helpers.mjs";
@@ -84,24 +85,33 @@ async function main() {
     );
   }
 
-  readFileSync(join(labDir, "fixture-meta.json"), "utf8");
   launchHarness();
   await sleep(2_000);
 
-  maestroWithFixtureEnv(".maestro/e5-benchmark.yaml");
+  maestro(["test", ".maestro/e5-benchmark.yaml"]);
 
   const uiDump = readBenchmarkFromUi();
   const parsed = parseBenchmarkResults(uiDump);
   assertE5Evidence(parsed);
-  const meta = JSON.parse(
-    readFileSync(join(labDir, "fixture-meta.json"), "utf8"),
-  );
+  let appId = "in-host-benchmark";
+  let hyperdrivePath = "not-required-for-worker-benchmark";
+  try {
+    const meta = JSON.parse(
+      readFileSync(join(labDir, "fixture-meta.json"), "utf8"),
+    );
+    if (typeof meta.appId === "string" && meta.appId.length > 0) {
+      appId = meta.appId;
+      hyperdrivePath = "verified-by-e1";
+    }
+  } catch {
+    // E5 measures the in-host Bare worker; E1 fixture metadata is optional.
+  }
   const result = {
     measuredAt: new Date().toISOString().slice(0, 10),
     platform: "android-emulator",
     environment: "android-emulator",
-    hyperdrivePath: "verified-by-e1",
-    appId: meta.appId,
+    hyperdrivePath,
+    appId,
     ...parsed,
   };
 

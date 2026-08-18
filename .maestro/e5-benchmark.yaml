@@ -1,9 +1,16 @@
 appId: network.twistedpear.harness
 ---
-- launchApp
+- launchApp:
+    clearState: true
+- runFlow: dismiss-launch-chrome.yaml
 - extendedWaitUntil:
-    visible: "com.twistedpear.example"
-    timeout: 30000
+    visible: "Create identity"
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: "benchmark-miniapp"
+    direction: DOWN
+    timeout: 60000
 - tapOn:
     id: "benchmark-miniapp"
 - extendedWaitUntil:

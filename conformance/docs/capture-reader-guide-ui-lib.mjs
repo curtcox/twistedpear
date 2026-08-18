@@ -135,6 +135,34 @@ async function launchCookbookApp(
     "pocket-translator": "Buenos días",
     "triage-notes":
       '{"subject":"Water pump inspection","location":"North shelter","severity":"high","action":"Send maintenance crew"}',
+    devstudio: `import { ui } from "@twistedpear/miniapp-sdk";
+
+let taps = 0;
+
+async function render() {
+  await ui.render({
+    root: {
+      id: "root",
+      type: "view",
+      style: { padding: 16, gap: 8 },
+      children: [
+        { id: "title", type: "text", props: { value: "Hello" }, style: { fontSize: 20 } },
+        { id: "count", type: "text", props: { value: \`Taps: \${taps}\` } },
+        { id: "go", type: "button", props: { label: "Tap me", event: "hello.tap" } },
+        { id: "reset", type: "button", props: { label: "Reset", event: "hello.reset" } }
+      ]
+    }
+  });
+}
+
+ui.onEvent(async ({ event }) => {
+  if (event === "hello.tap") taps += 1;
+  if (event === "hello.reset") taps = 0;
+  await render();
+});
+
+await render();
+`,
   };
   const aiBackend = {
     chat: async () => ({

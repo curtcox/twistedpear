@@ -54,7 +54,7 @@ and `npm run work:next` picks the next item from this table. See
 
 | ID               | Status | Item                                                             | Evidence | Verify                                                     |
 | ---------------- | ------ | ---------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
-| RG6              | open   | Capture the remaining reader-guide screenshots (34 pending)  | —        | `npm run site:section-images:report && npm run site:build` |
+| RG6              | open   | Capture the remaining reader-guide screenshots (25 pending)  | —        | `npm run site:section-images:report && npm run site:build` |
 | FN-A1-ANDROID-E5 | open   | Record the Android emulator BareKit WASM + watchdog measurements | —        | `npm run test:android-emulator:e5`                         |
 | FN-A2-IOS-WASM   | open   | Record the iOS simulator BareKit WASM + watchdog measurements    | —        | `npm run test:ios-sim:wasm`                                |
 

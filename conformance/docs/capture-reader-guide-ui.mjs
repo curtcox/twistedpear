@@ -15,6 +15,7 @@ import {
 import { runCookbookCaptures } from "./capture-reader-guide-ui-cookbook.mjs";
 import { runDiagramCaptures } from "./capture-reader-guide-ui-diagrams.mjs";
 import { runExampleAppCaptures } from "./capture-reader-guide-ui-apps.mjs";
+import { runAuthorCaptures } from "./capture-reader-guide-ui-authors.mjs";
 
 const captureSection = process.env.CAPTURE_READER_GUIDE_SECTION ?? "all";
 const captureScenes =
@@ -55,6 +56,8 @@ const scenes = [
   { file: "authors/images/06-runtime-storage.png", kind: "runtime" },
   { file: "authors/images/08-host-confirmation.png", kind: "publish-confirm" },
   { file: "authors/images/11-runtime-controls.png", kind: "runtime" },
+  { file: "authors/images/02-preview-grants.png", kind: "preview-grants" },
+  { file: "authors/images/04-render-rejection.png", kind: "render-rejection" },
   { file: "cookbook/images/01-dev-install.png", kind: "dev-install" },
   {
     file: "cookbook/images/01-capability-review.png",
@@ -335,6 +338,34 @@ try {
               ],
             );
             break;
+          case "preview-grants":
+            show("Installed");
+            modal(
+              "Run hello-app in the preview slot?",
+              [
+                ["Requesting app", "DevStudio"],
+                ["Publisher", "demo-publisher-7f3a1c9e…"],
+                [
+                  "Note",
+                  "Grants must be a subset of the app's declared capabilities.",
+                ],
+              ],
+              [
+                "storage:kv — Store local data",
+                "lxmf:send — Send messages",
+              ],
+            );
+            break;
+          case "render-rejection":
+            show("Mini-app", "Log");
+            document.querySelector("#miniapp-title").textContent = "Board";
+            html(
+              "#widget-root",
+              `<p style="font-size:20px;font-weight:700;margin:0 0 8px">Board</p><p>2 local post(s), 2 announce(s) on board</p><button>Publish post</button><button>Refresh board</button>`,
+            );
+            document.querySelector("#log").textContent =
+              `WidgetValidationError: unknown component type "table" at node "results-table"\nrender rejected — previous tree retained`;
+            break;
           case "dev-install":
             show("Installed");
             installed(true);
@@ -396,6 +427,7 @@ try {
     await runDiagramCaptures(browser, captureSection);
     await runExampleAppCaptures(browser, captureSection);
     await runCookbookCaptures(browser, captureSection);
+    await runAuthorCaptures(browser, captureSection);
   }
 } finally {
   await browser.close();
