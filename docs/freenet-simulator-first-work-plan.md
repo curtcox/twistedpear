@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-02
+audited: 2026-08-17
 register: software
 -->
 
@@ -310,6 +310,13 @@ thermals, OEM process killing, and background suspension. They do not block
 desktop/headless release or the simulator-verified software milestones above.
 
 ## 9. Recommended order
+
+The open workstreams are tracked in [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md):
+`FN-A1-ANDROID-E5` and `FN-A2-IOS-WASM` in the Backlog, and `FN-E1-LIVE-EVIDENCE`,
+`FN-E2-WRITE-INTEROP`, `FN-F-DISTRIBUTION`, and `FN-DEVICE-CONFIRM` in the blocked backlog,
+waiting on the `public-network-approval`, `code-signing`, and device resources
+respectively. A3, B1–B3, C, and D carry no rows: they are recorded as landed in
+[freenet.md](freenet.md).
 
 1. A1 — strengthen Android E5 evidence.
 2. A2 — add the iOS simulator WASM benchmark.

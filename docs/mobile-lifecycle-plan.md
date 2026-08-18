@@ -3,7 +3,7 @@
 <!-- tp-doc
 lifecycle: planned
 audited: 2026-08-17
-register: none
+register: software
 counterpart: docs/mobile-lifecycle.md
 -->
 
@@ -23,6 +23,11 @@ destination-named `apps:channel`, and payloads copy through the host. Shared sto
 still withheld. The remaining rows are what those recoveries make worth attempting.
 
 ## Sequencing
+
+The three candidates are tracked as `MINIAPP-LIFECYCLE-EVENTS`,
+`MINIAPP-BACKGROUND-ANDROID`, and `MINIAPP-SCHEDULED-WAKE` in the **Backlog** table of
+[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), following the naming the shipped
+`MINIAPP-CONCURRENT` and `MINIAPP-APP-TO-APP` rows already use for ledger work.
 
 1. `MLC-LIFECYCLE-EVENTS` — tell an app what the host already knows.
 2. `MLC-BACKGROUND-ANDROID` and `MLC-SCHEDULED-WAKE` — budgeted execution when the user is

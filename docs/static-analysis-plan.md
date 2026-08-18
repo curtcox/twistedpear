@@ -2,8 +2,8 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-05
-register: none
+audited: 2026-08-17
+register: software
 counterpart: docs/static-analysis.md
 -->
 
@@ -17,6 +17,11 @@ file-size ceiling. The remaining work is limited to external workflow evidence a
 repository setting that depends on that evidence.
 
 ## Repository-setting activation
+
+The five steps are tracked as `SA-CI-AGGREGATE`, `SA-BRANCH-PROTECTION`,
+`SA-NIGHTLY-ADVISORY`, `SA-CARGO-DEPENDABOT`, and `SA-BLAME-IGNORE` in the **blocked
+backlog** of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), all waiting on the `repo-admin`
+resource: none of them can be reached from an ordinary local validation run.
 
 1. Push this checkout and obtain a successful aggregate CI run. Confirm its sticky PR
    dashboard and `static-analysis-summary.json` contain all 23 PR gates, including an

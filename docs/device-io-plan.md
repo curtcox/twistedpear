@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-02
+audited: 2026-08-17
 register: software
 counterpart: docs/device-io.md
 -->
@@ -404,6 +404,11 @@ binding for realtime media is in [realtime peer media](realtime-media.md). Remai
    conformance; per-class reference pages mirroring [ble-interface.md](ble-interface.md); the
    [add a device class runbook](device-class-runbook.md) proving the registry path for a
    class not in the initial set.
+
+Phase 7 is tracked as `DEV-NFC-APDU`, `DEV-BIOMETRIC`, `DEV-SCALAR-SENSORS`,
+`DEV-NATIVE-DRIVERS`, `DEV-CLASS-PAGES`, and `DEV-CLASS-RUNBOOK-PROOF` in the **Backlog**
+table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md). Hardware-gated conformance for these
+classes carries no software row; it stays in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
 ## Open questions to resolve during design
 

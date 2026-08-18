@@ -1,6 +1,104 @@
 {
   "version": 1,
   "items": {
+    "APPR-ATTESTATION": {
+      "type": "feature",
+      "requires": ["APPR-EVALUATE"],
+      "verify": "npx vitest run packages/app-registry/test/review-attestation.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 4 §5.2, finding A-6. A review is of an artifact, never of a publisher; reviews travel like apps do. Plan open question 4 — whether a 'concern' verdict raises the bar or only informs — is decided here: raising it gives a trusted reviewer a unilateral brake, desirable against a hostile author and a denial-of-service surface if that reviewer is compromised."
+    },
+    "APPR-DEVICE-AMBIENT": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/ambient-authority.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 0, finding A-1. device.inventory/device.diagnostics register with null capability and reach real host state; holder is app:${appId}, making polling a zero-permission cross-app side channel. Require a capability or return only host-neutral facts, and drop holder from the unprivileged path. The load-bearing finding: a risk model whose zero point is not zero is incoherent before it starts."
+    },
+    "APPR-EVALUATE": {
+      "type": "feature",
+      "requires": ["APPR-TIER", "APPR-FIRST-SEEN", "APPR-TRUST-DEGREE"],
+      "verify": "npx vitest run packages/protocol/test/approval-evaluate.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 3 §6. Sans-IO in packages/protocol: the host gathers evidence, the function decides. Earns an executable table plus Layer-3 vectors in conformance/vectors/approval.json, but deliberately not a TLA+ model — a model becomes necessary only if the override path grows states, which is a design smell worth resisting. Thresholds T1..T4 and K are product calls informed by the sim campaign (plan open question 3); this item states where they plug in."
+    },
+    "APPR-FIRST-SEEN": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/app-registry/test/first-seen.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 2, finding A-4 and §5.1. (appId, publisherKey, packageHash) -> firstSeenAt, written on catalog ingest and not subject to the seven-day catalog TTL. A publisher-signed publishedAt is attacker-chosen, so age must come from observers; a changed package is a new hash and resets its own clock. The cheapest item in the plan and the one that makes 'unchanged for a minimum period' measurable at all."
+    },
+    "APPR-FLOOR-PROBE": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run test:hostile-apps",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 0. A hostile fixture asserting a capabilities: [] app can observe nothing about the host or other apps. Written before APPR-DEVICE-AMBIENT: it is the statement of the invariant, and its absence is why A-1 survived a security review."
+    },
+    "APPR-OPTIONAL-CAPS": {
+      "type": "feature",
+      "requires": ["APPR-RISK-CLASS", "CAP-MANIFEST-V2"],
+      "verify": "npx vitest run packages/app-registry/test/optional-capabilities.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 2, finding A-7. Declining an optional capability still launches. Today launchWithCapabilityReview rejects an empty set, which teaches that declining is how you fail to launch. Rides the same formatVersion: 2 change as CAP-MANIFEST-V2 and should land with it, not as a second format bump."
+    },
+    "APPR-OVERRIDE-UX": {
+      "type": "feature",
+      "requires": ["APPR-EVALUATE"],
+      "verify": "npx vitest run packages/host-core/test/approval-override.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 3 §4. An unmet requirement is a statement of what could not be verified, never a refusal — a local-first platform that hard-blocks its owner is dishonest, and they will sideload with less information than the dialog had. Proceeding needs an explicit, distinctly-worded action and writes the unmet set into the ConsentRecord. A requirement nobody can override is a central gatekeeper by the back door; one that a single identical tap clears is a formality wearing a control's clothes."
+    },
+    "APPR-REVIEW-UX": {
+      "type": "feature",
+      "requires": ["APPR-TIER"],
+      "verify": "npx vitest run packages/worklet-core/test/capability-review.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 1, finding A-3. No new gates in this phase — it makes the existing dialog honest, which is most of the user-visible benefit at a fraction of the risk of getting thresholds wrong."
+    },
+    "APPR-REVIEWER-SET": {
+      "type": "feature",
+      "requires": ["APPR-ATTESTATION"],
+      "verify": "npx vitest run packages/app-registry/test/reviewer-set.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 4 §5.2. An attestation counts only if the reviewer key is in the user's own list; no global score, no badge, no credential. K distinct keys are trivially Sybil-able, so the host refuses to count two keys that arrived in the same import, or any key from the app's own publisher, and displays the rest for the user to judge. Claiming to have solved Sybil resistance here would be the dishonest move. Deliberately last: the largest, most speculative piece, and the only one that cannot be validated without other people. Bootstrapping a reviewer set is explicitly unsettled (plan §11)."
+    },
+    "APPR-RISK-CLASS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/protocol/test/capability-risk.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 1, finding A-2. specs/spec-cap/registry/capability-risk.json plus generator and capability-risk.gen.ts, the same shape and discipline as device-classes.json, so revising the assignment is a data change. The four-class assignment in §3.1 is argued, not measured, and is reviewed as part of this item."
+    },
+    "APPR-SPEC-RISK": {
+      "type": "docs",
+      "requires": ["APPR-REVIEWER-SET"],
+      "verify": "npm run test:doc-audit",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 5. Risk class in the miniapp-sdk.md table, LIMITATIONS §7 residual, and the F4 cross-reference."
+    },
+    "APPR-TIER": {
+      "type": "feature",
+      "requires": ["APPR-RISK-CLASS"],
+      "verify": "npx vitest run packages/protocol/test/approval-tier.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 1 §3.2. Not a sum: ten benign capabilities are not one sensitive one. The promotion rule catches the composition per-capability review misses — a microphone alone is a recorder, lxmf:send alone is a messenger, together they are a wiretap. Plan open question 1 asks whether max + promotion is the right function; validate against generated hostile app shapes before APPR-EVALUATE hardens it."
+    },
+    "APPR-TRUST-DEGREE": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/app-registry/test/trust-degree.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 2, finding A-5 and §5.3. TrustStore already records source: qr|paste|manual and no code reads it. Promote it to direct/imported/introduced and surface it; isTrusted gains a degree argument. This is where the 'paste this identity string' lure stops being a coin flip: a lure can reach imported and cannot reach direct."
+    },
+    "APPR-UPDATE-DELTA": {
+      "type": "bug",
+      "requires": ["APPR-RISK-CLASS"],
+      "verify": "npx vitest run packages/app-registry/test/update-delta.test.ts",
+      "added": "2026-08-18",
+      "notes": "app-approval-risk-plan.md Phase 2, finding A-7 and hostile-author scenario HA-11. An update adding a capability must not auto-activate; the delta and its risk are named."
+    },
     "BUG-AUDIT-FIX-POSTINSTALL": {
       "type": "bug",
       "requires": [],
@@ -84,6 +182,132 @@
       ],
       "notes": "bare-pack 1.x -> 2.x (dependabot fe9d40f5) renamed --target <platform> to --host <host>. Both worklet builders still pass --target, so bare-pack bails with UNKNOWN_FLAG: target. Breaks CI harness-install, bare-device, electron-pack, electron-pack-macos and the nightly desktop jobs."
     },
+    "CAP-ANNOUNCE-SCOPE": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 0, audit finding F-2. Reject a namespace other than the app's own in announce.publish/subscribe, mirroring peers.ts; bound appData."
+    },
+    "CAP-BUDGETS": {
+      "type": "feature",
+      "requires": ["CAP-EGRESS-OFFER"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/egress-budgets.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 4. maxBytesPerDay in offer constraints enforced at the broker; egress target in the broker audit entry; simulator containment scenarios using ContainmentTracker."
+    },
+    "CAP-DEVICE-FAILCLOSED": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 0, audit finding F-4. maybeConfirmSession and confirmNfcWrite fail closed; a host wanting the old behaviour names an explicit option."
+    },
+    "CAP-EGRESS-CHROME": {
+      "type": "feature",
+      "requires": ["CAP-EGRESS-OFFER"],
+      "verify": "npx vitest run packages/host-core/test/egress-offer-chrome.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 2 and §3. Desktop, mobile, and web chrome author offers from an action the user was already taking; offer list and revoke in host settings. A separate 'choose destinations' dialog fails the plan's own constraint and means the capability belongs in the host-fixed class instead."
+    },
+    "CAP-EGRESS-OFFER": {
+      "type": "feature",
+      "requires": ["CAP-TTL"],
+      "verify": "npx vitest run packages/protocol/test/egress-offer.test.ts && npm run test:formal",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 2. Sans-IO egress-offer.ts in packages/protocol modelled on device-share.ts, with the four representations SPEC-CAP requires: TLA+ model, checked traces, executable table, Layer-3 vector. The formal cost is stated up front rather than discovered in review."
+    },
+    "CAP-EGRESS-WIRING": {
+      "type": "feature",
+      "requires": ["CAP-EGRESS-OFFER"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/egress-enforcement.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 2. Each scoped service checks the target right after assertCapabilityAllowed; ShareOffer is re-expressed on the general machine with SPEC-STREAM's guarantee preserved. Plan open question 1 (does share:cas need offers, or is content-addressing sufficient?) must be decided before this lands."
+    },
+    "CAP-FREENET-READ": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 0, audit finding F-3. Scope freenet.get to app-derived keys or a host-authored allowlist; budget and surface reads."
+    },
+    "CAP-GRANT-STALE": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 0, audit finding F-6. Drop the launch-time fallback in host/layer-2.ts so a deleted grant record denies immediately."
+    },
+    "CAP-HOSTILE-PROBES": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run test:hostile-apps",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 0. Listed last in the plan's table but written first: the probe is the regression proof, and three of the four Phase 0 defects are one-line fixes whose absence of a test is why they survived a security review."
+    },
+    "CAP-MANIFEST-V2": {
+      "type": "feature",
+      "requires": ["CAP-EGRESS-WIRING"],
+      "verify": "npx vitest run packages/app-registry/test/manifest-v2.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 3. formatVersion: 2, object-or-string capability entries, scope shape in the install review, v1 compatibility, and the host policy switch shipped off. Deliberately after Phase 2: shipping the format first would produce a signed declaration with nothing enforcing it."
+    },
+    "CAP-SPEC-SCOPE": {
+      "type": "docs",
+      "requires": ["CAP-MANIFEST-V2"],
+      "verify": "npm run test:doc-audit && npm run test:formal",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 5. Scope across all four SPEC-CAP representations; rewrite security-review.md F4 (not silently, and not before the work lands); rewrite the capability descriptions in capabilities.ts and miniapp-sdk.md; update LIMITATIONS §7. Grant descriptions are the user's only account of what they approved, so they move with the enforcement — finding F-7."
+    },
+    "CAP-TTL": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/grant-ttl.test.ts",
+      "added": "2026-08-18",
+      "notes": "capability-scoping-plan.md Phase 1, audit finding F-5. Require an explicit ttlMs at every GrantStore.set call site; default by consentClass; show expiry in the grant screen; re-prompt on expiry. Typed bug rather than feature: SPEC-CAP already states no grant is immortal and the machinery is model-checked, so this is a conformance gap. Open question 2 in the plan (default TTL per consent class) is a product call that this item has to settle."
+    },
+    "DEV-BIOMETRIC": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/device-biometric.test.ts",
+      "added": "2026-08-18",
+      "notes": "device-io-plan.md phase 7. Returns a signed pass/fail assertion; templates never leave the OS enclave and there is no raw tier, by design."
+    },
+    "DEV-CLASS-PAGES": {
+      "type": "docs",
+      "requires": [],
+      "verify": "npm run test:doc-audit",
+      "added": "2026-08-18",
+      "notes": "device-io-plan.md phase 7. One reference page per class, in the shape ble-interface.md already establishes."
+    },
+    "DEV-CLASS-RUNBOOK-PROOF": {
+      "type": "quality",
+      "requires": ["DEV-SCALAR-SENSORS"],
+      "verify": "npx vitest run packages/protocol/test/device-registry.test.ts",
+      "added": "2026-08-18",
+      "notes": "device-io-plan.md phase 7 and docs/device-class-runbook.md. The runbook claims the registry path generalises; walking it end to end for a class that was not in the initial registry is what turns that claim into evidence. Hardware-gated conformance for these classes stays in STATUS-HARDWARE.md."
+    },
+    "DEV-NATIVE-DRIVERS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/hardware-access-chrome.test.ts",
+      "added": "2026-08-18",
+      "notes": "device-io-plan.md phase 7, with the per-host availability matrix in §'Per-host availability' as the contract. The peripheral panel is labelled Hardware access per linked-devices decision 5."
+    },
+    "DEV-NFC-APDU": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/device-nfc-apdu.test.ts",
+      "added": "2026-08-18",
+      "notes": "device-io-plan.md phase 7. The raw card-reader tier: sensitive consent class, and payment applets blocklisted."
+    },
+    "DEV-SCALAR-SENSORS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/device-scalar-sensors.test.ts",
+      "added": "2026-08-18",
+      "notes": "device-io-plan.md phase 7: proximity, barometer, thermometer, hygrometer, ambient-light. Registry entries land with their drivers and need no API change; battery and thermal stay coarse buckets because precise curves are a fingerprinting vector."
+    },
     "DOC-OPTIONAL-BACKLOG": {
       "type": "docs",
       "requires": [],
@@ -101,6 +325,48 @@
       "completed": "2026-08-16",
       "evidence": ["docs/coverage-policy.md"],
       "notes": "docs/static-analysis.md sits at exactly 593 lines against a 593-line danger threshold in size-rules.json, so any new prose in it trips the sizes gate. The repo's rule is to decompose rather than compress: split out a docs/supply-chain.md holding the secrets, advisories, licenses, provenance, actions-pinned, install-scripts and SBOM sections."
+    },
+    "FN-A1-ANDROID-E5": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run test:android-emulator:e5",
+      "added": "2026-08-18",
+      "notes": "freenet-simulator-first-work-plan.md A1. The harness already requires wasmExecuted plus kill and timing measurements, and ANDROID_BENCHMARK_RECORD=1 writes measured-worker.json and updates s4-support-matrix.json. What is missing is a committed emulator run. Simulator evidence may close software readiness but must never be relabelled as physical-device evidence."
+    },
+    "FN-A2-IOS-WASM": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run test:ios-sim:wasm",
+      "added": "2026-08-18",
+      "notes": "freenet-simulator-first-work-plan.md A2. test:ios-sim:wasm parses the Maestro hierarchy for numeric timings with no hardcoded pass, and IOS_BENCHMARK_RECORD=1 updates the S4 matrix; committed measurements remain pending a simulator run. Keep reviewed simulator evidence separate from any later physical-device result, and wire the required form into test:ios-sim:required."
+    },
+    "FN-DEVICE-CONFIRM": {
+      "type": "quality",
+      "requires": ["res:android-phone-1", "res:iphone"],
+      "verify": "runbook:docs/freenet-simulator-first-work-plan.md#8-minimal-physical-device-confirmation",
+      "added": "2026-08-18",
+      "notes": "freenet-simulator-first-work-plan.md §8. One representative Android phone and one iPhone; borrowed is fine and no dedicated fleet is needed. Checks: WASM executes inside the BareKit Worker, the watchdog kills the hostile worker under moderate load, 10-20 spawn/kill cycles without false positives, one foreground/background transition, remote-node disclosure/refusal/revocation, no credentials in device logs, and a short read-only connection to a user-controlled node. Run only if mobile Freenet support is intended to ship; it does not block desktop/headless release or the simulator-verified milestones."
+    },
+    "FN-E1-LIVE-EVIDENCE": {
+      "type": "quality",
+      "requires": ["res:public-network-approval"],
+      "verify": "npm run test:freenet-roundtrip",
+      "added": "2026-08-18",
+      "notes": "freenet-simulator-first-work-plan.md E1, and the unmet F1 exit criterion in freenet.md: publish from host A and force installation on host B, plus the live S2 series and retrieval after a client or node restart, on one approved non-sensitive test contract. Starts only after explicit approval for irreversible public metadata. Review ignored raw results before deliberately updating committed evidence, and never copy an incomplete run over a gate artifact."
+    },
+    "FN-E2-WRITE-INTEROP": {
+      "type": "quality",
+      "requires": ["res:public-network-approval"],
+      "verify": "node conformance/freenet-spike/prove-s7-write.mjs",
+      "added": "2026-08-18",
+      "notes": "freenet-simulator-first-work-plan.md E2. The read half passed: the TS adapter read the live Atlas CBOR index through a localhost node. The write half needs application authority as well as permission to publish — preferably an upstream-approved Atlas test record or curator key, another independently developed app with a user-writable contract, or an explicitly approved rejected update recorded honestly as request-and-rejection evidence. Even a rejected or idempotent update publishes public operation metadata. No simulator or isolated testnet substitutes for this."
+    },
+    "FN-F-DISTRIBUTION": {
+      "type": "feature",
+      "requires": ["res:code-signing", "res:apple-developer-account"],
+      "verify": "node conformance/freenet-spike/verify-embedded-node.mjs",
+      "added": "2026-08-18",
+      "notes": "freenet-simulator-first-work-plan.md F, and S5 in freenet.md. Interim decision 2026-07-29: ship posture 2 (user-supplied supervised binary), keeping posture 1 (external node) documented. Postures 3 and 4 need fresh upstream-artifact verification, platform package sizes, upgrade/rollback rules, clean-host execution tests, and — on macOS — Developer ID signing, hardened-runtime verification, notarization, stapling, and Gatekeeper verification, with an explicit Windows posture. Signing services cannot be replaced by simulator evidence, so F4 stays gated."
     },
     "G1": {
       "type": "release-gate",
@@ -318,6 +584,41 @@
       "verify": "runbook:STATUS-HARDWARE.md#h9-chat-example-over-ble-only",
       "added": "2026-07-06"
     },
+    "HA-P0-BASELINE": {
+      "type": "quality",
+      "requires": [],
+      "verify": "node conformance/hostile-authors/baseline.mjs",
+      "added": "2026-08-18",
+      "notes": "hostile-author-plan.md P0. The plan's 'Today' column is an unverified code read; this item replaces every guess with a measured verdict in conformance/hostile-authors/README.md. Deliberately separate and first: writing fixtures before measuring the baseline produces fixtures that encode assumptions, and several 'likely finding' guesses will be wrong in both directions."
+    },
+    "HA-P1-TRANSCRIPT": {
+      "type": "feature",
+      "requires": ["HA-P0-BASELINE"],
+      "verify": "node conformance/hostile-authors/run.mjs",
+      "added": "2026-08-18",
+      "notes": "hostile-author-plan.md P1 §5. Host chrome emits a structured record for every consent moment, and fixtures assert against the record rather than pixels — this is the oracle that makes an INFORMED verdict machine-checked rather than a belief about what the UI probably says. Buys the fixture oracle, a user-visible 'what did I approve' log, and a forcing function: authority conferred without a record is authority the user was never told about. Covers Surface 1/2/4/5 scenarios and wires test:hostile-authors into CI (add the npm script and the conformance/README.md and docs/README.md rows with it)."
+    },
+    "HA-P2-RENDER-ORACLE": {
+      "type": "feature",
+      "requires": ["HA-P1-TRANSCRIPT"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts && npm run test:chrome",
+      "added": "2026-08-18",
+      "notes": "hostile-author-plan.md P2, Surface 3. Layer A is a deterministic validator pass in ui/validate.ts rejecting reserved chrome vocabulary, chrome-imitating layout signatures, and secret-solicitation patterns — proposed CHROME-R7 (reserved lexicon) and CHROME-R8 (no secret solicitation). Layer B is snapshot geometry proving confirmations render outside the app surface and cannot be occluded, which is the 'snapshot-based check' SPEC-CHROME's own text is waiting on. Layer A is where the value is; Layer B is what closes the spec. HA-21 — an app asking the user to type their recovery phrase — is the highest-severity scenario in the catalog and needs no capabilities at all."
+    },
+    "HA-P3-FINDINGS": {
+      "type": "bug",
+      "requires": ["HA-P2-RENDER-ORACLE"],
+      "verify": "node conformance/hostile-authors/run.mjs",
+      "added": "2026-08-18",
+      "notes": "hostile-author-plan.md P3: confirmation rate limiting, host-derived confirmation summaries, confusable-name flagging, capability-delta review on update, per-app moderation granularity. Exit is that every finding is BLOCKED, INFORMED-with-transcript, or CONTAINED-with-a-metric. Scope may overlap APPR-UPDATE-DELTA; close whichever lands second against the other's evidence rather than duplicating the fix."
+    },
+    "HA-P4-SCOPED-EGRESS": {
+      "type": "feature",
+      "requires": ["HA-P3-FINDINGS", "CAP-EGRESS-WIRING"],
+      "verify": "node conformance/hostile-authors/run.mjs",
+      "added": "2026-08-18",
+      "notes": "hostile-author-plan.md P4. HA-30 (granted lxmf:send used to ship the contact list) and HA-36 (benign until a remote flag arrives) are the plan's load-bearing scenarios: they cannot be resolved by better dialogs, only by EgressOffer. Written red now and standing as the acceptance test for the scoping work. Exit rewrites security-review.md F4 from an accepting sentence into an enumerated residual and updates LIMITATIONS §7."
+    },
     "ID-APPSCOPE": {
       "type": "bug",
       "requires": [],
@@ -438,6 +739,13 @@
       ],
       "notes": "Sequenced behind MINIAPP-CONCURRENT. A brokered, separately granted channel with the destination app named on the grant screen. Shared storage is out of scope. Ledger row MLC-APP-TO-APP."
     },
+    "MINIAPP-BACKGROUND-ANDROID": {
+      "type": "feature",
+      "requires": ["MINIAPP-LIFECYCLE-EVENTS"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/background-execution.test.ts",
+      "added": "2026-08-18",
+      "notes": "mobile-lifecycle-plan.md candidate 2; ledger row MLC-BACKGROUND-ANDROID. Android already runs a foreground service for mesh participation and nothing prevents mini-app execution inside it, so the API is the easy part and the rationing is the design: what a background grant costs in terms a grant screen can state honestly, who loses when budgets are oversubscribed, and whether this is Android-only or a capability that does less on iOS. The honest option is to expose it and record the asymmetry in platform-capabilities-status.md rather than level down to iOS. MLC-BACKGROUND-IOS stays os-imposed until Apple changes policy."
+    },
     "MINIAPP-CONCURRENT": {
       "type": "feature",
       "requires": [],
@@ -451,6 +759,20 @@
         "packages/worklet-core/src/miniapp-host-shared-core.mjs"
       ],
       "notes": "The mobile OS constrains the host process, not mini-apps within it: iOS suspends the whole app and Android needs a foreground service, but neither limits how many sandboxes a running host may hold. MiniappHost nonetheless keeps a single `active: ActiveApp | null` slot (packages/miniapp-runtime/src/host/layer-1-base.ts), so launching a second app stops the first. The dev-preview slot already runs a second MiniappHost concurrently in the same worklet (packages/worklet-core/src/miniapp-host-shared-core.mjs), which is the existence proof that the platform, not the OS, imposes the limit. Replace the single slot with per-app instances, route broker traffic and budgets per app, and give the shells a switcher. Ledger row MLC-CONCURRENT-APPS in mobile-lifecycle-ledger.json."
+    },
+    "MINIAPP-LIFECYCLE-EVENTS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/lifecycle-events.test.ts",
+      "added": "2026-08-18",
+      "notes": "mobile-lifecycle-plan.md candidate 1; ledger row MLC-LIFECYCLE-EVENTS. The host already receives suspend-node and resume-node and acts on them; the sandbox is told nothing, which is why authors/12-limits-and-budgets.md imposes a persist-on-every-write tax on every app. The grace window is what makes it non-trivial: a suspend handler runs inside the same short window the host uses to quiesce interfaces, so it needs a hard budget and an overrunning app must be killed rather than delaying the quiesce. That argues for a strictly bounded synchronous checkpoint, not a general onSuspend running arbitrary app code."
+    },
+    "MINIAPP-SCHEDULED-WAKE": {
+      "type": "feature",
+      "requires": ["MINIAPP-LIFECYCLE-EVENTS"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/scheduled-wake.test.ts",
+      "added": "2026-08-18",
+      "notes": "mobile-lifecycle-plan.md candidate 3; ledger row MLC-SCHEDULED-WAKE. iOS fetch/processing wake budgets already exist and are spent on propagation sync. The scarce resource is per-host, not per-app: a phone with six installed apps cannot give each one periodic wake-ups, so the rationing rule is the deliverable and the API follows from it."
     },
     "PD-AI": {
       "type": "feature",
@@ -686,6 +1008,13 @@
         "packages/miniapp-runtime/test/host.test.ts"
       ]
     },
+    "RG6": {
+      "type": "docs",
+      "requires": [],
+      "verify": "npm run site:section-images:report && npm run site:build",
+      "added": "2026-08-18",
+      "notes": "reader-guide-plan.md item 6, the last open item of the seven (RG1-RG5 and RG7 closed 2026-07-20). 25 pending in guide/, 16 in authors/, 3 in cookbook/. Each has a written caption describing exactly the shot, and <section>/images/README.md documents the conventions. Capture what the hosts that actually run today can produce — desktop host, browser host, DevStudio, the emulator. Do not fabricate screenshots of features that do not exist, and do not ship a screenshot of a real handset: that is H-tier hardware debt (authors/images/02-installed-on-phone.png is one). Report which filenames remain unobtainable and why."
+    },
     "RG7": {
       "type": "feature",
       "requires": [],
@@ -775,6 +1104,62 @@
       "added": "2026-07-20",
       "completed": "2026-07-20",
       "evidence": ["STATUS-COMPLETE.md"]
+    },
+    "SA-BLAME-IGNORE": {
+      "type": "quality",
+      "requires": ["SA-CI-AGGREGATE"],
+      "verify": "grep -E '^[0-9a-f]{40}' .git-blame-ignore-revs",
+      "added": "2026-08-18",
+      "notes": "static-analysis-plan.md step 5. The file already carries the placeholder comment; it needs the SHA of the repository-wide Prettier commit once that commit lands on main."
+    },
+    "SA-BRANCH-PROTECTION": {
+      "type": "quality",
+      "requires": ["SA-CI-AGGREGATE", "res:repo-admin"],
+      "verify": "gh api repos/{owner}/{repo}/branches/main/protection --jq '.required_status_checks.contexts'",
+      "added": "2026-08-18",
+      "notes": "static-analysis-plan.md step 2. There are currently no classic branch-protection rules to replace. Requires repository administration and intentionally has no script that mutates settings from an ordinary local validation run."
+    },
+    "SA-CARGO-DEPENDABOT": {
+      "type": "quality",
+      "requires": ["SA-CI-AGGREGATE", "res:repo-admin"],
+      "verify": "gh pr list --search 'cargo in:title author:app/dependabot' --state all",
+      "added": "2026-08-18",
+      "notes": "static-analysis-plan.md step 4. Grouped npm and Actions pull requests have already opened, and CodeQL has accepted its JavaScript/TypeScript, Python, and Actions databases; Cargo is the one grouping never observed."
+    },
+    "SA-CI-AGGREGATE": {
+      "type": "quality",
+      "requires": ["res:repo-admin"],
+      "verify": "npm run checks:status:import",
+      "added": "2026-08-18",
+      "notes": "static-analysis-plan.md step 1. Push this checkout and obtain a successful aggregate run, then confirm its sticky PR dashboard and static-analysis-summary.json contain all 23 PR gates, including an explicit missing-result failure if a gate stops before its runner writes an artifact. Prerequisite for the other four steps."
+    },
+    "SA-NIGHTLY-ADVISORY": {
+      "type": "quality",
+      "requires": ["SA-CI-AGGREGATE", "res:repo-admin"],
+      "verify": "npm run audit:nightly",
+      "added": "2026-08-18",
+      "notes": "static-analysis-plan.md step 3. The narrow, expiring transitive vite exception is already recorded in audit-allowlist.json; what is missing is a nightly run that passes with it."
+    },
+    "SIM-D-CALIBRATE-MODELS": {
+      "type": "quality",
+      "requires": ["H4"],
+      "verify": "npm run test:sim-campaign",
+      "added": "2026-08-18",
+      "notes": "simulation-plan.md S-D. The spam, harassment, and reputation models are deliberately synthetic. Before any of their numerical outputs becomes a product threshold, calibrate transport costs and behaviour against real deployments or guarded hardware tests and document the calibration data and tolerances. Depends on S-A, which is H4-D in STATUS-HARDWARE.md (BLE/LoRa physical-layer traces); no separate row is filed for S-A."
+    },
+    "SIM-ESCROW-SEMANTICS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/escrow-recovery.test.ts && npm run formal:escrow && npm run formal:recovery",
+      "added": "2026-08-18",
+      "notes": "simulation-plan.md S-C. Escrow and recovery have no shipping host integration; their simulator schedules and formal models are complete for simulator scope and must be revisited once product semantics settle — the models are what changes, not the campaign machinery. Unblocks SIM-L3-COLLUDING."
+    },
+    "SIM-L3-COLLUDING": {
+      "type": "quality",
+      "requires": ["SIM-ESCROW-SEMANTICS"],
+      "verify": "npm run sim:abuse-loop",
+      "added": "2026-08-18",
+      "notes": "simulation-plan.md S-B. The held rung is L2 (authored); L3 is the next queued increment, gated on shipping escrow/recovery semantics so that simulator-only collusion results are not relabelled as product evidence. Loop mechanics in docs/abuse-resistance-loop.md."
     },
     "WORK-EFFORT": {
       "type": "feature",

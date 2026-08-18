@@ -2,8 +2,8 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-16
-register: none
+audited: 2026-08-17
+register: software
 -->
 
 A plan to build executable scenarios in which a **malicious app author tries to talk a user
@@ -262,6 +262,11 @@ rung below is green and its findings are regression-locked.
    author — including when the author is an LLM.
 
 ## 8. Phasing
+
+The five phases are tracked as `HA-P0-BASELINE`, `HA-P1-TRANSCRIPT`,
+`HA-P2-RENDER-ORACLE`, `HA-P3-FINDINGS`, and `HA-P4-SCOPED-EGRESS` in the **Backlog**
+table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), chained in the order below, with
+`HA-P4-SCOPED-EGRESS` additionally waiting on `CAP-EGRESS-WIRING`.
 
 | Phase  | Work                                                                                                                                                                    | Exit criterion                                                                                |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |

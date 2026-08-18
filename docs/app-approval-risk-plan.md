@@ -2,8 +2,8 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-16
-register: none
+audited: 2026-08-17
+register: software
 -->
 
 A plan to make app approval a function of the authority an app asks for, rather than one
@@ -389,19 +389,16 @@ that gap is `APPR-FLOOR-PROBE`.
 
 ## 10. Registering this work
 
-Rows land in `STATUS-SOFTWARE.md` via `work:add`, never by hand
-([work tracking](work-tracking.md)):
+All fourteen IDs above are filed as rows in the **Backlog** table of
+`STATUS-SOFTWARE.md`, with the types and `--requires` chains the Phase tables state
+(`APPR-OPTIONAL-CAPS` additionally requires `CAP-MANIFEST-V2`, since both ride the same
+`formatVersion: 2` change). `npm run work:next` walks them in that order; close each with
+`npm run work:done` ([work tracking](work-tracking.md)). Rows land via `work:add`, never by
+hand.
 
-```sh
-npm run work:add -- --id=APPR-DEVICE-AMBIENT --type=bug \
-  --title="Zero-capability apps observe device inventory and lock holders" \
-  --verify="npx vitest run packages/miniapp-runtime/test/ambient-authority.test.ts"
-```
-
-The remaining fourteen follow the same shape; `--requires` carries the dependencies in the
-Phase tables. Adding these changes what `npm run work:next` proposes — the Phase 0 and
-Phase 2 `bug` rows outrank open `quality` items — so add them when you intend to work the
-queue in that order.
+Verify commands name the test that will prove the item, whether or not that test exists
+yet. The Phase 0 and Phase 2 `bug` rows outrank every open `quality` item, so filing them
+changed what the queue proposes; that ordering is the intent, not a side effect.
 
 ## 11. What this plan will not settle
 

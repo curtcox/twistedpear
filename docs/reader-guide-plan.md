@@ -2,8 +2,8 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-02
-register: none
+audited: 2026-08-17
+register: software
 -->
 
 **This document describes work not yet done.** It is derived from the feature-status
@@ -53,65 +53,18 @@ Each appendix row has a "Tracked as" column. Use it to sort:
 If a row is ambiguous, say so and ask rather than guessing; some of these represent
 deliberate product decisions and implementing them would be a regression against the design.
 
-## The work, in the order it should land
+## The work
 
-1. **CI coverage for the cookbook samples.**
-   `cookbook/appendix-feature-status.md` admits nothing builds, packs, or runs
-   `cookbook/apps/*` — 25 apps whose sources "parse and follow the published SDK surface"
-   but are unverified and will drift. Add a test suite (wire it into the existing
-   Vitest workspace and the PR-tier CI job) that, for every directory under `cookbook/apps/`:
-   parses the source, type/lint-checks it against the real `packages/miniapp-sdk` surface,
-   validates its manifest and declared capabilities, packs it with the `packages/cli` `tp`
-   codepath, and runs it far enough under `packages/miniapp-runtime` to prove it starts and
-   renders. Fix whatever drift this exposes in the samples themselves. Add an npm script.
-   This is the highest-value item: it is what stops the other two guides' code snippets
-   from rotting.
+**Screenshots (RG6).** All three guides ship placeholder graphics — 44 pending files
+(`npm run site:section-images:report`; 25 for the guide, 16 for the authors guide, 3 for
+the cookbook). Each has a written caption in the prose describing exactly the shot
+required, and `<section>/images/README.md` documents the conventions. Capture what can be
+captured from hosts that actually run today (desktop host, browser host, DevStudio, the
+emulator). Do **not** fabricate screenshots of features that do not exist, and do not ship
+a screenshot of a real handset — that is H-tier hardware debt. Report which filenames
+remain unobtainable and why.
 
-2. **Identity backup and recovery.** Listed by _all three_ appendices (guide: "Guided
-   identity backup"; authors and cookbook: "Guided publisher-identity backup"). Today the
-   key file is unencrypted with no export flow, no passphrase, and no recovery phrase.
-   Implement export/import with passphrase encryption at rest and a recovery-phrase
-   representation, in `packages/host-core` plus the `tp` CLI, with a host UI path. Do not
-   invent a scheme — check `docs/` for an existing design first, and if none exists, write
-   the design doc before the code and get it reviewed.
-
-3. **Blocking, muting, reporting.** `guide/appendix-feature-status.md` says the protocol
-   mechanisms exist but there is no UI. Find the existing mechanisms (start from
-   `packages/protocol` and `packages/lxmf-ts`), then build the surface: persisted block and
-   mute lists, enforcement on the receive path, and the UI in the host. "Reporting" has no
-   central authority to report _to_ — implement it as a local record plus an export, or
-   argue in the PR description that the row should be reworded instead.
-
-4. **Multi-part transfer over propagation.** Called out by the guide, the authors guide, and
-   the cookbook ("Large messages via propagation"). Chunking, ordering, resume, and
-   reassembly against `packages/lxmf-ts` propagation, with the budget rules from
-   `authors/12-limits-and-budgets.md` respected. Cookbook chapters 6 and 9 currently
-   downgrade chunking to "exercises" because of this; upgrade those to real recipes once it
-   works.
-
-5. **Streaming `ai.chat`.** Cookbook chapter 7 notes every model recipe fakes a "working"
-   state because `ai.chat` returns one whole reply. Add a streaming API to
-   `packages/miniapp-sdk` and the broker, keeping the existing non-streaming call working,
-   and update `cookbook/07-apps-that-use-a-model.md` plus the affected samples.
-
-6. **Screenshots.** All three guides ship placeholder graphics — 103 pending files total
-   (`node scripts/site/section-images.mjs --report`; 42 for the guide, the rest split across
-   authors and cookbook). Each has a written caption in the prose describing exactly the
-   shot required, and `<section>/images/README.md` documents the conventions. Capture what
-   can be captured from hosts that actually run today (desktop host, browser host, DevStudio,
-   the emulator). Do **not** fabricate screenshots of features that do not exist, and do not
-   ship a screenshot of a real handset — that is H-tier hardware debt. Report which
-   filenames remain unobtainable and why.
-
-7. **Embeddings and vector search.** Cookbook chapter 7 uses keyword scoring because the
-   SDK cannot request embeddings or rank semantic matches. Add a separately granted,
-   host-proxied embedding API backed by the existing OpenRouter-compatible configuration,
-   plus bounded cosine search over app-supplied documents. Keep credentials and model
-   allowlists host-side, cap input count/size and vector dimensions, share the per-app AI
-   in-flight limit, and update Ask the handbook to use semantic retrieval with a clear
-   unavailable fallback.
-
-## Definition of done for every item
+## Definition of done
 
 - Tests first or alongside, in the existing suites; `npm test` green, and the PR-tier CI
   job green.
@@ -127,7 +80,6 @@ deliberate product decisions and implementing them would be a regression against
 
 ## Ground rules
 
-- Land each numbered item as its own commit on its own branch; do not bundle them.
 - Start by reading the three appendices, `LIMITATIONS.md`, `STATUS-SOFTWARE.md`, and
   `STATUS-HARDWARE.md` end to end, then produce a plan that classifies every row in all
   three appendices as in-scope / out-of-scope / needs-a-decision, and confirm that

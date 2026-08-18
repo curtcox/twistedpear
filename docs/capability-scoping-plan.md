@@ -2,8 +2,8 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-16
-register: none
+audited: 2026-08-17
+register: software
 -->
 
 The plan to close the findings in the
@@ -200,20 +200,15 @@ only half-shipped.
 
 ## 6. Registering this work
 
-Rows land in `STATUS-SOFTWARE.md` via `work:add`, never by hand
-([work tracking](work-tracking.md)). Verify commands name the test that will prove the item,
-whether or not it exists yet — the established pattern for unbuilt work.
+All twelve IDs above are filed as rows in the **Backlog** table of
+`STATUS-SOFTWARE.md`, with the types and `--requires` chains the Phase tables state.
+`npm run work:next` walks them in that order; close each with `npm run work:done`
+([work tracking](work-tracking.md)). Rows land via `work:add`, never by hand.
 
-```sh
-npm run work:add -- --id=CAP-ANNOUNCE-SCOPE --type=bug \
-  --title="Announce namespace is app-controlled and unvalidated" \
-  --verify="npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts"
-```
-
-The remaining eleven follow the same shape; `--requires` carries the dependencies in the
-Phase tables above. Adding these changes what `npm run work:next` proposes — five `bug`
-rows outrank every open `quality` item — so add them when you intend to work the queue in
-that order.
+Verify commands name the test that will prove the item, whether or not that test exists
+yet — the established pattern for unbuilt work. The five `bug` rows outrank every open
+`quality` item, so filing them changed what the queue proposes; that ordering is the
+intent, not a side effect.
 
 ## 7. Risks
 

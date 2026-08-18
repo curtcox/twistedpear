@@ -2,8 +2,8 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-02
-register: none
+audited: 2026-08-17
+register: software
 counterpart: docs/simulation.md
 -->
 
@@ -15,6 +15,11 @@ in [archive/design/simulation-implementation-plan.md](../archive/design/simulati
 
 Every item below is carried from a `Remaining` or `open` clause in the status record. None
 of it may be closed by a simulator result alone.
+
+S-B and S-C are tracked as `SIM-L3-COLLUDING` and `SIM-ESCROW-SEMANTICS` in the
+**Backlog** table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md); S-D is
+`SIM-D-CALIBRATE-MODELS` in the blocked backlog, waiting on H4. S-A carries no separate
+row: it is H4-D in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
 ## S-A — BLE/LoRa physical-layer calibration (hardware-gated)
 

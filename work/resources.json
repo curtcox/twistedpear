@@ -13,6 +13,10 @@
       "available": false,
       "note": "paid Apple Developer account (multicast entitlement, device signing)"
     },
+    "code-signing": {
+      "available": false,
+      "note": "Developer ID and Windows code-signing credentials for redistributing binaries"
+    },
     "iphone": {
       "available": false,
       "note": "1 iPhone (borrowed is fine)"
@@ -28,6 +32,14 @@
     "ntfy-service": {
       "available": false,
       "note": "disposable self-hosted ntfy topic reachable from two phones"
+    },
+    "public-network-approval": {
+      "available": false,
+      "note": "explicit approval to publish irreversible metadata to the live Freenet network"
+    },
+    "repo-admin": {
+      "available": false,
+      "note": "GitHub repository administration plus a pushed aggregate CI run"
     },
     "rnode-pair": {
       "available": false,
