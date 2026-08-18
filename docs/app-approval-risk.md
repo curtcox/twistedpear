@@ -56,9 +56,13 @@ satisfy `imported` and cannot satisfy `direct`.
 
 `evaluateApproval` is the Sans-IO decision: the host gathers evidence, the
 function returns the tier, the evidence that tier requires, and which of it is
-unmet. Empty `unmet` is ordinary approval. `overridable` is always true — an
-unmet requirement is "could not verify", never a refusal. Chrome that presents
-the unmet set is still plan work.
+unmet. Empty `unmet` is ordinary approval (`Allow`). `overridable` is always
+true — an unmet requirement is "could not verify", never a refusal.
+`presentApprovalOverride` is the chrome copy: the override control is worded
+differently from `Allow`, names the unmet set, and
+`approvalConsentFields` writes that set plus `action: "override"` into the
+`ConsentRecord`. A fresh device with no evidence states that limitation rather
+than "safe" or "malicious".
 
 | Tier        | Evidence required                                      | Provenance met by                         | Review met by      |
 | ----------- | ------------------------------------------------------ | ----------------------------------------- | ------------------ |

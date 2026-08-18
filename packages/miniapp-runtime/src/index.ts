@@ -19,6 +19,7 @@ export type {
 export { BrokerError, MiniappBroker } from "./broker.js";
 export {
   EGRESS_OFFER_CAPABILITIES,
+  EgressBudgetLedger,
   EgressDeniedError,
   assertEgressAllowed,
 } from "./egress-enforcement.js";

@@ -7,6 +7,22 @@ export {
   type ModerationSnapshot,
 } from "./moderation-store.js";
 export {
+  FileAuthorityStore,
+  type HostEscrowSession,
+  type HostRecoverySession,
+} from "./escrow-recovery.js";
+export {
+  APPROVAL_ALLOW_LABEL,
+  APPROVAL_OVERRIDE_LABEL,
+  approvalConsentFields,
+  presentApprovalOverride,
+  presentEvaluatedApproval,
+  type ApprovalConsentFields,
+  type ApprovalOverrideContext,
+  type ApprovalOverridePresentation,
+  type PresentedUnmetRequirement,
+} from "./approval-override.js";
+export {
   defaultHostConfig,
   defaultHostDataDir,
   defaultWebLeafConfig,

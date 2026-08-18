@@ -285,7 +285,7 @@ can reach `imported`, and cannot reach `direct`.
 `APPR-EVALUATE` landed in [app approval risk](app-approval-risk.md):
 `evaluateApproval` in `packages/protocol`, the requirements table, and
 `conformance/vectors/approval.json`. Thresholds T₁…T₄ and K remain host-supplied
-arguments. Remaining Phase 3 work is the override chrome.
+arguments. `presentApprovalOverride` is the chrome copy for unmet evidence.
 
 ## 7. Sequencing
 
@@ -320,12 +320,7 @@ capabilities under "Also uses".
 
 ### Phase 3 — the evaluator and the gates
 
-`APPR-EVALUATE` is executed: `evaluateApproval` plus the requirements table and
-Layer-3 vector. Remaining Phase 3 work:
-
-| ID                 | Type    | Requires         | Work                                                                                     |
-| ------------------ | ------- | ---------------- | ---------------------------------------------------------------------------------------- |
-| `APPR-OVERRIDE-UX` | feature | `APPR-EVALUATE`  | §4 unmet-requirement presentation and the distinctly-worded override; unmet set recorded |
+Phase 3 is in the live document. Remaining planned work is none.
 
 ### Phase 4 — attestations
 

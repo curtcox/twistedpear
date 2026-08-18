@@ -62,6 +62,8 @@ export interface BrokerAuditEntry {
   readonly allowed: boolean;
   readonly outcome: BrokerAuditOutcome;
   readonly at: number;
+  /** Destination the call named, when the method is offer-scoped egress. */
+  readonly target?: string;
   /** Present on `denied` and `failed`. */
   readonly error?: {
     readonly code: string;
@@ -207,6 +209,7 @@ export class MiniappBroker {
       error?: BrokerAuditEntry["error"];
     },
   ): void {
+    const target = egressTargetFromRequest(request);
     this.options.audit?.({
       appId: context.appId,
       namespace: request.namespace,
@@ -216,6 +219,7 @@ export class MiniappBroker {
       outcome: entry.outcome,
       at: this.now(),
       ...(entry.error === undefined ? {} : { error: entry.error }),
+      ...(target === undefined ? {} : { target }),
     });
   }
 
@@ -270,6 +274,30 @@ export class MiniappBroker {
   private now(): number {
     return this.options.now();
   }
+}
+
+function egressTargetFromRequest(request: BrokerRequest): string | undefined {
+  const payload = request.payload;
+  if (payload === undefined || typeof payload !== "object" || payload === null) {
+    return undefined;
+  }
+  if (request.namespace === "lxmf" && request.method === "send") {
+    const to = (payload as { to?: unknown }).to;
+    return typeof to === "string" ? to : undefined;
+  }
+  if (request.namespace === "links" && request.method === "probe") {
+    const peer = (payload as { peer?: unknown }).peer;
+    if (typeof peer === "string") return peer;
+    if (
+      typeof peer === "object" &&
+      peer !== null &&
+      "id" in peer &&
+      typeof peer.id === "string"
+    ) {
+      return peer.id;
+    }
+  }
+  return undefined;
 }
 
 function brokerErrorDetail(error: unknown): {

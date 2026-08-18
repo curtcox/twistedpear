@@ -1,0 +1,27 @@
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  14:18:43
+   Duration  1.05s (transform 655ms, setup 0ms, import 915ms, tests 52ms, environment 0ms)
+
+
+> twistedpear@0.0.0 formal:escrow
+> npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs escrow
+
+
+> @twistedpear/protocol@0.0.3 build
+> tsc -b
+
+escrow TLA+ relation conforms across 6 legal edges
+
+> twistedpear@0.0.0 formal:recovery
+> npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs recovery
+
+
+> @twistedpear/protocol@0.0.3 build
+> tsc -b
+
+recovery TLA+ relation conforms across 5 legal edges

@@ -28,6 +28,39 @@ export class EgressDeniedError extends Error {
   }
 }
 
+const DAY_MS = 86_400_000;
+
+interface BudgetWindow {
+  windowStart: number;
+  bytes: number;
+}
+
+/** Rolling 24-hour byte counters keyed by offer id. */
+export class EgressBudgetLedger {
+  private readonly used = new Map<string, BudgetWindow>();
+
+  consume(offer: EgressOffer, bytes: number, at: number): void {
+    const max = offer.constraints.maxBytesPerDay;
+    if (max === undefined) return;
+    const requestBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : 0;
+    const current = this.used.get(offer.id);
+    const windowStart =
+      current === undefined || at - current.windowStart >= DAY_MS
+        ? at
+        : current.windowStart;
+    const already = windowStart === current?.windowStart ? current.bytes : 0;
+    if (already + requestBytes > max) {
+      throw new EgressDeniedError(
+        "Host egress budget for this destination is exhausted.",
+      );
+    }
+    this.used.set(offer.id, {
+      windowStart,
+      bytes: already + requestBytes,
+    });
+  }
+}
+
 export function assertEgressAllowed(input: {
   readonly offers: ReadonlyMap<string, EgressOffer>;
   readonly appId: string;
@@ -38,6 +71,8 @@ export function assertEgressAllowed(input: {
   readonly tierId?: string;
   readonly maxRung?: string;
   readonly classId?: string;
+  readonly bytes?: number;
+  readonly ledger?: EgressBudgetLedger;
 }): EgressOffer {
   for (const offer of input.offers.values()) {
     if (
@@ -52,6 +87,7 @@ export function assertEgressAllowed(input: {
         ...(input.classId === undefined ? {} : { classId: input.classId }),
       })
     ) {
+      input.ledger?.consume(offer, input.bytes ?? 0, input.at);
       return offer;
     }
   }

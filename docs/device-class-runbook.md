@@ -40,3 +40,8 @@ The first command also regenerates [per-class reference pages](device-classes/RE
 `proximity`, `barometer`, `thermometer`, `hygrometer`, and `thermal` landed through this
 path in Phase 7 — registry entry → generated `device:*` ids → simulated driver →
 `device.open` / `device.read` without new SDK methods.
+
+The registry path is locked by
+[`packages/protocol/test/device-registry.test.ts`](../packages/protocol/test/device-registry.test.ts):
+those growth classes are ordinary rows (no generator special case), unknown class ids
+fail closed, and `addedInHostApi` never exceeds `DEVICE_REGISTRY_HOST_API`.

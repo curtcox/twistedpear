@@ -150,7 +150,7 @@ conformance gap, and it is the cheapest available reduction in standing authorit
 `CAP-EGRESS-WIRING` landed: `assertEgressAllowed` on `lxmf:send` and
 `link:probe`; `ShareOffer` is `shareOfferAsEgressOffer`. `share:cas` stays
 host-fixed (open question 1); announce stays own-namespace (open question 3).
-Remaining Phase 2 work:
+Remaining Phase 2 work is chrome that authors offers from natural use.
 
 | ID                  | Type    | Requires           | Work                                                                                                                                                                                           |
 | ------------------- | ------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -170,9 +170,7 @@ signed declaration with nothing enforcing it.
 
 ### Phase 4 — budgets and attribution
 
-| ID            | Type    | Requires           | Work                                                                                                                                                               |
-| ------------- | ------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CAP-BUDGETS` | feature | `CAP-EGRESS-OFFER` | `maxBytesPerDay` in offer constraints, enforced at the broker; egress target in the broker audit entry; simulator containment scenarios using `ContainmentTracker` |
+Phase 4 is in the live document. Remaining planned work is none.
 
 ### Phase 5 — update the normative record
 

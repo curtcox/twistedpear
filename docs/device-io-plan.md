@@ -399,16 +399,12 @@ rather than failing, with the clamp reported to the app.
 Phases 1–6 (foundation through remote acquisition and peer streaming) are built; plane
 binding for realtime media is in [realtime peer media](realtime-media.md). Remaining work:
 
-7. **Hardening and growth.** `nfc:apdu` with the payment blocklist, `biometric`;
-   per-host native drivers and Hardware access chrome; hardware-gated
-   conformance; the [add a device class runbook](device-class-runbook.md) proving the
-   registry path for a class not in the initial set. Scalar sensors (`proximity`,
-   `barometer`, `thermometer`, `hygrometer`) shipped through that path
-   (`DEV-SCALAR-SENSORS`). Per-class reference pages are
-   generated from the registry — see [device class reference](device-classes/README.md).
+7. **Hardening and growth.** Remaining: `nfc:apdu` with the payment blocklist,
+   `biometric`, per-host native drivers and Hardware access chrome, and
+   hardware-gated conformance.
 
-Phase 7 is tracked as `DEV-NFC-APDU`, `DEV-BIOMETRIC`,
-`DEV-NATIVE-DRIVERS`, and `DEV-CLASS-RUNBOOK-PROOF` in the **Backlog**
+Phase 7 remaining is tracked as `DEV-NFC-APDU`, `DEV-BIOMETRIC`, and
+`DEV-NATIVE-DRIVERS` in the **Backlog**
 table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md). Hardware-gated conformance for these
 classes carries no software row; it stays in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 

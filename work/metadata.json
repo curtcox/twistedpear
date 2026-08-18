@@ -85,6 +85,12 @@
       "requires": ["APPR-EVALUATE"],
       "verify": "npx vitest run packages/host-core/test/approval-override.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/host-core/src/approval-override.ts",
+        "packages/host-core/test/approval-override.test.ts",
+        "packages/miniapp-runtime/src/consent-record.ts"
+      ],
       "notes": "app-approval-risk-plan.md Phase 3 §4. An unmet requirement is a statement of what could not be verified, never a refusal — a local-first platform that hard-blocks its owner is dishonest, and they will sideload with less information than the dialog had. Proceeding needs an explicit, distinctly-worded action and writes the unmet set into the ConsentRecord. A requirement nobody can override is a central gatekeeper by the back door; one that a single identical tap clears is a formality wearing a control's clothes."
     },
     "APPR-REVIEW-UX": {
@@ -279,6 +285,12 @@
       "requires": ["CAP-EGRESS-OFFER"],
       "verify": "npx vitest run packages/miniapp-runtime/test/egress-budgets.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/src/egress-enforcement.ts",
+        "packages/miniapp-runtime/test/egress-budgets.test.ts",
+        "packages/miniapp-runtime/src/broker.ts"
+      ],
       "notes": "capability-scoping-plan.md Phase 4. maxBytesPerDay in offer constraints enforced at the broker; egress target in the broker audit entry; simulator containment scenarios using ContainmentTracker."
     },
     "CAP-DEVICE-FAILCLOSED": {
@@ -431,6 +443,12 @@
       "requires": ["DEV-SCALAR-SENSORS"],
       "verify": "npx vitest run packages/protocol/test/device-registry.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/protocol/test/device-registry.test.ts",
+        "docs/device-class-runbook.md",
+        "docs/device-io.md"
+      ],
       "notes": "device-io-plan.md phase 7 and docs/device-class-runbook.md. The runbook claims the registry path generalises; walking it end to end for a class that was not in the initial registry is what turns that claim into evidence. Hardware-gated conformance for these classes stays in STATUS-HARDWARE.md."
     },
     "DEV-NATIVE-DRIVERS": {
@@ -1351,6 +1369,12 @@
       "requires": [],
       "verify": "npx vitest run packages/host-core/test/escrow-recovery.test.ts && npm run formal:escrow && npm run formal:recovery",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/host-core/src/escrow-recovery.ts",
+        "packages/host-core/test/escrow-recovery.test.ts",
+        "docs/simulation.md"
+      ],
       "notes": "simulation-plan.md S-C. Escrow and recovery have no shipping host integration; their simulator schedules and formal models are complete for simulator scope and must be revisited once product semantics settle — the models are what changes, not the campaign machinery. Unblocks SIM-L3-COLLUDING."
     },
     "SIM-L3-COLLUDING": {

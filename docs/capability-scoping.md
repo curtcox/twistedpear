@@ -52,6 +52,11 @@ Offers are host-authored. The app can read that an offer exists; it cannot mint,
 widen, or extend one. Chrome that authors offers from natural use is still plan
 work; tests and simulation call `grantEgressOffer`.
 
+`maxBytesPerDay` on an offer is enforced at the broker (`EgressBudgetLedger`,
+rolling 24 hours). Broker audit entries for offer-scoped calls include the
+egress `target`. Containment scenarios score attributability from app, offer,
+and peer.
+
 Open questions decided with this wiring:
 
 - **`share:cas` does not take offers.** A t256 cannot name an arbitrary
@@ -67,4 +72,3 @@ Open questions decided with this wiring:
 ## Not yet enforced at the broker
 
 - Host chrome that authors offers as a byproduct of natural use, plus list/revoke.
-- Per-offer `maxBytesPerDay` enforcement and broker attribution.

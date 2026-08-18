@@ -124,7 +124,8 @@ every table and proves the checker fails.
 ## Implementations
 
 - Production: `stepEscrow` and `stepRecoveryQuorum` in
-  [packages/protocol](../../packages/protocol/)
+  [packages/protocol](../../packages/protocol/); host persistence and designated-set
+  checks in [`FileAuthorityStore`](../../packages/host-core/src/escrow-recovery.ts)
 - Simulator: the same machines under `SimKernel`
   ([SPEC-KERNEL](../spec-kernel/spec.md))
 - The TLA+ models, as the analysis implementations

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-02
+audited: 2026-08-18
 register: software
 counterpart: docs/device-io-plan.md
 -->
@@ -63,7 +63,9 @@ tier, at what rate, and for how long. Plane binding for peer streams is complete
 
 The registry is the only growth mechanism: a class is added by a registry entry plus a
 driver, and generates its own capability ids. No new SDK method or broker namespace is
-needed per class.
+needed per class. Growth classes (`proximity`, `barometer`, `thermometer`, `hygrometer`,
+`thermal`) are ordinary registry rows; unknown ids fail closed
+([`device-registry.test.ts`](../packages/protocol/test/device-registry.test.ts)).
 
 | Layer                                                             | Where                                                                                                                                                                                                                                                                                     |
 | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -43,6 +43,20 @@ describe("ConsentTranscript", () => {
     transcript.append(second);
     expect(transcript.list()).toEqual([first, second]);
   });
+
+  it("records an override action with the unmet set", () => {
+    const record = installReviewConsentRecord({
+      at: 3,
+      token: "c",
+      appId: "forwarder",
+      publisherPublicKey: "pub",
+      capabilities: ["relay:configure"],
+      unmet: ["provenance", "review"],
+      action: "override",
+    });
+    expect(record.action).toBe("override");
+    expect(record.unmet).toEqual(["provenance", "review"]);
+  });
 });
 
 describe("consentAuthorities", () => {

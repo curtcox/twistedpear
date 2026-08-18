@@ -29,6 +29,7 @@ import {
 } from "./running-apps.js";
 import {
   assertEgressAllowed,
+  EgressBudgetLedger,
   EgressDeniedError,
 } from "../egress-enforcement.js";
 import {
@@ -71,6 +72,7 @@ export abstract class MiniappHostLayer1Base {
   protected nextRuntimeId = 0;
   private egressOffers = initialEgressOfferStore();
   private nextEgressOfferId = 0;
+  private readonly egressBudgets = new EgressBudgetLedger();
   readonly consentTranscript: ConsentTranscript;
 
   constructor(protected readonly options: MiniappHostOptions) {
@@ -208,6 +210,7 @@ export abstract class MiniappHostLayer1Base {
     capability: string,
     targetKind: EgressTargetKind,
     targetId: string,
+    bytes = 0,
   ): EgressOffer {
     return assertEgressAllowed({
       offers: this.egressOffers,
@@ -216,6 +219,8 @@ export abstract class MiniappHostLayer1Base {
       targetKind,
       targetId,
       at: this.now(),
+      bytes,
+      ledger: this.egressBudgets,
     });
   }
 

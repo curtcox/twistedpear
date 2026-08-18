@@ -216,6 +216,7 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         "lxmf:send",
         "peer",
         payload.to,
+        new TextEncoder().encode(JSON.stringify(payload)).length,
       );
       return Promise.resolve(this.lxmfService.send(context.appId, payload));
     });

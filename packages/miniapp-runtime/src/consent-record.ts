@@ -40,6 +40,8 @@ export interface ConsentRecord {
   readonly subject: ConsentSubject;
   readonly authorities: ReadonlyArray<ConsentAuthority>;
   readonly token: string;
+  readonly unmet?: ReadonlyArray<string>;
+  readonly action?: "approve" | "override";
 }
 
 const KIND_CAPABILITY: Partial<Record<ConsentKind, string>> = {
@@ -148,6 +150,8 @@ export function installReviewConsentRecord(input: {
   readonly capabilities: ReadonlyArray<string>;
   readonly added?: ReadonlySet<string>;
   readonly confusableWith?: ReadonlyArray<string>;
+  readonly unmet?: ReadonlyArray<string>;
+  readonly action?: "approve" | "override";
 }): ConsentRecord {
   return {
     at: input.at,
@@ -162,5 +166,7 @@ export function installReviewConsentRecord(input: {
       ...(input.added === undefined ? {} : { added: input.added }),
     }),
     token: input.token,
+    ...(input.unmet === undefined ? {} : { unmet: input.unmet }),
+    ...(input.action === undefined ? {} : { action: input.action }),
   };
 }

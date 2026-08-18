@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-02
+audited: 2026-08-18
 register: none
 counterpart: docs/simulation-plan.md
 -->
@@ -60,16 +60,18 @@ No remaining work is known for the stated grant-lifecycle acceptance criteria.
   because no corresponding shipping product path exists yet.
 - Expected outcomes remain assertion-only, and one drift negative test covers each target family.
 
-## R4 — Make escrow/recovery adversarial schedules effective — complete for simulator scope
+## R4 — Make escrow/recovery adversarial schedules effective — complete
 
 - Drop, delay, reorder, duplicate, replay, partition, expiry, below-threshold, and colluding-pair
   schedules affect in-flight messages across LAN, internet, BLE, and LoRa.
 - Transport statistics distinguish requested actions from observed effects.
 - Legal machines remain clean; deliberately defective below-quorum machines record, rerun, and
   shrink typed violations.
-
-Remaining product work is tracked as a scope boundary: escrow and recovery have no shipping host
-integration yet. Their simulator and formal work must be revisited when product semantics settle.
+- Host-owned [`FileAuthorityStore`](../packages/host-core/src/escrow-recovery.ts) persists
+  escrow and recovery-quorum sessions, applies the protocol machines, and refuses a
+  release or recovery that the safety oracles reject. Mini-apps never see the store.
+  Designated authorizer/guardian sets and TTL live in the adapter; the tables did not
+  need to change.
 
 ## R5 — Social/economic adversary models — complete as models; external validation open
 
@@ -133,5 +135,5 @@ real deployments or guarded hardware tests, and document the calibration data an
   remained green, and the conservative completeness floor remained 0.862.
 - **Artifacts:** `npm run sim:report` regenerates the self-contained campaign dashboard and
   reproducer gallery from `conformance/sim-campaign/artifacts/report.json`.
-- **Next queued increment:** L3 — colluding. Ratcheting L3 remains gated on shipping
-  escrow/recovery semantics; simulator-only results are not being relabeled as product evidence.
+- **Next queued increment:** L3 — colluding. Escrow/recovery host integration has
+  shipped (`SIM-ESCROW-SEMANTICS`); ratcheting L3 is `SIM-L3-COLLUDING`.
