@@ -1,5 +1,10 @@
 /** Host-owned outbound media share policy (Sans-IO). */
 
+import {
+  egressOfferPermits,
+  type EgressOffer,
+} from "./egress-offer.js";
+
 export type ShareOfferPhase = "active" | "expired" | "revoked";
 export type ShareTargetKind = "peer" | "group";
 
@@ -71,6 +76,27 @@ export function isShareOfferLive(
   );
 }
 
+/** Media specialization of `EgressOffer`. SPEC-STREAM's guarantee is preserved. */
+export function shareOfferAsEgressOffer(offer: ShareOffer): EgressOffer {
+  return {
+    id: offer.id,
+    appId: offer.appId,
+    capability: "device:stream",
+    targetKind: offer.targetKind,
+    targetId: offer.targetId,
+    displayLabel: offer.displayLabel,
+    constraints: {
+      tierId: offer.tierId,
+      maxRung: offer.maxRung,
+      classId: offer.classId,
+    },
+    grantedAt: offer.grantedAt,
+    phase: offer.phase,
+    expiresAt: offer.expiresAt,
+    revokedAt: offer.revokedAt,
+  };
+}
+
 export function shareOfferPermits(
   offer: ShareOffer | undefined,
   input: {
@@ -81,11 +107,15 @@ export function shareOfferPermits(
     readonly at: number;
   },
 ): boolean {
-  return (
-    isShareOfferLive(offer, input.at) &&
-    offer?.appId === input.appId &&
-    offer.targetId === input.targetId &&
-    offer.classId === input.classId &&
-    offer.tierId === input.tierId
-  );
+  if (offer === undefined) return false;
+  return egressOfferPermits(shareOfferAsEgressOffer(offer), {
+    appId: input.appId,
+    capability: "device:stream",
+    targetKind: offer.targetKind,
+    targetId: input.targetId,
+    at: input.at,
+    tierId: input.tierId,
+    maxRung: offer.maxRung,
+    classId: input.classId,
+  });
 }

@@ -5,6 +5,7 @@ import {
   degradationLadderFor,
   deviceClassById,
   isShareOfferLive,
+  shareOfferPermits,
   type ShareOffer,
   type StreamDemand,
 } from "@twistedpear/protocol";
@@ -198,16 +199,27 @@ export class DeviceManagerLayer1 extends DeviceManagerLayer1Base {
     live: LiveSession,
     peer: DevicePeerHandle,
   ): ShareOffer {
-    const shareOffer = [...this.shareOffers.values()].find(
-      (offer) =>
+    const shareOffer = [...this.shareOffers.values()].find((offer) => {
+      if (
+        shareOfferPermits(offer, {
+          appId,
+          targetId: peer,
+          classId: live.state.classId,
+          tierId: live.state.tierId,
+          at: this.now(),
+        })
+      ) {
+        return true;
+      }
+      return (
         offer.appId === appId &&
-        ((offer.targetKind === "peer" && offer.targetId === peer) ||
-          (offer.targetKind === "group" &&
-            this.options.shareOfferTargetsPeer?.(offer, peer) === true)) &&
+        offer.targetKind === "group" &&
         offer.classId === live.state.classId &&
         offer.tierId === live.state.tierId &&
-        isShareOfferLive(offer, this.now()),
-    );
+        isShareOfferLive(offer, this.now()) &&
+        this.options.shareOfferTargetsPeer?.(offer, peer) === true
+      );
+    });
     if (shareOffer === undefined) {
       throw new DeviceError(
         "DEVICE_DENIED",

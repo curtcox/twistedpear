@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   initialShareOfferStore,
   isShareOfferLive,
+  shareOfferAsEgressOffer,
   shareOfferPermits,
   stepShareOfferStore,
 } from "../src/index.js";
@@ -35,6 +36,10 @@ describe("outbound share offer store", () => {
         at: 50,
       }),
     ).toBe(true);
+    expect(shareOfferAsEgressOffer(offer!).capability).toBe("device:stream");
+    expect(shareOfferAsEgressOffer(offer!).constraints.classId).toBe(
+      "microphone",
+    );
     store = stepShareOfferStore(store, {
       kind: "share/ttl",
       id: "offer-1",

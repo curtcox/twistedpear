@@ -131,6 +131,16 @@ export class ProductionCapabilityAdapter {
   ): Promise<ProductionCapabilityObservation> {
     this.nowValue = at;
     const operation = operationFor(capability);
+    if (capability === "lxmf:send") {
+      const to = (operation.payload as { to?: string } | undefined)?.to ?? "peer";
+      this.host.grantEgressOffer({
+        appId: this.appId,
+        capability: "lxmf:send",
+        targetKind: "peer",
+        targetId: to,
+        ttlMs: 60_000,
+      });
+    }
     const manifest: LaunchManifest = {
       name: this.appId,
       version: "1.0.0",

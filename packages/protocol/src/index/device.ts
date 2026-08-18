@@ -107,6 +107,7 @@ export {
 export {
   initialShareOfferStore,
   isShareOfferLive,
+  shareOfferAsEgressOffer,
   shareOfferPermits,
   stepShareOfferStore,
   type ShareOffer,

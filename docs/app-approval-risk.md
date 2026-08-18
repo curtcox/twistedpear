@@ -48,5 +48,24 @@ measurable after an entry expires. A new package hash starts its own clock.
 Publisher trust is a degree, not a boolean. `TrustStore` still records how a key
 was acquired (`qr` / `manual` → `direct`, `paste` → `imported`, `introduced` →
 `introduced`); `isTrusted(key, minimum?)` compares ranks so a pasted lure can
-satisfy `imported` and cannot satisfy `direct`. Review UX and evidence gates are
-still plan work.
+satisfy `imported` and cannot satisfy `direct`.
+
+`evaluateApproval` is the Sans-IO decision: the host gathers evidence, the
+function returns the tier, the evidence that tier requires, and which of it is
+unmet. Empty `unmet` is ordinary approval. `overridable` is always true — an
+unmet requirement is "could not verify", never a refusal. Chrome that presents
+the unmet set is still plan work.
+
+| Tier        | Evidence required                                      | Provenance met by                         | Review met by      |
+| ----------- | ------------------------------------------------------ | ----------------------------------------- | ------------------ |
+| `benign`    | none                                                   | —                                         | —                  |
+| `elevated`  | none (today's capability dialog is host chrome)        | —                                         | —                  |
+| `sensitive` | provenance, age (T₁), stability (T₂), review           | any trust degree, **or** ≥1 attestation   | ≥1 attestation     |
+| `critical`  | provenance, age (T₃), stability (T₄), review           | `direct` trust                            | ≥ K attestations   |
+
+T₁…T₄ and K are arguments (`ApprovalThresholds`), not defaults. They remain a
+product call informed by the sim campaign. The executable table is
+`APPROVAL_REQUIREMENTS_BY_TIER`; the Layer-3 covering set is
+[`conformance/vectors/approval.json`](../conformance/vectors/approval.json)
+(`npm run vectors:generate`). There is no TLA+ model — a model becomes
+necessary only if the override path grows states.

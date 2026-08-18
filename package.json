@@ -310,7 +310,7 @@
     "generate:event-types": "node scripts/generate-event-types.mjs",
     "generate:device-registry": "node scripts/generate-device-registry.mjs && node scripts/generate-device-class-pages.mjs",
     "generate:capability-risk": "node scripts/generate-capability-risk.mjs",
-    "vectors:generate": "npm run build --workspace=@twistedpear/protocol && python3 conformance/vectors/generate.py && node scripts/vectors-generate-grant.mjs && node scripts/vectors-generate-device.mjs && node scripts/vectors-generate-egress-offer.mjs",
+    "vectors:generate": "npm run build --workspace=@twistedpear/protocol && python3 conformance/vectors/generate.py && node scripts/vectors-generate-grant.mjs && node scripts/vectors-generate-device.mjs && node scripts/vectors-generate-egress-offer.mjs && node scripts/vectors-generate-approval.mjs",
     "formal:grant": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs grant",
     "formal:escrow": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs escrow",
     "formal:recovery": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs recovery",

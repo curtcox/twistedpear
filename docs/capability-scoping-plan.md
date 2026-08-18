@@ -146,11 +146,14 @@ conformance gap, and it is the cheapest available reduction in standing authorit
 
 ### Phase 2 — the egress offer (host API 0.14.0)
 
-`CAP-EGRESS-OFFER` landed in [capability scoping](capability-scoping.md). Remaining Phase 2 work:
+`CAP-EGRESS-OFFER` landed in [capability scoping](capability-scoping.md).
+`CAP-EGRESS-WIRING` landed: `assertEgressAllowed` on `lxmf:send` and
+`link:probe`; `ShareOffer` is `shareOfferAsEgressOffer`. `share:cas` stays
+host-fixed (open question 1); announce stays own-namespace (open question 3).
+Remaining Phase 2 work:
 
 | ID                  | Type    | Requires           | Work                                                                                                                                                                                           |
 | ------------------- | ------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CAP-EGRESS-WIRING` | feature | `CAP-EGRESS-OFFER` | `assertEgressAllowed` in each scoped service; `ShareOffer` re-expressed on the general machine with SPEC-STREAM's guarantee preserved                                                          |
 | `CAP-EGRESS-CHROME` | feature | `CAP-EGRESS-OFFER` | Desktop, mobile, and web chrome that authors offers as a byproduct of natural use (§3); offer list and revoke in host settings                                                                 |
 
 ### Phase 3 — scoped declarations (package format v2)
@@ -202,14 +205,14 @@ intent, not a side effect.
 
 ## 8. Open questions
 
-1. **Does `share:cas` need offers, or is content-addressing sufficient?** A t256 id is a
-   hash, so `get` leaks which content an app is interested in but cannot name an arbitrary
-   recipient. It may belong in the host-fixed class. Decide before `CAP-EGRESS-WIRING`.
+1. **Does `share:cas` need offers, or is content-addressing sufficient?** Decided
+   with `CAP-EGRESS-WIRING`: content-addressing is sufficient. A t256 cannot name
+   an arbitrary recipient; `share:cas` stays host-fixed.
 2. **What is the default TTL per consent class** (Phase 1)? `sensitive` should plainly be
    session- or hours-scoped; `low` may reasonably be months. This needs a product call, not
    an engineering one.
-3. **Does `announce:subscribe` need offers or just own-namespace enforcement?** Phase 0
-   gives it own-namespace enforcement, which may be the whole answer — in which case it
-   leaves the scoped set and Phase 2 shrinks.
+3. **Does `announce:subscribe` need offers or just own-namespace enforcement?** Decided
+   with `CAP-EGRESS-WIRING`: own-namespace is the whole answer. Announce left the
+   offer-scoped set.
 4. **Is there a migration path for already-installed apps** holding unscoped grants when
    Phase 3's policy turns on, or do they re-prompt on next launch?

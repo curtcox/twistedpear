@@ -107,6 +107,13 @@ describe("broker services", () => {
       "lxmf:send",
       "lxmf:receive",
     ]);
+    host.grantEgressOffer({
+      appId: "app-a",
+      capability: "lxmf:send",
+      targetKind: "peer",
+      targetId: "app-b",
+      ttlMs: 60_000,
+    });
 
     const sent = await host.dispatchRaw(
       {

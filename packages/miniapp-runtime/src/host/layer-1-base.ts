@@ -22,6 +22,17 @@ import {
   findAppById,
   snapshotFromApp,
 } from "./running-apps.js";
+import {
+  assertEgressAllowed,
+  EgressDeniedError,
+} from "../egress-enforcement.js";
+import {
+  initialEgressOfferStore,
+  stepEgressOfferStore,
+  type EgressOffer,
+  type EgressOfferConstraints,
+  type EgressTargetKind,
+} from "@twistedpear/protocol";
 
 export abstract class MiniappHostLayer1Base {
   protected abstract now(): number;
@@ -53,6 +64,8 @@ export abstract class MiniappHostLayer1Base {
   protected readonly aiStreams = new Map<string, AiStreamSession>();
   protected nextAiStreamId = 0;
   protected nextRuntimeId = 0;
+  private egressOffers = initialEgressOfferStore();
+  private nextEgressOfferId = 0;
 
   constructor(protected readonly options: MiniappHostOptions) {
     const wrapped = this.withForegroundConfirmations(options);
@@ -148,6 +161,54 @@ export abstract class MiniappHostLayer1Base {
         ttlMs: grantTtlMsForCapabilities(requestedGrants),
       }),
     );
+  }
+
+  grantEgressOffer(input: {
+    readonly appId: string;
+    readonly capability: string;
+    readonly targetKind: EgressTargetKind;
+    readonly targetId: string;
+    readonly displayLabel?: string;
+    readonly ttlMs: number;
+    readonly constraints?: EgressOfferConstraints;
+  }): EgressOffer {
+    const grantedAt = this.now();
+    const id = `egress-${++this.nextEgressOfferId}`;
+    this.egressOffers = stepEgressOfferStore(this.egressOffers, {
+      kind: "egress/grant",
+      offer: {
+        id,
+        appId: input.appId,
+        capability: input.capability,
+        targetKind: input.targetKind,
+        targetId: input.targetId,
+        displayLabel: input.displayLabel ?? input.targetId,
+        constraints: input.constraints ?? {},
+        grantedAt,
+      },
+      ttlMs: input.ttlMs,
+    });
+    const stored = this.egressOffers.get(id);
+    if (stored === undefined) {
+      throw new EgressDeniedError("Failed to store egress offer");
+    }
+    return stored;
+  }
+
+  protected assertEgressAllowed(
+    appId: string,
+    capability: string,
+    targetKind: EgressTargetKind,
+    targetId: string,
+  ): EgressOffer {
+    return assertEgressAllowed({
+      offers: this.egressOffers,
+      appId,
+      capability,
+      targetKind,
+      targetId,
+      at: this.now(),
+    });
   }
 
   private async closeSurfacesForRevokedCapability(

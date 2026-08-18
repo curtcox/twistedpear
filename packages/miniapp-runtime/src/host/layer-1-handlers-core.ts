@@ -3,6 +3,7 @@ import {
   boundAnnounceAppData,
   resolveAnnounceNamespace,
 } from "../services/announce.js";
+import type { LxmfSendRequest } from "../services/lxmf.js";
 import { diffWidgetTrees, type WidgetPatch } from "../ui/diff.js";
 import { validateWidgetTree } from "../ui/validate.js";
 import type { WidgetTree } from "../ui/schema.js";
@@ -208,11 +209,16 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
   }
 
   private registerLxmfAnnounceHandlers(): void {
-    this.broker.register("lxmf", "send", "lxmf:send", (request, context) =>
-      Promise.resolve(
-        this.lxmfService.send(context.appId, request.payload as never),
-      ),
-    );
+    this.broker.register("lxmf", "send", "lxmf:send", (request, context) => {
+      const payload = request.payload as LxmfSendRequest;
+      this.assertEgressAllowed(
+        context.appId,
+        "lxmf:send",
+        "peer",
+        payload.to,
+      );
+      return Promise.resolve(this.lxmfService.send(context.appId, payload));
+    });
     this.broker.register(
       "lxmf",
       "receive",

@@ -15,6 +15,8 @@ export interface EgressOfferConstraints {
   readonly tierId?: string;
   readonly maxRung?: string;
   readonly maxBytesPerDay?: number;
+  /** Media specialization: device class the offer is bound to. */
+  readonly classId?: string;
 }
 
 export interface EgressOfferFields {
@@ -188,6 +190,7 @@ export function egressOfferPermits(
     readonly at: number;
     readonly tierId?: string;
     readonly maxRung?: string;
+    readonly classId?: string;
   },
 ): boolean {
   if (!isEgressOfferLive(offer, input.at)) return false;
@@ -208,6 +211,12 @@ export function egressOfferPermits(
   if (
     offer.constraints.maxRung !== undefined &&
     offer.constraints.maxRung !== input.maxRung
+  ) {
+    return false;
+  }
+  if (
+    offer.constraints.classId !== undefined &&
+    offer.constraints.classId !== input.classId
   ) {
     return false;
   }

@@ -372,10 +372,22 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
       "link:probe",
       async (request, context) => {
         const payload = request.payload as {
-          peer: PeerHandle;
+          peer: PeerHandle | string;
           options?: LinkProbeOptions;
         };
-        return links().probe(context.appId, payload.peer, payload.options);
+        const targetId =
+          typeof payload.peer === "string" ? payload.peer : payload.peer.id;
+        this.assertEgressAllowed(
+          context.appId,
+          "link:probe",
+          "peer",
+          targetId,
+        );
+        return links().probe(
+          context.appId,
+          payload.peer as PeerHandle,
+          payload.options,
+        );
       },
     );
   }

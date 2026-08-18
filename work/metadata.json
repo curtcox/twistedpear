@@ -27,6 +27,12 @@
       "requires": ["APPR-TIER", "APPR-FIRST-SEEN", "APPR-TRUST-DEGREE"],
       "verify": "npx vitest run packages/protocol/test/approval-evaluate.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/protocol/src/approval-evaluate.ts",
+        "packages/protocol/test/approval-evaluate.test.ts",
+        "conformance/vectors/approval.json"
+      ],
       "notes": "app-approval-risk-plan.md Phase 3 §6. Sans-IO in packages/protocol: the host gathers evidence, the function decides. Earns an executable table plus Layer-3 vectors in conformance/vectors/approval.json, but deliberately not a TLA+ model — a model becomes necessary only if the override path grows states, which is a design smell worth resisting. Thresholds T1..T4 and K are product calls informed by the sim campaign (plan open question 3); this item states where they plug in."
     },
     "APPR-FIRST-SEEN": {
@@ -284,6 +290,12 @@
       "requires": ["CAP-EGRESS-OFFER"],
       "verify": "npx vitest run packages/miniapp-runtime/test/egress-enforcement.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/src/egress-enforcement.ts",
+        "packages/miniapp-runtime/test/egress-enforcement.test.ts",
+        "packages/protocol/src/device-share.ts"
+      ],
       "notes": "capability-scoping-plan.md Phase 2. Each scoped service checks the target right after assertCapabilityAllowed; ShareOffer is re-expressed on the general machine with SPEC-STREAM's guarantee preserved. Plan open question 1 (does share:cas need offers, or is content-addressing sufficient?) must be decided before this lands."
     },
     "CAP-FREENET-READ": {

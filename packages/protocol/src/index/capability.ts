@@ -14,6 +14,16 @@ export {
   type AppRiskTierResult,
 } from "../approval-tier.js";
 export {
+  APPROVAL_REQUIREMENTS_BY_TIER,
+  evaluateApproval,
+  type ApprovalDecision,
+  type ApprovalEvidence,
+  type ApprovalRequest,
+  type ApprovalRequirement,
+  type ApprovalThresholds,
+  type PublisherTrustDegree,
+} from "../approval-evaluate.js";
+export {
   egressOfferMachine,
   egressOfferPermits,
   initialEgressOfferState,

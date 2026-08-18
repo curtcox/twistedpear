@@ -12,8 +12,8 @@ counterpart: docs/capability-scoping-plan.md
 wins.
 
 The audit's Phase 0 defects and the grant TTL gap are closed. Destination-scoped
-authority exists as a Sans-IO offer machine; it is not yet checked at each
-destination-scoped service.
+authority is a Sans-IO offer machine, and `assertEgressAllowed` runs in each
+service that still names a destination.
 
 ## What is closed
 
@@ -39,16 +39,29 @@ lifecycle `active | expired | revoked`. Target kinds are
 
 The machine lives in [`egress-offer.ts`](../packages/protocol/src/egress-offer.ts) and
 is cross-checked against its TLA+ twin, checked traces, and Layer-3 vector
-(`npm run formal:egress-offer`). `egressOfferPermits` is the permit function services
-will call. `ShareOffer` still stands as the media specialization until wiring lands.
+(`npm run formal:egress-offer`). `assertEgressAllowed` is what `lxmf:send` and
+`link:probe` call after the capability check. `ShareOffer` is the media
+specialization: `shareOfferAsEgressOffer` plus `egressOfferPermits`, so
+SPEC-STREAM's guarantee holds on the general machine.
 
 Offers are host-authored. The app can read that an offer exists; it cannot mint,
-widen, or extend one.
+widen, or extend one. Chrome that authors offers from natural use is still plan
+work; tests and simulation call `grantEgressOffer`.
+
+Open questions decided with this wiring:
+
+- **`share:cas` does not take offers.** A t256 cannot name an arbitrary
+  recipient. It stays in the host-fixed class.
+- **`announce:publish` / `announce:subscribe` do not take offers.** Own-namespace
+  enforcement is the whole destination check.
+- **`peer:connect` does not take a second offer.** Host chrome already authors
+  the destination.
+- **`freenet:contract` does not take offers.** `get` is the read allowlist;
+  `put`/`update` keep per-operation confirmation, and `put` cannot name the key
+  in advance.
 
 ## Not yet enforced at the broker
 
-- `assertEgressAllowed` in each destination-scoped service, and re-expressing
-  `ShareOffer` on this machine.
 - Host chrome that authors offers as a byproduct of natural use, plus list/revoke.
 - Package format v2 scoped declarations.
 - Per-offer `maxBytesPerDay` enforcement and broker attribution.

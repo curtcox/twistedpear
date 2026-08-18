@@ -1,0 +1,450 @@
+{
+  "schema": "twistedpear.decision-v1",
+  "machine": "approval-evaluate",
+  "generatedBy": "scripts/vectors-generate-approval.mjs",
+  "thresholds": {
+    "sensitiveMinObservedMs": 7,
+    "sensitiveMinStableMs": 3,
+    "criticalMinObservedMs": 30,
+    "criticalMinStableMs": 14,
+    "criticalMinAttestations": 2
+  },
+  "cells": [
+    {
+      "id": "benign-empty",
+      "request": {
+        "capabilities": []
+      },
+      "evidence": {
+        "publisherTrust": null,
+        "observedAgeMs": null,
+        "hashAgeMs": null,
+        "attestationCount": 0
+      },
+      "expected": {
+        "tier": "benign",
+        "required": [],
+        "unmet": [],
+        "overridable": true
+      }
+    },
+    {
+      "id": "benign-storage",
+      "request": {
+        "capabilities": [
+          "storage:kv",
+          "presence"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": null,
+        "observedAgeMs": null,
+        "hashAgeMs": null,
+        "attestationCount": 0
+      },
+      "expected": {
+        "tier": "benign",
+        "required": [],
+        "unmet": [],
+        "overridable": true
+      }
+    },
+    {
+      "id": "elevated-identity",
+      "request": {
+        "capabilities": [
+          "identity"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": null,
+        "observedAgeMs": null,
+        "hashAgeMs": null,
+        "attestationCount": 0
+      },
+      "expected": {
+        "tier": "elevated",
+        "required": [],
+        "unmet": [],
+        "overridable": true
+      }
+    },
+    {
+      "id": "sensitive-none",
+      "request": {
+        "capabilities": [
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": null,
+        "observedAgeMs": null,
+        "hashAgeMs": null,
+        "attestationCount": 0
+      },
+      "expected": {
+        "tier": "sensitive",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "overridable": true
+      }
+    },
+    {
+      "id": "sensitive-complete-imported",
+      "request": {
+        "capabilities": [
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "imported",
+        "observedAgeMs": 7,
+        "hashAgeMs": 3,
+        "attestationCount": 1
+      },
+      "expected": {
+        "tier": "sensitive",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [],
+        "overridable": true
+      }
+    },
+    {
+      "id": "sensitive-provenance-via-attestation",
+      "request": {
+        "capabilities": [
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": null,
+        "observedAgeMs": 7,
+        "hashAgeMs": 3,
+        "attestationCount": 1
+      },
+      "expected": {
+        "tier": "sensitive",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [],
+        "overridable": true
+      }
+    },
+    {
+      "id": "sensitive-missing-review",
+      "request": {
+        "capabilities": [
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "imported",
+        "observedAgeMs": 7,
+        "hashAgeMs": 3,
+        "attestationCount": 0
+      },
+      "expected": {
+        "tier": "sensitive",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "review"
+        ],
+        "overridable": true
+      }
+    },
+    {
+      "id": "sensitive-missing-age",
+      "request": {
+        "capabilities": [
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "imported",
+        "observedAgeMs": 6,
+        "hashAgeMs": 3,
+        "attestationCount": 1
+      },
+      "expected": {
+        "tier": "sensitive",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "age"
+        ],
+        "overridable": true
+      }
+    },
+    {
+      "id": "sensitive-missing-stability",
+      "request": {
+        "capabilities": [
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "imported",
+        "observedAgeMs": 7,
+        "hashAgeMs": 2,
+        "attestationCount": 1
+      },
+      "expected": {
+        "tier": "sensitive",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "stability"
+        ],
+        "overridable": true
+      }
+    },
+    {
+      "id": "sensitive-introduced-counts",
+      "request": {
+        "capabilities": [
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "introduced",
+        "observedAgeMs": 7,
+        "hashAgeMs": 3,
+        "attestationCount": 1
+      },
+      "expected": {
+        "tier": "sensitive",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [],
+        "overridable": true
+      }
+    },
+    {
+      "id": "critical-none",
+      "request": {
+        "capabilities": [
+          "relay:configure"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": null,
+        "observedAgeMs": null,
+        "hashAgeMs": null,
+        "attestationCount": 0
+      },
+      "expected": {
+        "tier": "critical",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "overridable": true
+      }
+    },
+    {
+      "id": "critical-imported-not-direct",
+      "request": {
+        "capabilities": [
+          "relay:configure"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "imported",
+        "observedAgeMs": 30,
+        "hashAgeMs": 14,
+        "attestationCount": 2
+      },
+      "expected": {
+        "tier": "critical",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "provenance"
+        ],
+        "overridable": true
+      }
+    },
+    {
+      "id": "critical-complete",
+      "request": {
+        "capabilities": [
+          "relay:configure"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "direct",
+        "observedAgeMs": 30,
+        "hashAgeMs": 14,
+        "attestationCount": 2
+      },
+      "expected": {
+        "tier": "critical",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [],
+        "overridable": true
+      }
+    },
+    {
+      "id": "critical-short-k",
+      "request": {
+        "capabilities": [
+          "relay:configure"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "direct",
+        "observedAgeMs": 30,
+        "hashAgeMs": 14,
+        "attestationCount": 1
+      },
+      "expected": {
+        "tier": "critical",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "review"
+        ],
+        "overridable": true
+      }
+    },
+    {
+      "id": "critical-below-t3-t4",
+      "request": {
+        "capabilities": [
+          "relay:configure"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": "direct",
+        "observedAgeMs": 7,
+        "hashAgeMs": 3,
+        "attestationCount": 2
+      },
+      "expected": {
+        "tier": "critical",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "age",
+          "stability"
+        ],
+        "overridable": true
+      }
+    },
+    {
+      "id": "offer-bound-messenger-elevated",
+      "request": {
+        "capabilities": [
+          "lxmf:send"
+        ],
+        "offerBound": [
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": null,
+        "observedAgeMs": null,
+        "hashAgeMs": null,
+        "attestationCount": 0
+      },
+      "expected": {
+        "tier": "elevated",
+        "required": [],
+        "unmet": [],
+        "overridable": true
+      }
+    },
+    {
+      "id": "wiretap-promoted-critical",
+      "request": {
+        "capabilities": [
+          "device:microphone:pcm",
+          "lxmf:send"
+        ]
+      },
+      "evidence": {
+        "publisherTrust": null,
+        "observedAgeMs": null,
+        "hashAgeMs": null,
+        "attestationCount": 0
+      },
+      "expected": {
+        "tier": "critical",
+        "required": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "unmet": [
+          "provenance",
+          "age",
+          "stability",
+          "review"
+        ],
+        "overridable": true
+      }
+    }
+  ]
+}

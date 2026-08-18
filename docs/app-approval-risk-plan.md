@@ -282,27 +282,10 @@ can reach `imported`, and cannot reach `direct`.
 
 ## 6. Where the decision lives
 
-One pure function, sans-IO, in `packages/protocol` per
-[sansio.md](sansio.md) — the host gathers evidence, the function decides:
-
-```ts
-function evaluateApproval(
-  request: ApprovalRequest,
-  evidence: ApprovalEvidence,
-): {
-  readonly tier: RiskTier;
-  readonly required: ReadonlyArray<Requirement>;
-  readonly unmet: ReadonlyArray<Requirement>; // empty ⇒ ordinary approval
-  readonly overridable: boolean;
-};
-```
-
-**Formal cost, stated up front rather than discovered in review.** This is a decision
-function, not a state machine: it earns an executable table plus Layer-3 vectors
-(`conformance/vectors/approval.json`), cross-checked the way SPEC-CAP's are, but **not** a
-TLA+ model. A model becomes necessary only if the override path grows states — a design
-smell worth resisting. `evaluateApproval` returns requirements; nothing in it performs I/O,
-renders, or decides for the user.
+`APPR-EVALUATE` landed in [app approval risk](app-approval-risk.md):
+`evaluateApproval` in `packages/protocol`, the requirements table, and
+`conformance/vectors/approval.json`. Thresholds T₁…T₄ and K remain host-supplied
+arguments. Remaining Phase 3 work is the override chrome.
 
 ## 7. Sequencing
 
@@ -345,10 +328,12 @@ risk class and does not auto-activate.
 
 ### Phase 3 — the evaluator and the gates
 
-| ID                 | Type    | Requires                                            | Work                                                                                     |
-| ------------------ | ------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `APPR-EVALUATE`    | feature | `APPR-TIER`, `APPR-FIRST-SEEN`, `APPR-TRUST-DEGREE` | §6 `evaluateApproval` + executable table + Layer-3 vectors                               |
-| `APPR-OVERRIDE-UX` | feature | `APPR-EVALUATE`                                     | §4 unmet-requirement presentation and the distinctly-worded override; unmet set recorded |
+`APPR-EVALUATE` is executed: `evaluateApproval` plus the requirements table and
+Layer-3 vector. Remaining Phase 3 work:
+
+| ID                 | Type    | Requires         | Work                                                                                     |
+| ------------------ | ------- | ---------------- | ---------------------------------------------------------------------------------------- |
+| `APPR-OVERRIDE-UX` | feature | `APPR-EVALUATE`  | §4 unmet-requirement presentation and the distinctly-worded override; unmet set recorded |
 
 ### Phase 4 — attestations
 
