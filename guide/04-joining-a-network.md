@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-18
 register: none
 -->
 
@@ -28,9 +28,9 @@ network — including everyone else connected to it.
 
 ![The TCP client interface configured and connected](/guide/images/04-tcp-connected.png)
 
-**Screenshot 4.2 — A connected TCP interface.** The TCP row expanded with host and port
-filled in, a green "connected" pill, and a line reading "Link up · 41 announces seen".
-Below, the _Announce browser_ has populated with several peer entries.
+**Screenshot 4.2 — A connected TCP interface.** Settings → Relay & Interfaces with TCP
+and Auto online. Each row follows the live host format: kind, online/offline, direction,
+bitrate, and byte counters.
 
 To start without operating a node, choose **Join community network**. The host tries the
 bundled, redundant profile of community-operated Reticulum TCP transports. Joining is

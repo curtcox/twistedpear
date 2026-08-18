@@ -20,19 +20,22 @@ Concurrent mini-apps have shipped (`MINIAPP-CONCURRENT`): `MiniappHost` holds a 
 instance map, broker traffic and budgets are per app, and each shell has a switcher. A
 brokered app-to-app channel has shipped (`MINIAPP-APP-TO-APP`): both sides grant a
 destination-named `apps:channel`, and payloads copy through the host. Shared storage is
-still withheld. The remaining rows are what those recoveries make worth attempting.
+still withheld. `MLC-LIFECYCLE-EVENTS`, `MLC-BACKGROUND-ANDROID`, and
+`MLC-SCHEDULED-WAKE` have shipped. The remaining rows are `os`.
 
 ## Sequencing
 
 `MLC-LIFECYCLE-EVENTS` shipped as `MINIAPP-LIFECYCLE-EVENTS`: `host.setCheckpoint` /
-`host.onResume`, with a 50 ms will-suspend budget that kills on overrun. Current
-behaviour is in [mobile-lifecycle.md](mobile-lifecycle.md). The remaining candidates
-are tracked as `MINIAPP-BACKGROUND-ANDROID` and `MINIAPP-SCHEDULED-WAKE` in the
-**Backlog** table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md).
+`host.onResume`, with a 50 ms will-suspend budget that kills on overrun.
+`MLC-BACKGROUND-ANDROID` shipped as `MINIAPP-BACKGROUND-ANDROID`: a rationed
+`runtime:background` grant that keeps the sandbox running inside the Android
+foreground service. `MLC-SCHEDULED-WAKE` shipped as `MINIAPP-SCHEDULED-WAKE`:
+`runtime:wake` / `host.requestWake` with a per-host slot limit. Current
+behaviour is in [mobile-lifecycle.md](mobile-lifecycle.md).
 
 1. ~~`MLC-LIFECYCLE-EVENTS`~~ — shipped.
-2. `MLC-BACKGROUND-ANDROID` and `MLC-SCHEDULED-WAKE` — budgeted execution when the user is
-   elsewhere. Last, because both are rationing problems before they are API problems.
+2. ~~`MLC-BACKGROUND-ANDROID`~~ — shipped.
+3. ~~`MLC-SCHEDULED-WAKE`~~ — shipped.
 
 ## Candidates 2 and 3 — background and scheduled execution
 

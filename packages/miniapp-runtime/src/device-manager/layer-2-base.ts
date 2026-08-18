@@ -72,7 +72,7 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
     const session = this.requireLiveSession(appId, handle);
     this.enforceTtl(session);
     const live = this.requireActiveLive(handle);
-    this.assertCommandMatchesSession(live.state.classId, command);
+    this.assertCommandMatchesSession(live, command);
     const normalized = this.normalizeActuatorCommand(command);
     await this.confirmNfcCommandIfNeeded(
       appId,
@@ -603,7 +603,7 @@ export abstract class DeviceManagerLayer2Base extends DeviceManagerLayer1 {
   ): DeviceSample;
 
   protected abstract assertCommandMatchesSession(
-    classId: string,
+    live: LiveSession,
     command: DeviceCommand,
   ): void;
 

@@ -64,3 +64,25 @@ export function onResume(handler: ResumeHandler): void {
 
   host.onResume(handler);
 }
+
+export interface WakeHandle {
+  readonly intervalMs: number;
+  readonly budgetMs: number;
+  readonly nextAt: number;
+}
+
+/**
+ * Ask the host to wake this app periodically for bounded work. Rationed per
+ * host, not per app — a phone cannot give every installed app a timer.
+ */
+export async function requestWake(
+  intervalMs: number,
+  budgetMs = 1_000,
+): Promise<WakeHandle> {
+  return (await callHost(
+    "host",
+    "requestWake",
+    { intervalMs, budgetMs },
+    "runtime:wake",
+  )) as WakeHandle;
+}

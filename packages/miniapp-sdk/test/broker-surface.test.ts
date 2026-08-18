@@ -75,6 +75,14 @@ const cases: ReadonlyArray<SurfaceCase> = [
     expected: { platform: "test" },
   },
   {
+    label: "host.requestWake",
+    call: () => host.requestWake(900_000, 1_000),
+    namespace: "host",
+    method: "requestWake",
+    capability: "runtime:wake",
+    payload: { intervalMs: 900_000, budgetMs: 1_000 },
+  },
+  {
     label: "identity.destinationHash",
     call: () => identity.destinationHash(),
     namespace: "identity",

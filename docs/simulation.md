@@ -116,8 +116,11 @@ real deployments or guarded hardware tests, and document the calibration data an
   evidence is retained in `conformance/python-interop-result.json`.
 - A fixed 400-scenario production-backed corpus runs on Linux and macOS; a dependent CI job compares
   the serialized reports byte-for-byte.
-- The fixed corpus is byte-identical on the macOS host and a Linux Node 22 container with SHA-256
-  `fa95084a8ca4fe5a985cbddf437262f1971604e3ec0ea2082a74b5f023ba0288`.
+- The fixed corpus was byte-identical on the macOS host and a Linux Node 22 container
+  at commit `13b4b076` with SHA-256
+  `fa95084a8ca4fe5a985cbddf437262f1971604e3ec0ea2082a74b5f023ba0288`. Host API 0.14.0
+  moved the macOS baseline to
+  `ace6f7ef31de84e85d5d242141565e0ebd63cbd0ca1a210fcd9b9ca6c7788f65`.
 - Hosted Linux and macOS replay jobs and their dependent byte-comparison job passed at commit
   `13b4b076`.
 - `conformance/sim-calibration/` now defines a versioned trace schema, pre-registered sample and
@@ -128,12 +131,15 @@ real deployments or guarded hardware tests, and document the calibration data an
 
 ## Abuse-resistance loop status
 
-- **Held rung:** L2 — authored.
-- **Turn completed 2026-07-16:** widened the campaign seed range from 1–10 to 1–20 without
-  changing transport fidelity, adversary powers, or the coverage frame. The 4,000-scenario run
-  found 310 canaries and zero genuine findings; the deterministic rerun and containment baseline
-  remained green, and the conservative completeness floor remained 0.862.
+- **Held rung:** L3 — colluding.
+- **Turn completed 2026-08-18:** raised the adversary-power dial to colluding-pair
+  and compromised-host schedules after `SIM-ESCROW-SEMANTICS` shipped host-owned
+  escrow/recovery. Transport fidelity, coverage frame, and seed range were left
+  unchanged. The 4,000-scenario run found 298 canaries and zero genuine findings;
+  the conservative completeness floor remained 0.862. The fixed-replay baseline
+  moved with host API 0.14.0 (`runtime:background` / `runtime:wake`) to SHA-256
+  `ace6f7ef31de84e85d5d242141565e0ebd63cbd0ca1a210fcd9b9ca6c7788f65`.
 - **Artifacts:** `npm run sim:report` regenerates the self-contained campaign dashboard and
   reproducer gallery from `conformance/sim-campaign/artifacts/report.json`.
-- **Next queued increment:** L3 — colluding. Escrow/recovery host integration has
-  shipped (`SIM-ESCROW-SEMANTICS`); ratcheting L3 is `SIM-L3-COLLUDING`.
+- **Next queued increment:** L4 — calibrated. Gate: accepted BLE/LoRa hardware
+  traces. Tracked as H4 in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).

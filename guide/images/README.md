@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-18
 register: none
 -->
 
@@ -82,23 +82,21 @@ screenshots are still missing.
 
 ## Current capture status
 
-The deterministic desktop/browser pass supplies **19 of 44** files. Re-run it with
-`npm run capture:reader-guide-ui`. It uses the real desktop renderer and built web host,
-with throwaway documentation identities and no credentials.
+The deterministic desktop/browser pass supplies **28 of 44** files. Re-run it with
+`npm run capture:reader-guide-ui`. It uses the real desktop renderer, shipped example
+apps, Handbook probes, and authored diagrams, with throwaway documentation identities
+and no credentials.
 
-The remaining **25** filenames are not replaced with invented screens:
+The remaining **16** filenames are not replaced with invented screens:
 
-- Editorial diagrams, composites, or annotations still need assembly from real captures:
-  `01-mental-model.png`, `02-host-lineup.png`, `06-example-apps.png`,
-  `07-delivery-states.png`, `08-sandbox-boundary.png`, `10-status-annotated.png`.
+- Editorial composites that still need assembly from real captures:
+  `02-host-lineup.png`, `07-delivery-states.png`.
 - Physical mobile/radio state is hardware-gated: `02-android-home.png`,
   `02-ios-suspended.png`, `04-ble-link.png`, `04-rnode.png`,
   `09-android-notification.png`.
 - The exact captioned state is not exposed by a currently runnable documentation fixture:
   `03-reset-confirmation.png`, `04-announce-browser.png`, `04-local-discovery.png`,
-  `04-tcp-connected.png`, `04-web-gateway.png`, `05-slow-install-warning.png`,
-  `06-app-running.png`, `06-handbook-probe.png`, `06-update-available.png`,
-  `07-chat-send.png`, `09-storage.png`, `10-diagnostics.png`,
-  `10-stalled-transfer.png`.
+  `04-web-gateway.png`, `05-slow-install-warning.png`, `06-update-available.png`,
+  `09-storage.png`, `10-stalled-transfer.png`.
 - `09-tp-node.png` needs a clean terminal-session capture; it is intentionally not rendered
   as a fake terminal panel.

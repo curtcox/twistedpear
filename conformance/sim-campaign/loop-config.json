@@ -1,18 +1,18 @@
 {
   "schema": "twistedpear.abuse-loop-v1",
-  "heldRung": "L2",
-  "heldRungName": "authored",
-  "fixedReplaySha256": "fa95084a8ca4fe5a985cbddf437262f1971604e3ec0ea2082a74b5f023ba0288",
+  "heldRung": "L3",
+  "heldRungName": "colluding",
+  "fixedReplaySha256": "ace6f7ef31de84e85d5d242141565e0ebd63cbd0ca1a210fcd9b9ca6c7788f65",
   "turn": {
-    "increment": "seed-range-expansion",
+    "increment": "colluding-pair-and-compromised-host",
     "seedFrom": 1,
     "seedTo": 20,
-    "changedDial": "interleaving-search-budget",
-    "unchanged": ["transport fidelity", "adversary powers", "coverage frame"]
+    "changedDial": "adversary-power",
+    "unchanged": ["transport fidelity", "coverage frame", "search budget"]
   },
   "nextIncrement": {
-    "rung": "L3",
-    "name": "colluding",
-    "gate": "shipping escrow/recovery semantics must exist before simulator and formal twins can be ratcheted"
+    "rung": "L4",
+    "name": "calibrated",
+    "gate": "accepted BLE/LoRa hardware traces must exist before numerical physical-layer claims"
   }
 }

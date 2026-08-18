@@ -12,9 +12,9 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 
 - **`identity`** — Use an app-scoped identity for signing and addressing.
 - **`presence`** — Read coarse peer/interface presence and host info.
-- **`announce:subscribe`** — Receive announces in the app namespace.
-- **`announce:publish`** — Publish the app destination.
-- **`lxmf:send`** — Send LXMF messages from the app destination.
+- **`announce:subscribe`** — Receive announces in this app's own namespace only.
+- **`announce:publish`** — Publish this app's own destination, not another app's.
+- **`lxmf:send`** — Send LXMF messages to contacts you choose in the host, from the app destination.
 - **`lxmf:receive`** — Receive LXMF messages for the app destination.
 - **`storage:kv`** — Store local key/value data for this app.
 - **`storage:hyperbee`** — Store ordered local Hyperbee data for this app.
@@ -27,10 +27,12 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`apps:install`** — Ask the host to install apps from a 256t id (asks each time, with capability review).
 - **`apps:preview`** — Run a built app in the host's sandboxed dev-preview slot.
 - **`apps:channel`** — Send and receive messages with another running mini-app named when you grant this.
+- **`runtime:background`** — Run while you use other apps on Android. At most two apps share this with the mesh service; it costs battery. On iOS the grant does not run anything while you are elsewhere.
+- **`runtime:wake`** — Ask to be woken periodically for a few seconds of work. Wake-ups are rationed per host, not per app.
 - **`share:cas`** — Store and retrieve bounded content-addressed data shared by 256t id.
 - **`peer:connect`** — Ask trusted host chrome to find, confirm, and connect an app-scoped peer.
 - **`link:observe`** — See which peers are reachable and how good the connection to each is.
-- **`link:probe`** — Send a small test transmission to measure a connection (uses airtime and battery).
+- **`link:probe`** — Send a small test transmission to a host-offered peer (uses airtime and battery).
 - **`relay:configure`** — Turn this device's radios, camera, microphone, speaker, and internet-push relaying on or off, and forward other people's traffic. This grant permits changes without another prompt.
 - **`relay:read`** — Read host relay mode, interface status, and diagnostics.
 - **`freenet:contract`** — Read and publish Freenet contract state. Updates are published to a global network and cannot be recalled (asks each time for put/update).

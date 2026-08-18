@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-18
 register: none
 -->
 
@@ -14,10 +14,9 @@ dedicated area of the host window — with a **Back to host** control always vis
 ![An app running in the mini-app surface](/guide/images/06-app-running.png)
 
 **Screenshot 6.1 — Chat running inside the host.** The host window with the mini-app
-surface filling most of the frame: a message list, a peer selector, and a compose box.
-The host chrome remains visible around it — a header strip naming the running app, a
-**Back to host** button, and a **Stop mini-app** button. The distinction between host
-chrome and app content should be visually obvious.
+surface filling most of the frame. Chat shows this host's destination hash, a peer field,
+**Send hello**, **Check inbox**, and an inbox summary. The host chrome remains visible
+around it — a header strip naming the running app and a **Back to host** button.
 
 **Several apps can run at once.** Launching a second one does not stop the first. The
 host paints only the app you are looking at; use the running-app switcher (or Launch
@@ -41,10 +40,10 @@ Three reference apps ship with the platform, plus the Handbook.
 
 ![The three example apps](/guide/images/06-example-apps.png)
 
-**Screenshot 6.2 — Chat, File drop, and Board.** A three-panel composite, one screenshot
-each, all captured at the same size. Chat shows a short conversation; File drop shows a
-transfer in progress with a progress bar and a rate readout; Board shows four posts from
-three different addresses.
+**Screenshot 6.2 — Chat, File drop, and Board.** A three-panel composite of the example
+apps the host ships, captured at the same size. Chat shows a peer field and inbox
+summary; File drop has fetched a bounded offer through the host; Board shows local posts
+in its namespace.
 
 The Handbook is worth opening early. It is the only documentation that can tell you what
 _your_ device can actually do, because it runs on it and asks the host directly.
@@ -52,9 +51,8 @@ _your_ device can actually do, because it runs on it and asks the host directly.
 ![The Handbook running with a live probe](/guide/images/06-handbook-probe.png)
 
 **Screenshot 6.3 — The Handbook's live capability probe.** The Handbook open at the
-"Live difference matrix" chapter, showing a probe card that has been run: platform,
-host version, enabled roles, interface list, and quota snapshot, all real values read from
-the running host.
+Live difference matrix chapter, after **Run applet** on `host.info`: platform, host API
+version, grant count, transport role, and interface list, all read from the running host.
 
 ## Changing your mind about permissions
 

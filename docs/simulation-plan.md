@@ -16,8 +16,7 @@ in [archive/design/simulation-implementation-plan.md](../archive/design/simulati
 Every item below is carried from a `Remaining` or `open` clause in the status record. None
 of it may be closed by a simulator result alone.
 
-S-B is tracked as `SIM-L3-COLLUDING` in the
-**Backlog** table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md); S-D is
+S-B shipped as `SIM-L3-COLLUDING`. S-D is
 `SIM-D-CALIBRATE-MODELS` in the blocked backlog, waiting on H4. S-A carries no separate
 row: it is H4-D in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
@@ -36,7 +35,8 @@ described as physical-layer accuracy. Tracked in
 
 ## S-B — Ratchet the difficulty ladder to L3 (colluding)
 
-The held rung is **L2 — authored**; L3 is the next queued increment. Loop mechanics: see the
+Shipped. The held rung is **L3 — colluding**. L4 is the next queued increment and waits
+on hardware traces. Loop mechanics: see the
 [abuse-resistance loop](abuse-resistance-loop.md).
 
 ## S-D — Calibrate the social/economic models before using their numbers

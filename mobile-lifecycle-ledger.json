@@ -33,28 +33,6 @@
       "note": "iOS has no foreground-service equivalent. Re-check when Apple changes background execution policy or when H13 device measurements land."
     },
     {
-      "id": "MLC-BACKGROUND-ANDROID",
-      "utility": "Mini-app code running inside the Android foreground service the host already runs",
-      "cause": "self-imposed",
-      "decision": "The foreground service carries mesh participation only; the runtime stops mini-apps on background regardless of platform",
-      "evidence": ["LIMITATIONS.md", "docs/battery-bandwidth-policy.md"],
-      "cost": "Android inherits an iOS-shaped limit it does not have, and app authors write to the smaller target",
-      "unlock": "A budgeted, user-visible background execution grant scoped to the running foreground service, with Doze and OEM throttling accounted for",
-      "revisit": { "after": "2027-02-01" },
-      "note": "Android permits this today. Doing it means deciding what a background mini-app may cost in battery, and saying so on the grant screen."
-    },
-    {
-      "id": "MLC-SCHEDULED-WAKE",
-      "utility": "A mini-app asking to be woken periodically to do bounded work",
-      "cause": "self-imposed",
-      "decision": "Host background wake budgets are spent on LXMF propagation sync; no capability exposes them to mini-apps",
-      "evidence": ["docs/ios-host.md"],
-      "cost": "No periodic sync, no scheduled reminder, no catch-up on reopen without doing it all at launch",
-      "unlock": "A capability over the wake budgets the host already holds — `fetch`/`processing` on iOS, WorkManager on Android — with a hard per-app budget",
-      "revisit": { "after": "2027-02-01" },
-      "note": "The scarce resource is the wake budget, which is per-host, not per-app. Any grant here is a rationing decision before it is an API."
-    },
-    {
       "id": "MLC-ALWAYS-ON-ROLES",
       "utility": "A phone carrying transport, seeding, or propagation for other peers",
       "cause": "os",

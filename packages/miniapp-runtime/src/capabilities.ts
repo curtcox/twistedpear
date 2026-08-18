@@ -37,6 +37,8 @@ export type MiniappCapability =
   | "apps:install"
   | "apps:preview"
   | "apps:channel"
+  | "runtime:background"
+  | "runtime:wake"
   | "share:cas"
   | "peer:connect"
   | "link:observe"
@@ -127,6 +129,16 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinitionBase> = [
     id: "apps:channel",
     description:
       "Send and receive messages with another running mini-app named when you grant this.",
+  },
+  {
+    id: "runtime:background",
+    description:
+      "Run while you use other apps on Android. At most two apps share this with the mesh service; it costs battery. On iOS the grant does not run anything while you are elsewhere.",
+  },
+  {
+    id: "runtime:wake",
+    description:
+      "Ask to be woken periodically for a few seconds of work. Wake-ups are rationed per host, not per app.",
   },
   {
     id: "share:cas",

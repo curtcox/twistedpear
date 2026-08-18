@@ -27,6 +27,8 @@
     "apps:publish",
     "apps:install",
     "apps:channel",
+    "runtime:background",
+    "runtime:wake",
     "device:location",
     "device:location:precise",
     "device:ambient-light",
@@ -59,5 +61,5 @@
     "device:stream:raw-inbound"
   ],
   "icon": null,
-  "minHostApi": "0.13.0"
+  "minHostApi": "0.14.0"
 }

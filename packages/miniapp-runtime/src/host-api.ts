@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.13.0";
+export const HOST_API_VERSION = "0.14.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -55,7 +55,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "Per-peer link observation and budgeted probes, media-readiness types, outbound share-policy visibility, and raw-inbound stream gating.",
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.13.0",
     note: "Brokered app-to-app channels: apps:channel, destination-named confirmation on both sides, no shared storage.",
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "runtime:background (Android foreground-service execution) and runtime:wake (rationed periodic wake).",
   },
 ];

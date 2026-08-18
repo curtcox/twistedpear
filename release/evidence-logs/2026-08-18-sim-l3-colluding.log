@@ -1,0 +1,70 @@
+
+> twistedpear@0.0.0 sim:abuse-loop
+> node conformance/sim-campaign/loop.mjs
+
+
+> twistedpear@0.0.0 test:sim-campaign
+> npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/run.mjs
+
+
+> @twistedpear/effects@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/miniapp-runtime@0.1.5 build
+> tsc -b
+
+
+> @twistedpear/sim-campaign@0.0.0 build
+> tsc -b
+
+simulation campaign: 4000 real scenarios, 298 canary findings, 0 genuine findings, floor 0.862
+
+> twistedpear@0.0.0 test:sim-authored-replay
+> npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/replay.mjs
+
+
+> @twistedpear/sim-adversaries@0.0.0 build
+> tsc -b
+
+model-free authored replay passed: /Users/curt/me/twistedpear/conformance/sim-author/fixtures/model-authored-duplicate.json
+
+> twistedpear@0.0.0 test:sim-fixed-replay
+> npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/fixed-replay.mjs /var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/twistedpear-abuse-loop-G8ksSD/fixed-a.json
+
+
+> @twistedpear/effects@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/miniapp-runtime@0.1.5 build
+> tsc -b
+
+
+> @twistedpear/sim-campaign@0.0.0 build
+> tsc -b
+
+fixed production-backed replay: 400 scenarios -> /var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/twistedpear-abuse-loop-G8ksSD/fixed-a.json
+
+> twistedpear@0.0.0 test:sim-fixed-replay
+> npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/fixed-replay.mjs /var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/twistedpear-abuse-loop-G8ksSD/fixed-b.json
+
+
+> @twistedpear/effects@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/miniapp-runtime@0.1.5 build
+> tsc -b
+
+
+> @twistedpear/sim-campaign@0.0.0 build
+> tsc -b
+
+fixed production-backed replay: 400 scenarios -> /var/folders/s9/h0bpzr1s1d3727q7z69mqrbr0000gn/T/twistedpear-abuse-loop-G8ksSD/fixed-b.json
+
+> twistedpear@0.0.0 sim:report
+> node conformance/sim-campaign/report.mjs
+
+simulation report: dashboard.html (4000 scenarios, 0 genuine findings)
+abuse-resistance loop turn: green, fixed replay byte-identical

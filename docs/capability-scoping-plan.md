@@ -150,11 +150,12 @@ conformance gap, and it is the cheapest available reduction in standing authorit
 `CAP-EGRESS-WIRING` landed: `assertEgressAllowed` on `lxmf:send` and
 `link:probe`; `ShareOffer` is `shareOfferAsEgressOffer`. `share:cas` stays
 host-fixed (open question 1); announce stays own-namespace (open question 3).
-Remaining Phase 2 work is chrome that authors offers from natural use.
+`CAP-EGRESS-CHROME` landed: offers are authored from pick-contact / accept-call /
+scan-qr, and settings list/revoke them.
 
 | ID                  | Type    | Requires           | Work                                                                                                                                                                                           |
 | ------------------- | ------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CAP-EGRESS-CHROME` | feature | `CAP-EGRESS-OFFER` | Desktop, mobile, and web chrome that authors offers as a byproduct of natural use (§3); offer list and revoke in host settings                                                                 |
+| ~~`CAP-EGRESS-CHROME`~~ | feature | `CAP-EGRESS-OFFER` | Shipped. Desktop, mobile, and web chrome authors offers as a byproduct of natural use (§3); offer list and revoke in host settings                                                          |
 
 ### Phase 3 — scoped declarations (package format v2)
 

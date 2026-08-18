@@ -23,6 +23,32 @@ export {
   type PresentedUnmetRequirement,
 } from "./approval-override.js";
 export {
+  HARDWARE_ACCESS_PANEL_LABEL,
+  HOST_DEVICE_SUPPORT,
+  nativeDriverKind,
+  presentHardwareAccess,
+} from "./hardware-access-chrome.js";
+export type {
+  HardwareAccessHost,
+  HardwareAccessPresentation,
+  HardwareInventoryRow,
+  HardwareSessionRow,
+  HostDeviceSupport,
+  NativeDriverKind,
+} from "./hardware-access-chrome.js";
+export {
+  EGRESS_OFFER_REVOKE_LABEL,
+  EGRESS_OFFER_SETTINGS_TITLE,
+  authorOfferFromNaturalUse,
+  presentEgressOfferSettings,
+} from "./egress-offer-chrome.js";
+export type {
+  AuthoredOfferDraft,
+  EgressOfferSettingsPresentation,
+  EgressOfferSettingsRow,
+  NaturalUseAction,
+} from "./egress-offer-chrome.js";
+export {
   defaultHostConfig,
   defaultHostDataDir,
   defaultWebLeafConfig,

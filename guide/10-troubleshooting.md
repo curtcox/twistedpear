@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-18
 register: none
 -->
 
@@ -14,10 +14,10 @@ Almost every question is answered by one screen.
 
 ![The node status panel annotated](/guide/images/10-status-annotated.png)
 
-**Screenshot 10.1 — Node status, annotated.** The _Node status_ panel with callout labels
-pointing at each field: worklet state, link state, crypto provider, announces seen,
-interfaces online, identity, persisted flag, and enabled roles. Each callout has a
-one-line explanation of what "healthy" looks like for that field.
+**Screenshot 10.1 — Node status, annotated.** The _Node status_ panel with notes for the
+fields the desktop host actually shows: worklet running, identity hash, transport, link
+online, interfaces online, announces seen, preferred interface, and whether propagation
+is enabled. Each note says what "healthy" looks like for that field.
 
 A healthy host shows the worklet ready, at least one interface online, and the announce
 counter climbing over time.
@@ -109,10 +109,10 @@ and produces a report you can share with someone helping you.
 
 ![The diagnostics report](/guide/images/10-diagnostics.png)
 
-**Screenshot 10.3 — Handbook diagnostics.** The Handbook open at the diagnostics view: a
-list of probe cards, most green with measured values, two grey and labelled "device-gated"
-with an explanation, one amber labelled "not granted". An **Export report** button at the
-top produces a shareable identifier.
+**Screenshot 10.3 — Handbook diagnostics.** The Handbook Diagnostics view: **Run all
+diagnostics**, grouped probe cards (crypto, interfaces, storage, …), and an **Export
+report** control. Device-gated probes stay skipped until hardware is attached; software
+probes fill in as they run.
 
 Probes marked **device-gated** are not failures — they need hardware you do not have
 attached, such as a second phone or a LoRa radio. Probes marked **not granted** mean you

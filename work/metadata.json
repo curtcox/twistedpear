@@ -311,6 +311,12 @@
       "requires": ["CAP-EGRESS-OFFER"],
       "verify": "npx vitest run packages/host-core/test/egress-offer-chrome.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/host-core/src/egress-offer-chrome.ts",
+        "packages/host-core/test/egress-offer-chrome.test.ts",
+        "docs/capability-scoping.md"
+      ],
       "notes": "capability-scoping-plan.md Phase 2 and §3. Desktop, mobile, and web chrome author offers from an action the user was already taking; offer list and revoke in host settings. A separate 'choose destinations' dialog fails the plan's own constraint and means the capability belongs in the host-fixed class instead."
     },
     "CAP-EGRESS-OFFER": {
@@ -423,6 +429,12 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/device-biometric.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/device-biometric.test.ts",
+        "packages/miniapp-runtime/src/device-manager/layer-2-samples.ts",
+        "packages/miniapp-runtime/src/device-manager/shared.ts"
+      ],
       "notes": "device-io-plan.md phase 7. Returns a signed pass/fail assertion; templates never leave the OS enclave and there is no raw tier, by design."
     },
     "DEV-CLASS-PAGES": {
@@ -456,6 +468,12 @@
       "requires": [],
       "verify": "npx vitest run packages/host-core/test/hardware-access-chrome.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/host-core/src/hardware-access-chrome.ts",
+        "packages/host-core/test/hardware-access-chrome.test.ts",
+        "docs/device-io.md"
+      ],
       "notes": "device-io-plan.md phase 7, with the per-host availability matrix in §'Per-host availability' as the contract. The peripheral panel is labelled Hardware access per linked-devices decision 5."
     },
     "DEV-NFC-APDU": {
@@ -463,6 +481,12 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/device-nfc-apdu.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/test/device-nfc-apdu.test.ts",
+        "packages/miniapp-runtime/src/device-manager/layer-2-samples.ts",
+        "packages/protocol/src/device-nfc-apdu.ts"
+      ],
       "notes": "device-io-plan.md phase 7. The raw card-reader tier: sensitive consent class, and payment applets blocklisted."
     },
     "DEV-SCALAR-SENSORS": {
@@ -955,6 +979,12 @@
       "requires": ["MINIAPP-LIFECYCLE-EVENTS"],
       "verify": "npx vitest run packages/miniapp-runtime/test/background-execution.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/src/background-execution.ts",
+        "packages/miniapp-runtime/test/background-execution.test.ts",
+        "docs/mobile-lifecycle.md"
+      ],
       "notes": "mobile-lifecycle-plan.md candidate 2; ledger row MLC-BACKGROUND-ANDROID. Android already runs a foreground service for mesh participation and nothing prevents mini-app execution inside it, so the API is the easy part and the rationing is the design: what a background grant costs in terms a grant screen can state honestly, who loses when budgets are oversubscribed, and whether this is Android-only or a capability that does less on iOS. The honest option is to expose it and record the asymmetry in platform-capabilities-status.md rather than level down to iOS. MLC-BACKGROUND-IOS stays os-imposed until Apple changes policy."
     },
     "MINIAPP-CONCURRENT": {
@@ -989,6 +1019,12 @@
       "requires": ["MINIAPP-LIFECYCLE-EVENTS"],
       "verify": "npx vitest run packages/miniapp-runtime/test/scheduled-wake.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/src/scheduled-wake.ts",
+        "packages/miniapp-runtime/test/scheduled-wake.test.ts",
+        "docs/mobile-lifecycle.md"
+      ],
       "notes": "mobile-lifecycle-plan.md candidate 3; ledger row MLC-SCHEDULED-WAKE. iOS fetch/processing wake budgets already exist and are spent on propagation sync. The scarce resource is per-host, not per-app: a phone with six installed apps cannot give each one periodic wake-ups, so the rationing rule is the deliverable and the API follows from it."
     },
     "PD-AI": {
@@ -1382,6 +1418,12 @@
       "requires": ["SIM-ESCROW-SEMANTICS"],
       "verify": "npm run sim:abuse-loop",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "conformance/sim-campaign/loop-config.json",
+        "docs/simulation.md",
+        "conformance/sim-campaign/artifacts/report.json"
+      ],
       "notes": "simulation-plan.md S-B. The held rung is L2 (authored); L3 is the next queued increment, gated on shipping escrow/recovery semantics so that simulator-only collusion results are not relabelled as product evidence. Loop mechanics in docs/abuse-resistance-loop.md."
     },
     "WORK-EFFORT": {

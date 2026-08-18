@@ -12,7 +12,7 @@ export interface CapabilityRiskEntry {
   readonly standing: boolean;
 }
 
-export const CAPABILITY_RISK_HOST_API = "0.13.0" as const;
+export const CAPABILITY_RISK_HOST_API = "0.14.0" as const;
 
 export const CAPABILITY_RISK_REGISTRY: ReadonlyArray<CapabilityRiskEntry> = [
   {
@@ -150,6 +150,22 @@ export const CAPABILITY_RISK_REGISTRY: ReadonlyArray<CapabilityRiskEntry> = [
     "irreversibleOrThirdParty": false,
     "readsSensorSecretOrForeignData": false,
     "standing": false
+  },
+  {
+    "id": "runtime:background",
+    "riskClass": "elevated",
+    "namesDestination": false,
+    "irreversibleOrThirdParty": false,
+    "readsSensorSecretOrForeignData": false,
+    "standing": true
+  },
+  {
+    "id": "runtime:wake",
+    "riskClass": "elevated",
+    "namesDestination": false,
+    "irreversibleOrThirdParty": false,
+    "readsSensorSecretOrForeignData": false,
+    "standing": true
   },
   {
     "id": "share:cas",

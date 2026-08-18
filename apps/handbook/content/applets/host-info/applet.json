@@ -2,7 +2,7 @@
   "id": "host-info",
   "group": "interfaces",
   "title": "Host info probe",
-  "capabilities": ["presence"],
+  "capabilities": ["presence", "runtime:background", "runtime:wake"],
   "surfaces": ["host.info"],
   "expectations": {
     "android": "pass",

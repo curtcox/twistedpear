@@ -39,6 +39,14 @@ import {
   type EgressOfferConstraints,
   type EgressTargetKind,
 } from "@twistedpear/protocol";
+import {
+  RUNTIME_WAKE_CAPABILITY,
+  allocateWake,
+  advanceWake,
+  dueWakes,
+  type WakeGrant,
+  type WakeRequest,
+} from "../scheduled-wake.js";
 
 export abstract class MiniappHostLayer1Base {
   protected abstract now(): number;
@@ -73,6 +81,7 @@ export abstract class MiniappHostLayer1Base {
   private egressOffers = initialEgressOfferStore();
   private nextEgressOfferId = 0;
   private readonly egressBudgets = new EgressBudgetLedger();
+  private wakeGrants: WakeGrant[] = [];
   readonly consentTranscript: ConsentTranscript;
 
   constructor(protected readonly options: MiniappHostOptions) {
@@ -203,6 +212,70 @@ export abstract class MiniappHostLayer1Base {
       throw new EgressDeniedError("Failed to store egress offer");
     }
     return stored;
+  }
+
+  listEgressOffers(): ReadonlyArray<EgressOffer> {
+    return [...this.egressOffers.values()];
+  }
+
+  revokeEgressOffer(id: string): void {
+    this.egressOffers = stepEgressOfferStore(this.egressOffers, {
+      kind: "egress/revoke",
+      id,
+      at: this.now(),
+    });
+  }
+
+  requestWake(
+    appId: string,
+    publisherPublicKey: string,
+    request: Pick<WakeRequest, "intervalMs" | "budgetMs">,
+  ): WakeGrant {
+    const app = this.appByIdentity(appId, publisherPublicKey);
+    if (app === undefined) {
+      throw new Error(`Mini-app is not running: ${appId}`);
+    }
+    if (!app.grants.granted.includes(RUNTIME_WAKE_CAPABILITY)) {
+      throw new Error(`Capability "runtime:wake" is not granted to ${appId}.`);
+    }
+    const grant = allocateWake(
+      this.wakeGrants.filter((entry) => entry.appId !== appId),
+      {
+        appId,
+        publisherPublicKey,
+        intervalMs: request.intervalMs,
+        budgetMs: request.budgetMs,
+      },
+      this.options.hostPlatform ?? "node",
+      this.now(),
+    );
+    this.wakeGrants = [
+      ...this.wakeGrants.filter((entry) => entry.appId !== appId),
+      grant,
+    ];
+    return grant;
+  }
+
+  listWakeGrants(): ReadonlyArray<WakeGrant> {
+    return this.wakeGrants;
+  }
+
+  async tickWakes(): Promise<ReadonlyArray<string>> {
+    const now = this.now();
+    const due = dueWakes(this.wakeGrants, now);
+    const woken: string[] = [];
+    for (const grant of due) {
+      const app = this.appByIdentity(grant.appId, grant.publisherPublicKey);
+      if (app === undefined) continue;
+      if (app.lifecycle.snapshot().state === "suspended") {
+        await app.lifecycle.resume();
+      }
+      this.wakeGrants = this.wakeGrants.map((entry) =>
+        entry.appId === grant.appId ? advanceWake(entry, now) : entry,
+      );
+      woken.push(grant.appId);
+    }
+    return woken;
   }
 
   protected assertEgressAllowed(

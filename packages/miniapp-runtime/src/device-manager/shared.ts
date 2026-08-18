@@ -203,6 +203,11 @@ export type DeviceSample =
       readonly tier: "assertion";
       readonly at: number;
       readonly passed: boolean;
+      readonly assertion: {
+        readonly alg: "host-assert-v1";
+        readonly payload: "pass" | "fail";
+        readonly signature: string;
+      };
     }
   | {
       readonly kind: "proximity";

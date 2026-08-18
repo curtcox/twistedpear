@@ -36,6 +36,8 @@ approval evidence bar ([app approval risk](app-approval-risk.md)); it is not a r
 | `apps:install`              | sensitive   | Ask the host to install apps from a 256t id (asks each time, with capability review).  |
 | `apps:preview`              | elevated    | Run a built app in the host's sandboxed dev-preview slot.                              |
 | `apps:channel`              | elevated    | Send and receive messages with another running mini-app named when you grant this.     |
+| `runtime:background`        | elevated    | Run while you use other apps on Android. At most two apps share this with the mesh service; it costs battery. On iOS the grant does not run anything while you are elsewhere. |
+| `runtime:wake`              | elevated    | Ask to be woken periodically for a few seconds of work. Wake-ups are rationed per host, not per app. |
 | `share:cas`                 | elevated    | Store and retrieve bounded content-addressed data shared by 256t id.                   |
 | `peer:connect`              | elevated    | Ask trusted host chrome to find, confirm, and connect an app-scoped peer.              |
 | `link:observe`              | benign      | See which peers are reachable and how good the connection to each is.          |
@@ -57,6 +59,7 @@ Unknown capability strings block install. Adding a capability bumps `HOST_API_VE
 The `peers` namespace and `peer:connect` require host API `0.8.0`.
 The `links` namespace and realtime-media extensions require host API `0.12.0`.
 `apps:channel` requires host API `0.13.0`.
+`runtime:background` and `runtime:wake` / `host.requestWake` require host API `0.14.0`.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, preview, and channel-open call raises a host-chrome confirmation dialog the
@@ -86,6 +89,9 @@ the pair before messages copy through the broker.
 - `host.onResume(handler)` — receive that blob when the sandbox returns to running.
   There is no general `onSuspend`.
 - `host.getCheckpoint()` — the blob last passed to `setCheckpoint`, or `null`.
+- `host.requestWake(intervalMs, budgetMs?)` — ask for a rationed periodic wake
+  (requires `runtime:wake`). Minimum interval 15 minutes; each wake is capped at
+  10 seconds. Slot limits are per host, not per app.
 - `ui.render(tree)` — submit a validated widget tree. Trees that imitate host chrome
   (CHROME-R8) or solicit secrets (CHROME-R9) fail `INVALID_WIDGET`.
 - `ui.onEvent(handler)` — subscribe to host UI events (tap, input change, etc.).

@@ -4,6 +4,7 @@ import {
   type BrokerResponse,
 } from "../broker.js";
 import { MiniappLifecycle } from "../lifecycle.js";
+import { shouldKeepRunningOnHostSuspend } from "../background-execution.js";
 import { findWidgetNode } from "./shared.js";
 import type {
   LaunchManifest,
@@ -167,7 +168,20 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
   }
 
   async suspend(reason = "host-suspended"): Promise<MiniappHostSnapshot> {
+    const platform = this.options.hostPlatform ?? "node";
     for (const app of [...this.apps.values()]) {
+      const record = await this.options.grantStore.get(
+        app.manifest.name,
+        app.manifest.publisherPublicKey,
+      );
+      if (
+        shouldKeepRunningOnHostSuspend({
+          platform,
+          granted: record?.granted ?? app.grants.granted,
+        })
+      ) {
+        continue;
+      }
       this.deviceService?.closeApp(app.manifest.name);
       await this.inboundMedia?.closeApp(app.manifest.name);
       const snapshot = await app.lifecycle.suspend(reason);

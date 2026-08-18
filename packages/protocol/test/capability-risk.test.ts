@@ -50,7 +50,7 @@ const CROSS_CUTTING = [
 
 describe("capability risk registry", () => {
   it("assigns the Phase 1 table, including apps:channel as elevated", () => {
-    expect(CAPABILITY_RISK_HOST_API).toBe("0.13.0");
+    expect(CAPABILITY_RISK_HOST_API).toBe("0.14.0");
     for (const [id, riskClass] of PLAN_CORE_CLASSES) {
       expect(riskClassForCapability(id), id).toBe(riskClass);
     }

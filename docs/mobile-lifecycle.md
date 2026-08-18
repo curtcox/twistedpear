@@ -46,11 +46,13 @@ media capture require it to be foregrounded (`FOREGROUND_REQUIRED`). Two running
 exchange messages through a brokered `apps:channel` after both sides grant the named
 destination; they do not share storage.
 
-Host `suspend-node` / `resume-node` is forwarded into each sandbox. There is no general
-`onSuspend`: the app keeps a blob current with `host.setCheckpoint` (64 KiB), and
-will-suspend copies that blob under a 50 ms budget. Overrun kills the app rather than
-delaying host quiesce. `host.onResume` delivers the blob when the sandbox returns to
-running.
+Host `suspend-node` / `resume-node` is forwarded into each sandbox. Apps that hold
+`runtime:background` keep running across that transition on Android (at most two,
+with the battery cost on the grant screen). On iOS the grant is inert. There is no
+general `onSuspend`: the app keeps a blob current with `host.setCheckpoint` (64 KiB),
+and will-suspend copies that blob under a 50 ms budget. Overrun kills the app rather
+than delaying host quiesce. `host.onResume` delivers the blob when the sandbox returns
+to running. `runtime:wake` / `host.requestWake` rations periodic wake-ups per host.
 
 ## Decisions that follow from it
 
@@ -82,22 +84,19 @@ One row per piece of utility a mini-app does not get because of the mobile lifec
 
 <!-- Generated from mobile-lifecycle-ledger.json; conformance/doc-audit/mobile-lifecycle.test.mjs fails if they diverge. -->
 
-| Row                      | Utility withheld                                                                  | Cause          | Revisit when |
-| ------------------------ | --------------------------------------------------------------------------------- | -------------- | ------------ |
-| `MLC-BACKGROUND-IOS`     | Mini-app code running while the host app is backgrounded on iOS                   | `os`           | 2027-02-01   |
-| `MLC-BACKGROUND-ANDROID` | Mini-app code running inside the Android foreground service the host already runs | `self-imposed` | 2027-02-01   |
-| `MLC-SCHEDULED-WAKE`     | A mini-app asking to be woken periodically to do bounded work                     | `self-imposed` | 2027-02-01   |
-| `MLC-ALWAYS-ON-ROLES`    | A phone carrying transport, seeding, or propagation for other peers               | `os`           | 2027-02-01   |
+| Row                  | Utility withheld                                                | Cause | Revisit when |
+| -------------------- | --------------------------------------------------------------- | ----- | ------------ |
+| `MLC-BACKGROUND-IOS` | Mini-app code running while the host app is backgrounded on iOS | `os`  | 2027-02-01   |
+| `MLC-ALWAYS-ON-ROLES`| A phone carrying transport, seeding, or propagation for other peers | `os`  | 2027-02-01   |
 
 The decision in force, the cost it carries, what would unlock it, and the files that show
 it are recorded per row in [mobile-lifecycle-ledger.json](../mobile-lifecycle-ledger.json).
-What it would take to clear the `self-imposed` rows is
+What it would take to clear the remaining `os` rows is
 [mobile-lifecycle-plan.md](mobile-lifecycle-plan.md).
 
-Two of the four remaining rows are `self-imposed`. That ratio is the finding: most of what
-mini-apps cannot do is not what iOS and Android forbid, it is what the platform inherited
-from assuming they did. Concurrent mini-apps, a brokered app-to-app channel, and suspend
-checkpoints have shipped; shared storage is still withheld by choice, not by the OS.
+The remaining rows are `os`. Concurrent mini-apps, a brokered app-to-app channel, suspend
+checkpoints, Android background execution, and rationed scheduled wake have shipped;
+shared storage is still withheld by choice, not by the OS.
 
 ## How a row leaves the ledger
 

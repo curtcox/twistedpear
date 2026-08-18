@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-18
 register: none
 -->
 
@@ -68,18 +68,17 @@ for authoring shots.
 
 ## Current capture status
 
-The deterministic host-chrome pass supplies **6 of 22** files. Re-run it with
+The deterministic host-chrome pass supplies **7 of 22** files. Re-run it with
 `npm run capture:reader-guide-ui`.
 
-The remaining **16** filenames need surfaces or exact states that the current capture
+The remaining **15** filenames need surfaces or exact states that the current capture
 fixture does not provide:
 
 - DevStudio/editor workflows: `00-hero-devstudio.png`, `02-ai-edit.png`,
   `02-new-project.png`, `02-package-256t.png`, `02-preview-grants.png`,
   `03-dev-sideload.png`, `04-render-rejection.png`, `09-publish-result.png`,
   `13-package-summary.png`.
-- Editorial or cross-platform composites: `01-architecture.png`,
-  `04-component-gallery.png`.
+- Cross-platform composite: `04-component-gallery.png`.
 - Physical handset state: `02-installed-on-phone.png`.
 - Clean CLI capture: `03-tp-init.png`.
 - Peer/update/radio fixtures not represented in the capture host:

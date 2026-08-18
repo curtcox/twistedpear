@@ -200,8 +200,8 @@ describe("DeviceManager Phase 1", () => {
 });
 
 describe("host API version", () => {
-  it("includes device I/O, Freenet, media links, and app channels in 0.13.0", () => {
-    expect(HOST_API_VERSION).toBe("0.13.0");
+  it("includes device I/O, Freenet, media links, app channels, and runtime wake in 0.14.0", () => {
+    expect(HOST_API_VERSION).toBe("0.14.0");
   });
 });
 

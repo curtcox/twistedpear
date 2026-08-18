@@ -86,22 +86,29 @@ function treeText(tree) {
   return values.join("\n");
 }
 
-async function waitForTree(host, expected = "") {
-  const deadline = Date.now() + 10_000;
+async function waitForTree(host, expected = "", timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const tree = host.snapshot().widgetTree;
     if (tree !== null && (expected === "" || treeText(tree).includes(expected)))
       return tree;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  throw new Error(`Timed out waiting for mini-app text: ${expected}`);
+  throw new Error(
+    `Timed out waiting for mini-app text: ${expected}; state=${host.snapshot().state}; logs=${host
+      .snapshot()
+      .logs.map((entry) => entry.line)
+      .join(" | ")}`,
+  );
 }
 
 async function launchCookbookApp(
   name,
   configure = async () => {},
   seed = async () => {},
+  options = {},
 ) {
+  const appDir = options.appDir ?? join(repoRoot, "cookbook/apps", name);
   const store = new MemoryStore();
   const encoder = new TextEncoder();
   await seed(store);
@@ -190,7 +197,7 @@ async function launchCookbookApp(
         peers: name === "beacon-lite" ? 2 : 3,
       }),
     },
-    hostInfoBackend: {
+    hostInfoBackend: options.hostInfoBackend ?? {
       info: async () => ({
         platform: "web",
         hostVersion: "cookbook-fixture",
@@ -243,10 +250,7 @@ async function launchCookbookApp(
     },
   });
   const manifest = JSON.parse(
-    readFileSync(
-      join(repoRoot, "cookbook/apps", name, "app.manifest.json"),
-      "utf8",
-    ),
+    readFileSync(join(appDir, "app.manifest.json"), "utf8"),
   );
   const launchManifest = { ...manifest, publisherPublicKey: "docs-publisher" };
   await host.setGrants(
@@ -257,11 +261,9 @@ async function launchCookbookApp(
   );
   await host.launch(
     launchManifest,
-    new Uint8Array(
-      readFileSync(join(repoRoot, "cookbook/apps", name, "bundle.js")),
-    ),
+    new Uint8Array(readFileSync(join(appDir, "bundle.js"))),
   );
-  await waitForTree(host);
+  await waitForTree(host, "", options.launchTimeoutMs ?? 10_000);
   await configure(host, store);
   return host;
 }

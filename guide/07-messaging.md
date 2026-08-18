@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-18
 register: none
 -->
 
@@ -15,9 +15,9 @@ Open Chat, paste or scan the address of the person you want to reach, and type.
 
 ![Sending a message in Chat](/guide/images/07-chat-send.png)
 
-**Screenshot 7.1 — Sending a message.** The Chat app with a peer address in the header, a
-short conversation in the message list, and a compose box with text typed and the send
-control highlighted. Each message shows a small state indicator beside it.
+**Screenshot 7.1 — Sending a message.** The Chat example app with a peer destination in
+the peer field, this host's address in the header, and **Send hello** ready. Delivery
+state lives on the LXMF path, not in a separate compose widget.
 
 Every message is encrypted end to end. Peers that relay it — including your friend's
 desktop node, and any stranger's transport node in between — can see that a packet passed

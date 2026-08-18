@@ -80,6 +80,29 @@ export type {
   ResourceLimitsSnapshot,
 } from "./host.js";
 export {
+  BACKGROUND_GRANT_COST,
+  BACKGROUND_IOS_LIMITATION,
+  BACKGROUND_SLOT_LIMIT,
+  BackgroundBudgetError,
+  RUNTIME_BACKGROUND_CAPABILITY,
+  assertBackgroundSlotAvailable,
+  presentBackgroundGrant,
+  shouldKeepRunningOnHostSuspend,
+} from "./background-execution.js";
+export {
+  RUNTIME_WAKE_CAPABILITY,
+  WAKE_GRANT_COST,
+  WAKE_MAX_BUDGET_MS,
+  WAKE_MIN_INTERVAL_MS,
+  WAKE_SLOT_LIMIT,
+  WakeBudgetError,
+  advanceWake,
+  allocateWake,
+  dueWakes,
+  presentWakeGrant,
+} from "./scheduled-wake.js";
+export type { WakeGrant, WakeRequest } from "./scheduled-wake.js";
+export {
   ConfirmationError,
   DEFAULT_CONFIRMATION_TIMEOUT_MS,
   generateConfirmationToken,

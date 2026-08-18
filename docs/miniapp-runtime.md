@@ -7,7 +7,7 @@ register: none
 -->
 
 Phase 4 introduces a host-rendered, brokered mini-app runtime. The current host API
-anchor is `HOST_API_VERSION = 0.13.0`; package `minHostApi` checks and capability
+anchor is `HOST_API_VERSION = 0.14.0`; package `minHostApi` checks and capability
 validation use that value.
 
 ## Isolation ADR
@@ -76,6 +76,8 @@ transport credentials and media plane objects remain host-owned.
 Host API `0.13.0` adds `apps:channel`: a brokered, destination-named channel between two
 running mini-apps. Opening it raises a host confirmation that names the other app; both
 sides must grant the pair. Payloads copy through the host. Shared storage is not included.
+Host API `0.14.0` adds `runtime:background` (Android foreground-service execution, rationed
+to two apps) and `runtime:wake` / `host.requestWake` (per-host periodic wake budget).
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are

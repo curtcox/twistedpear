@@ -29,6 +29,8 @@ const CORE_CONSENT_CLASS = new Map<string, CapabilityConsentClass>([
   ["link:probe", "elevated"],
   ["apps:preview", "elevated"],
   ["apps:channel", "elevated"],
+  ["runtime:background", "elevated"],
+  ["runtime:wake", "elevated"],
   ["lxmf:send", "sensitive"],
   ["lxmf:receive", "sensitive"],
   ["freenet:contract", "sensitive"],

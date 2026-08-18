@@ -49,8 +49,10 @@ specialization: `shareOfferAsEgressOffer` plus `egressOfferPermits`, so
 SPEC-STREAM's guarantee holds on the general machine.
 
 Offers are host-authored. The app can read that an offer exists; it cannot mint,
-widen, or extend one. Chrome that authors offers from natural use is still plan
-work; tests and simulation call `grantEgressOffer`.
+widen, or extend one. Chrome authors offers as a byproduct of natural use —
+picking a contact, accepting a call, scanning a QR — and host settings list and
+revoke them (`CAP-EGRESS-CHROME`). Tests and simulation can still call
+`grantEgressOffer` directly.
 
 `maxBytesPerDay` on an offer is enforced at the broker (`EgressBudgetLedger`,
 rolling 24 hours). Broker audit entries for offer-scoped calls include the
@@ -71,4 +73,4 @@ Open questions decided with this wiring:
 
 ## Not yet enforced at the broker
 
-- Host chrome that authors offers as a byproduct of natural use, plus list/revoke.
+None. Remaining planned work is in the [capability scoping plan](capability-scoping-plan.md).

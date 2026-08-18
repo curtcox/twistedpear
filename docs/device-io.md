@@ -137,8 +137,10 @@ shown; all actuators stop on session end, app suspend, and host focus loss.
 ## Honest limits
 
 Capability taxonomy, broker path, session machine, and simulated drivers are broad;
-**real OS drivers and host Devices chrome are not uniformly present**, and most classes
-read `partial` in the capability matrix rather than `full`. Do not read the existence of
+**real OS drivers are not uniformly present**, and most classes
+read `partial` in the capability matrix rather than `full`. Hardware access chrome
+(inventory, policy disable, session kill, remote-acquisition toggle) is the
+peripheral panel on every host. Do not read the existence of
 a capability id as evidence that a host can drive the hardware behind it — read the
 [matrix](platform-capabilities-status.md) row, and [LIMITATIONS.md](../LIMITATIONS.md)
 for what is deliberately not offered.

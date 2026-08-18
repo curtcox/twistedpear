@@ -13,6 +13,8 @@ import {
   startStaticServer,
 } from "./capture-reader-guide-ui-lib.mjs";
 import { runCookbookCaptures } from "./capture-reader-guide-ui-cookbook.mjs";
+import { runDiagramCaptures } from "./capture-reader-guide-ui-diagrams.mjs";
+import { runExampleAppCaptures } from "./capture-reader-guide-ui-apps.mjs";
 
 const captureSection = process.env.CAPTURE_READER_GUIDE_SECTION ?? "all";
 const captureScenes =
@@ -25,8 +27,10 @@ const scenes = [
   { file: "guide/images/02-desktop-main-window.png", kind: "main" },
   { file: "guide/images/03-create-identity.png", kind: "identity-create" },
   { file: "guide/images/03-identity-created.png", kind: "status" },
+  { file: "guide/images/10-status-annotated.png", kind: "status-annotated" },
   { file: "guide/images/03-show-my-identity.png", kind: "identity-show" },
   { file: "guide/images/03-recovery-words.png", kind: "identity-recovery" },
+  { file: "guide/images/04-tcp-connected.png", kind: "tcp-connected" },
   { file: "guide/images/04-interfaces-settings.png", kind: "interfaces" },
   { file: "guide/images/05-catalog.png", kind: "catalog" },
   { file: "guide/images/05-install-from-256t.png", kind: "install" },
@@ -60,12 +64,20 @@ const scenes = [
 ];
 
 const browser = await chromium.launch();
+const chromeScenes =
+  captureSection === "authors"
+    ? scenes.filter((scene) => scene.file.startsWith("authors/"))
+    : captureSection === "guide"
+      ? scenes.filter((scene) => scene.file.startsWith("guide/"))
+      : scenes;
 try {
   for (const scene of captureFiles !== undefined
     ? scenes.filter((candidate) => captureFiles.includes(candidate.file))
     : captureScenes === undefined
-      ? captureSection === "all"
-        ? scenes
+      ? captureSection === "all" ||
+        captureSection === "guide" ||
+        captureSection === "authors"
+        ? chromeScenes
         : []
       : scenes.filter((candidate) => captureScenes.includes(candidate.kind))) {
     const output = join(repoRoot, scene.file);
@@ -161,6 +173,48 @@ try {
               "abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual";
             document.querySelector("#identity-words-second").value =
               "adapt add addict address adjust admit adult advance advice aerobic affair afford afraid again age agent agree ahead aim air airport aisle alarm album";
+            break;
+          case "tcp-connected":
+            show("Relay & Interfaces");
+            document.querySelector("#setting-tcp").checked = true;
+            document.querySelector("#setting-auto").checked = true;
+            html(
+              "#relay-interface-table",
+              `<p>tcp: online · BOTH · 1250000 bps · ↓12.4 KiB ↑3.1 KiB</p><p>auto: online · BOTH · — bps · ↓2.0 KiB ↑1.1 KiB</p>`,
+            );
+            break;
+          case "status-annotated":
+            show("Node status");
+            html(
+              "#status-grid",
+              `
+        <dt>Running</dt><dd>true</dd>
+        <dt>Identity</dt><dd>${fakeHash.slice(0, 16)}…${fakeHash.slice(-8)}</dd>
+        <dt>Transport</dt><dd>true</dd>
+        <dt>Link online</dt><dd>true</dd>
+        <dt>Online interfaces</dt><dd>2</dd>
+        <dt>Announces</dt><dd>41</dd>
+        <dt>Preferred</dt><dd>tcp</dd>
+        <dt>Propagation</dt><dd>false</dd>
+        <dt>Catalog</dt><dd>3</dd>
+        <dt>Installed</dt><dd>3</dd>`,
+            );
+            {
+              const panel = document.querySelector(
+                "main > .panel:not([hidden])",
+              );
+              const notes = document.createElement("ol");
+              notes.style.marginTop = "18px";
+              notes.style.lineHeight = "1.55";
+              notes.innerHTML = `
+                <li><strong>Running</strong> — worklet is up. Healthy: true.</li>
+                <li><strong>Identity</strong> — this host's destination hash exists.</li>
+                <li><strong>Link online</strong> — at least one path is live.</li>
+                <li><strong>Online interfaces</strong> — TCP and Auto both up.</li>
+                <li><strong>Announces</strong> — counter climbs while peers are reachable.</li>
+                <li><strong>Propagation</strong> — false unless you opted into holding mail.</li>`;
+              panel?.append(notes);
+            }
             break;
           case "interfaces":
             show("Settings");
@@ -338,8 +392,11 @@ try {
     }
     console.log(`reader-guide capture written to ${webHostOutput}`);
   }
-  if (captureScenes === undefined && captureFiles === undefined)
+  if (captureScenes === undefined && captureFiles === undefined) {
+    await runDiagramCaptures(browser, captureSection);
+    await runExampleAppCaptures(browser, captureSection);
     await runCookbookCaptures(browser, captureSection);
+  }
 } finally {
   await browser.close();
 }

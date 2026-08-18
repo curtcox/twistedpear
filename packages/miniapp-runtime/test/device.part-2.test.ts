@@ -600,11 +600,12 @@ describe("DeviceManager Phase 7 hardening", () => {
       },
     );
     const sample = await manager.read("app", session.handle);
-    expect(sample).toEqual({
+    expect(sample).toMatchObject({
       kind: "biometric",
       tier: "assertion",
       at: 51_000,
       passed: true,
+      assertion: { alg: "host-assert-v1", payload: "pass" },
     });
     expect(JSON.stringify(sample)).not.toMatch(/template|enroll/i);
   });

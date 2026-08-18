@@ -29,7 +29,7 @@ describe("freenet:contract capability", () => {
     );
     expect(entry).toBeDefined();
     expect(entry?.description).toContain("cannot be recalled");
-    expect(HOST_API_VERSION).toBe("0.13.0");
+    expect(HOST_API_VERSION).toBe("0.14.0");
   });
 
   it("returns FREENET_UNCONFIGURED when freenetBackend is not injected", async () => {

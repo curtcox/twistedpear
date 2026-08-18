@@ -31,6 +31,7 @@ import {
 } from "../services/relay.js";
 import { type FreenetContractBackend } from "../services/freenet.js";
 import type { DeviceManager } from "../device-manager.js";
+import type { HostPlatformId } from "../services/host-info.js";
 import { type InboundMediaBackend } from "../media-stream.js";
 export interface LaunchManifest {
   readonly name: string;
@@ -118,6 +119,8 @@ export interface MiniappHostOptions {
   readonly inboundMediaBackend?: InboundMediaBackend;
   /** Deterministic clock used by simulation and replay adapters. */
   readonly now?: () => number;
+  /** Host process platform; gates whether runtime:background actually runs. */
+  readonly hostPlatform?: HostPlatformId;
   /** Independent audit sink used by production-backed simulation projections. */
   readonly brokerAudit?: (
     entry: import("../broker.js").BrokerAuditEntry,

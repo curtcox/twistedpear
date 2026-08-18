@@ -14,7 +14,7 @@ and the [live difference matrix](chapter:difference-matrix).
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-31
+audited: 2026-08-18
 register: none
 -->
 
@@ -196,13 +196,17 @@ limits iOS and Android impose from the ones this platform added on top.
   apps needing exotic hardware) won't fit; the tiered-APK channel was deliberately deferred.
 - **Mini-app limits inherited from the mobile lifecycle are tracked, not accepted.** The
   remaining self-imposed entries in the mobile lifecycle ledger —
-  suspend/resume events and Android background execution — are limits no mobile OS imposes.
+  Android background execution and scheduled wake — are limits no mobile OS imposes.
   They carry revisit triggers that fail `npm run test:doc-audit` if they lapse. Do not cite
-  them here as permanent trade-offs. Concurrent mini-apps and a brokered `apps:channel` have
-  shipped; shared storage is still withheld by choice.
+  them here as permanent trade-offs. Concurrent mini-apps, a brokered `apps:channel`, and
+  suspend checkpoints have shipped; shared storage is still withheld by choice.
 - JS sandboxing inside one runtime is a real attack surface. Phase 7 completed a software-tier
   adversarial review of the broker chokepoint (docs/security-review.md);
   mini-app installation still trusts the publisher signature for declared behavior.
+  Destination-scoped egress (`EgressOffer`) and the hostile-author catalog
+  (`npm run test:hostile-authors`) bound that trust: no catalog scenario is
+  UNCONTROLLED. Residuals are v1 unscoped packages, offer-authoring chrome
+  (`CAP-EGRESS-CHROME`), and that a live offer is full use of that destination.
 - Phase 4 ships a broker chokepoint, deny-by-default capability grants, data-only widget
   trees, and hostile-input conformance tests. Capability substitution and broker UI-event
   forgery gaps found in review are fixed; **Bare Worker hostile parity on device** remains
@@ -238,7 +242,16 @@ limits iOS and Android impose from the ones this platform added on top.
 - No central registry means **no central moderation**: discovery is by announce/registry
   subscription, and malicious-app defense rests on signatures, capability grants, and
   user/community trust. LXMF block/mute lists and report records are local; exporting a report
-  does not submit it or cause a network-wide ban.
+  does not submit it or cause a network-wide ban. Capability **risk class**
+  (SPEC-CAP, app approval risk)
+  sets the evidence the host should gather; unmet evidence is "could not verify" plus
+  override, never a refusal. The four-class assignment is argued, not measured.
+  Reviewer independence is acquisition-bounded, not Sybil-solved, and a fresh device
+  with an empty reviewer list gets no attestation benefit.
+  security-review.md F4 records the residual: destination
+  scope is offer-bound where wired, v1 unscoped packages still install while the
+  refuse-v1 policy is off, and offer-authoring chrome is not yet a byproduct of
+  natural use.
 - Multipart propagation is a TwistedPear framing convention over ordinary signed LXMF
   messages, not an LXMF attachment standard. It defaults to 64 KiB, hard-stops at 1,000,000
   bytes, and uses 32-byte content frames with 16-byte titles to remain on the packet

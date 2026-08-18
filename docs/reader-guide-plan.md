@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-17
+audited: 2026-08-18
 register: software
 -->
 
@@ -55,8 +55,8 @@ deliberate product decisions and implementing them would be a regression against
 
 ## The work
 
-**Screenshots (RG6).** All three guides ship placeholder graphics — 44 pending files
-(`npm run site:section-images:report`; 25 for the guide, 16 for the authors guide, 3 for
+**Screenshots (RG6).** All three guides ship placeholder graphics — 34 pending files
+(`npm run site:section-images:report`; 16 for the guide, 15 for the authors guide, 3 for
 the cookbook). Each has a written caption in the prose describing exactly the shot
 required, and `<section>/images/README.md` documents the conventions. Capture what can be
 captured from hosts that actually run today (desktop host, browser host, DevStudio, the

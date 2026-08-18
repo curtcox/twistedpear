@@ -1,6 +1,6 @@
 {
   "$schema": "../schema/capability-risk.schema.json",
-  "hostApiVersion": "0.13.0",
+  "hostApiVersion": "0.14.0",
   "capabilities": [
     {
       "id": "identity",
@@ -137,6 +137,22 @@
       "irreversibleOrThirdParty": false,
       "readsSensorSecretOrForeignData": false,
       "standing": false
+    },
+    {
+      "id": "runtime:background",
+      "riskClass": "elevated",
+      "namesDestination": false,
+      "irreversibleOrThirdParty": false,
+      "readsSensorSecretOrForeignData": false,
+      "standing": true
+    },
+    {
+      "id": "runtime:wake",
+      "riskClass": "elevated",
+      "namesDestination": false,
+      "irreversibleOrThirdParty": false,
+      "readsSensorSecretOrForeignData": false,
+      "standing": true
     },
     {
       "id": "share:cas",

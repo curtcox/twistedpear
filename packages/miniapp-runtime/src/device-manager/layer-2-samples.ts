@@ -325,8 +325,30 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
   }
 
   private materializeBiometric(at: number, raw: unknown): DeviceSample {
-    const passed = Boolean((raw as { passed?: boolean }).passed);
-    return { kind: "biometric", tier: "assertion", at, passed };
+    const source = raw as {
+      passed?: boolean;
+      template?: unknown;
+      enrollment?: unknown;
+    };
+    if (source.template !== undefined || source.enrollment !== undefined) {
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        "Biometric templates must not leave the OS enclave.",
+      );
+    }
+    const passed = Boolean(source.passed);
+    const payload = passed ? "pass" : "fail";
+    return {
+      kind: "biometric",
+      tier: "assertion",
+      at,
+      passed,
+      assertion: {
+        alg: "host-assert-v1",
+        payload,
+        signature: `host-assert-v1:${payload}:${at}`,
+      },
+    };
   }
 
   private materializeProximity(at: number, raw: unknown): DeviceSample {
@@ -426,13 +448,23 @@ export class DeviceManagerLayer2 extends DeviceManagerLayer2Base {
   }
 
   protected assertCommandMatchesSession(
-    classId: string,
+    live: LiveSession,
     command: DeviceCommand,
   ): void {
-    if (command.kind !== classId) {
+    if (command.kind !== live.state.classId) {
       throw new DeviceError(
         "DEVICE_BAD_REQUEST",
-        `Command kind "${command.kind}" does not match session class "${classId}".`,
+        `Command kind "${command.kind}" does not match session class "${live.state.classId}".`,
+      );
+    }
+    if (
+      command.kind === "nfc" &&
+      command.action === "apdu" &&
+      live.state.tierId !== "apdu"
+    ) {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "nfc:apdu is required for APDU exchange; the ndef tier cannot talk to applets.",
       );
     }
   }

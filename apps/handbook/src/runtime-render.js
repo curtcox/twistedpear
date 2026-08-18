@@ -277,15 +277,13 @@ async function renderGrantIntro(children) {
         : granted.has(cap.id)
           ? " ✓ granted"
           : " ✗ withheld";
-    children.push(
-      textNode(`grant-cap-${i}`, `• ${cap.id} — ${cap.description}${status}`),
-    );
+    children.push(textNode(`grant-cap-${i}`, `• ${cap.id}${status}`));
   }
 
   children.push(
     textNode(
       "grant-intro-note",
-      "Revoke or add grants later in host Settings. Double-gated apps:* capabilities also require a host confirmation on each call.",
+      "Plain ids only — full capability copy lives in host chrome and the Capabilities chapter. Revoke or add grants later in host Settings. Double-gated apps:* capabilities also require a host confirmation on each call.",
     ),
   );
   children.push(

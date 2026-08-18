@@ -18,8 +18,8 @@ completed evidence stays in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md).
 | Peer implementation types    | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts)                                                                                                           |
 | Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()`                                                                                                                                  |
 
-Current closed set: **24 core + 30 device = 54** capability ids. Current
-`HOST_API_VERSION` is **0.13.0**.
+Current closed set: **26 core + 30 device = 56** capability ids. Current
+`HOST_API_VERSION` is **0.14.0**.
 
 ## Peer implementation types
 
@@ -105,6 +105,8 @@ Cross-cutting wiring gaps (affect many rows below):
 | `apps:install`       | done · conf · soft    | partial · conf · emu  | partial · conf · emu  | partial · conf · soft | done · conf · soft    |
 | `apps:preview`       | done · conf · soft    | partial · unit · soft | partial · unit · soft | done · conf · soft    | done · conf · soft    |
 | `apps:channel`       | done · conf · soft    | done · unit · soft    | done · unit · soft    | done · conf · soft    | done · conf · soft    |
+| `runtime:background` | n/a · n/a · n/a       | done · unit · soft    | n/a · n/a · n/a       | n/a · n/a · n/a       | n/a · n/a · n/a       |
+| `runtime:wake`       | done · unit · soft    | done · unit · soft    | done · unit · soft    | n/a · n/a · n/a       | done · unit · soft    |
 | `share:cas`          | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
 | `peer:connect`       | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · unit · soft    |
 | `link:observe`       | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft    |
@@ -130,6 +132,10 @@ Cross-cutting wiring gaps (affect many rows below):
 - **`apps:channel`** is brokered in HOST_API 0.13.0. Opening names the destination on a
   host confirmation; both running apps must grant the pair. Unit-tested on every host
   that uses `MiniappHost`; handbook isolation probe covers node/desktop/web.
+- **`runtime:background`** is Android-only execution inside the host foreground
+  service, rationed to two apps, with the battery cost on the grant screen. iOS,
+  desktop, web, and node record the grant as inert. **`runtime:wake`** is a
+  per-host wake budget (`host.requestWake`); web has none.
 - **`peer:connect`**: trusted chrome + adapters are wired on desktop/native/web; the ntfy
   rendezvous path is verified against a disposable self-hosted server
   (`npm run test:ntfy-service`) and the remaining physical/browser trials are in

@@ -399,14 +399,12 @@ rather than failing, with the clamp reported to the app.
 Phases 1–6 (foundation through remote acquisition and peer streaming) are built; plane
 binding for realtime media is in [realtime peer media](realtime-media.md). Remaining work:
 
-7. **Hardening and growth.** Remaining: `nfc:apdu` with the payment blocklist,
-   `biometric`, per-host native drivers and Hardware access chrome, and
-   hardware-gated conformance.
+7. **Hardening and growth.** `nfc:apdu` with the payment blocklist, `biometric`
+   (signed assertion only), per-host native drivers, and Hardware access chrome
+   have shipped. Remaining: hardware-gated conformance.
 
-Phase 7 remaining is tracked as `DEV-NFC-APDU`, `DEV-BIOMETRIC`, and
-`DEV-NATIVE-DRIVERS` in the **Backlog**
-table of [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md). Hardware-gated conformance for these
-classes carries no software row; it stays in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
+Phase 7 remaining hardware-gated conformance for these classes carries no software
+row; it stays in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
 ## Open questions to resolve during design
 

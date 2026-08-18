@@ -262,6 +262,8 @@ async function build() {
       "apps:install",
       "apps:preview",
       "apps:channel",
+      "runtime:background",
+      "runtime:wake",
       "share:cas",
     ];
     capabilityDescriptions = new Map(

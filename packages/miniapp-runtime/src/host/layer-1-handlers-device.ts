@@ -402,5 +402,23 @@ export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1H
         };
       },
     );
+
+    this.broker.register(
+      "host",
+      "requestWake",
+      "runtime:wake",
+      (request, context) => {
+        const payload = request.payload as {
+          intervalMs: number;
+          budgetMs?: number;
+        };
+        return Promise.resolve(
+          this.requestWake(context.appId, context.publisherPublicKey, {
+            intervalMs: payload.intervalMs,
+            budgetMs: payload.budgetMs ?? 1_000,
+          }),
+        );
+      },
+    );
   }
 }

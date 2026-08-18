@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-17
+audited: 2026-08-18
 register: software
 -->
 
@@ -52,18 +52,11 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID                         | Status | Item                                                             | Evidence | Verify                                                                      |
-| -------------------------- | ------ | ---------------------------------------------------------------- | -------- | --------------------------------------------------------------------------- |
-| CAP-EGRESS-CHROME          | open   | Offer authoring as a byproduct of natural use, plus revoke       | —        | `npx vitest run packages/host-core/test/egress-offer-chrome.test.ts`        |
-| MINIAPP-BACKGROUND-ANDROID | open   | Mini-app execution inside the Android foreground service         | —        | `npx vitest run packages/miniapp-runtime/test/background-execution.test.ts` |
-| MINIAPP-SCHEDULED-WAKE     | open   | A mini-app asking to be woken periodically for bounded work      | —        | `npx vitest run packages/miniapp-runtime/test/scheduled-wake.test.ts`       |
-| RG6                        | open   | Capture the 44 pending reader-guide screenshots                  | —        | `npm run site:section-images:report && npm run site:build`                  |
-| DEV-NFC-APDU               | open   | nfc:apdu tier with the payment-applet blocklist                  | —        | `npx vitest run packages/miniapp-runtime/test/device-nfc-apdu.test.ts`      |
-| DEV-BIOMETRIC              | open   | biometric device class — signed assertion only                   | —        | `npx vitest run packages/miniapp-runtime/test/device-biometric.test.ts`     |
-| DEV-NATIVE-DRIVERS         | open   | Per-host native device drivers and Hardware access chrome        | —        | `npx vitest run packages/host-core/test/hardware-access-chrome.test.ts`     |
-| FN-A1-ANDROID-E5           | open   | Record the Android emulator BareKit WASM + watchdog measurements | —        | `npm run test:android-emulator:e5`                                          |
-| FN-A2-IOS-WASM             | open   | Record the iOS simulator BareKit WASM + watchdog measurements    | —        | `npm run test:ios-sim:wasm`                                                 |
-| SIM-L3-COLLUDING           | open   | Ratchet the abuse difficulty ladder to L3 (colluding)            | —        | `npm run sim:abuse-loop`                                                    |
+| ID               | Status | Item                                                             | Evidence | Verify                                                     |
+| ---------------- | ------ | ---------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
+| RG6              | open   | Capture the remaining reader-guide screenshots (34 pending)  | —        | `npm run site:section-images:report && npm run site:build` |
+| FN-A1-ANDROID-E5 | open   | Record the Android emulator BareKit WASM + watchdog measurements | —        | `npm run test:android-emulator:e5`                         |
+| FN-A2-IOS-WASM   | open   | Record the iOS simulator BareKit WASM + watchdog measurements    | —        | `npm run test:ios-sim:wasm`                                |
 
 ## Blocked backlog
 
