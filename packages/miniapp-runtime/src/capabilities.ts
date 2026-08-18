@@ -227,7 +227,7 @@ export interface GrantSetOptions {
   readonly declared: ReadonlyArray<string>;
   readonly requestedGrants: ReadonlyArray<string>;
   readonly now: number;
-  readonly ttlMs?: number;
+  readonly ttlMs: number;
 }
 
 export interface GrantKeyValueStore {
@@ -434,14 +434,8 @@ export class GrantStore {
   }
 
   async set(options: GrantSetOptions): Promise<GrantRecord> {
-    const {
-      appId,
-      publisherPublicKey,
-      declared,
-      requestedGrants,
-      now,
-      ttlMs = Number.MAX_SAFE_INTEGER - now,
-    } = options;
+    const { appId, publisherPublicKey, declared, requestedGrants, now, ttlMs } =
+      options;
     const declaredCapabilities = validateManifestCapabilities(declared);
     const requested = validateManifestCapabilities(requestedGrants);
     const before = await this.loadState(appId, publisherPublicKey);

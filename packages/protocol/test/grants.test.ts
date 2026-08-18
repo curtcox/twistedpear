@@ -30,8 +30,19 @@ import { grantRecordMutationCorpus } from "../../sim-adversaries/src/grant-mutat
 const APP = "demo-app";
 const PUBKEY = "publisher-pk-hex";
 
-function grantSet(at: number, declared: string[], requested: string[]): Event {
-  return { kind: "grant/set", at, declared, requested } as unknown as Event;
+function grantSet(
+  at: number,
+  declared: string[],
+  requested: string[],
+  ttlMs = 10,
+): Event {
+  return {
+    kind: "grant/set",
+    at,
+    declared,
+    requested,
+    ttlMs,
+  } as unknown as Event;
 }
 
 function grantRevoke(at: number, capability: string): Event {
@@ -122,6 +133,7 @@ describe("protocol grant host", () => {
           at: 20,
           declared: ["read"],
           requested: ["read"],
+          ttlMs: 10,
         }).state,
       ).toBe(terminal);
       expect(

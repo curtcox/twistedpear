@@ -10,6 +10,7 @@ import {
   type ConfirmationRequest,
   type GrantKeyValueStore,
 } from "../src/index.js";
+import { grantTtlMsForCapabilities } from "../src/grant-ttl.js";
 
 class MemoryStore implements GrantKeyValueStore {
   readonly values = new Map<string, Uint8Array>();
@@ -125,7 +126,8 @@ describe("host resource limits", () => {
       publisherPublicKey: "publisher",
       declared: manifest.capabilities,
       requestedGrants: ["storage:kv"],
-      now: 1_000,
+      now: Date.now(),
+      ttlMs: grantTtlMsForCapabilities(["storage:kv"]),
     });
 
     const write = (id: string, size: number) =>
@@ -158,7 +160,8 @@ describe("host resource limits", () => {
       publisherPublicKey: "publisher",
       declared: manifest.capabilities,
       requestedGrants: ["storage:kv"],
-      now: 1_000,
+      now: Date.now(),
+      ttlMs: grantTtlMsForCapabilities(["storage:kv"]),
     });
     const bundle = new TextEncoder().encode("export {};\n");
 

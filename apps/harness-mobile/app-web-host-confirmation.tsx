@@ -152,17 +152,27 @@ function HostReviewKindBody({
         </Text>
         {modal.review.capabilities.map(
           (capability: LaunchReviewCapabilityView) => (
-            <Row
-              key={capability.id}
-              testID={
-                modal.kind === "install"
-                  ? `install-grant-${capability.id}`
-                  : `launch-grant-${capability.id}`
-              }
-              label={capability.id}
-              value={modal.grants.includes(capability.id)}
-              onChange={(granted) => onGrantToggle(capability.id, granted)}
-            />
+            <View key={capability.id}>
+              <Row
+                testID={
+                  modal.kind === "install"
+                    ? `install-grant-${capability.id}`
+                    : `launch-grant-${capability.id}`
+                }
+                label={capability.id}
+                value={modal.grants.includes(capability.id)}
+                onChange={(granted) => onGrantToggle(capability.id, granted)}
+              />
+              {capability.expiresAt !== null ? (
+                <Text style={styles.muted}>
+                  Expires{" "}
+                  {new Date(capability.expiresAt).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </Text>
+              ) : null}
+            </View>
           ),
         )}
         <View style={styles.buttonRow}>

@@ -9,6 +9,7 @@ import {
   type GrantKeyValueStore,
   type MiniappCapability,
 } from "../src/index.js";
+import { grantTtlMsForCapabilities } from "../src/grant-ttl.js";
 
 class MemoryStore implements GrantKeyValueStore {
   readonly values = new Map<string, Uint8Array>();
@@ -183,12 +184,14 @@ describe("mini-app host", () => {
       name: "stream-app",
       capabilities: ["ai:chat"],
     };
+    const now = Date.now();
     await grants.set({
       appId: "stream-app",
       publisherPublicKey: "publisher",
       declared: ["ai:chat"],
       requestedGrants: ["ai:chat"],
-      now: 1,
+      now,
+      ttlMs: grantTtlMsForCapabilities(["ai:chat"]),
     });
     const bundle = new TextEncoder()
       .encode(`import { ai, ui } from "@twistedpear/miniapp-sdk";
@@ -236,7 +239,8 @@ await ui.render({ root: { id: "root", type: "text", props: { value: text } } });
       publisherPublicKey: "publisher",
       declared: ["ai:embed"],
       requestedGrants: ["ai:embed"],
-      now: 1,
+      now: Date.now(),
+      ttlMs: grantTtlMsForCapabilities(["ai:embed"]),
     });
     const bundle = new TextEncoder()
       .encode(`import { ai, ui } from "@twistedpear/miniapp-sdk";
@@ -286,7 +290,8 @@ describe("mini-app host (continued)", () => {
       publisherPublicKey: "publisher",
       declared: ["storage:kv"],
       requestedGrants: ["storage:kv"],
-      now: 1_000,
+      now: Date.now(),
+      ttlMs: grantTtlMsForCapabilities(["storage:kv"]),
     });
     const allowed = await host.dispatchRaw(
       {

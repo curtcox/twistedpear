@@ -177,6 +177,7 @@ function productionScenarioNodes(
       at: GRANT_AT,
       declared: [cell.capability],
       requested: [cell.capability],
+      ttlMs: 60 * 60_000,
     },
   ).state;
   return [

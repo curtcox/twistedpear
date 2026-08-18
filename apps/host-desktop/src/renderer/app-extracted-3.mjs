@@ -302,7 +302,11 @@ export function showHostModalImpl(
       input.dataset.capabilityId = capability.id;
       capabilityInputs.push(input);
       const text = document.createElement("span");
-      text.textContent = `${capability.id} — ${capability.description || ""}`;
+      const expiry =
+        capability.expiresAt != null
+          ? ` · expires ${new Date(capability.expiresAt).toLocaleString()}`
+          : "";
+      text.textContent = `${capability.id} — ${capability.description || ""}${expiry}`;
       label.append(input, text);
       __scope.modalEl.appendChild(label);
     }

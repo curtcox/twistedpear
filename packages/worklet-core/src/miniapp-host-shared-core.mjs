@@ -6,6 +6,10 @@ import {
   isMiniappCapability,
   validateManifestCapabilities,
 } from "../../miniapp-runtime/dist/capabilities.js";
+import {
+  grantTtlMsForCapabilities,
+  isGrantLifecycleEffective,
+} from "../../miniapp-runtime/dist/grant-ttl.js";
 import { MiniappHost } from "../../miniapp-runtime/dist/host.js";
 import { SessionInviteService } from "../../miniapp-runtime/dist/session-invite.js";
 
@@ -46,17 +50,31 @@ export function createPushGrants(send, grantStore) {
     );
     optionsSendGrantsSkeleton(send, appId, declared);
 
-    void grantStore.get(appId, publisherPublicKey).then((record) => {
+    void Promise.all([
+      grantStore.get(appId, publisherPublicKey),
+      grantStore.authority(appId, publisherPublicKey),
+    ]).then(([record, lifecycles]) => {
+      const now = Date.now();
       const granted = new Set(record?.granted ?? []);
       send({
         type: "grants",
         appId,
-        capabilities: CAPABILITY_DEFINITIONS.map((definition) => ({
-          id: definition.id,
-          description: describeCapability(definition.id),
-          declared: declared.has(definition.id),
-          granted: granted.has(definition.id),
-        })),
+        capabilities: CAPABILITY_DEFINITIONS.map((definition) => {
+          const lifecycle = lifecycles[definition.id];
+          const effective =
+            granted.has(definition.id) &&
+            isGrantLifecycleEffective(lifecycle, now);
+          return {
+            id: definition.id,
+            description: describeCapability(definition.id),
+            declared: declared.has(definition.id),
+            granted: effective,
+            expiresAt:
+              effective && lifecycle?.expiresAt != null
+                ? lifecycle.expiresAt
+                : null,
+          };
+        }),
       });
     });
   };
@@ -283,6 +301,7 @@ export function createGrantApiMethods({ grantStore, now, pushGrants }) {
         declared: declaredCapabilities,
         requestedGrants: grantedCapabilities,
         now: now(),
+        ttlMs: grantTtlMsForCapabilities(grantedCapabilities),
       });
       pushGrants(appId, publisherPublicKey, declaredCapabilities);
     },

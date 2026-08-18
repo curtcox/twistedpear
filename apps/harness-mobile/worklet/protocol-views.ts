@@ -74,6 +74,7 @@ export interface LaunchReviewCapabilityView {
   readonly id: string;
   readonly description: string;
   readonly granted: boolean;
+  readonly expiresAt: number | null;
 }
 
 export interface LaunchReviewRequestView {

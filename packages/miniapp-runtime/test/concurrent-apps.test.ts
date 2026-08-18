@@ -9,6 +9,7 @@ import {
   type SandboxBackend,
   type SandboxInstance,
 } from "../src/index.js";
+import { grantTtlMsForCapabilities } from "../src/grant-ttl.js";
 
 class MemoryStore implements GrantKeyValueStore {
   readonly values = new Map<string, Uint8Array>();
@@ -46,6 +47,25 @@ await ui.render({
   }
 });
 `);
+}
+
+async function grantCapabilities(
+  grants: GrantStore,
+  appIds: ReadonlyArray<string>,
+  capability: string,
+): Promise<void> {
+  const now = Date.now();
+  const ttlMs = grantTtlMsForCapabilities([capability]);
+  for (const appId of appIds) {
+    await grants.set({
+      appId,
+      publisherPublicKey: "publisher",
+      declared: [capability],
+      requestedGrants: [capability],
+      now,
+      ttlMs,
+    });
+  }
 }
 
 function manifestFor(
@@ -152,20 +172,7 @@ describe("concurrent mini-apps", () => {
   it("isolates kv writes and rate limits per app", async () => {
     const { store } = await createHost();
     const grants = new GrantStore(store);
-    await grants.set({
-      appId: "alpha",
-      publisherPublicKey: "publisher",
-      declared: ["storage:kv"],
-      requestedGrants: ["storage:kv"],
-      now: 1,
-    });
-    await grants.set({
-      appId: "beta",
-      publisherPublicKey: "publisher",
-      declared: ["storage:kv"],
-      requestedGrants: ["storage:kv"],
-      now: 1,
-    });
+    await grantCapabilities(grants, ["alpha", "beta"], "storage:kv");
     const kvHost = new MiniappHost({
       backend: new NodeWorkerSandboxBackend(),
       grantStore: grants,
@@ -234,20 +241,7 @@ await ui.render({
     const confirmations: string[] = [];
     const store = new MemoryStore();
     const grants = new GrantStore(store);
-    await grants.set({
-      appId: "alpha",
-      publisherPublicKey: "publisher",
-      declared: ["apps:package"],
-      requestedGrants: ["apps:package"],
-      now: 1,
-    });
-    await grants.set({
-      appId: "beta",
-      publisherPublicKey: "publisher",
-      declared: ["apps:package"],
-      requestedGrants: ["apps:package"],
-      now: 1,
-    });
+    await grantCapabilities(grants, ["alpha", "beta"], "apps:package");
     const host = new MiniappHost({
       backend: mockBackend(() => true),
       grantStore: grants,

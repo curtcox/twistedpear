@@ -8,6 +8,10 @@ import {
   describeCapability,
   validateManifestCapabilities,
 } from "../../miniapp-runtime/dist/capabilities.js";
+import {
+  grantTtlMsForCapabilities,
+  isGrantLifecycleEffective,
+} from "../../miniapp-runtime/dist/grant-ttl.js";
 import { HOST_API_VERSION } from "../../miniapp-runtime/dist/host-api.js";
 import {
   CodecStreamEgressFactory,
@@ -317,6 +321,7 @@ export function createAppsBackendPreviewAction({
       declared: manifest.capabilities,
       requestedGrants: grants,
       now: now(),
+      ttlMs: grantTtlMsForCapabilities(grants),
     });
     await previewHost.host.launch(
       {
@@ -361,9 +366,16 @@ export async function launchWithCapabilityReview({
 }) {
   devBadgeRef.current = false;
   const declared = validateManifestCapabilities(record.manifest.capabilities);
+  const at = now();
+  const lifecycles = await grantStore.authority(
+    record.appId,
+    record.manifest.publisherPublicKey,
+  );
   const preGranted = new Set(
-    (await grantStore.get(record.appId, record.manifest.publisherPublicKey))
-      ?.granted ?? [],
+    (
+      await grantStore.get(record.appId, record.manifest.publisherPublicKey)
+    )?.granted.filter((id) => isGrantLifecycleEffective(lifecycles[id], at)) ??
+      [],
   );
   const reply = await requestReview({
     appId: record.appId,
@@ -373,6 +385,9 @@ export async function launchWithCapabilityReview({
       id,
       description: describeCapability(id),
       granted: preGranted.has(id),
+      expiresAt: preGranted.has(id)
+        ? (lifecycles[id]?.expiresAt ?? null)
+        : null,
     })),
   });
   if (reply === null || reply.accept !== true) {
@@ -385,7 +400,8 @@ export async function launchWithCapabilityReview({
       publisherPublicKey: record.manifest.publisherPublicKey,
       declared: record.manifest.capabilities,
       requestedGrants: reply.grants,
-      now: now(),
+      now: at,
+      ttlMs: grantTtlMsForCapabilities(reply.grants),
     });
     pushGrants(
       record.appId,

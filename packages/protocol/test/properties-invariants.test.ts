@@ -107,12 +107,14 @@ describe("protocol invariant properties", () => {
             at: 1,
             declared: requested,
             requested,
+            ttlMs: 10,
           }).state;
           const superset = stepGrantHost(state, {
             kind: "grant/set",
             at: 1,
             declared: [...new Set([...requested, ...additions])],
             requested,
+            ttlMs: 10,
           }).state;
           expect(base.lastError).toBeNull();
           expect(superset.lastError).toBeNull();

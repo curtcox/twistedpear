@@ -4,6 +4,7 @@ import {
   grantStoreKey,
   type GrantKeyValueStore,
 } from "../src/index.js";
+import { grantTtlMsForCapabilities } from "../src/grant-ttl.js";
 
 /**
  * A user may run the same app on several of their machines and grant it
@@ -56,6 +57,7 @@ describe("grants are scoped to one installation", () => {
       declared: [...declared],
       requestedGrants: ["lxmf:send"],
       now: 1,
+      ttlMs: grantTtlMsForCapabilities(["lxmf:send"]),
     });
     await laptop.set({
       appId,
@@ -63,6 +65,7 @@ describe("grants are scoped to one installation", () => {
       declared: [...declared],
       requestedGrants: ["lxmf:send", "storage:kv"],
       now: 1,
+      ttlMs: grantTtlMsForCapabilities(["lxmf:send", "storage:kv"]),
     });
 
     expect((await phone.get(appId, publisher))?.granted).toEqual(["lxmf:send"]);
@@ -81,6 +84,7 @@ describe("grants are scoped to one installation", () => {
       declared: [...declared],
       requestedGrants: [...declared],
       now: 1,
+      ttlMs: grantTtlMsForCapabilities([...declared]),
     });
 
     expect((await phone.get(appId, publisher))?.granted).toEqual([...declared]);
@@ -97,6 +101,7 @@ describe("grants are scoped to one installation", () => {
       declared: [...declared],
       requestedGrants: ["lxmf:send"],
       now: 1,
+      ttlMs: grantTtlMsForCapabilities(["lxmf:send"]),
     });
 
     const prefix = grantStoreKey(appId, publisher);

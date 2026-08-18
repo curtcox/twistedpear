@@ -256,6 +256,7 @@ async function grantHistoricalOutcome(drift: boolean): Promise<string | null> {
     declared: ["identity"],
     requestedGrants: ["identity"],
     now: 0,
+    ttlMs: 60_000,
   });
   await store.use("historical", "publisher", "identity", 1);
   if (!drift) await store.revoke("historical", "publisher", "identity", 2);

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1220,
+  "modules": 1221,
   "components": 24,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -90,7 +90,7 @@
     },
     {
       "id": "packages/miniapp-runtime",
-      "modules": 84,
+      "modules": 85,
       "ca": 12,
       "ce": 3,
       "instability": 0.2,

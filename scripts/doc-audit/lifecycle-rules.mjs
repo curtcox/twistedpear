@@ -19,6 +19,7 @@ function registerForPath(relPath) {
   )
     return "complete";
   if (relPath === "STATUS-SOFTWARE.md") return "software";
+  if (relPath === "STATUS-SOFTWARE-OPTIONAL.md") return "software";
   if (relPath === "STATUS-HARDWARE.md") return "hardware";
   if (relPath === "RELEASE-PLAN.md") return "release";
   return "none";
@@ -36,6 +37,7 @@ function lifecycleForPath(relPath) {
     relPath === "STATUS-COMPLETE.md" ||
     relPath === "STATUS-COMPLETE-PHASES.md" ||
     relPath === "STATUS-SOFTWARE.md" ||
+    relPath === "STATUS-SOFTWARE-OPTIONAL.md" ||
     relPath === "STATUS-HARDWARE.md" ||
     relPath === "docs/README.md" ||
     relPath === "specs/README.md" ||
@@ -54,7 +56,11 @@ function auditedForPath(relPath, lifecycle) {
     relPath === "STATUS-COMPLETE-PHASES.md"
   )
     return "2026-07-19";
-  if (relPath === "STATUS-SOFTWARE.md" || relPath === "STATUS-HARDWARE.md") {
+  if (
+    relPath === "STATUS-SOFTWARE.md" ||
+    relPath === "STATUS-SOFTWARE-OPTIONAL.md" ||
+    relPath === "STATUS-HARDWARE.md"
+  ) {
     return "2026-07-16";
   }
   if (relPath === "RELEASE-PLAN.md") return "2026-07-18";

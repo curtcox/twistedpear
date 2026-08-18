@@ -264,6 +264,11 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/grant-ttl.test.ts",
       "added": "2026-08-18",
+      "completed": "2026-08-18",
+      "evidence": [
+        "packages/miniapp-runtime/src/grant-ttl.ts",
+        "packages/miniapp-runtime/test/grant-ttl.test.ts"
+      ],
       "notes": "capability-scoping-plan.md Phase 1, audit finding F-5. Require an explicit ttlMs at every GrantStore.set call site; default by consentClass; show expiry in the grant screen; re-prompt on expiry. Typed bug rather than feature: SPEC-CAP already states no grant is immortal and the machinery is model-checked, so this is a conformance gap. Open question 2 in the plan (default TTL per consent class) is a product call that this item has to settle."
     },
     "DEV-BIOMETRIC": {

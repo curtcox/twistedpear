@@ -7,7 +7,7 @@
     "swift"
   ],
   "files": 617,
-  "functions": 7115,
+  "functions": 7117,
   "groups": 4310,
   "exemptions": 91,
   "violations": 0,
@@ -239,7 +239,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createMediaPipeline",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createMediaPipeline",
-      "line": 164,
+      "line": 168,
       "tier": "source",
       "ccn": 30,
       "pinned": {
@@ -340,7 +340,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createCommonHostInfoBackend",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createCommonHostInfoBackend",
-      "line": 62,
+      "line": 66,
       "tier": "source",
       "ccn": 22,
       "pinned": {
@@ -1019,7 +1019,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createAppsBackendPreviewAction",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createAppsBackendPreviewAction",
-      "line": 294,
+      "line": 298,
       "tier": "source",
       "params": 6,
       "pinned": {
@@ -1030,7 +1030,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithCapabilityReview",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "launchWithCapabilityReview",
-      "line": 350,
+      "line": 355,
       "tier": "source",
       "params": 10,
       "pinned": {
@@ -1041,7 +1041,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "launchWithoutReview",
-      "line": 426,
+      "line": 442,
       "tier": "source",
       "params": 7,
       "pinned": {

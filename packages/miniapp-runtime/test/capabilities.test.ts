@@ -6,6 +6,7 @@ import {
   validateManifestCapabilities,
   type GrantKeyValueStore,
 } from "../src/capabilities.js";
+import { grantTtlMsForCapabilities } from "../src/grant-ttl.js";
 
 class MemoryStore implements GrantKeyValueStore {
   readonly values = new Map<string, Uint8Array>();
@@ -71,6 +72,7 @@ describe("mini-app capabilities", () => {
       declared: ["identity", "lxmf:send"],
       requestedGrants: ["identity", "lxmf:send"],
       now: 10,
+      ttlMs: grantTtlMsForCapabilities(["identity", "lxmf:send"]),
     });
 
     expect(await grants.get("app", "publisher")).toMatchObject({
@@ -147,6 +149,7 @@ describe("mini-app capabilities", () => {
         declared: ["identity"],
         requestedGrants: ["identity"],
         now: 11,
+        ttlMs: grantTtlMsForCapabilities(["identity"]),
       }),
     ).rejects.toMatchObject({ code: "CAPABILITY_DENIED" });
 
@@ -176,6 +179,7 @@ describe("mini-app capabilities", () => {
         declared: ["identity"],
         requestedGrants: ["identity"],
         now: 13,
+        ttlMs: grantTtlMsForCapabilities(["identity"]),
       }),
     ).rejects.toMatchObject({ code: "CAPABILITY_DENIED" });
   });

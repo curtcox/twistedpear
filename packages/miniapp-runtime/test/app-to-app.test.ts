@@ -5,10 +5,9 @@ import {
   HOST_API_VERSION,
   MiniappHost,
   NodeWorkerSandboxBackend,
-  type ConfirmationRequest,
-  type GrantKeyValueStore,
   type LaunchManifest,
 } from "../src/index.js";
+import { grantTtlMsForCapabilities } from "../src/grant-ttl.js";
 
 class MemoryStore implements GrantKeyValueStore {
   readonly values = new Map<string, Uint8Array>();
@@ -61,12 +60,14 @@ async function grantChannel(
   appId: string,
 ): Promise<GrantStore> {
   const grants = new GrantStore(store);
+  const now = Date.now();
   await grants.set({
     appId,
     publisherPublicKey: "publisher",
     declared: ["apps:channel"],
     requestedGrants: ["apps:channel"],
-    now: 1,
+    now,
+    ttlMs: grantTtlMsForCapabilities(["apps:channel"]),
   });
   return grants;
 }

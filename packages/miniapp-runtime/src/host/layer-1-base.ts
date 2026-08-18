@@ -1,5 +1,6 @@
 import { MiniappBroker } from "../broker.js";
 import type { GrantRecord } from "../capabilities.js";
+import { grantTtlMsForCapabilities } from "../grant-ttl.js";
 import type { ConfirmationRequest } from "../confirm.js";
 import { AiServiceError } from "../services/ai.js";
 import type {
@@ -144,6 +145,7 @@ export abstract class MiniappHostLayer1Base {
         declared,
         requestedGrants,
         now: this.now(),
+        ttlMs: grantTtlMsForCapabilities(requestedGrants),
       }),
     );
   }

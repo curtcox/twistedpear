@@ -57,7 +57,7 @@ export type GrantEvent =
       readonly at: number;
       readonly declared: readonly string[];
       readonly requested: readonly string[];
-      readonly ttlMs?: number;
+      readonly ttlMs: number;
     }
   | {
       readonly kind: "grant/revoke";
@@ -185,7 +185,7 @@ function applyGrantSet(
     const next = stepGrantLifecycle(current, {
       kind: "grant/approve",
       at: event.at,
-      ttlMs: event.ttlMs ?? Number.MAX_SAFE_INTEGER - event.at,
+      ttlMs: event.ttlMs,
     }).state;
     if (state.lifecycles?.[capability] !== undefined && next === current)
       return { state, intents: [] };
@@ -204,15 +204,7 @@ function stepLifecycleHostEvent(
   event: Extract<GrantEvent, { capability: string }>,
 ): ReturnType<StepFn<GrantHostState>> {
   const explicit = state.lifecycles?.[event.capability];
-  const current =
-    explicit ??
-    (state.record?.granted.includes(event.capability) === true
-      ? {
-          ...initialGrantLifecycleState(state.record.updatedAt),
-          phase: "granted" as const,
-          expiresAt: Number.MAX_SAFE_INTEGER,
-        }
-      : undefined);
+  const current = explicit;
   if (current === undefined) {
     if (event.kind !== "grant/deny") return { state, intents: [] };
     const requested = initialGrantLifecycleState(event.at);
