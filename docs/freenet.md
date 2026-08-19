@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-02
+audited: 2026-08-19
 register: software
 counterpart: docs/freenet-plan.md
 -->
@@ -94,7 +94,7 @@ and the per-exit-criterion mapping is
 | S1 Bare SDK              | **done**        | Pinned SDK bundles and reads live Atlas under Bare with exact shims (`bare-ws@2.0.4`, `bare-encoding@1.0.3`); `s1-report.md`, `s1-live-read.json`                                                                         | — (mobile lifecycle is F4/S8, not S1)                                                                                                     |
 | S2 update→notify latency | **partial**     | Local 3-node harness, 100 samples/size: local-executor p95 ~89 ms (≤64 KiB) / ~256 ms (1 MiB); paced cross-node notify p95 ~111 ms (≤64 KiB) / ~2.5 s (1 MiB); `measured-roundtrip.json`                                  | Authorized live-network 100-sample series                                                                                                 |
 | S3 convergent log        | **done**        | Pinned Rust ordered-log contract, native convergence tests, growth/merge curve; `s3-report.md`, `s3-measurements.json`                                                                                                    | —                                                                                                                                         |
-| S4 sandboxed WASM        | **partial**     | Node workers execute WASM and keep the watchdog kill guarantee; browser CSP deliberately keeps web unsupported (Option A); Android/iOS simulator BareKit probes require explicit `wasmExecuted`; `s4-support-matrix.json` | Physical BareKit release confirmation. **Option B stays closed.**                                                                         |
+| S4 sandboxed WASM        | **partial**     | Node workers execute WASM and keep the watchdog kill guarantee; browser CSP deliberately keeps web unsupported (Option A); Android emulator BareKit records `wasmExecuted: true` plus watchdog; iOS simulator BareKit records Worker spawn/kill and watchdog, with `wasmExecuted: false` because shipping iOS BareKit is V8 jitless; `s4-support-matrix.json` | Physical BareKit release confirmation. iOS WASM needs an upstream BareKit that exposes instantiate. **Option B stays closed.**                                                                         |
 | S5 bundled node          | **partial**     | Installed macOS universal binary ≈93 MiB; Linux/Windows compressed archive sizes and SHA-256s in `s5-bundling-matrix.json`                                                                                                | Fresh macOS artifact whose signature verifies strictly; signed + notarized TwistedPear bundle embedding the binary. **F4 stays blocked.** |
 | S6 API churn             | **done**        | Ten consecutive core releases kept contract ops and key derivation stable; `churn-report.md` plus exact SDK/core/stdlib pins                                                                                              | — (recheck on every pin bump)                                                                                                             |
 | S7 live-app interop      | **partial**     | Read half passed: the TS adapter read the live Atlas CBOR index through a localhost node; `s7-atlas-read.json`                                                                                                            | Write half needs explicit authorization — even a rejected update publishes public operation metadata                                      |
@@ -138,9 +138,12 @@ not a gate, per the [plan](freenet-plan.md) §12.
   determines whether using it as a packet interface is viable.
 - **S4 is partial under Option A:** Node workers execute WASM and retain the
   watchdog kill guarantee; the browser sandbox CSP deliberately omits
-  `wasm-unsafe-eval`, so embedded Freenet WASM on web is unsupported; Android
-  and iOS simulator BareKit probes require explicit `wasmExecuted`. Physical
-  BareKit confirmation is a release gate. Option B is not open.
+  `wasm-unsafe-eval`, so embedded Freenet WASM on web is unsupported; the
+  Android emulator BareKit worker records `wasmExecuted: true` plus watchdog
+  kill; the iOS simulator records Worker spawn/kill and watchdog with
+  `wasmExecuted: false` because shipping iOS BareKit (V8 jitless) disables
+  WebAssembly. Physical BareKit confirmation is a release gate. Option B is
+  not open.
 - **S5 is partial:** the installed 0.2.112 macOS universal binary adds roughly
   93 MiB, but strict verification of that installed copy fails. Linux/Windows
   compressed release-archive sizes are recorded in `s5-bundling-matrix.json`

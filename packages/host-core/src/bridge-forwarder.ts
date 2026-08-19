@@ -6,7 +6,7 @@ import type {
 } from "@twistedpear/reticulum-ts";
 import { Packet as PacketClass } from "@twistedpear/reticulum-ts";
 import type { RelayInterfaceKind, RelayPolicyMatrix } from "./types.js";
-import { inferInterfaceKind } from "@twistedpear/reticulum-interfaces";
+import { inferInterfaceKind } from "@twistedpear/reticulum-interfaces/policy";
 
 export interface BridgeForwarderOptions {
   readonly provider: CryptoProvider;

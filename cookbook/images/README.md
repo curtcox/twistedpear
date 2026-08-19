@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-19
 register: none
 -->
 
@@ -120,7 +120,19 @@ Re-run it with `npm run capture:reader-guide-ui`.
 
 The remaining **3** files are deliberately still placeholders because their captions require
 real radio or multi-device evidence that the deterministic capture pass must not fabricate:
-`06-photo-drop-scan.png`, `07-chapter-opener.png`, and `09-chapter-opener.png`.
+
+- `06-photo-drop-scan.png` — two-device composite: desktop Photo drop QR plus an
+  Android scanner overlay reading "Identifier captured". Needs two devices, one
+  of them a phone, and must not be a real personal handset.
+- `07-chapter-opener.png` — three model apps, with Pocket translator on a host
+  whose interface list shows no IP connectivity.
+- `09-chapter-opener.png` — Nine line, Beacon lite, and Net ledger on a host
+  whose interface list is `rnode` only.
+
+Do not substitute a plausible simulated radio state for these captions. Leave the placeholder
+in place until the required host and link are available (see
+[STATUS-HARDWARE.md](../../STATUS-HARDWARE.md)), then record the hardware used in the
+capture commit.
 
 ## Concept diagrams
 
@@ -146,17 +158,3 @@ they read natively on GitHub and the VitePress site.
 To edit one, change the SVG and re-run `npm run site:build` (or
 `node scripts/site/section-images.mjs --section=cookbook`) to republish it into
 `site/public/cookbook/images`. No caption or markdown change is needed unless the concept moves.
-
-## Shots that need a real radio
-
-Three captions ask for a host with no IP connectivity and a real RNode or BLE link. These are
-device-gated in the same way the conformance suites are; see
-[STATUS-HARDWARE.md](../../STATUS-HARDWARE.md).
-
-- `07-chapter-opener.png` — the offline panel needs a host with no IP route
-- `09-chapter-opener.png` — needs an RNode-only interface list
-- `06-photo-drop-scan.png` — needs two devices, one of them a phone
-
-Do not substitute a plausible simulated radio state for these captions. Leave the placeholder
-in place until the required host and link are available, then record the hardware used in the
-capture commit.

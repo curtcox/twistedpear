@@ -20,6 +20,10 @@ import {
   type UsbSerialDeviceInfo,
 } from "@twistedpear/usb-serial";
 import { decodeMessages } from "./worklet/protocol";
+import {
+  createWorkletIpcReadyGate,
+  type WorkletIpcReadyGate,
+} from "./worklet-ipc-ready";
 import type {
   HostToWorkletMessage,
   WorkletStatus,
@@ -208,6 +212,8 @@ function startNativeWorklet(
     ? new HostUsbIpc(deps.sendToWorklet)
     : null;
   deps.ipcBufferRef.current = "";
+  const ipcReady = createWorkletIpcReadyGate();
+  void ipcReady.promise.catch(() => {});
   worklet.IPC.on("data", (data) => {
     const bytes =
       data instanceof Uint8Array
@@ -218,29 +224,40 @@ function startNativeWorklet(
     );
     deps.ipcBufferRef.current = decoded.remainder;
     for (const message of decoded.messages) {
+      if (message.type === "status") {
+        ipcReady.signal();
+      }
       deps.handleWorkletMessage(message);
     }
   });
   deps.workletRef.current = worklet;
   const targetHost =
     Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST;
-  deps.workletReadyRef.current = Promise.resolve(
-    bootNativeWorklet(deps, worklet, targetHost, pushInterfaceConfig),
+  deps.workletReadyRef.current = bootNativeWorklet(
+    deps,
+    worklet,
+    targetHost,
+    pushInterfaceConfig,
+    ipcReady,
   );
   return deps.workletReadyRef.current;
 }
 
-function bootNativeWorklet(
+async function bootNativeWorklet(
   deps: NativeWorkletLifecycleDeps,
   worklet: Worklet,
   targetHost: string,
   pushInterfaceConfig: (next: InterfaceConfig) => void,
-): boolean {
+  ipcReady: WorkletIpcReadyGate,
+): Promise<boolean> {
   try {
     worklet.start("/app.bundle", bundle);
+    await ipcReady.promise;
   } catch (error) {
+    ipcReady.cancel();
     deps.workletRef.current = null;
     deps.workletReadyRef.current = null;
+    void worklet.terminate();
     deps.appendLog(
       `Worklet start failed: ${error instanceof Error ? error.message : String(error)}`,
     );

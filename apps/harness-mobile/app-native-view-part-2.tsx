@@ -156,6 +156,7 @@ function NativeRelayInterfacesBody({
           onPress={() => sendToWorklet({ type: "reset-identity" })}
         />
       </View>
+      <NativeMiniappBenchmarkControls scope={scope} />
       <Row
         testID="tcp-client-switch"
         label="TCP client"
@@ -317,6 +318,54 @@ function NativeNtfyFields({ scope }: { scope: NativeHarnessScope }) {
           }
         }}
       />
+    </>
+  );
+}
+
+function NativeMiniappBenchmarkControls({
+  scope,
+}: {
+  scope: NativeHarnessScope;
+}) {
+  const {
+    miniappBenchmark,
+    setMiniappBenchmark,
+    miniappLogs,
+    sendToWorklet,
+    startWorklet,
+  } = scope;
+  const wasm = miniappBenchmark?.wasmExecuted ? "yes" : "no";
+  const killNote =
+    miniappBenchmark !== null && !miniappBenchmark.busyLoopKilled
+      ? " · kill failed"
+      : "";
+  return (
+    <>
+      <ActionButton
+        testID="benchmark-miniapp"
+        label="Benchmark Bare worker"
+        onPress={() => {
+          setMiniappBenchmark(null);
+          scope.setMiniappLogs(["bench: Benchmark starting"]);
+          void startWorklet().then((ready) => {
+            if (!ready) {
+              scope.setMiniappLogs(["bench: worklet failed to start"]);
+              return;
+            }
+            sendToWorklet({ type: "benchmark-miniapp" });
+          });
+        }}
+      />
+      {miniappBenchmark !== null ? (
+        <Text testID="benchmark-results" style={styles.muted}>
+          {`spawn ${miniappBenchmark.spawnMs}ms · kill ${miniappBenchmark.killMs}ms · busy-loop ${miniappBenchmark.busyLoopKillMs}ms · wasm ${wasm}${killNote} (${miniappBenchmark.backend})`}
+        </Text>
+      ) : null}
+      {miniappLogs.length > 0 ? (
+        <Text testID="benchmark-log" style={styles.muted}>
+          {miniappLogs[miniappLogs.length - 1]}
+        </Text>
+      ) : null}
     </>
   );
 }

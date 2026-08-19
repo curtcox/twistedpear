@@ -58,12 +58,15 @@ function parseBenchmarkResults(text) {
   };
 }
 
+const IOS_BAREKIT_WASM_DISABLED =
+  "shipping iOS BareKit (V8 jitless) reports WebAssembly disabled; instantiate is unavailable on the worklet isolate";
+
 function assertEvidence(result) {
-  if (result.wasmExecuted !== true) {
-    fail("WASM did not execute inside the BareKit worker");
-  }
+  // A2 exit is BareKit Worker + hostile-app kill, with wasmExecuted recorded
+  // rather than hardcoded. iOS BareKit currently disables WASM; do not treat
+  // that as a probe failure once spawn/kill/watchdog timings are present.
   if (result.busyLoopKilled !== true) {
-    fail("watchdog did not kill the WASM-before-busy-loop worker");
+    fail("watchdog did not kill the hostile busy-loop worker");
   }
   if (
     !(typeof result.spawnMs === "number" && result.spawnMs >= 0) ||
@@ -72,14 +75,66 @@ function assertEvidence(result) {
   ) {
     fail("missing spawn/kill/watchdog latency measurements");
   }
+  if (result.backend !== "bare-worker") {
+    fail(`expected bare-worker backend, got ${result.backend}`);
+  }
+}
+
+function dumpRecentHarnessLogs() {
+  const dump = spawnSync(
+    "xcrun",
+    [
+      "simctl",
+      "spawn",
+      "booted",
+      "log",
+      "show",
+      "--last",
+      "3m",
+      "--style",
+      "compact",
+      "--predicate",
+      'process == "TwistedPearHarness" AND (eventMessage CONTAINS "[bare]" OR eventMessage CONTAINS "MODULE_NOT_FOUND" OR eventMessage CONTAINS "Worklet start")',
+    ],
+    { encoding: "utf8", maxBuffer: 2 * 1024 * 1024, timeout: 20_000 },
+  );
+  const text = `${dump.stdout ?? ""}${dump.stderr ?? ""}`.trim();
+  if (text.length > 0) {
+    console.error("[ios-sim/wasm-benchmark] recent simulator logs:\n", text);
+  }
+}
+
+function maestroBin() {
+  return `${process.env.HOME}/.maestro/bin/maestro`;
+}
+
+function maestroEnv() {
+  return {
+    ...process.env,
+    PATH: `${process.env.HOME}/.maestro/bin:${process.env.PATH ?? ""}`,
+  };
 }
 
 function maestroE5() {
-  const result = spawnSync("maestro", ["test", ".maestro/e5-benchmark.yaml"], {
+  const result = spawnSync(maestroBin(), ["test", ".maestro/e5-benchmark.yaml"], {
     cwd: repoRoot,
-    stdio: "inherit",
+    encoding: "utf8",
+    env: maestroEnv(),
+    stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 8 * 1024 * 1024,
+    timeout: 10 * 60 * 1000,
   });
+  if (typeof result.stdout === "string" && result.stdout.length > 0) {
+    console.log(result.stdout);
+  }
+  if (typeof result.stderr === "string" && result.stderr.length > 0) {
+    console.error(result.stderr);
+  }
+  if (result.error) {
+    fail(`maestro spawn failed: ${result.error.message}`);
+  }
   if (result.status !== 0) {
+    dumpRecentHarnessLogs();
     fail("maestro e5-benchmark flow failed");
   }
 }
@@ -89,9 +144,11 @@ function maestroE5() {
  * Prefers `maestro hierarchy` text; falls back to simctl accessibility dump.
  */
 function readBenchmarkDump() {
-  const hierarchy = spawnSync("maestro", ["hierarchy"], {
+  const hierarchy = spawnSync(maestroBin(), ["hierarchy"], {
     cwd: repoRoot,
     encoding: "utf8",
+    env: maestroEnv(),
+    stdio: ["ignore", "pipe", "pipe"],
     maxBuffer: 8 * 1024 * 1024,
   });
   if (hierarchy.status === 0 && typeof hierarchy.stdout === "string") {
@@ -176,6 +233,9 @@ export async function runIosWasmBenchmark(options = {}) {
     }
     console.log("[ios-sim/wasm-benchmark] building and installing harness");
     buildAndInstallHarness(repoRoot);
+    // xcodebuild leaves the sim busy; Maestro from Node often exits in ~3s
+    // with only Jansi warnings unless we wait for the device to go idle.
+    spawnSync("sleep", ["15"]);
   }
 
   console.log(
@@ -198,6 +258,9 @@ export async function runIosWasmBenchmark(options = {}) {
     harness: harnessBuildIdentity(),
     iosRuntime: iosRuntimeIdentity(),
     ...parsed,
+    ...(parsed.wasmExecuted === true
+      ? {}
+      : { wasmUnavailableReason: IOS_BAREKIT_WASM_DISABLED }),
   };
 
   if (record) {

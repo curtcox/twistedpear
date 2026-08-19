@@ -90,6 +90,8 @@ writeFileSync(
         repoRoot,
         "packages/miniapp-runtime/dist/worklet.js",
       ),
+      "node:os": join(repoRoot, "conformance/bare-interop/node-os-stub.mjs"),
+      os: join(repoRoot, "conformance/bare-interop/node-os-stub.mjs"),
     },
     null,
     2,
@@ -154,13 +156,22 @@ if (result.status !== 0) {
   const neutralized = packed
     .replaceAll('new TextDecoder(\\"utf-16le\\")', "void 0")
     .replaceAll('new TextDecoder("utf-16le")', "void 0")
-    .replaceAll("new TextDecoder('utf-16le')", "void 0");
+    .replaceAll('new TextDecoder(\'utf-16le\')', "void 0");
   if (neutralized === packed) {
     console.warn("worklet: no utf-16le TextDecoder sites found to neutralize");
   } else {
     writeFileSync(output, neutralized);
     console.log(
       "worklet: neutralized Emscripten utf-16le TextDecoder sites for Bare",
+    );
+  }
+}
+
+{
+  const packed = readFileSync(output, "utf8");
+  if (packed.includes("reticulum-interfaces/dist/auto.js")) {
+    throw new Error(
+      "worklet bundle includes reticulum-interfaces/dist/auto.js (node:os); import AutoInterfaceBridge/policy instead",
     );
   }
 }

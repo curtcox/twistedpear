@@ -24,9 +24,16 @@ export function updateS4SupportMatrix(backendKey, measured) {
 
   const wasmExecuted = measured.wasmExecuted === true;
   const busyLoopKilled = measured.busyLoopKilled === true;
+  const passed = wasmExecuted && busyLoopKilled;
+  const reason =
+    typeof measured.wasmUnavailableReason === "string"
+      ? measured.wasmUnavailableReason
+      : typeof measured.reason === "string"
+        ? measured.reason
+        : undefined;
   matrix.backends[backendKey] = {
     ...existing,
-    status: wasmExecuted && busyLoopKilled ? "pass" : "fail",
+    status: passed ? "pass" : "fail",
     wasmExecuted,
     busyLoopKilled,
     busyLoopKillMs:
@@ -37,9 +44,12 @@ export function updateS4SupportMatrix(backendKey, measured) {
     killMs: typeof measured.killMs === "number" ? measured.killMs : null,
     measuredAt: measured.measuredAt ?? null,
     environment: measured.environment ?? existing.environment,
-    reason: undefined,
   };
-  delete matrix.backends[backendKey].reason;
+  if (passed || reason === undefined) {
+    delete matrix.backends[backendKey].reason;
+  } else {
+    matrix.backends[backendKey].reason = reason;
+  }
   matrix.audited =
     typeof measured.measuredAt === "string"
       ? measured.measuredAt

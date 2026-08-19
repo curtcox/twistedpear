@@ -520,7 +520,6 @@ function NativeMiniappSurfaceCard({ scope }: { scope: NativeHarnessScope }) {
       </Text>
       <NativeMiniappRuntimeLine scope={scope} />
       <NativeMiniappWidgetBlock scope={scope} />
-      <NativeMiniappBenchmarkBlock scope={scope} />
     </View>
   );
 }
@@ -597,51 +596,4 @@ function NativeMiniappWidgetBlock({ scope }: { scope: NativeHarnessScope }) {
       ) : null}
     </>
   );
-}
-
-function NativeMiniappBenchmarkBlock({ scope }: { scope: NativeHarnessScope }) {
-  const {
-    miniappBenchmark,
-    setMiniappBenchmark,
-    miniappLogs,
-    sendToWorklet,
-    startWorklet,
-  } = scope;
-  return (
-    <>
-      <ActionButton
-        testID="benchmark-miniapp"
-        label="Benchmark Bare worker"
-        onPress={() => {
-          setMiniappBenchmark(null);
-          scope.setMiniappLogs(["bench: Benchmark starting"]);
-          void startWorklet().then((ready) => {
-            if (!ready) {
-              scope.setMiniappLogs(["bench: worklet failed to start"]);
-              return;
-            }
-            sendToWorklet({ type: "benchmark-miniapp" });
-          });
-        }}
-      />
-      {miniappBenchmark !== null ? (
-        <Text testID="benchmark-results" style={styles.muted}>
-          {nativeMiniappBenchmarkText(miniappBenchmark)}
-        </Text>
-      ) : null}
-      {miniappLogs.length > 0 ? (
-        <Text testID="benchmark-log" style={styles.muted}>
-          {miniappLogs[miniappLogs.length - 1]}
-        </Text>
-      ) : null}
-    </>
-  );
-}
-
-function nativeMiniappBenchmarkText(
-  miniappBenchmark: NonNullable<NativeHarnessScope["miniappBenchmark"]>,
-): string {
-  const wasm = miniappBenchmark.wasmExecuted ? "yes" : "no";
-  const killNote = miniappBenchmark.busyLoopKilled ? "" : " · kill failed";
-  return `spawn ${miniappBenchmark.spawnMs}ms · kill ${miniappBenchmark.killMs}ms · busy-loop ${miniappBenchmark.busyLoopKillMs}ms · wasm ${wasm}${killNote} (${miniappBenchmark.backend})`;
 }

@@ -72,8 +72,13 @@ The deterministic host-chrome pass supplies **20 of 22** files. Re-run it with
 `npm run capture:reader-guide-ui`.
 
 The remaining **2** filenames need surfaces the current capture fixture cannot
-produce without hardware:
+produce without hardware, and are not replaced with invented screens:
 
-- Cross-platform composite: `04-component-gallery.png` (desktop, Android, and
-  web native controls of the same tree).
-- Physical handset state: `02-installed-on-phone.png`.
+- `04-component-gallery.png` — the same widget tree on desktop, Android, and
+  web with each host's native controls. Desktop and web widget renderers exist;
+  the Android panel needs a phone (emulator or device) showing native RN
+  controls of that tree, which the Playwright host-chrome fixture cannot emit.
+- `02-installed-on-phone.png` — a published hello-app running on a phone with
+  host chrome and two interfaces online. Do not ship a screenshot of a real
+  handset (H-tier). An emulator dump would still be a developer harness, not
+  the consumer status-bar chrome the caption describes.

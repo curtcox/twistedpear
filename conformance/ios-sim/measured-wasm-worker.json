@@ -1,6 +1,18 @@
 {
-  "measuredAt": "pending",
+  "measuredAt": "2026-08-19",
   "platform": "ios-simulator",
   "environment": "ios-simulator",
-  "note": "Recorded by IOS_BENCHMARK_RECORD=1 npm run test:ios-sim:wasm after Maestro BareKit probe on an installed harness"
+  "harness": {
+    "name": "harness-mobile",
+    "version": "0.2.0"
+  },
+  "iosRuntime": null,
+  "backend": "bare-worker",
+  "runtime": "bare",
+  "spawnMs": 14,
+  "killMs": 0,
+  "busyLoopKillMs": 310,
+  "wasmExecuted": false,
+  "busyLoopKilled": true,
+  "wasmUnavailableReason": "shipping iOS BareKit (V8 jitless) reports WebAssembly disabled; instantiate is unavailable on the worklet isolate"
 }

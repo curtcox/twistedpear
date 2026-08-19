@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-18
+audited: 2026-08-19
 register: software
 -->
 
@@ -55,14 +55,11 @@ deliberate product decisions and implementing them would be a regression against
 
 ## The work
 
-**Screenshots (RG6).** All three guides ship placeholder graphics — 11 pending files
-(`npm run site:section-images:report`; 6 for the guide, 2 for the authors guide, 3 for
-the cookbook). Each has a written caption in the prose describing exactly the shot
-required, and `<section>/images/README.md` documents the conventions. Capture what can be
-captured from hosts that actually run today (desktop host, browser host, DevStudio, the
-emulator). Do **not** fabricate screenshots of features that do not exist, and do not ship
-a screenshot of a real handset — that is H-tier hardware debt. Report which filenames
-remain unobtainable and why.
+**Screenshots (RG6, recorded).** All three guides still use placeholders for shots
+the current hosts cannot produce honestly (`npm run site:section-images:report`:
+6 guide, 2 authors, 3 cookbook). Each filename and the reason it remains a
+placeholder live in `<section>/images/README.md`. Do not fabricate missing
+panels or ship a real handset.
 
 ## Definition of done
 

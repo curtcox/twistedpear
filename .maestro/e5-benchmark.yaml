@@ -9,34 +9,15 @@ appId: network.twistedpear.harness
     timeout: 120000
 - tapOn:
     id: "create-identity"
-- extendedWaitUntil:
-    visible: "Worklet: running"
-    timeout: 60000
+# `status.running` stays false until an interface starts Reticulum. The isolate
+# is live once identity persists; do not wait for "Worklet: running".
 - extendedWaitUntil:
     visible: "Persisted: yes"
-    timeout: 60000
-- scrollUntilVisible:
-    element:
-      id: "freenet-grant-enable"
-    direction: DOWN
-    timeout: 120000
-    speed: 40
-    visibilityPercentage: 30
-    waitToSettleTimeoutMs: 500
-- scrollUntilVisible:
-    element:
-      id: "benchmark-miniapp"
-    direction: DOWN
-    timeout: 60000
-    speed: 40
-    visibilityPercentage: 30
-    waitToSettleTimeoutMs: 500
+    timeout: 180000
+# Benchmark sits on the relay card next to Create identity so Maestro does not
+# have to scroll past hardware/mini-app cards (XCTest cannot tap off-screen ids).
 - tapOn:
     id: "benchmark-miniapp"
-- extendedWaitUntil:
-    visible:
-      id: "benchmark-log"
-    timeout: 15000
 - extendedWaitUntil:
     visible:
       id: "benchmark-results"

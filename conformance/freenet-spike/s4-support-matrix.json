@@ -31,13 +31,16 @@
       "measuredAt": "2026-08-19"
     },
     "bare-worker-ios-simulator": {
-      "status": "probe-ready",
-      "wasmExecuted": null,
-      "busyLoopKilled": null,
-      "busyLoopKillMs": null,
+      "status": "fail",
+      "wasmExecuted": false,
+      "busyLoopKilled": true,
+      "busyLoopKillMs": 310,
       "environment": "ios-simulator",
-      "reason": "Maestro BareKit probe wired into test:ios-sim:required (skips without installed harness); record with IOS_BENCHMARK_RECORD=1 npm run test:ios-sim:wasm",
-      "command": "npm run test:ios-sim:wasm"
+      "reason": "shipping iOS BareKit (V8 jitless) reports WebAssembly disabled; instantiate is unavailable on the worklet isolate",
+      "command": "npm run test:ios-sim:wasm",
+      "spawnMs": 14,
+      "killMs": 0,
+      "measuredAt": "2026-08-19"
     },
     "bare-worker-device": {
       "status": "pending",

@@ -52,10 +52,8 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID             | Status | Item                                                          | Evidence | Verify                                                     |
-| -------------- | ------ | ------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
-| RG6            | open   | Capture the remaining reader-guide screenshots (11 pending)   | —        | `npm run site:section-images:report && npm run site:build` |
-| FN-A2-IOS-WASM | open   | Record the iOS simulator BareKit WASM + watchdog measurements | —        | `npm run test:ios-sim:wasm`                                |
+| ID  | Status | Item | Evidence | Verify |
+| --- | ------ | ---- | -------- | ------ |
 
 ## Blocked backlog
 

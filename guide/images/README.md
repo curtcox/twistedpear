@@ -87,10 +87,23 @@ The deterministic desktop/browser pass supplies **38 of 44** files. Re-run it wi
 apps, Handbook probes, and authored diagrams, with throwaway documentation identities
 and no credentials.
 
-The remaining **6** filenames need an emulator, simulator, or physical radios and are
-not replaced with invented screens:
+The remaining **6** filenames are not replaced with invented screens. RG6
+recorded why each is still a placeholder:
 
-- Five-host composite that still needs the mobile panels: `02-host-lineup.png`.
-- Emulator or physical mobile/radio state: `02-android-home.png`,
-  `02-ios-suspended.png`, `04-ble-link.png`, `04-rnode.png`,
-  `09-android-notification.png`.
+- `02-host-lineup.png` — needs simultaneous desktop, Android, iPhone, browser,
+  and `tp node` panels of the same node-status chrome. Desktop, web, and
+  terminal captures exist; the two phone panels still need a matching mobile
+  dump, and the iOS simulator's native lifecycle module currently reports
+  `unsupported` rather than a consumer iPhone surface.
+- `02-android-home.png` — caption asks for consumer chrome (title "TwistedPear",
+  worklet ready, catalog with two apps, three announce peers). The shipping
+  surface is the `harness-mobile` developer build, not that layout.
+- `02-ios-suspended.png` — caption asks for amber "node suspended by iOS" after
+  backgrounding. The simulator host shows `iOS lifecycle: unsupported` because
+  `TwistedPearNodeService` does not load there.
+- `04-ble-link.png` — two phones over Bluetooth. Physical radios; H-tier.
+- `04-rnode.png` — an RNode LoRa radio in use. Physical hardware; H-tier.
+- `09-android-notification.png` — caption asks for "TwistedPear node running",
+  "2 interfaces · 6 peers", and a **Stop** action. The shipping foreground
+  service notification is "TwistedPear node active" / "Reticulum routing in
+  background" with no Stop action. Do not substitute a mismatched dump.

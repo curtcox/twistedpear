@@ -537,6 +537,11 @@
       "requires": [],
       "verify": "npm run test:ios-sim:wasm",
       "added": "2026-08-18",
+      "completed": "2026-08-19",
+      "evidence": [
+        "conformance/ios-sim/measured-wasm-worker.json",
+        "conformance/freenet-spike/s4-support-matrix.json"
+      ],
       "notes": "freenet-simulator-first-work-plan.md A2. test:ios-sim:wasm parses the Maestro hierarchy for numeric timings with no hardcoded pass, and IOS_BENCHMARK_RECORD=1 updates the S4 matrix; committed measurements remain pending a simulator run. Keep reviewed simulator evidence separate from any later physical-device result, and wire the required form into test:ios-sim:required."
     },
     "FN-DEVICE-CONFIRM": {
@@ -1271,6 +1276,12 @@
       "requires": [],
       "verify": "npm run site:section-images:report && npm run site:build",
       "added": "2026-08-18",
+      "completed": "2026-08-19",
+      "evidence": [
+        "guide/images/README.md",
+        "authors/images/README.md",
+        "cookbook/images/README.md"
+      ],
       "notes": "reader-guide-plan.md item 6, the last open item of the seven (RG1-RG5 and RG7 closed 2026-07-20). 25 pending in guide/, 16 in authors/, 3 in cookbook/. Each has a written caption describing exactly the shot, and <section>/images/README.md documents the conventions. Capture what the hosts that actually run today can produce — desktop host, browser host, DevStudio, the emulator. Do not fabricate screenshots of features that do not exist, and do not ship a screenshot of a real handset: that is H-tier hardware debt (authors/images/02-installed-on-phone.png is one). Report which filenames remain unobtainable and why."
     },
     "RG7": {

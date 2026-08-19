@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-19
 register: none
 -->
 
@@ -11,7 +11,7 @@ aid; the authoritative registers are [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md)
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md), and [LIMITATIONS.md](../LIMITATIONS.md). Where
 those disagree with this page, they win.
 
-Last reviewed against the registers: **2026-07-29**.
+Last reviewed against the registers: **2026-08-19**.
 
 Every feature this appendix lists is a statement about **what exists today**, not a plan.
 Intended work lives in separate `-plan.md` documents under [`docs/`](../docs/README.md) —

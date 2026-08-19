@@ -1,0 +1,94 @@
+
+> twistedpear@0.0.0 site:section-images:report
+> node scripts/site/section-images.mjs --report
+
+guide screenshots referenced: 44
+  supplied: 38
+  missing:  6
+    pending: guide/images/02-android-home.png
+    pending: guide/images/02-host-lineup.png
+    pending: guide/images/02-ios-suspended.png
+    pending: guide/images/04-ble-link.png
+    pending: guide/images/04-rnode.png
+    pending: guide/images/09-android-notification.png
+authors screenshots referenced: 22
+  supplied: 20
+  missing:  2
+    pending: authors/images/02-installed-on-phone.png
+    pending: authors/images/04-component-gallery.png
+cookbook screenshots referenced: 47
+  supplied: 44
+  missing:  3
+    pending: cookbook/images/06-photo-drop-scan.png
+    pending: cookbook/images/07-chapter-opener.png
+    pending: cookbook/images/09-chapter-opener.png
+
+> twistedpear@0.0.0 site:build
+> node scripts/site/build.mjs
+
+$ node scripts/site/stage.mjs
+Staged site content into /Users/curt/me/twistedpear/site/src
+$ node scripts/site/render-reports.mjs
+Rendered results into /Users/curt/me/twistedpear/site/src/results
+$ node scripts/site/gen-sidebar.mjs
+Wrote /Users/curt/me/twistedpear/site/src/.sidebar.json
+$ npm run docs:reticulum-ts
+
+> twistedpear@0.0.0 docs:reticulum-ts
+> npm run build && npm run docs --workspace=@twistedpear/reticulum-ts
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/reticulum-ts@0.0.0 docs
+> typedoc --options typedoc.json
+
+./src/crypto/bare.ts:27:43 - [warning] Encountered an unknown block tag @noble
+
+27    /** Bare fast path: sodium-native curves + @noble symmetric crypto (no node:crypto). */
+
+[warning] ChannelExceptionTypeValue, defined in @twistedpear/reticulum-ts/src/channel/part-1-types.ts, is referenced by ChannelException.type but not included in the documentation
+[warning] DestinationProofStrategyValue, defined in @twistedpear/reticulum-ts/src/transport/node/shared.ts, is referenced by RegisteredDestination.proofStrategy but not included in the documentation
+[warning] ResourcePart, defined in @twistedpear/reticulum-ts/src/resource/part.ts, is referenced by Resource.parts but not included in the documentation
+[warning] LinkTableEntry, defined in @twistedpear/reticulum-ts/src/transport/transport-types.ts, is referenced by TransportNode.linkTable but not included in the documentation
+[warning] ReverseTableEntry, defined in @twistedpear/reticulum-ts/src/transport/transport-types.ts, is referenced by TransportNode.reverseTable but not included in the documentation
+[warning] DiscoveryPathRequest, defined in @twistedpear/reticulum-ts/src/transport/transport-types.ts, is referenced by TransportNode.discoveryPathRequests but not included in the documentation
+[warning] MessageStateValue, defined in @twistedpear/reticulum-ts/src/channel/part-1-types.ts, is referenced by ChannelOutlet.getPacketState but not included in the documentation
+[warning] Envelope, defined in @twistedpear/reticulum-ts/src/channel/part-3.ts, is referenced by Channel.send but not included in the documentation
+[warning] MessageStateValue, defined in @twistedpear/reticulum-ts/src/channel/part-1.ts, is referenced by LinkChannelOutlet.getPacketState but not included in the documentation
+[warning] WebIDBOpenRequest, defined in @twistedpear/reticulum-ts/src/runtime/web/runtime.ts, is referenced by WebIndexedDB.open but not included in the documentation
+[warning] TokenEncryptOptions, defined in @twistedpear/reticulum-ts/src/crypto/token.ts, is referenced by Token.encrypt.options but not included in the documentation
+[warning] IdentityCreateOptions, defined in @twistedpear/reticulum-ts/src/identity-base.ts, is referenced by Identity.constructor.createKeysOrOptions but not included in the documentation
+[warning] TcpListenOptions, defined in @twistedpear/reticulum-ts/src/runtime/runtime.ts, is referenced by TcpFactory.listen.options but not included in the documentation
+[info] html generated at ./docs/api
+[warning] Found 0 errors and 14 warnings
+Copied TypeDoc → /Users/curt/me/twistedpear/site/public/typedoc
+$ node scripts/site/section-images.mjs
+guide images → /Users/curt/me/twistedpear/site/public/guide/images (38 supplied, 6 placeholder)
+Pending captures are listed in guide/images/README.md
+authors images → /Users/curt/me/twistedpear/site/public/authors/images (20 supplied, 2 placeholder)
+Pending captures are listed in authors/images/README.md
+cookbook images → /Users/curt/me/twistedpear/site/public/cookbook/images (44 supplied, 3 placeholder)
+Pending captures are listed in cookbook/images/README.md
+$ node scripts/site/build-react-native-web-samples.mjs
+Built 26 React Native Web cookbook samples into /Users/curt/me/twistedpear/site/public/react-native-web
+$ npx vitepress build site
+
+  vitepress v1.6.4
+
+- building client + server bundles...
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[32m✓[0m building client + server bundles...
+- rendering pages...
+[32m✓[0m rendering pages...
+build complete in 12.04s.
+Merged public/ into /Users/curt/me/twistedpear/site/.vitepress/dist
+$ node scripts/site/validate-links.mjs
+Validated links in 244 files — ok
+Site build complete
