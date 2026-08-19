@@ -179,9 +179,7 @@ export function installBareWorkerPolyfill(globals = globalThis) {
     return false;
   }
   if (typeof globals.SharedArrayBuffer !== "function") {
-    throw new Error(
-      "Bare Worker polyfill requires SharedArrayBuffer (Atomics mailbox)",
-    );
+    return false;
   }
   globals.Worker = createBareThreadWorker(Thread);
   return true;

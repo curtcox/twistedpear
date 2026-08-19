@@ -10,6 +10,9 @@ appId: network.twistedpear.harness
 - tapOn:
     id: "create-identity"
 - extendedWaitUntil:
+    visible: "Worklet: running"
+    timeout: 60000
+- extendedWaitUntil:
     visible: "Persisted: yes"
     timeout: 60000
 - scrollUntilVisible:

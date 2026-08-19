@@ -15,7 +15,10 @@ import {
 import { runCookbookCaptures } from "./capture-reader-guide-ui-cookbook.mjs";
 import { runDiagramCaptures } from "./capture-reader-guide-ui-diagrams.mjs";
 import { runExampleAppCaptures } from "./capture-reader-guide-ui-apps.mjs";
-import { runAuthorCaptures } from "./capture-reader-guide-ui-authors.mjs";
+import {
+  captureComposite,
+  runAuthorCaptures,
+} from "./capture-reader-guide-ui-authors.mjs";
 
 const captureSection = process.env.CAPTURE_READER_GUIDE_SECTION ?? "all";
 const captureScenes =
@@ -64,6 +67,23 @@ const scenes = [
     kind: "net-ledger-review",
   },
   { file: "cookbook/images/08-host-confirmation.png", kind: "publish-confirm" },
+  { file: "guide/images/03-reset-confirmation.png", kind: "identity-reset" },
+  { file: "guide/images/04-announce-browser.png", kind: "announce-browser" },
+  { file: "guide/images/04-local-discovery.png", kind: "local-discovery" },
+  { file: "guide/images/05-slow-install-warning.png", kind: "slow-install" },
+  { file: "guide/images/06-update-available.png", kind: "update-available" },
+  { file: "guide/images/09-storage.png", kind: "storage" },
+  { file: "guide/images/10-stalled-transfer.png", kind: "stalled-transfer" },
+  { file: "authors/images/07-announce-peers.png", kind: "announce-peers" },
+  {
+    file: "authors/images/10-update-available.png",
+    kind: "author-update-available",
+  },
+  {
+    file: "authors/images/12-slow-install-warning.png",
+    kind: "slow-install-rnode",
+  },
+  { file: "authors/images/13-package-summary.png", kind: "package-summary" },
 ];
 
 const browser = await chromium.launch();
@@ -383,6 +403,111 @@ try {
               ],
             );
             break;
+          case "identity-reset":
+            show("Identity backup");
+            modal("Reset identity?", [
+              [
+                "Warning",
+                "The current address will be unreachable forever. Installed apps' data will be orphaned.",
+              ],
+            ]);
+            html(
+              "#host-modal",
+              `<h3>Reset identity?</h3><p>The current address will be unreachable forever. Installed apps' data will be orphaned.</p><label class="grant-row"><input type="checkbox"><span>I have a backup or do not need this identity</span></label><div class="modal-actions"><button>Cancel</button><button disabled>Reset</button></div>`,
+            );
+            document.querySelector("#host-modal-overlay").hidden = false;
+            break;
+          case "announce-browser": {
+            show("Catalog");
+            const visible = panels.find((panel) => !panel.hidden);
+            const heading = visible?.querySelector("h2");
+            if (heading) heading.textContent = "Announce browser";
+            html(
+              "#catalog-list",
+              `<li class="item-row"><strong>bd91…c4e2</strong><span class="muted">seen 3s ago · Chat</span></li><li class="item-row"><strong>7f3a…8d05</strong><span class="muted">seen 11s ago · Handbook</span></li><li class="item-row"><strong>a2c4…9f1b</strong><span class="muted">seen 42s ago · File drop</span></li><li class="item-row"><strong>e6g8…3q5t</strong><span class="muted">seen 2m ago · Board</span></li>`,
+            );
+            break;
+          }
+          case "local-discovery": {
+            show("Catalog");
+            const visible = panels.find((panel) => !panel.hidden);
+            const heading = visible?.querySelector("h2");
+            if (heading) heading.textContent = "Announce browser";
+            html(
+              "#catalog-list",
+              `<li class="item-row"><strong>ana-desktop · 7f3a…8d05</strong><span class="muted">local network · seen 3s ago</span></li><li class="item-row"><strong>workshop-node · bd91…c4e2</strong><span class="muted">local network · seen 8s ago</span></li>`,
+            );
+            break;
+          }
+          case "slow-install":
+            show("Catalog");
+            modal("This download is 340 KiB", [
+              ["Interface", "Bluetooth"],
+              ["Estimate", "about 2 minutes"],
+            ]);
+            html(
+              "#host-modal",
+              `<h3>This will take a while.</h3><p>This download is 340 KiB. Over your current Bluetooth link that will take about 2 minutes. Continue?</p><p class="muted">Interface: Bluetooth</p><div class="modal-actions"><button>Cancel</button><button class="primary">Continue</button></div>`,
+            );
+            document.querySelector("#host-modal-overlay").hidden = false;
+            break;
+          case "slow-install-rnode":
+            show("Catalog");
+            html(
+              "#host-modal",
+              `<h3>This will take a while.</h3><p>Board 1.2.0 is 41 KiB. Your only connection is an RNode radio at about 1.2 kbit/s. Estimated transfer: 4 minutes 40 seconds.</p><p class="muted">Automatic bulk transfer is disabled above 64 KiB on this link.</p><div class="modal-actions"><button>Cancel</button><button class="primary">Continue anyway</button></div>`,
+            );
+            document.querySelector("#host-modal-overlay").hidden = false;
+            break;
+          case "update-available":
+            show("Installed");
+            html(
+              "#installed-list",
+              `<li class="item-row"><strong>Chat</strong><span class="muted">1.2.0 installed · 1.3.0 available</span><button>Update</button><button>Launch</button></li><p class="muted">Newly requested: announce:subscribe — discover nearby peers</p>`,
+            );
+            break;
+          case "author-update-available":
+            show("Installed");
+            html(
+              "#installed-list",
+              `<li class="item-row"><strong>Board 1.1.0</strong><span class="muted">1.2.0 available</span><button>Update</button><button>Rollback to 1.0.0</button><button>Launch</button></li><p>demo-publisher-7f3a1c9e… · Trusted · 18 KiB</p><p class="muted">Signed by the same publisher — your permissions carry over.</p><p class="muted">The running app keeps version 1.1.0 until it is restarted.</p>`,
+            );
+            break;
+          case "storage": {
+            show("Settings");
+            const visible = panels.find((panel) => !panel.hidden);
+            const heading = visible?.querySelector("h2");
+            if (heading) heading.textContent = "Storage";
+            html(
+              ".settings-grid",
+              `<p>Installed apps 42 MiB · App data 18 MiB · Seeded packages 96 MiB · Held messages 4 MiB · Free 840 MiB</p><div style="display:flex;height:18px;border-radius:6px;overflow:hidden;margin:12px 0;border:1px solid #33475a"><span style="flex:42;background:#5b8def"></span><span style="flex:18;background:#7ee787"></span><span style="flex:96;background:#d4a017"></span><span style="flex:4;background:#f0883e"></span><span style="flex:84;background:#1f2d3a"></span></div><table style="width:100%;border-collapse:collapse"><tr><td>Installed apps</td><td>42 MiB</td></tr><tr><td>App data</td><td>18 MiB</td></tr><tr><td>Seeded packages</td><td>96 MiB</td></tr><tr><td>Held messages</td><td>4 MiB</td></tr><tr><td>Free</td><td>840 MiB</td></tr></table><div class="item-row" style="margin-top:16px"><button>Clear seeded packages</button></div><p class="muted">Clearing seeded packages only removes copies held for other people.</p>`,
+            );
+            break;
+          }
+          case "stalled-transfer":
+            show("Catalog");
+            html(
+              "#catalog-list",
+              `<li class="item-row"><strong>Board 1.2.0</strong><span class="muted">Installing · Bluetooth</span></li><p>████████░░░░░░░░ 41%</p><p class="muted">0 B/s · stalled</p><div class="item-row"><button>Cancel</button></div>`,
+            );
+            break;
+          case "announce-peers":
+            show("Mini-app");
+            document.body.classList.add("miniapp-running");
+            document.querySelector("#miniapp-title").textContent = "Board";
+            html(
+              "#widget-root",
+              `<p>4 peers announcing · publishing as bd91…</p><ul class="item-list"><li class="item-row"><code>ana-desk · 7f3a…8d05</code><span class="muted">heard 2 min ago · 3 posts</span></li><li class="item-row"><code>workshop · a2c4…9f1b</code><span class="muted">heard 2 min ago · 1 post</span></li><li class="item-row"><code>field-n3 · e6g8…3q5t</code><span class="muted">heard 4 min ago · 0 posts</span></li><li class="item-row" style="opacity:.55"><code>old-node · 11aa…22bb</code><span class="muted">not heard in 20 min</span></li></ul><button>Refresh</button>`,
+            );
+            break;
+          case "package-summary":
+            show("Installed");
+            html(
+              "#host-modal",
+              `<h3>Publish hello-app 0.1.0?</h3><p>Package size: 2.6 KiB · Files: 1 · Capabilities: 4 · minHostApi: 0.1.0</p><p>Signed by: demo-publisher-7f3a1c9e…</p><p>Est. install over LoRa: 18 s</p><p>identity — use an app-scoped address<br>storage:kv — save notes locally<br>announce:publish — show this app nearby<br>announce:subscribe — list nearby apps</p><p class="muted">Publishing is permanent. This version cannot be withdrawn.</p><div class="modal-actions"><button>Back</button><button class="primary">Publish</button></div>`,
+            );
+            document.querySelector("#host-modal-overlay").hidden = false;
+            break;
         }
 
         // Documentation captures use the actual dark host theme and a fixed, uncluttered viewport.
@@ -399,7 +524,7 @@ try {
   }
 
   if (
-    captureSection === "all" &&
+    (captureSection === "all" || captureSection === "guide") &&
     captureScenes === undefined &&
     captureFiles === undefined
   ) {
@@ -417,11 +542,71 @@ try {
         .first()
         .waitFor({ timeout: 15_000 });
       await webPage.screenshot({ path: webHostOutput, fullPage: false });
+
+      const gatewayOutput = join(repoRoot, "guide/images/04-web-gateway.png");
+      await webPage.evaluate(() => {
+        for (const node of document.querySelectorAll("div, span, p")) {
+          if (node.childElementCount === 0 && node.textContent?.startsWith("Gateway:")) {
+            node.textContent = "Gateway: wss://tp-demo.example:9474";
+          }
+          if (node.childElementCount === 0 && node.textContent?.startsWith("Gateway link:")) {
+            node.textContent = "Gateway link: online";
+          }
+        }
+      });
+      await webPage.screenshot({ path: gatewayOutput, fullPage: false });
+      console.log(`reader-guide capture written to ${gatewayOutput}`);
     } finally {
       await webPage.close();
       await staticServer.close();
     }
     console.log(`reader-guide capture written to ${webHostOutput}`);
+  }
+
+  if (
+    (captureSection === "all" || captureSection === "guide") &&
+    captureScenes === undefined &&
+    captureFiles === undefined
+  ) {
+    await captureComposite(browser, {
+      file: "guide/images/07-delivery-states.png",
+      title: "Delivery states",
+      subtitle: "Four consecutive Chat messages, four LXMF outcomes",
+      columns: 2,
+      tiles: [
+        {
+          label: "sending · delivered",
+          html: "to ana-desk · 7f3a…8d05\n\nhello — sending…\nhello — delivered ✓",
+        },
+        {
+          label: "held · failed",
+          html: "to workshop · bd91…c4e2\n\nstatus ping — held for delivery ⏳\n  a propagation server is holding it\nhello — failed — no route\n  [Retry]",
+        },
+      ],
+    });
+    await captureComposite(browser, {
+      file: "guide/images/09-tp-node.png",
+      title: "tp node",
+      subtitle: "Headless node startup beside the localhost status endpoint",
+      columns: 2,
+      tiles: [
+        {
+          label: "terminal",
+          html: `$ tp node --propagation --status-endpoint\nidentity  7f3a1c9e…42b68d05\nroles     transport · seeder · propagation\ninterfaces  auto online · tcp online\nannounce  destination bd91c4e2 seen via auto\nstatus    http://127.0.0.1:9473/status`,
+        },
+        {
+          label: "127.0.0.1:9473/status",
+          html: `{
+  "running": true,
+  "identity": "7f3a1c9e…42b68d05",
+  "transport": true,
+  "propagation": true,
+  "onlineInterfaces": ["auto", "tcp"],
+  "announces": 41
+}`,
+        },
+      ],
+    });
   }
   if (captureScenes === undefined && captureFiles === undefined) {
     await runDiagramCaptures(browser, captureSection);

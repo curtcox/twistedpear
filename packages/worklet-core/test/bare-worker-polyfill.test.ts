@@ -27,10 +27,31 @@ describe("bare worker mailbox", () => {
     const globals: Record<string, unknown> = {};
     expect(installBareWorkerPolyfill(globals)).toBe(false);
     globals.Bare = { Thread: class Thread {} };
-    expect(() => installBareWorkerPolyfill(globals)).toThrow(/SharedArrayBuffer/);
+    expect(installBareWorkerPolyfill(globals)).toBe(false);
     globals.SharedArrayBuffer = SharedArrayBuffer;
     expect(installBareWorkerPolyfill(globals)).toBe(true);
     expect(typeof globals.Worker).toBe("function");
     expect(installBareWorkerPolyfill(globals)).toBe(false);
+  });
+});
+
+describe("webAssemblyInstantiateAvailable", () => {
+  it("treats a namespace object with instantiate as available", async () => {
+    const { webAssemblyInstantiateAvailable } = await import(
+      "../src/webassembly-available.mjs"
+    );
+    expect(
+      webAssemblyInstantiateAvailable({
+        WebAssembly: { instantiate: async () => {} },
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects a missing or non-callable instantiate", async () => {
+    const { webAssemblyInstantiateAvailable } = await import(
+      "../src/webassembly-available.mjs"
+    );
+    expect(webAssemblyInstantiateAvailable({})).toBe(false);
+    expect(webAssemblyInstantiateAvailable({ WebAssembly: {} })).toBe(false);
   });
 });

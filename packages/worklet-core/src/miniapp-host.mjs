@@ -44,6 +44,7 @@ import {
   launchWithoutReview,
   previousDeclaredCapabilities,
 } from "./miniapp-host-shared.mjs";
+import { webAssemblyInstantiateAvailable } from "./webassembly-available.mjs";
 
 const BENCHMARK_ITERATIONS = 5;
 const BENCHMARK_WATCHDOG_MS = 250;
@@ -92,16 +93,20 @@ async function benchmarkSleep(ms) {
 }
 
 async function measureWasmOnBareIsolate() {
-  if (typeof WebAssembly !== "function") {
-    throw new Error("WebAssembly is not available in the BareKit worklet");
+  if (!webAssemblyInstantiateAvailable()) {
+    return false;
   }
-  const { instance } = await WebAssembly.instantiate(wasmNopModule);
-  const run = instance.exports.run;
-  if (typeof run !== "function") {
-    throw new Error("WASM nop module did not export run()");
+  try {
+    const { instance } = await WebAssembly.instantiate(wasmNopModule);
+    const run = instance.exports.run;
+    if (typeof run !== "function") {
+      return false;
+    }
+    run();
+    return true;
+  } catch {
+    return false;
   }
-  run();
-  return true;
 }
 
 async function measureSpawnKill(backend, bundle, iterations) {
@@ -535,13 +540,13 @@ export function createWorkletMiniappHost(options) {
             const backend = createSandboxBackend(
               options.sandboxBackend ?? "bare-worker",
             );
-            const wasmExecuted = await measureWasmOnBareIsolate();
             const spawnKill = await measureSpawnKill(
               backend,
               helloBenchmarkBundle,
               BENCHMARK_ITERATIONS,
             );
             const busyLoop = await measureBusyLoopKill(backend);
+            const wasmExecuted = await measureWasmOnBareIsolate();
 
             if (!busyLoop.busyLoopKilled) {
               throw new Error("busy-loop sandbox worker was not killed by watchdog");

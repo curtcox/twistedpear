@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-08-19
 register: none
 -->
 
@@ -18,6 +18,10 @@ that CI does not run.
 real BLE/RNode/LoRa radios, physical phones, real multi-machine LAN, Windows
 (H17), macOS notarization (needs a paid Apple account, H12), and OEM
 battery-manager soaks (H3).
+
+On the 16 GB Mac mini, quit Freenet and shut simulators down when a stage
+finishes. Kernel panics on that host are documented in
+[16 GB macOS host kernel panics](macos-dev-host-panics.md).
 
 ---
 

@@ -193,6 +193,12 @@ export function buildHarnessApp(
     utimesSync(workletBundle, now, now);
   }
 
+  const destinationUdid = bootedSimulatorUdid();
+  const destination =
+    destinationUdid === null
+      ? "generic/platform=iOS Simulator"
+      : `platform=iOS Simulator,id=${destinationUdid}`;
+
   const xcodebuild = spawnSync(
     "xcodebuild",
     [
@@ -202,8 +208,8 @@ export function buildHarnessApp(
       "TwistedPearHarness",
       "-configuration",
       "Release",
-      "-sdk",
-      "iphonesimulator",
+      "-destination",
+      destination,
       "-derivedDataPath",
       derivedDataPath,
       "CODE_SIGNING_ALLOWED=NO",

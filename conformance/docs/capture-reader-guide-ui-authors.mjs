@@ -82,7 +82,7 @@ async function capturePage(browser, rendererServer, file, options) {
   console.log(`reader-guide capture written to ${output}`);
 }
 
-async function captureComposite(browser, scene) {
+export async function captureComposite(browser, scene) {
   const output = join(repoRoot, scene.file);
   mkdirSync(dirname(output), { recursive: true });
   const tiles = scene.tiles.map((tile) => ({
@@ -121,7 +121,7 @@ async function captureComposite(browser, scene) {
   console.log(`reader-guide composite written to ${output}`);
 }
 
-async function captureTerminal(browser, file, command, outputText) {
+export async function captureTerminal(browser, file, command, outputText) {
   const output = join(repoRoot, file);
   mkdirSync(dirname(output), { recursive: true });
   const page = await browser.newPage({

@@ -20,6 +20,12 @@ Bare.on("uncaughtException", (err) => {
 const { installBareWorkerPolyfill } = await import(
   "../../../packages/worklet-core/src/bare-worker-polyfill.mjs"
 );
-installBareWorkerPolyfill();
+try {
+  installBareWorkerPolyfill();
+} catch (error) {
+  const detail =
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  console.error("[bare] Worker polyfill skipped", detail);
+}
 
 await import("./entry.mjs");

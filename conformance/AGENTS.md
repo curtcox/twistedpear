@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-18
+audited: 2026-08-19
 register: none
 -->
 
@@ -42,6 +42,9 @@ detailed phase-by-phase reference; `docs/ci-policy.md` records CI and nightly co
 - Do not run `npm run checks:status` or `coverage:check` on a 16 GB host that is
   already swapping or running Gradle/JDT. The runner will refuse; import CI or
   use `--only=` with other IDEs closed.
+- Kernel panics on that Mac are a host-machine failure, not a suite result:
+  [16 GB macOS host kernel panics](../docs/macos-dev-host-panics.md). Quit
+  Freenet and shut the simulator down when the run finishes.
 - Use `:required` variants in gates where a missing platform must fail. Non-required
   simulator suites may skip.
 - Do not overwrite committed measured baselines or vectors unless the task explicitly

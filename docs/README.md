@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-18
+audited: 2026-08-19
 register: none
 -->
 
@@ -124,6 +124,7 @@ The package-level READMEs for
 | iOS behavior and simulator notes             | [iOS host](ios-host.md)                                           |
 | Android emulator workflows                   | [Android emulator lab](android-emulator-lab.md)                   |
 | Several peers on one Mac                     | [Single-machine multi-peer environment](local-multipeer.md)       |
+| Kernel panics on the 16 GB Mac mini          | [16 GB macOS host kernel panics](macos-dev-host-panics.md)        |
 | Author on one implementation, run on another | [Cross-device develop-and-run matrix](cross-device-dev-matrix.md) |
 | iOS multicast entitlement                    | [iOS multicast entitlement](ios-multicast-entitlement.md)         |
 | iOS review, privacy, and export notes        | [iOS submission dossier](ios-submission.md)                       |
@@ -172,6 +173,7 @@ Protocol implementation details live in the
 | Making approval evidence proportionate to app risk         | [App approval risk](app-approval-risk.md), [remaining plan](app-approval-risk-plan.md)                      |
 | CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                                   |
 | Full local validation workflow                             | [Single-Mac validation](mac-validation.md)                                                                  |
+| Kernel panics on the 16 GB validation Mac                  | [16 GB macOS host kernel panics](macos-dev-host-panics.md)                                                  |
 | Evidence from the documented Mac validation run            | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md)                                |
 | Sans-IO boundary and enforcement                           | [Sans-IO protocol discipline](sansio.md)                                                                    |
 | Source-file size thresholds and the decomposition ratchet  | [File-size classification](file-sizes.md)                                                                   |

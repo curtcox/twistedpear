@@ -21,19 +21,23 @@ IOS_BENCHMARK_RECORD=1 npm run test:ios-sim:wasm
 
 Do **not** use `expo run:ios` for this probe: Expo still opens
 `exp+harness-mobile://…8081` and the Metro picker. `buildAndInstallHarness` in
-`helpers.mjs` runs `xcodebuild -configuration Release -sdk iphonesimulator` and
-`simctl install` so the JS bundle is embedded. Skip `expo prebuild` when
-`ios/TwistedPearHarness.xcworkspace` already exists unless `IOS_SIM_PREBUILD=1`.
+`helpers.mjs` runs `xcodebuild -configuration Release` against the booted
+simulator destination (`-destination platform=iOS Simulator,id=…`) and
+`simctl install` so the JS bundle is embedded. Do not pass `-sdk iphonesimulator`
+alone: Xcode 26.x advertises the 26.5 simulator SDK even when only an older
+runtime (for example iOS 18.6) is installed, and that pairing has no destinations.
+Skip `expo prebuild` when `ios/TwistedPearHarness.xcworkspace` already exists
+unless `IOS_SIM_PREBUILD=1`.
 
 Maestro must scroll by id (`freenet-grant-enable`, then `benchmark-miniapp`).
 Text matching `"Benchmark Bare worker"` overshoots the inner content offset on
 iOS 26 simulators.
 
-**Blocker (2026-08-19):** the iOS BareKit worklet isolate has no `WebAssembly`
-global (nested `Bare.Thread` sandbox workers do not either). The E5 flow
-reaches Create identity, spawn/kill, and the busy-loop watchdog path; it cannot
-record `wasm yes` until Bare on iOS exposes WASM. Do not treat a Hermes-side
-instantiate as BareKit evidence.
+**Blocker (2026-08-19):** a Release `xcodebuild` + Maestro E5 run on iPhone 16
+(iOS 18.6) and iPhone 17 Pro (iOS 26.5) reaches Create identity, but the BareKit
+worklet stays `stopped` so identity never persists and WASM/watchdog timings
+cannot be read. Nested `Bare.Thread` sandbox workers also lack `WebAssembly`.
+Do not treat a Hermes-side instantiate as BareKit evidence.
 
 ## Freenet remote-node grant probe
 
@@ -72,3 +76,5 @@ conformance/ios-sim/ci-handbook.sh
 Also available as the `ios-handbook-ui` job in [.github/workflows/emulator.yml](../../.github/workflows/emulator.yml) (`workflow_dispatch`).
 
 See [docs/ios-host.md](../../docs/ios-host.md) and [docs/handbook.md](../../docs/handbook.md).
+Quit Freenet before a build/Maestro run and shut the simulator down afterwards;
+kernel panics on the 16 GB Mac mini are [docs/macos-dev-host-panics.md](../../docs/macos-dev-host-panics.md).

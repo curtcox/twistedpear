@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-18
+audited: 2026-08-19
 register: none
 -->
 
@@ -106,8 +106,10 @@ Do not run `npm run checks:status` or `coverage:check` on a contended 16 GB host
 The local gate runner preflights RAM, swap, load, and rival Gradle/JDT/coverage
 heaps, then runs one gate at a time and stops on the first failure. A `REFUSE`
 means import what CI already measured (`npm run checks:status:import`) or rerun
-`--only=<id>` with the other IDEs closed — not `--force-headroom` while Devin
-and VS Code still hold Gradle daemons.
+`--only=<id>` with other IDEs closed — not `--force-headroom` while Devin
+and VS Code still hold Gradle daemons. Kernel panics on that Mac are a host
+failure, not a suite result — see `docs/macos-dev-host-panics.md` before
+stacking iOS Simulator on top of Freenet and the IDE.
 
 For one test file:
 

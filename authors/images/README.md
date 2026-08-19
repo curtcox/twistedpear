@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-18
+audited: 2026-08-19
 register: none
 -->
 
@@ -68,15 +68,12 @@ for authoring shots.
 
 ## Current capture status
 
-The deterministic host-chrome pass supplies **16 of 22** files. Re-run it with
+The deterministic host-chrome pass supplies **20 of 22** files. Re-run it with
 `npm run capture:reader-guide-ui`.
 
-The remaining **6** filenames need surfaces the current capture fixture cannot
-produce without hardware or UI that does not exist yet:
+The remaining **2** filenames need surfaces the current capture fixture cannot
+produce without hardware:
 
 - Cross-platform composite: `04-component-gallery.png` (desktop, Android, and
   web native controls of the same tree).
 - Physical handset state: `02-installed-on-phone.png`.
-- Peer/update/radio fixtures not represented in the capture host:
-  `07-announce-peers.png`, `10-update-available.png`,
-  `12-slow-install-warning.png`, `13-package-summary.png`.
