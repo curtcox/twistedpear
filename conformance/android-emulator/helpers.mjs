@@ -2,7 +2,7 @@
  * Shared adb helpers for Android emulator lab automation.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, utimesSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -126,16 +126,59 @@ export function harnessInstalled() {
   }
 }
 
-/** Prebuild, assembleDebug, and adb-install the harness (several minutes). */
-export function buildAndInstallHarness(repoRoot = join(labDir, "../..")) {
+function defaultJavaHome() {
+  if (typeof process.env.JAVA_HOME === "string" && process.env.JAVA_HOME) {
+    return process.env.JAVA_HOME;
+  }
+  const brewJdk17 = "/opt/homebrew/opt/openjdk@17";
+  return existsSync(join(brewJdk17, "bin", "java")) ? brewJdk17 : undefined;
+}
+
+function defaultAndroidHome() {
+  return (
+    process.env.ANDROID_HOME ?? `${process.env.HOME ?? ""}/Library/Android/sdk`
+  );
+}
+
+export function harnessApkPath(
+  repoRoot = join(labDir, "../.."),
+  variant = "release",
+) {
+  return join(
+    repoRoot,
+    "apps",
+    "harness-mobile",
+    "android",
+    "app",
+    "build",
+    "outputs",
+    "apk",
+    variant,
+    `app-${variant}.apk`,
+  );
+}
+
+/**
+ * Prebuild and assemble the harness APK.
+ *
+ * Release (the default) embeds the JS bundle so Maestro reaches Create identity
+ * without the expo-dev-client Metro picker. Debug + Metro is what produced
+ * PlatformConstants missing from the TurboModule registry. Stop the emulator
+ * on a 16 GB host before calling this — the guest plus release dex OOMs.
+ */
+export function buildHarnessApk(
+  repoRoot = join(labDir, "../.."),
+  options = {},
+) {
+  const variant = options.variant ?? "release";
   const harnessDir = join(repoRoot, "apps", "harness-mobile");
   const androidDir = join(harnessDir, "android");
+  const javaHome = defaultJavaHome();
   const env = {
     ...process.env,
     EXPO_NO_INTERACTIVE: "1",
-    ANDROID_HOME:
-      process.env.ANDROID_HOME ??
-      `${process.env.HOME ?? ""}/Library/Android/sdk`,
+    ANDROID_HOME: defaultAndroidHome(),
+    ...(javaHome === undefined ? {} : { JAVA_HOME: javaHome }),
   };
   const prebuild = spawnSync(
     "npx",
@@ -149,7 +192,7 @@ export function buildAndInstallHarness(repoRoot = join(labDir, "../..")) {
   if (prebuild.status !== 0)
     throw new Error("expo prebuild --platform android failed");
   // Bare TCP/FS addons must land in react-native-bare-kit's jniLibs addons dir
-  // before assembleDebug; otherwise the worklet cannot open host sockets.
+  // before assemble; otherwise the worklet cannot open host sockets.
   const linkAddons = spawnSync(
     "node",
     ["scripts/link-bare-addons.mjs", "android"],
@@ -161,24 +204,62 @@ export function buildAndInstallHarness(repoRoot = join(labDir, "../..")) {
   );
   if (linkAddons.status !== 0)
     throw new Error("link-bare-addons android failed");
-  const assembled = spawnSync("./gradlew", ["assembleDebug"], {
+  // createBundleReleaseJsAndAssets does not list worklet.bundle.mjs as an input,
+  // so a pack-only refresh would otherwise stay UP-TO-DATE.
+  const jsEntry = join(harnessDir, "index.js");
+  if (existsSync(jsEntry)) {
+    const now = new Date();
+    utimesSync(jsEntry, now, now);
+  }
+  const gradleArgs = [
+    variant === "release" ? "assembleRelease" : "assembleDebug",
+    "-PreactNativeArchitectures=arm64-v8a",
+  ];
+  if (variant === "release") {
+    gradleArgs.push(
+      "-x",
+      "lintVitalAnalyzeRelease",
+      "-x",
+      "lintVitalReportRelease",
+      "-x",
+      "lintVitalRelease",
+    );
+  }
+  const assembled = spawnSync("./gradlew", gradleArgs, {
     cwd: androidDir,
     stdio: "inherit",
-    env,
+    env: {
+      ...env,
+      GRADLE_OPTS:
+        process.env.GRADLE_OPTS ??
+        "-Dorg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=512m",
+    },
   });
-  if (assembled.status !== 0)
-    throw new Error("Android debug harness build failed");
-  const apk = join(
-    androidDir,
-    "app",
-    "build",
-    "outputs",
-    "apk",
-    "debug",
-    "app-debug.apk",
-  );
-  if (!existsSync(apk)) throw new Error(`Android debug APK is missing: ${apk}`);
+  if (assembled.status !== 0) {
+    throw new Error(`Android ${variant} harness build failed`);
+  }
+  const apk = harnessApkPath(repoRoot, variant);
+  if (!existsSync(apk)) {
+    throw new Error(`Android ${variant} APK is missing: ${apk}`);
+  }
+  return apk;
+}
+
+export function installHarnessApk(
+  repoRoot = join(labDir, "../.."),
+  variant = "release",
+) {
+  const apk = harnessApkPath(repoRoot, variant);
+  if (!existsSync(apk)) {
+    throw new Error(`Android ${variant} APK is missing: ${apk}`);
+  }
   adb(["install", "-r", apk]);
+}
+
+/** Prebuild, assembleRelease, and adb-install the harness (several minutes). */
+export function buildAndInstallHarness(repoRoot = join(labDir, "../..")) {
+  buildHarnessApk(repoRoot, { variant: "release" });
+  installHarnessApk(repoRoot, "release");
 }
 
 export function maestro(args) {

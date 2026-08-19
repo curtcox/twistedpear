@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-18T18:50:04.321Z",
-  "commit": "bb52a11a9deee32d2e4351ed5f888b5cbab4f36b",
+  "generatedAt": "2026-08-19T03:33:43.371Z",
+  "commit": "cfa9d8650583fc5dbe4c4b0171fe875a5ea469f0",
   "counts": {
-    "total": 22,
-    "high": 1,
-    "medium": 17,
+    "total": 19,
+    "high": 0,
+    "medium": 15,
     "low": 4
   },
   "ratchets": {
@@ -17,14 +17,6 @@
     "license-ratchet.json": 0
   },
   "findings": [
-    {
-      "family": "closed",
-      "check": "digest-mismatch",
-      "severity": "high",
-      "where": "release/evidence-logs/2026-08-14-ql-complexity-typescript-eslint-ban-ts-comment.log",
-      "summary": "QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT: the evidence log no longer hashes to the digest recorded at close",
-      "ask": "The log was edited or regenerated after QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT closed. Re-run the verification and close it again, or explain the edit."
-    },
     {
       "family": "gates",
       "check": "unverified-record",
@@ -144,22 +136,6 @@
       "where": "ID-APPSCOPE",
       "summary": "ID-APPSCOPE (bug) closed 8 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
       "ask": "Did `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` actually exercise ID-APPSCOPE, or did it no-op? A check that cannot fail is not evidence."
-    },
-    {
-      "family": "docs",
-      "check": "audit-date-behind-edits",
-      "severity": "medium",
-      "where": "docs/device-io.md",
-      "summary": "docs/device-io.md: audited 2026-08-02, last git edit 2026-08-18",
-      "ask": "Re-read docs/device-io.md against the code it describes, then move its `audited:` date — or fix what has drifted."
-    },
-    {
-      "family": "docs",
-      "check": "audit-date-behind-edits",
-      "severity": "medium",
-      "where": "specs/spec-device/spec.md",
-      "summary": "specs/spec-device/spec.md: audited 2026-07-23, last git edit 2026-08-18",
-      "ask": "Re-read specs/spec-device/spec.md against the code it describes, then move its `audited:` date — or fix what has drifted."
     },
     {
       "family": "closed",

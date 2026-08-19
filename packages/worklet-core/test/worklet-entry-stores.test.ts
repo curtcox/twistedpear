@@ -193,4 +193,21 @@ describe("createCatalogOps", () => {
 
     expect(second.ensureCatalog().installedStore.list()).toHaveLength(1);
   });
+
+  it("swallows truncated catalog JSON when no logger is provided", async () => {
+    const kv = {
+      get: async () => new TextEncoder().encode("{"),
+      set: async () => {},
+      delete: async () => {},
+    };
+    const catalog = createCatalogOps({
+      provider: { sha256: (data: Uint8Array) => data.slice(0, 32) },
+      packageQuotaBytes: 1_024,
+      runtimeKeyValueStore: () => kv,
+      status: {},
+      pushStatus: () => {},
+      send: () => {},
+    });
+    await expect(catalog.loadCatalogState()).resolves.toBeUndefined();
+  });
 });

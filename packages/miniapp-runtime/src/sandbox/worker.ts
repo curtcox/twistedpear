@@ -59,9 +59,22 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
     const checkpoints = createCheckpointCollector();
     let killed = false;
     let alive = true;
+    let lastError: string | null = null;
 
     worker.onmessage = (event: { data: unknown }) => {
       if (checkpoints.handleMessage(event.data)) {
+        return;
+      }
+      if (
+        event.data !== null &&
+        typeof event.data === "object" &&
+        "type" in event.data &&
+        (event.data as { type: string }).type === "app-error"
+      ) {
+        lastError = String(
+          (event.data as { message?: unknown }).message ?? "app-error",
+        );
+        alive = false;
         return;
       }
 
@@ -70,6 +83,9 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
 
     return Promise.resolve({
       id: options.appId,
+      lastError(): string | null {
+        return lastError;
+      },
       isAlive(): boolean {
         return alive && !killed;
       },

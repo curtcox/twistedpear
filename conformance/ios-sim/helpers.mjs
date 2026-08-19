@@ -2,9 +2,15 @@
  * iOS simulator helpers for Handbook Maestro UI smoke.
  */
 
+import { existsSync, utimesSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { platform } from "node:os";
 import { spawnSync } from "node:child_process";
 import { HARNESS_BUNDLE_ID } from "../handbook/peer-helpers.mjs";
+
+const labDir = dirname(fileURLToPath(import.meta.url));
+const defaultDerivedDataPath = join(labDir, ".ios-derived");
 
 export function isDarwin() {
   return platform() === "darwin";
@@ -43,6 +49,7 @@ export function defaultSimulatorName() {
 
   const listed = simctl(["list", "devices", "available"]);
   const preferred = [
+    "iPhone 17 Pro",
     "iPhone 16",
     "iPhone 15",
     "iPhone 14",
@@ -96,13 +103,40 @@ export function harnessInstalledOnBootedSim() {
   return apps.includes(HARNESS_BUNDLE_ID);
 }
 
-export function buildAndInstallHarness(repoRoot, options = {}) {
-  const deviceName = options.deviceName ?? defaultSimulatorName();
-  const harnessDir = `${repoRoot}/apps/harness-mobile`;
+export function harnessAppPath(
+  repoRoot,
+  derivedDataPath = defaultDerivedDataPath,
+) {
+  return join(
+    derivedDataPath,
+    "Build",
+    "Products",
+    "Release-iphonesimulator",
+    "TwistedPearHarness.app",
+  );
+}
+
+/**
+ * Release simulator build with an embedded JS bundle (no Metro picker).
+ * `expo run:ios` opens the dev-client URL even with `--no-bundler`; xcodebuild
+ * installs the same Release binary Maestro expects.
+ */
+export function buildHarnessApp(
+  repoRoot,
+  options = {},
+) {
+  const harnessDir = join(repoRoot, "apps/harness-mobile");
+  const iosDir = join(harnessDir, "ios");
+  const derivedDataPath = options.derivedDataPath ?? defaultDerivedDataPath;
+  const env = {
+    ...process.env,
+    EXPO_NO_INTERACTIVE: "1",
+  };
 
   const worklet = spawnSync("npm", ["run", "build:worklet"], {
     cwd: repoRoot,
     stdio: "inherit",
+    env,
   });
   if (worklet.status !== 0) {
     throw new Error("build:worklet failed");
@@ -114,43 +148,99 @@ export function buildAndInstallHarness(repoRoot, options = {}) {
     {
       cwd: harnessDir,
       stdio: "inherit",
+      env,
     },
   );
   if (bareAddons.status !== 0) {
     throw new Error("link-bare-addons ios failed");
   }
 
-  const prebuild = spawnSync(
-    "npx",
-    ["expo", "prebuild", "--platform", "ios", "--no-install"],
-    {
-      cwd: harnessDir,
-      stdio: "inherit",
-    },
-  );
-  if (prebuild.status !== 0) {
-    throw new Error("expo prebuild --platform ios failed");
-  }
-
-  const runIos = spawnSync(
-    "npx",
-    ["expo", "run:ios", "--device", deviceName, "--configuration", "Debug"],
-    {
-      cwd: harnessDir,
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        EXPO_NO_INTERACTIVE: "1",
+  const iosWorkspace = join(iosDir, "TwistedPearHarness.xcworkspace");
+  const skipPrebuild =
+    options.skipPrebuild === true ||
+    (process.env.IOS_SIM_PREBUILD !== "1" && existsSync(iosWorkspace));
+  if (!skipPrebuild) {
+    const prebuild = spawnSync(
+      "npx",
+      ["expo", "prebuild", "--platform", "ios", "--no-install"],
+      {
+        cwd: harnessDir,
+        stdio: "inherit",
+        env,
       },
-    },
-  );
-  if (runIos.status !== 0) {
-    throw new Error(`expo run:ios --device ${deviceName} failed`);
+    );
+    if (prebuild.status !== 0) {
+      throw new Error("expo prebuild --platform ios failed");
+    }
+
+    const pods = spawnSync("npx", ["pod-install"], {
+      cwd: harnessDir,
+      stdio: "inherit",
+      env,
+    });
+    if (pods.status !== 0) {
+      throw new Error("pod-install failed");
+    }
   }
 
+  const jsEntry = join(harnessDir, "index.js");
+  const workletBundle = join(harnessDir, "worklet/worklet.bundle.mjs");
+  const now = new Date();
+  if (existsSync(jsEntry)) {
+    utimesSync(jsEntry, now, now);
+  }
+  if (existsSync(workletBundle)) {
+    utimesSync(workletBundle, now, now);
+  }
+
+  const xcodebuild = spawnSync(
+    "xcodebuild",
+    [
+      "-workspace",
+      join(iosDir, "TwistedPearHarness.xcworkspace"),
+      "-scheme",
+      "TwistedPearHarness",
+      "-configuration",
+      "Release",
+      "-sdk",
+      "iphonesimulator",
+      "-derivedDataPath",
+      derivedDataPath,
+      "CODE_SIGNING_ALLOWED=NO",
+      "build",
+    ],
+    {
+      cwd: harnessDir,
+      stdio: "inherit",
+      env,
+    },
+  );
+  if (xcodebuild.status !== 0) {
+    throw new Error("xcodebuild Release iphonesimulator failed");
+  }
+
+  const appPath = harnessAppPath(repoRoot, derivedDataPath);
+  if (!existsSync(appPath)) {
+    throw new Error(`iOS Release harness app is missing: ${appPath}`);
+  }
+  return appPath;
+}
+
+export function installHarnessApp(appPath, udid = "booted") {
+  simctl(["install", udid, appPath]);
+}
+
+export function launchHarness() {
+  simctl(["launch", "booted", HARNESS_BUNDLE_ID]);
+}
+
+export function buildAndInstallHarness(repoRoot, options = {}) {
+  ensureBootedSimulator(options.deviceName);
+  const appPath = buildHarnessApp(repoRoot, options);
+  installHarnessApp(appPath);
   if (!harnessInstalledOnBootedSim()) {
     throw new Error(
-      `Harness not installed on booted simulator after expo run:ios (${HARNESS_BUNDLE_ID})`,
+      `Harness not installed on booted simulator after install (${HARNESS_BUNDLE_ID})`,
     );
   }
 }

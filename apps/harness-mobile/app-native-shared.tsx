@@ -331,7 +331,13 @@ export function ActionButton({
   readonly testID?: string;
 }) {
   return (
-    <Pressable testID={testID} style={styles.button} onPress={onPress}>
+    <Pressable
+      testID={testID}
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      style={styles.button}
+      onPress={onPress}
+    >
       <Text style={styles.buttonLabel}>{label}</Text>
     </Pressable>
   );
@@ -343,6 +349,9 @@ export const styles = StyleSheet.create({
     backgroundColor: "#101418",
     paddingTop: 64,
     paddingHorizontal: 20,
+  },
+  scrollContent: {
+    paddingBottom: 48,
   },
   title: {
     color: "#f4f7fb",
@@ -505,6 +514,7 @@ export const styles = StyleSheet.create({
   },
   log: {
     flex: 1,
+    minHeight: 160,
     backgroundColor: "#0b0f14",
     borderRadius: 12,
     padding: 12,

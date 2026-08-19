@@ -30,8 +30,16 @@ export function createCatalogOps(deps) {
     const { catalogStore: catalog, installedStore: installed } =
       ensureCatalog();
     const kv = deps.runtimeKeyValueStore();
-    await catalog.load(kv);
-    await installed.load(kv);
+    try {
+      await catalog.load(kv);
+      await installed.load(kv);
+    } catch (error) {
+      if (typeof deps.log === "function") {
+        deps.log(
+          `Catalog load failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 
   function pushCatalog() {

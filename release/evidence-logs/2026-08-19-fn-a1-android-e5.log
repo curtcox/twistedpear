@@ -1,0 +1,36 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 test:android-emulator:e5
+> node conformance/android-emulator/e5-worker.mjs
+
+Running on Pixel_8_API_35
+ > Flow e5-benchmark
+Launch app "network.twistedpear.harness" with clear state... COMPLETED
+Run dismiss-launch-chrome.yaml...
+  Repeat while "Close app" is visible (up to 5 times)...
+  Repeat while "Close app" is visible (up to 5 times)... SKIPPED
+  Run flow when "Android App Compatibility" is visible...
+  Run flow when "Android App Compatibility" is visible... SKIPPED
+  Run flow when "Don't Show Again" is visible...
+  Run flow when "Don't Show Again" is visible... SKIPPED
+  Run flow when "Development servers" is visible...
+  Run flow when "Development servers" is visible... SKIPPED
+  Run flow when "Continue" is visible...
+  Run flow when "Continue" is visible... SKIPPED
+  Assert that "Bundling" is not visible... COMPLETED
+  Run flow when "Connected to:" is visible...
+  Run flow when "Connected to:" is visible... SKIPPED
+  Run flow when "Close app" is visible...
+  Run flow when "Close app" is visible... SKIPPED
+  Run flow when "isn't responding" is visible...
+  Run flow when "isn't responding" is visible... SKIPPED
+  Run flow when "Continue" is visible...
+  Run flow when "Continue" is visible... SKIPPED
+Run dismiss-launch-chrome.yaml... COMPLETED
+Assert that id: create-identity is visible... COMPLETED
+Tap on id: create-identity... COMPLETED
+Assert that "Persisted: yes" is visible... COMPLETED
+Scrolling DOWN until id: benchmark-miniapp is visible with speed 80, visibility percentage 40%, timeout 120000 ms, with centering enabled... COMPLETED
+Tap on id: benchmark-miniapp... COMPLETED
+Assert that id: benchmark-results is visible... COMPLETED
+android-emulator/e5-worker: spawn 22ms, kill 0ms, busy-loop 317ms, wasm=true (bare-worker)

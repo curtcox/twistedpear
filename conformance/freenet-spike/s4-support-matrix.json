@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "audited": "2026-07-29",
+  "audited": "2026-08-19",
   "probe": "instantiate and execute a trivial WASM export before the hostile busy loop",
   "backends": {
     "desktop-node-worker": {
@@ -20,13 +20,15 @@
       "command": "npm run test:web-sandbox"
     },
     "bare-worker-android-emulator": {
-      "status": "probe-ready",
-      "wasmExecuted": null,
-      "busyLoopKilled": null,
-      "busyLoopKillMs": null,
+      "status": "pass",
+      "wasmExecuted": true,
+      "busyLoopKilled": true,
+      "busyLoopKillMs": 321,
       "environment": "android-emulator",
-      "reason": "E5 harness now requires explicit wasmExecuted + watchdog kill; record with ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5",
-      "command": "npm run test:android-emulator:e5"
+      "command": "npm run test:android-emulator:e5",
+      "spawnMs": 38,
+      "killMs": 0.4,
+      "measuredAt": "2026-08-19"
     },
     "bare-worker-ios-simulator": {
       "status": "probe-ready",

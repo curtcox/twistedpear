@@ -37,6 +37,7 @@ dependency-graph.json
 file-sizes.json
 launcher.txt
 conformance/sim-campaign/artifacts/
+conformance/ios-sim/.ios-derived/
 site/src/
 site/public/
 site/.vitepress/dist/

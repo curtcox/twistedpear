@@ -94,6 +94,11 @@ export async function handleHostMessageTailImpl(context, message) {
     return;
   }
   if (message.type === "benchmark-miniapp") {
+    context.send({
+      type: "miniapp-log",
+      appId: "bench",
+      line: "Benchmark starting",
+    });
     try {
       const result = await context.ensureMiniappHost().benchmark();
       context.send({ type: "miniapp-benchmark", result });
@@ -102,9 +107,21 @@ export async function handleHostMessageTailImpl(context, message) {
           `busy-loop ${result.busyLoopKillMs}ms, wasm=${result.wasmExecuted}`,
       );
     } catch (error) {
-      context.log(
-        `Benchmark failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      const line = `Benchmark failed: ${error instanceof Error ? error.message : String(error)}`;
+      context.log(line);
+      context.send({ type: "miniapp-log", appId: "bench", line });
+      context.send({
+        type: "miniapp-benchmark",
+        result: {
+          backend: "bare-worker",
+          runtime: "bare",
+          spawnMs: 0,
+          killMs: 0,
+          busyLoopKillMs: 0,
+          wasmExecuted: false,
+          busyLoopKilled: false,
+        },
+      });
     }
     return;
   }

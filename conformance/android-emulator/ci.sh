@@ -17,8 +17,9 @@ cd apps/harness-mobile
 npx expo prebuild --platform android --no-install
 cd android
 chmod +x gradlew
-./gradlew assembleDebug
-APK="$ROOT/apps/harness-mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a \
+  -x lintVitalAnalyzeRelease -x lintVitalReportRelease -x lintVitalRelease
+APK="$ROOT/apps/harness-mobile/android/app/build/outputs/apk/release/app-release.apk"
 
 echo "[android-emulator/ci] install maestro"
 export PATH="$PATH:$HOME/.maestro/bin"

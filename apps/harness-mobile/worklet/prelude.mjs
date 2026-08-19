@@ -17,4 +17,9 @@ Bare.on("uncaughtException", (err) => {
   console.error("[bare] uncaughtException", detail);
 });
 
+const { installBareWorkerPolyfill } = await import(
+  "../../../packages/worklet-core/src/bare-worker-polyfill.mjs"
+);
+installBareWorkerPolyfill();
+
 await import("./entry.mjs");

@@ -525,6 +525,11 @@
       "requires": [],
       "verify": "npm run test:android-emulator:e5",
       "added": "2026-08-18",
+      "completed": "2026-08-19",
+      "evidence": [
+        "conformance/android-emulator/measured-worker.json",
+        "conformance/freenet-spike/s4-support-matrix.json"
+      ],
       "notes": "freenet-simulator-first-work-plan.md A1. The harness already requires wasmExecuted plus kill and timing measurements, and ANDROID_BENCHMARK_RECORD=1 writes measured-worker.json and updates s4-support-matrix.json. What is missing is a committed emulator run. Simulator evidence may close software readiness but must never be relabelled as physical-device evidence."
     },
     "FN-A2-IOS-WASM": {

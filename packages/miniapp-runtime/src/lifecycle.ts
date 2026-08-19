@@ -38,6 +38,7 @@ export class MiniappLifecycle {
   private reason: string | null = null;
   private updatedAt: number;
   private storedCheckpoint: Uint8Array | null = null;
+  private sandboxError: string | null = null;
 
   constructor(
     private readonly backend: SandboxBackend,
@@ -67,6 +68,7 @@ export class MiniappLifecycle {
 
     this.transition("launching", null);
     this.storedCheckpoint = null;
+    this.sandboxError = null;
     this.instance = await this.backend.spawn({
       ...this.spawnOptions,
       brokerEndpoint: this.spawnOptions.brokerEndpoint,
@@ -77,6 +79,18 @@ export class MiniappLifecycle {
 
   lastCheckpoint(): Uint8Array | null {
     return this.storedCheckpoint;
+  }
+
+  lastError(): string | null {
+    this.captureSandboxError();
+    return this.sandboxError;
+  }
+
+  private captureSandboxError(): void {
+    const error = this.instance?.lastError?.() ?? null;
+    if (error !== null && error.length > 0) {
+      this.sandboxError = error;
+    }
   }
 
   async suspend(reason = "host-suspended"): Promise<MiniappLifecycleSnapshot> {
@@ -119,6 +133,7 @@ export class MiniappLifecycle {
   }
 
   async stop(reason = "stopped"): Promise<MiniappLifecycleSnapshot> {
+    this.captureSandboxError();
     if (this.instance !== null) {
       await this.instance.kill(reason);
       this.instance = null;
@@ -141,11 +156,13 @@ export class MiniappLifecycle {
   }
 
   async watchdogPing(): Promise<MiniappLifecycleSnapshot> {
+    this.captureSandboxError();
     if (this.instance === null) {
       return this.snapshot();
     }
 
     if (!this.instance.isAlive()) {
+      this.captureSandboxError();
       await this.instance.kill("sandbox-exit");
       this.instance = null;
       this.transition("crashed", "sandbox-exit");

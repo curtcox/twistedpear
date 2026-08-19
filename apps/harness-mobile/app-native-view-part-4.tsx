@@ -515,7 +515,9 @@ function NativeHostInterfaceToggles({ scope }: { scope: NativeHarnessScope }) {
 function NativeMiniappSurfaceCard({ scope }: { scope: NativeHarnessScope }) {
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionTitle}>Mini-app surface</Text>
+      <Text style={styles.sectionTitle} testID="miniapp-surface-section">
+        Mini-app surface
+      </Text>
       <NativeMiniappRuntimeLine scope={scope} />
       <NativeMiniappWidgetBlock scope={scope} />
       <NativeMiniappBenchmarkBlock scope={scope} />
@@ -598,8 +600,13 @@ function NativeMiniappWidgetBlock({ scope }: { scope: NativeHarnessScope }) {
 }
 
 function NativeMiniappBenchmarkBlock({ scope }: { scope: NativeHarnessScope }) {
-  const { miniappBenchmark, setMiniappBenchmark, miniappLogs, sendToWorklet } =
-    scope;
+  const {
+    miniappBenchmark,
+    setMiniappBenchmark,
+    miniappLogs,
+    sendToWorklet,
+    startWorklet,
+  } = scope;
   return (
     <>
       <ActionButton
@@ -607,7 +614,14 @@ function NativeMiniappBenchmarkBlock({ scope }: { scope: NativeHarnessScope }) {
         label="Benchmark Bare worker"
         onPress={() => {
           setMiniappBenchmark(null);
-          sendToWorklet({ type: "benchmark-miniapp" });
+          scope.setMiniappLogs(["bench: Benchmark starting"]);
+          void startWorklet().then((ready) => {
+            if (!ready) {
+              scope.setMiniappLogs(["bench: worklet failed to start"]);
+              return;
+            }
+            sendToWorklet({ type: "benchmark-miniapp" });
+          });
         }}
       />
       {miniappBenchmark !== null ? (
@@ -616,7 +630,9 @@ function NativeMiniappBenchmarkBlock({ scope }: { scope: NativeHarnessScope }) {
         </Text>
       ) : null}
       {miniappLogs.length > 0 ? (
-        <Text style={styles.muted}>{miniappLogs[miniappLogs.length - 1]}</Text>
+        <Text testID="benchmark-log" style={styles.muted}>
+          {miniappLogs[miniappLogs.length - 1]}
+        </Text>
       ) : null}
     </>
   );

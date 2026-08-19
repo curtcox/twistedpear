@@ -1,4 +1,4 @@
-/* global TextEncoder, performance, setTimeout */
+/* global TextEncoder, setTimeout */
 import {
   KvStorageBeeBackend,
   MiniappHost,
@@ -60,18 +60,25 @@ await ui.render({
 });
 `);
 
-const busyLoopBenchmarkBundle = new TextEncoder().encode(`
-const wasm = Uint8Array.from([
-  0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0,
-  7, 7, 1, 3, 114, 117, 110, 0, 0, 10, 4, 1, 2, 0, 11
+const wasmNopModule = Uint8Array.from([
+  0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 7, 7, 1, 3, 114,
+  117, 110, 0, 0, 10, 4, 1, 2, 0, 11,
 ]);
-const { instance } = await WebAssembly.instantiate(wasm);
-instance.exports.run();
+
+const busyLoopBenchmarkBundle = new TextEncoder().encode(`
 while (true) {}
 `);
 
 function benchmarkNowMs() {
-  return performance.now();
+  return Date.now();
+}
+
+function benchmarkLifecycleClock(watchdogMs) {
+  return {
+    now: () => Date.now(),
+    delay: (ms) => new Promise((resolveDelay) => setTimeout(resolveDelay, ms)),
+    ...(watchdogMs === undefined ? {} : { watchdogMs }),
+  };
 }
 
 function benchmarkAverage(values) {
@@ -84,24 +91,41 @@ async function benchmarkSleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
 }
 
+async function measureWasmOnBareIsolate() {
+  if (typeof WebAssembly !== "function") {
+    throw new Error("WebAssembly is not available in the BareKit worklet");
+  }
+  const { instance } = await WebAssembly.instantiate(wasmNopModule);
+  const run = instance.exports.run;
+  if (typeof run !== "function") {
+    throw new Error("WASM nop module did not export run()");
+  }
+  run();
+  return true;
+}
+
 async function measureSpawnKill(backend, bundle, iterations) {
   const spawnLatencies = [];
   const killLatencies = [];
 
   for (let index = 0; index < iterations; index += 1) {
-    const lifecycle = new MiniappLifecycle(backend, {
-      appId: "bench",
-      version: "1.0.0",
-      entryPath: "bundle.js",
-      bundle,
-      brokerEndpoint: {
-        request: async (request) => ({
-          id: request.id,
-          ok: true,
-          result: "ok",
-        }),
+    const lifecycle = new MiniappLifecycle(
+      backend,
+      {
+        appId: "bench",
+        version: "1.0.0",
+        entryPath: "bundle.js",
+        bundle,
+        brokerEndpoint: {
+          request: async (request) => ({
+            id: request.id,
+            ok: true,
+            result: "ok",
+          }),
+        },
       },
-    });
+      benchmarkLifecycleClock(),
+    );
 
     const spawnStarted = benchmarkNowMs();
     await lifecycle.launch();
@@ -130,16 +154,27 @@ async function measureBusyLoopKill(backend) {
         request: async (request) => ({ id: request.id, ok: true }),
       },
     },
-    { watchdogMs: BENCHMARK_WATCHDOG_MS },
+    benchmarkLifecycleClock(BENCHMARK_WATCHDOG_MS),
   );
 
   const started = benchmarkNowMs();
   await lifecycle.launch();
 
   let killed = false;
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+  let appError = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
     await benchmarkSleep(50);
+    const appErrorNow = lifecycle.lastError();
+    if (typeof appErrorNow === "string" && appErrorNow.length > 0) {
+      appError = appErrorNow;
+      break;
+    }
     const snapshot = await lifecycle.watchdogPing();
+    const afterPingError = lifecycle.lastError();
+    if (typeof afterPingError === "string" && afterPingError.length > 0) {
+      appError = afterPingError;
+      break;
+    }
     if (snapshot.state === "crashed") {
       killed = true;
       break;
@@ -147,6 +182,9 @@ async function measureBusyLoopKill(backend) {
   }
 
   await lifecycle.stop("cleanup");
+  if (appError !== null) {
+    throw new Error(`sandbox worker: ${appError}`);
+  }
   return {
     busyLoopKilled: killed,
     busyLoopKillMs: killed ? Math.round(benchmarkNowMs() - started) : null,
@@ -497,6 +535,7 @@ export function createWorkletMiniappHost(options) {
             const backend = createSandboxBackend(
               options.sandboxBackend ?? "bare-worker",
             );
+            const wasmExecuted = await measureWasmOnBareIsolate();
             const spawnKill = await measureSpawnKill(
               backend,
               helloBenchmarkBundle,
@@ -505,13 +544,13 @@ export function createWorkletMiniappHost(options) {
             const busyLoop = await measureBusyLoopKill(backend);
 
             if (!busyLoop.busyLoopKilled) {
-              throw new Error("WASM busy-loop app was not killed by watchdog");
+              throw new Error("busy-loop sandbox worker was not killed by watchdog");
             }
 
             return {
               backend: backend.name,
               runtime: "bare",
-              wasmExecuted: true,
+              wasmExecuted,
               iterations: BENCHMARK_ITERATIONS,
               spawnMs: spawnKill.spawnMs,
               killMs: spawnKill.killMs,

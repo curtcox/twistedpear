@@ -19,6 +19,7 @@ export interface SandboxInstance {
   postMessage(message: unknown): Promise<void>;
   ping(timeoutMs: number): Promise<boolean>;
   isAlive(): boolean;
+  lastError?(): string | null;
   kill(reason: string): Promise<void>;
   /**
    * Ask the worker for its stored checkpoint within `budgetMs`. Optional so
