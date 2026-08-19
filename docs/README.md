@@ -109,6 +109,7 @@ them as current behaviour.
 | 256t identifiers and package resolution            | [256t distribution](256t-distribution.md)                       |
 | In-platform development environment                | [DevStudio](devstudio.md)                                       |
 | Interactive documentation implementation           | [Handbook](handbook.md)                                         |
+| Authoring mini-app UIs in Elm                      | [Elm UI plan](elm-ui-plan.md) — planned, nothing built          |
 
 The package-level READMEs for
 [miniapp-runtime](../packages/miniapp-runtime/),
