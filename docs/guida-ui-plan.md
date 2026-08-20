@@ -4,14 +4,19 @@
 lifecycle: planned
 audited: 2026-08-20
 register: software
+counterpart: docs/guida-ui.md
 -->
 
-**This document describes intended work, not current behaviour.** Nothing here is built.
-What ships today is the JavaScript authoring path described in
+**This document describes intended remaining work, not current behaviour.** The compile
+target, vendored package, generated bindings, shim, CLI, and hello parity test ship today
+— see [guida-ui.md](guida-ui.md). Remaining work is tracked as `GUIDA-SAMPLES`,
+`GUIDA-VECTORS`, `GUIDA-MEASURE`, and `GUIDA-DEVSTUDIO` in
+[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md). Where the live document disagrees
+with this plan, it wins. The JavaScript authoring path in
 [the mini-app runtime](miniapp-runtime.md), [the SDK](miniapp-sdk.md), and
-[the App Authoring Guide](../authors/README.md);
+[the App Authoring Guide](../authors/README.md) is unchanged;
 [SPEC-WIDGET](../specs/spec-widget/spec.md) and [SPEC-SDK](../specs/spec-sdk/spec.md) are
-the normative contracts. Where any of those disagree with this plan, they win.
+the normative contracts.
 
 **Goal.** [Guida](https://guida-lang.org/) is a first-class mini-app authoring language:
 an author writes model, update, and view in Guida, runs `tp app build`, and gets a `.tpkg`
@@ -324,7 +329,8 @@ cost is unknown. Sequencing:
 
 Register rows via `npm run work:add`, `appendix-feature-status` entries for anything
 partial, LIMITATIONS §6 size language, and the FAQ / authoring-guide entry points updated
-to present two authoring languages rather than one.
+to present two authoring languages rather than one. Filed: `GUIDA-SAMPLES`,
+`GUIDA-VECTORS`, `GUIDA-MEASURE`, `GUIDA-DEVSTUDIO`.
 
 ## Repository integration checklist
 

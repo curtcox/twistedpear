@@ -47,34 +47,16 @@ const appNames = readdirSync(appsRoot, { withFileTypes: true })
   .sort();
 const temporaryDirectories = [];
 
-const API_CAPABILITIES = new Map([
-  ["identity.destinationHash", "identity"],
-  ["identity.sign", "identity"],
-  ["presence.snapshot", "presence"],
-  ["host.info", "presence"],
-  ["announce.publish", "announce:publish"],
-  ["announce.subscribe", "announce:subscribe"],
-  ["lxmf.send", "lxmf:send"],
-  ["lxmf.receive", "lxmf:receive"],
-  ["storage.kv.", "storage:kv"],
-  ["storage.bee.", "storage:hyperbee"],
-  ["resource.fetch", "resource:fetch"],
-  ["workspace.", "workspace"],
-  ["ai.chat", "ai:chat"],
-  ["ai.chatStream", "ai:chat"],
-  ["ai.embed", "ai:embed"],
-  ["ai.search", "ai:embed"],
-  ["apps.preview", "apps:preview"],
-  ["apps.stopPreview", "apps:preview"],
-  ["apps.packageProject", "apps:package"],
-  ["apps.publish", "apps:publish"],
-  ["apps.install", "apps:install"],
-  ["share.", "share:cas"],
-  ["peers.", "peer:connect"],
-  ["links.peers", "link:observe"],
-  ["links.watch", "link:observe"],
-  ["links.probe", "link:probe"],
-]);
+const API_CAPABILITIES = new Map(
+  Object.entries(
+    JSON.parse(
+      readFileSync(
+        join(repositoryRoot, "specs/spec-sdk/schema/api-capabilities.json"),
+        "utf8",
+      ),
+    ),
+  ),
+);
 
 class MemoryStore {
   values = new Map();
@@ -267,8 +249,11 @@ function validateDeclaredCapabilities(manifest, source) {
   const missing = [];
   for (const [surface, capability] of API_CAPABILITIES) {
     const used = surface.endsWith(".")
-      ? calls.some((call) => call.startsWith(surface))
-      : calls.includes(surface);
+      ? calls.some(
+          (call) =>
+            call.startsWith(surface) || call.startsWith(`sdk.${surface}`),
+        )
+      : calls.includes(surface) || calls.includes(`sdk.${surface}`);
     if (used && !declared.has(capability))
       missing.push(`${surface} requires ${capability}`);
   }

@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import {
+  runApp,
   runCreate,
   runDev,
+  runGuida,
   runIdentity,
   runInit,
   runNode,
@@ -21,7 +23,7 @@ const [command, ...args] = process.argv.slice(2);
 if (command === undefined || command === "--help" || command === "-h") {
   console.log("tp — TwistedPear publish tooling");
   console.log(
-    "Commands: init, identity, create, dev, pack, sign, publish, update, seed, node, trust",
+    "Commands: init, identity, create, guida, app, dev, pack, sign, publish, update, seed, node, trust",
   );
   process.exit(0);
 }
@@ -30,6 +32,8 @@ const handlers: Record<string, (ctx: CommandContext) => Promise<number>> = {
   init: runInit,
   identity: runIdentity,
   create: runCreate,
+  guida: runGuida,
+  app: runApp,
   dev: runDev,
   pack: runPack,
   sign: runSign,

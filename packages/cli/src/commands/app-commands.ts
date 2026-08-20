@@ -40,6 +40,7 @@ import {
   writePublishMetadata,
   writeTemplate,
 } from "./helpers.js";
+import { maybeBuildGuidaApp } from "./guida-commands.js";
 
 export function runCreate(ctx: CommandContext): Promise<number> {
   const templateName = ctx.args[0];
@@ -103,14 +104,16 @@ export async function runDev(ctx: CommandContext): Promise<number> {
   return 0;
 }
 
-export function runPack(ctx: CommandContext): Promise<number> {
+export async function runPack(ctx: CommandContext): Promise<number> {
   const appDir = ctx.args[0];
   if (appDir === undefined) {
     printHelp("pack");
-    return Promise.resolve(1);
+    return 1;
   }
 
-  const app = readAppManifest(resolveFromCwd(ctx.cwd, appDir));
+  const resolvedAppDir = resolveFromCwd(ctx.cwd, appDir);
+  await maybeBuildGuidaApp(resolvedAppDir);
+  const app = readAppManifest(resolvedAppDir);
   validateManifestCapabilities(app.capabilities ?? []);
   const provider = new NodeCryptoProvider();
   const config = loadConfig(ctx.cwd);
@@ -119,7 +122,7 @@ export function runPack(ctx: CommandContext): Promise<number> {
     resolveFromCwd(ctx.cwd, config.identityPath),
     ctx,
   );
-  const files = collectAppFiles(resolveFromCwd(ctx.cwd, appDir));
+  const files = collectAppFiles(resolvedAppDir);
 
   const driveKey = existsSync(resolveFromCwd(ctx.cwd, ".tp/publish.json"))
     ? (

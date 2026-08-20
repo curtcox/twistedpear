@@ -43,6 +43,13 @@ export const gates = [
   ),
   gate("unit-tests", "Unit tests", "test", "pr", ["node"]),
   gate(
+    "guida-parity",
+    "Guida/JS widget-stream parity",
+    "test:guida-parity",
+    "pr",
+    ["node", "guida"],
+  ),
+  gate(
     "file-sizes",
     "File-size ratchet",
     "sizes",

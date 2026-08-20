@@ -158,6 +158,12 @@ limits iOS and Android impose from the ones this platform added on top.
   above 32 KiB; BLE warnings start at 256 KiB. See `conformance/budgets/measured.json`
   for regenerated numbers (`npm run test:budgets`).
 
+  **Guida bundles are larger than JavaScript twins.** A minified hello-world Guida app
+  plus shim lands near 10 KB — several times a JavaScript sample, still inside both
+  RNode thresholds. Apps that pull `Dict`, `Set`, or more of `elm/core` grow from there.
+  Size does not block Guida, but it is a product choice on LoRa. See
+  [docs/guida-ui.md](docs/guida-ui.md).
+
 - Android emulator Bare Worker spawn/kill/busy-loop metrics: `conformance/android-emulator/measured-worker.json`
   (`ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5` on KVM emulator).
 - Holepunch's DHT bootstrap nodes are an external dependency; fully-sovereign deployments

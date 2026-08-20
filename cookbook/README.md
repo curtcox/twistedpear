@@ -13,7 +13,9 @@ now want to know **what it is actually good for** — and, just as usefully, wha
 The [App Authoring Guide](../authors/README.md) teaches you the SDK one namespace at a
 time. This cookbook goes the other way: it starts with an app somebody would want, and
 works backwards to the three or four calls that build it. Every recipe ships as a working
-directory you can pack and side-load.
+directory you can pack and side-load. JavaScript `bundle.js` is the published artifact;
+Guida source variants of these samples are tracked in
+[docs/guida-ui-plan.md](../docs/guida-ui-plan.md) Phase 4.
 
 ![The cookbook's sample apps running side by side](/cookbook/images/00-hero-cookbook.png)
 

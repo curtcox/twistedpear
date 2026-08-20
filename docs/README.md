@@ -38,6 +38,7 @@ When they disagree, the `live` document wins — including against its own plan.
 | Deterministic abuse simulation    | [simulation.md](simulation.md)                                                                                         | [simulation-plan.md](simulation-plan.md), loop mechanics in [abuse-resistance-loop.md](abuse-resistance-loop.md)              |
 | Static analysis                   | [static-analysis.md](static-analysis.md), [coverage policy](coverage-policy.md), [browser quality](browser-quality.md) | [static-analysis-plan.md](static-analysis-plan.md)                                                                            |
 | Observability / drop census       | [observability.md](observability.md)                                                                                   | _(executed — [archived plan](../archive/design/observability-plan.md))_                                                       |
+| Guida authoring                   | [guida-ui.md](guida-ui.md)                                                                                             | [guida-ui-plan.md](guida-ui-plan.md)                                                                                          |
 
 The rule is enforced by `npm run test:doc-audit`: a missing or invalid `tp-doc` header, a
 `historical` document outside `archive/`, a non-historical document inside it, or a
@@ -109,7 +110,7 @@ them as current behaviour.
 | 256t identifiers and package resolution            | [256t distribution](256t-distribution.md)                       |
 | In-platform development environment                | [DevStudio](devstudio.md)                                       |
 | Interactive documentation implementation           | [Handbook](handbook.md)                                         |
-| Authoring mini-app UIs in Guida                    | [Guida UI plan](guida-ui-plan.md) — planned, nothing built      |
+| Authoring mini-app UIs in Guida                    | [Guida UI](guida-ui.md) / [plan](guida-ui-plan.md)              |
 
 The package-level READMEs for
 [miniapp-runtime](../packages/miniapp-runtime/),

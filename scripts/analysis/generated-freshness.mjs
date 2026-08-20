@@ -14,6 +14,10 @@ export const GENERATED_OUTPUTS = [
   "packages/protocol/src/device-registry.gen.ts",
   "packages/protocol/src/capability-risk.gen.ts",
   "packages/miniapp-runtime/src/device-capabilities.gen.ts",
+  "packages/guida-twistedpear/elm/TwistedPear/Widget.elm",
+  "packages/guida-twistedpear/elm/TwistedPear/Style.elm",
+  "packages/guida-twistedpear/src/shim.generated.js",
+  "specs/spec-sdk/schema/api-capabilities.json",
   "apps/harness-mobile/worklet/store-posture.generated.mjs",
   "apps/harness-mobile/worklet/worklet.bundle.mjs",
   "apps/host-desktop/worklet/worklet.bundle",
@@ -29,8 +33,24 @@ function deviceClassPages() {
     .map((name) => `docs/device-classes/${name}`);
 }
 
+function guidaSdkModules() {
+  const dir = path.join(
+    ROOT,
+    "packages/guida-twistedpear/elm/TwistedPear/Sdk",
+  );
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter(
+      (name) =>
+        name.endsWith(".elm") && name !== "Error.elm" && name !== "Core.elm",
+    )
+    .sort()
+    .map((name) => `packages/guida-twistedpear/elm/TwistedPear/Sdk/${name}`);
+}
+
 export function allGeneratedOutputs() {
-  return [...GENERATED_OUTPUTS, ...deviceClassPages()];
+  return [...GENERATED_OUTPUTS, ...deviceClassPages(), ...guidaSdkModules()];
 }
 
 const STEPS = [
@@ -38,6 +58,8 @@ const STEPS = [
   [process.execPath, ["scripts/generate-device-registry.mjs"]],
   [process.execPath, ["scripts/generate-device-class-pages.mjs"]],
   [process.execPath, ["scripts/generate-capability-risk.mjs"]],
+  [process.execPath, ["scripts/generate-guida-widget.mjs"]],
+  [process.execPath, ["scripts/generate-guida-sdk.mjs"]],
   ["npm", ["run", "build:worklet"]],
   ["npm", ["run", "build", "--workspace=host-desktop"]],
 ];

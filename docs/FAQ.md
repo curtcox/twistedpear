@@ -206,10 +206,13 @@ matrix, kept per-capability rather than per-marketing-claim. The reader-facing s
 
 ### What is a mini-app, technically?
 
-A single JavaScript bundle that runs in a killable worker sandbox, imports
-`@twistedpear/miniapp-sdk` and nothing else, and describes its UI as a JSON widget tree
-that the _host_ renders. There is no filesystem, no socket, no `require`, no `fetch` — not
-discouraged, absent. See [authors/01](../authors/01-what-you-are-building.md) and
+A signed bundle that runs in a killable worker sandbox and describes its UI as a JSON
+widget tree the _host_ renders. The usual authoring language is JavaScript that imports
+`@twistedpear/miniapp-sdk` and nothing else. [Guida](https://guida-lang.org/) is also
+supported: `tp app build` compiles The Elm Architecture to the same bundle format. There
+is no filesystem, no socket, no `require`, no `fetch` — not discouraged, absent. See
+[authors/01](../authors/01-what-you-are-building.md),
+[authors/04b](../authors/04b-building-the-ui-in-guida.md), and
 [miniapp-runtime.md](miniapp-runtime.md).
 
 ### Why can't I render my own UI, or use React, or add npm dependencies at runtime?

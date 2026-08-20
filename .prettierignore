@@ -10,6 +10,10 @@ archive/
 **/*.bundle
 **/*.gen.ts
 **/*.generated.mjs
+**/*.generated.js
+**/*.elm
+guida-stuff/
+elm-stuff/
 conformance/web-hyperdrive/web-hyper-fetch.js
 
 # Generated native build artifacts and bundles

@@ -41,6 +41,7 @@ grants: storage:kv".
 | 2   | [Hello world in DevStudio](02-hello-world-in-devstudio.md)           | Write, preview, package, and publish without installing a toolchain.               |
 | 3   | [Hello world with the CLI](03-hello-world-with-the-cli.md)           | The same loop with your own editor, `tp`, and git.                                 |
 | 4   | [Building the UI](04-building-the-ui.md)                             | Widget trees, the component allowlist, styling, and events.                        |
+| 4b  | [Building the UI in Guida](04b-building-the-ui-in-guida.md)          | The same trees in Guida: `Program.app`, `Effect`, and `tp app build`.              |
 | 5   | [Capabilities](05-capabilities.md)                                   | Declaring what you need, surviving a partial grant, and the confirmation dialogs.  |
 | 6   | [Storage and files](06-storage-and-files.md)                         | Key/value, Hyperbee, the workspace, and the quotas on all three.                   |
 | 7   | [Identity, messaging, and peers](07-identity-messaging-and-peers.md) | App-scoped identity, LXMF, announces, presence, and resource fetch.                |

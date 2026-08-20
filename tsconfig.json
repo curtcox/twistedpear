@@ -38,6 +38,9 @@
       "path": "./packages/bridge-freenet"
     },
     {
+      "path": "./packages/guida-twistedpear"
+    },
+    {
       "path": "./packages/cli"
     },
     {

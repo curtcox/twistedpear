@@ -1,10 +1,4 @@
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HOST_API_VERSION } from "@twistedpear/miniapp-runtime";
 import {
@@ -12,7 +6,6 @@ import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
   unpackPackage,
-  type PackageFile,
 } from "@twistedpear/app-registry";
 import {
   casAnnounceAspects,
@@ -41,6 +34,8 @@ import {
   validateNewIdentityPassphrase,
 } from "@twistedpear/host-core";
 
+export { collectAppFiles } from "./pack-files.js";
+
 export interface CommandContext {
   readonly cwd: string;
   readonly args: ReadonlyArray<string>;
@@ -66,6 +61,9 @@ export function printHelp(command: string): void {
       "tp identity <export|import|recovery show|recovery import|change-passphrase>",
     create:
       "tp create <hello|chat-min> [app-dir]  Scaffold a mini-app template",
+    guida:
+      "tp guida init [app-dir]  Scaffold a Guida mini-app (Main.elm + elm.json)",
+    app: "tp app build <app-dir> [--out <file>] [--no-minify]  Compile a Guida project to bundle.js",
     dev: "tp dev <app-dir> [--host 127.0.0.1:34987]  Build and side-load to a dev-mode host",
     pack: "tp pack <app-dir> [--out <file.tpkg>]  Build unsigned package archive",
     sign: "tp sign <file.tpkg>  Re-sign an existing package archive",
@@ -276,30 +274,6 @@ export function loadIdentity(
   }
 
   return identity;
-}
-
-export function collectAppFiles(appDir: string): PackageFile[] {
-  const files: PackageFile[] = [];
-
-  const walk = (relativeDir: string) => {
-    const absolute = join(appDir, relativeDir);
-    for (const entry of readdirSync(absolute)) {
-      const rel = join(relativeDir, entry);
-      const full = join(appDir, rel);
-      const stats = statSync(full);
-      if (stats.isDirectory()) {
-        walk(rel);
-      } else if (entry !== "app.manifest.json") {
-        files.push({
-          path: rel.split("\\").join("/"),
-          content: readBytes(full),
-        });
-      }
-    }
-  };
-
-  walk(".");
-  return files.sort((left, right) => left.path.localeCompare(right.path));
 }
 
 export function readAppManifest(appDir: string) {

@@ -62,6 +62,7 @@ Geofence
 goodput
 Gren
 Guida
+guida
 Guix
 HDLC
 headlessly

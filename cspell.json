@@ -15,7 +15,9 @@
     "node_modules/**",
     "**/dist/**",
     "**/Pods/**",
-    "docs/simulation-architecture.html"
+    "docs/simulation-architecture.html",
+    "**/*.elm",
+    "packages/guida-twistedpear/src/shim.generated.js"
   ],
   "ignoreRegExpList": [
     "/`[^`\\n]*`/",

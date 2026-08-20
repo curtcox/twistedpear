@@ -501,6 +501,11 @@ export const REQUIREMENTS = {
     manual:
       "Android Studio or the command-line SDK tools, with ANDROID_HOME set",
   },
+  guida: {
+    why: "compiling Guida mini-apps",
+    probe: () => fs.existsSync(path.join(ROOT, "node_modules/guida")),
+    manual: "npm ci — guida@1.0.0-beta.2 is a workspace dependency",
+  },
 };
 
 /**

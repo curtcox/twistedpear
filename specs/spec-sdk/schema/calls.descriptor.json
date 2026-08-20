@@ -1,0 +1,584 @@
+{
+  "$comment": "Machine-readable SDK call descriptor. Source of truth for Guida bindings, the cookbook capability scan map, and the generated JS shim. Regenerated consumers: npm run generate:guida-sdk. Do not hand-edit generated outputs.",
+  "version": 1,
+  "compiler": {
+    "name": "guida",
+    "version": "1.0.0-beta.2"
+  },
+  "calls": [
+    {
+      "id": "identity.destinationHash",
+      "namespace": "identity",
+      "method": "destinationHash",
+      "capability": "identity",
+      "sdkPath": ["identity", "destinationHash"],
+      "args": [],
+      "result": "string"
+    },
+    {
+      "id": "identity.sign",
+      "namespace": "identity",
+      "method": "sign",
+      "capability": "identity",
+      "sdkPath": ["identity", "sign"],
+      "args": [{ "name": "payload", "type": "bytes" }],
+      "result": "bytes"
+    },
+    {
+      "id": "lxmf.send",
+      "namespace": "lxmf",
+      "method": "send",
+      "capability": "lxmf:send",
+      "sdkPath": ["lxmf", "send"],
+      "args": [{ "name": "request", "type": "json" }],
+      "result": "json"
+    },
+    {
+      "id": "lxmf.receive",
+      "namespace": "lxmf",
+      "method": "receive",
+      "capability": "lxmf:receive",
+      "sdkPath": ["lxmf", "receive"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "announce.publish",
+      "namespace": "announce",
+      "method": "publish",
+      "capability": "announce:publish",
+      "sdkPath": ["announce", "publish"],
+      "args": [
+        { "name": "appData", "type": "bytes" },
+        { "name": "namespace", "type": "string" }
+      ],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "announce.subscribe",
+      "namespace": "announce",
+      "method": "subscribe",
+      "capability": "announce:subscribe",
+      "sdkPath": ["announce", "subscribe"],
+      "args": [{ "name": "namespace", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "storage.kv.get",
+      "namespace": "storage.kv",
+      "method": "get",
+      "capability": "storage:kv",
+      "sdkPath": ["storage", "kv", "get"],
+      "scanPrefix": "storage.kv.",
+      "args": [{ "name": "key", "type": "string" }],
+      "result": "bytes?",
+      "spreadArgs": true
+    },
+    {
+      "id": "storage.kv.set",
+      "namespace": "storage.kv",
+      "method": "set",
+      "capability": "storage:kv",
+      "sdkPath": ["storage", "kv", "set"],
+      "scanPrefix": "storage.kv.",
+      "args": [
+        { "name": "key", "type": "string" },
+        { "name": "value", "type": "bytes" }
+      ],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "storage.kv.delete",
+      "namespace": "storage.kv",
+      "method": "delete",
+      "capability": "storage:kv",
+      "sdkPath": ["storage", "kv", "delete"],
+      "scanPrefix": "storage.kv.",
+      "args": [{ "name": "key", "type": "string" }],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "storage.bee.open",
+      "namespace": "storage.bee",
+      "method": "open",
+      "capability": "storage:hyperbee",
+      "sdkPath": ["storage", "bee", "open"],
+      "scanPrefix": "storage.bee.",
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "storage.bee.get",
+      "namespace": "storage.bee",
+      "method": "get",
+      "capability": "storage:hyperbee",
+      "sdkPath": ["storage", "bee", "get"],
+      "scanPrefix": "storage.bee.",
+      "args": [{ "name": "key", "type": "string" }],
+      "result": "bytes?",
+      "spreadArgs": true
+    },
+    {
+      "id": "storage.bee.put",
+      "namespace": "storage.bee",
+      "method": "put",
+      "capability": "storage:hyperbee",
+      "sdkPath": ["storage", "bee", "put"],
+      "scanPrefix": "storage.bee.",
+      "args": [
+        { "name": "key", "type": "string" },
+        { "name": "value", "type": "bytes" }
+      ],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "storage.bee.del",
+      "namespace": "storage.bee",
+      "method": "del",
+      "capability": "storage:hyperbee",
+      "sdkPath": ["storage", "bee", "del"],
+      "scanPrefix": "storage.bee.",
+      "args": [{ "name": "key", "type": "string" }],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "storage.bee.list",
+      "namespace": "storage.bee",
+      "method": "list",
+      "capability": "storage:hyperbee",
+      "sdkPath": ["storage", "bee", "list"],
+      "scanPrefix": "storage.bee.",
+      "args": [{ "name": "options", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "resource.fetch",
+      "namespace": "resource",
+      "method": "fetch",
+      "capability": "resource:fetch",
+      "sdkPath": ["resource", "fetch"],
+      "args": [{ "name": "request", "type": "json" }],
+      "result": "bytes",
+      "spreadArgs": true
+    },
+    {
+      "id": "presence.snapshot",
+      "namespace": "presence",
+      "method": "snapshot",
+      "capability": "presence",
+      "sdkPath": ["presence", "snapshot"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "host.info",
+      "namespace": "host",
+      "method": "info",
+      "capability": "presence",
+      "sdkPath": ["host", "info"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "host.requestWake",
+      "namespace": "host",
+      "method": "requestWake",
+      "capability": "runtime:wake",
+      "sdkPath": ["host", "requestWake"],
+      "args": [
+        { "name": "intervalMs", "type": "int" },
+        { "name": "budgetMs", "type": "int" }
+      ],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "workspace.list",
+      "namespace": "workspace",
+      "method": "list",
+      "capability": "workspace",
+      "sdkPath": ["workspace", "list"],
+      "scanPrefix": "workspace.",
+      "args": [{ "name": "prefix", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "workspace.read",
+      "namespace": "workspace",
+      "method": "read",
+      "capability": "workspace",
+      "sdkPath": ["workspace", "read"],
+      "scanPrefix": "workspace.",
+      "args": [{ "name": "path", "type": "string" }],
+      "result": "string",
+      "spreadArgs": true
+    },
+    {
+      "id": "workspace.write",
+      "namespace": "workspace",
+      "method": "write",
+      "capability": "workspace",
+      "sdkPath": ["workspace", "write"],
+      "scanPrefix": "workspace.",
+      "args": [
+        { "name": "path", "type": "string" },
+        { "name": "content", "type": "string" }
+      ],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "workspace.patch",
+      "namespace": "workspace",
+      "method": "patch",
+      "capability": "workspace",
+      "sdkPath": ["workspace", "patch"],
+      "scanPrefix": "workspace.",
+      "args": [
+        { "name": "path", "type": "string" },
+        { "name": "baseLength", "type": "int" },
+        { "name": "edits", "type": "json" }
+      ],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "workspace.remove",
+      "namespace": "workspace",
+      "method": "remove",
+      "capability": "workspace",
+      "sdkPath": ["workspace", "remove"],
+      "scanPrefix": "workspace.",
+      "args": [{ "name": "path", "type": "string" }],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "ai.chat",
+      "namespace": "ai",
+      "method": "chat",
+      "capability": "ai:chat",
+      "sdkPath": ["ai", "chat"],
+      "args": [{ "name": "request", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "ai.embed",
+      "namespace": "ai",
+      "method": "embed",
+      "capability": "ai:embed",
+      "sdkPath": ["ai", "embed"],
+      "args": [{ "name": "request", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "ai.search",
+      "namespace": "ai",
+      "method": "search",
+      "capability": "ai:embed",
+      "sdkPath": ["ai", "search"],
+      "args": [{ "name": "request", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "ai.chatStream",
+      "namespace": "ai",
+      "method": "chatStream",
+      "capability": "ai:chat",
+      "sdkPath": ["ai", "chatStream"],
+      "args": [{ "name": "request", "type": "json" }],
+      "result": "json",
+      "skipBinding": true
+    },
+    {
+      "id": "apps.packageProject",
+      "namespace": "apps",
+      "method": "packageProject",
+      "capability": "apps:package",
+      "sdkPath": ["apps", "packageProject"],
+      "args": [
+        { "name": "projectPrefix", "type": "string" },
+        { "name": "manifest", "type": "json" }
+      ],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "apps.publish",
+      "namespace": "apps",
+      "method": "publish",
+      "capability": "apps:publish",
+      "sdkPath": ["apps", "publish"],
+      "args": [{ "name": "t256", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "apps.install",
+      "namespace": "apps",
+      "method": "install",
+      "capability": "apps:install",
+      "sdkPath": ["apps", "install"],
+      "args": [{ "name": "t256", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "apps.preview",
+      "namespace": "apps",
+      "method": "preview",
+      "capability": "apps:preview",
+      "sdkPath": ["apps", "preview"],
+      "args": [
+        { "name": "projectPrefix", "type": "string" },
+        { "name": "manifest", "type": "json" },
+        { "name": "grants", "type": "json" }
+      ],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "apps.stopPreview",
+      "namespace": "apps",
+      "method": "stopPreview",
+      "capability": "apps:preview",
+      "sdkPath": ["apps", "stopPreview"],
+      "args": [],
+      "result": "void"
+    },
+    {
+      "id": "share.put",
+      "namespace": "share.cas",
+      "method": "put",
+      "capability": "share:cas",
+      "sdkPath": ["share", "put"],
+      "scanPrefix": "share.",
+      "args": [{ "name": "content", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "share.get",
+      "namespace": "share.cas",
+      "method": "get",
+      "capability": "share:cas",
+      "sdkPath": ["share", "get"],
+      "scanPrefix": "share.",
+      "args": [{ "name": "t256", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "peers.request",
+      "namespace": "peers",
+      "method": "request",
+      "capability": "peer:connect",
+      "sdkPath": ["peers", "request"],
+      "scanPrefix": "peers.",
+      "args": [{ "name": "options", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "peers.listen",
+      "namespace": "peers",
+      "method": "listen",
+      "capability": "peer:connect",
+      "sdkPath": ["peers", "listen"],
+      "scanPrefix": "peers.",
+      "args": [{ "name": "options", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "peers.diagnostics",
+      "namespace": "peers",
+      "method": "diagnostics",
+      "capability": "peer:connect",
+      "sdkPath": ["peers", "diagnostics"],
+      "scanPrefix": "peers.",
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "peers.info",
+      "namespace": "peers",
+      "method": "info",
+      "capability": "peer:connect",
+      "sdkPath": ["peers", "info"],
+      "scanPrefix": "peers.",
+      "args": [{ "name": "handle", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "peers.close",
+      "namespace": "peers",
+      "method": "close",
+      "capability": "peer:connect",
+      "sdkPath": ["peers", "close"],
+      "scanPrefix": "peers.",
+      "args": [{ "name": "handle", "type": "json" }],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "links.peers",
+      "namespace": "links",
+      "method": "peers",
+      "capability": "link:observe",
+      "sdkPath": ["links", "peers"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "links.probe",
+      "namespace": "links",
+      "method": "probe",
+      "capability": "link:probe",
+      "sdkPath": ["links", "probe"],
+      "args": [
+        { "name": "peer", "type": "json" },
+        { "name": "options", "type": "json" }
+      ],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "links.watch",
+      "namespace": "links",
+      "method": "watch",
+      "capability": "link:observe",
+      "sdkPath": ["links", "watch"],
+      "args": [],
+      "result": "json",
+      "skipBinding": true
+    },
+    {
+      "id": "relay.setMode",
+      "namespace": "relay",
+      "method": "setMode",
+      "capability": "relay:configure",
+      "sdkPath": ["relay", "setMode"],
+      "args": [{ "name": "mode", "type": "string" }],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "relay.list",
+      "namespace": "relay",
+      "method": "list",
+      "capability": "relay:read",
+      "sdkPath": ["relay", "list"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "relay.status",
+      "namespace": "relay",
+      "method": "status",
+      "capability": "relay:read",
+      "sdkPath": ["relay", "status"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "relay.diagnostics",
+      "namespace": "relay",
+      "method": "diagnostics",
+      "capability": "relay:read",
+      "sdkPath": ["relay", "diagnostics"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "freenet.get",
+      "namespace": "freenet",
+      "method": "get",
+      "capability": "freenet:contract",
+      "sdkPath": ["freenet", "get"],
+      "args": [{ "name": "keyHex", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "freenet.put",
+      "namespace": "freenet",
+      "method": "put",
+      "capability": "freenet:contract",
+      "sdkPath": ["freenet", "put"],
+      "args": [{ "name": "options", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "freenet.update",
+      "namespace": "freenet",
+      "method": "update",
+      "capability": "freenet:contract",
+      "sdkPath": ["freenet", "update"],
+      "args": [{ "name": "options", "type": "json" }],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "device.inventory",
+      "namespace": "device",
+      "method": "inventory",
+      "capability": "presence",
+      "sdkPath": ["device", "inventory"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "device.diagnostics",
+      "namespace": "device",
+      "method": "diagnostics",
+      "capability": "presence",
+      "sdkPath": ["device", "diagnostics"],
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "device.open",
+      "namespace": "device",
+      "method": "open",
+      "capability": null,
+      "sdkPath": ["device", "open"],
+      "args": [{ "name": "request", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "device.close",
+      "namespace": "device",
+      "method": "close",
+      "capability": null,
+      "sdkPath": ["device", "close"],
+      "args": [{ "name": "session", "type": "json" }],
+      "result": "void",
+      "spreadArgs": true
+    },
+    {
+      "id": "device.read",
+      "namespace": "device",
+      "method": "read",
+      "capability": null,
+      "sdkPath": ["device", "read"],
+      "args": [{ "name": "session", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    }
+  ]
+}

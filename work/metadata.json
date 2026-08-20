@@ -645,6 +645,34 @@
       "evidence": ["scripts/analysis/generated-freshness.mjs"],
       "notes": "The tracked bundle embeds the root package.json, so any npm script change leaves it stale, and nothing checks it — CI rebuilds it before use, which is why a stale commit is invisible until someone reads the diff. A freshness check would make the staleness a gate finding rather than a thing each author has to remember."
     },
+    "GUIDA-DEVSTUDIO": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm test -- packages/miniapp-runtime/test",
+      "added": "2026-08-20",
+      "notes": "Phase 5: P5.0 per-platform compiler speed, HostGuidaCompiler in host chrome, compiler image as host asset, elm language allowlist with HOST_API_VERSION bump."
+    },
+    "GUIDA-MEASURE": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run test:budgets",
+      "added": "2026-08-20",
+      "notes": "Phase 0 remaining: .tpkg size, spawn/first-render/steady-state latency via conformance/budgets and test:miniapp-benchmark; write numbers into LIMITATIONS.md §6."
+    },
+    "GUIDA-SAMPLES": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm run test:guida-parity",
+      "added": "2026-08-20",
+      "notes": "Phase 4 of docs/guida-ui-plan.md: 25 cookbook apps plus 3 examples as Guida source variants with headed JS/Guida listings; JS bundle.js stays the published artifact; parity must cover every pair."
+    },
+    "GUIDA-VECTORS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "vitest run packages/guida-twistedpear/test/sdk-vectors.test.ts",
+      "added": "2026-08-20",
+      "notes": "Phase 2 exit: replay specs/spec-sdk/vectors/calls.json through generated Guida bindings after existing vector normalization."
+    },
     "H1": {
       "type": "release-gate",
       "requires": ["res:android-phone-1"],

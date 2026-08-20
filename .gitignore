@@ -48,6 +48,8 @@ imported-static-analysis/
 /reports/
 # Written per package while the api-extractor survey runs, removed after.
 packages/*/.api-extractor.survey.json
+guida-stuff/
+elm-stuff/
 /audit.json
 /complexity.json
 /format.json

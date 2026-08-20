@@ -25,7 +25,7 @@
     "packages/*": {
       "entry": ["src/index.{ts,tsx,js,mjs}", "test/**/*.test.{ts,tsx,js,mjs}"],
       "project": ["src/**/*.{ts,tsx,js,mjs}", "test/**/*.{ts,tsx,js,mjs}"],
-      "ignore": ["src/**/*.gen.ts"]
+      "ignore": ["src/**/*.gen.ts", "src/**/*.generated.js"]
     },
     "apps/*": {
       "entry": [
