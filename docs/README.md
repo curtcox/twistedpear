@@ -109,7 +109,7 @@ them as current behaviour.
 | 256t identifiers and package resolution            | [256t distribution](256t-distribution.md)                       |
 | In-platform development environment                | [DevStudio](devstudio.md)                                       |
 | Interactive documentation implementation           | [Handbook](handbook.md)                                         |
-| Authoring mini-app UIs in Elm                      | [Elm UI plan](elm-ui-plan.md) — planned, nothing built          |
+| Authoring mini-app UIs in Guida                    | [Guida UI plan](guida-ui-plan.md) — planned, nothing built      |
 
 The package-level READMEs for
 [miniapp-runtime](../packages/miniapp-runtime/),
@@ -158,28 +158,28 @@ Protocol implementation details live in the
 
 ## Device I/O and sensors
 
-| Topic                                                        | Document                                                                                                       |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Topic                                                        | Document                                                                                                                                                        |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Expose device sensors and actuators to mini-apps             | [Device I/O — current](device-io.md), [plan](device-io-plan.md), [add a device class](device-class-runbook.md), [per-class reference](device-classes/README.md) |
-| Per-peer link quality and realtime audio/video between peers | [Realtime peer media — current](realtime-media.md), [plan](realtime-media-plan.md)                             |
-| Per-capability status including `device:*`                   | [Platform capabilities status](platform-capabilities-status.md)                                                |
+| Per-peer link quality and realtime audio/video between peers | [Realtime peer media — current](realtime-media.md), [plan](realtime-media-plan.md)                                                                              |
+| Per-capability status including `device:*`                   | [Platform capabilities status](platform-capabilities-status.md)                                                                                                 |
 
 ## Security, quality, and validation
 
-| Topic                                                      | Document                                                                                                    |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sandbox threat model and findings                          | [Security review](security-review.md)                                                                       |
+| Topic                                                      | Document                                                                                                                        |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Sandbox threat model and findings                          | [Security review](security-review.md)                                                                                           |
 | Whether a grant can be scoped to just the I/O an app needs | [Capability scoping — current](capability-scoping.md), [plan](capability-scoping-plan.md), [audit](capability-scoping-audit.md) |
-| Adversarial scenarios for author deception of users        | [Hostile author plan](hostile-author-plan.md), [measured catalog](../conformance/hostile-authors/README.md) |
-| Making approval evidence proportionate to app risk         | [App approval risk](app-approval-risk.md), [remaining plan](app-approval-risk-plan.md)                      |
-| CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                                   |
-| Full local validation workflow                             | [Single-Mac validation](mac-validation.md)                                                                  |
-| Kernel panics on the 16 GB validation Mac                  | [16 GB macOS host kernel panics](macos-dev-host-panics.md)                                                  |
-| Evidence from the documented Mac validation run            | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md)                                |
-| Sans-IO boundary and enforcement                           | [Sans-IO protocol discipline](sansio.md)                                                                    |
-| Source-file size thresholds and the decomposition ratchet  | [File-size classification](file-sizes.md)                                                                   |
-| Static analysis gates, baselines, and local runner         | [Static analysis](static-analysis.md), [remaining plan](static-analysis-plan.md)                            |
-| Mutation score floors and what they cover                  | [Mutation testing](mutation-testing.md)                                                                     |
+| Adversarial scenarios for author deception of users        | [Hostile author plan](hostile-author-plan.md), [measured catalog](../conformance/hostile-authors/README.md)                     |
+| Making approval evidence proportionate to app risk         | [App approval risk](app-approval-risk.md), [remaining plan](app-approval-risk-plan.md)                                          |
+| CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                                                       |
+| Full local validation workflow                             | [Single-Mac validation](mac-validation.md)                                                                                      |
+| Kernel panics on the 16 GB validation Mac                  | [16 GB macOS host kernel panics](macos-dev-host-panics.md)                                                                      |
+| Evidence from the documented Mac validation run            | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md)                                                    |
+| Sans-IO boundary and enforcement                           | [Sans-IO protocol discipline](sansio.md)                                                                                        |
+| Source-file size thresholds and the decomposition ratchet  | [File-size classification](file-sizes.md)                                                                                       |
+| Static analysis gates, baselines, and local runner         | [Static analysis](static-analysis.md), [remaining plan](static-analysis-plan.md)                                                |
+| Mutation score floors and what they cover                  | [Mutation testing](mutation-testing.md)                                                                                         |
 
 Additional focused runbooks are indexed from the
 [conformance overview](../conformance/README.md).

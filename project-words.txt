@@ -60,6 +60,8 @@ frontmatter
 fundable
 Geofence
 goodput
+Gren
+Guida
 Guix
 HDLC
 headlessly
@@ -78,6 +80,7 @@ impls
 inspectable
 IPFS
 Iroh
+jitless
 Keet
 killability
 ktlint
