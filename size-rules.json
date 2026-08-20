@@ -11,6 +11,7 @@
     "**/*.bundle.mjs",
     "**/*.bundle.js",
     "**/vendor/**",
+    "packages/guida-twistedpear/seed/**",
     "**/*.gen.ts",
     "**/*.generated.mjs",
     "**/*.generated.js",

@@ -1,0 +1,28 @@
+
+> twistedpear@0.0.0 test:guida-compiler
+> npm run build && node conformance/guida-compiler/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+
+== desktop Node ==
+  · cold parse + hello compile
+  parse 13.2ms · compile 2034.2ms · heap 161918536 · usable
+
+== desktop Bare ==
+  · same compile under node_modules/bare
+  parse 3ms · compile 1295ms · usable
+
+== web Chromium ==
+  · esbuild-bundle guida and compile hello in Playwright
+  parse 6.6ms · compile 3519.9ms · usable
+
+== shipping worklets ==
+  desktop-worklet: usable
+  android-worklet: usable
+  ios-worklet: usable
+  ios-rn: unavailable (production compile runs in the BareKit worklet, not on the React Native / Hermes thread)
+  · wrote /Users/curt/me/twistedpear/conformance/guida-compiler/measured.json
+PASS

@@ -1,24 +1,10 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import type { GuidaFsConfig } from "./fs-config.js";
 import { FetchXmlHttpRequest } from "./xhr.js";
 
-export interface GuidaFsConfig {
-  XMLHttpRequest: new () => FetchXmlHttpRequest;
-  writeFile: (
-    path: string,
-    data: string | Buffer | Uint8Array,
-  ) => Promise<void>;
-  readFile: (path: string) => Promise<Buffer>;
-  readDirectory: (path: string) => Promise<{ files: string[] }>;
-  createDirectory: (path: string) => Promise<void>;
-  details: (
-    path: string,
-  ) => Promise<{ type: "file" | "directory"; createdAt: number }>;
-  getCurrentDirectory: () => Promise<string>;
-  homedir: () => Promise<string>;
-  env: NodeJS.ProcessEnv;
-}
+export type { GuidaFsConfig, GuidaXhrCtor, GuidaXhrLike } from "./fs-config.js";
 
 /**
  * Filesystem + XHR environment for `guida`'s library `make` / `format` /

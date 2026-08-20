@@ -258,7 +258,7 @@ export function createAppsBackendCompileAction({
     let compileGuidaWorkspace;
     try {
       ({ compileGuidaWorkspace } = await import(
-        "../../guida-twistedpear/dist/index.js"
+        "../../guida-twistedpear/dist/worklet.js"
       ));
     } catch {
       return {

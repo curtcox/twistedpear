@@ -9,10 +9,10 @@ counterpart: docs/guida-ui.md
 
 **This document describes intended remaining work, not current behaviour.** The compile
 target, vendored package, generated bindings, shim, CLI, cookbook/example twins, SPEC-SDK
-vector replay, hello size/latency budgets, DevStudio `apps.compile` path, and P5.0
-compiler-speed measurements ship today — see [guida-ui.md](guida-ui.md). Remaining
-work is packing the 810 KB compiler image into shipping desktop/mobile worklets
-so on-device `apps.compile` can run where P5.0 recorded it as unavailable.
+vector replay, hello size/latency budgets, DevStudio `apps.compile` path, P5.0
+compiler-speed measurements, and packing the compiler into shipping worklets
+ship today — see [guida-ui.md](guida-ui.md). Remaining work is DevStudio
+multi-file editor polish (P5.3).
 Where the live document disagrees with this plan, it wins. The JavaScript authoring path in
 [the mini-app runtime](miniapp-runtime.md), [the SDK](miniapp-sdk.md), and
 [the App Authoring Guide](../authors/README.md) is unchanged;
@@ -309,19 +309,18 @@ cost is unknown. Sequencing:
   verdict on whether interactive compiling is usable. A platform that fails the bar falls
   back to **delegating the build to a paired peer** over LXMF, which needs no new transport
   and is the most local-first option available. **Executed 2026-08-20**
-  (`npm run test:guida-compiler`): Node ~1.5 s and Chromium ~4 s are usable;
-  shipping desktop/mobile worklets do not pack the compiler (unavailable, peer-delegate).
+  (`npm run test:guida-compiler`): Node ~2 s, Chromium ~4 s, and Bare ~1.3 s
+  are usable; the compiler is packed into shipping desktop/mobile worklets.
 - **P5.1 — host embedding.** A `HostGuidaCompiler` interface with a JS-module
   implementation and a native-CLI implementation, so desktop can prefer a locally installed
   `guida` when present. The compiler runs in **host chrome, not in a sandbox**: it is host
   tooling being offered to a mini-app, so it goes behind the existing
   [host confirmation channel](miniapp-runtime.md) like `apps:package`, with its own
   capability rather than widening `workspace`.
-- **P5.2 — the compiler image is a host asset.** Shipped with the host binary, **never a
-  mini-app payload and never distributed over Reticulum** — 810 KB is past every
-  distribution budget in [LIMITATIONS.md](../LIMITATIONS.md) §6. Seed the bundled asset
-  with the packages a template needs, because `install` and first-compile resolution reach
-  the network and an off-grid device has none.
+- **P5.2 — the compiler image is a host asset.** **Executed 2026-08-20.** Packed
+  into the desktop and mobile worklets with seeded `elm/core` and `elm/json`;
+  never a mini-app payload and never distributed over Reticulum. See
+  [guida-ui.md](guida-ui.md).
 - **P5.3 — DevStudio Guida projects.** Multi-file projects (DevStudio is single-file
   today), `elm` added to the `code-editor` language allowlist — a
   [SPEC-WIDGET](../specs/spec-widget/spec.md) schema change and a `HOST_API_VERSION` bump —

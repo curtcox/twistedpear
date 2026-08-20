@@ -713,6 +713,15 @@
       "requires": [],
       "verify": "npm run test:guida-compiler",
       "added": "2026-08-20",
+      "completed": "2026-08-20",
+      "evidence": [
+        "packages/guida-twistedpear/src/worklet.ts",
+        "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+        "conformance/guida-compiler/measured.json",
+        "docs/guida-ui.md",
+        "apps/host-desktop/worklet/worklet.bundle",
+        "apps/harness-mobile/worklet/worklet.bundle.mjs"
+      ],
       "notes": "Follow-up from P5.0: Node/Chromium compile is usable (~1.5s/~4s) but apps.compile is unavailable on shipping Bare worklets because the 810 KB compiler is not packed. Needs a node:fs-free compile path and the compiler as a host asset (plan P5.2), then remeasure."
     },
     "H1": {

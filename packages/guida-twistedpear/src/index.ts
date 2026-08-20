@@ -19,6 +19,7 @@ export {
   type GuidaBuildResult,
 } from "./build.js";
 export { memoryGuidaConfig } from "./memory-config.js";
+export { compileGuidaMemory } from "./compile-memory.js";
 export {
   compileGuidaWorkspace,
   compilerForMemoryWorkspace,

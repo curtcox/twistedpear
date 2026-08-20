@@ -1,10 +1,11 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { compileGuidaWorkspace } from "../src/compile-workspace.js";
+import { utf8 } from "../src/fs-config.js";
 import { memoryGuidaConfig } from "../src/memory-config.js";
+import { createPackageRegistryXhr } from "../src/seed-xhr.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const helloMain = readFileSync(
@@ -21,7 +22,7 @@ describe.skipIf(
     .then(() => false)
     .catch(() => true),
 )("Guida workspace compiler", () => {
-  it("compiles a file map and reports Node compile latency", async () => {
+  it("compiles a file map offline from seeded packages", async () => {
     const started = performance.now();
     const result = await compileGuidaWorkspace([
       { path: "elm.json", content: helloElmJson },
@@ -34,24 +35,18 @@ describe.skipIf(
   }, 120_000);
 
   it("memory config round-trips files", async () => {
-    const files = new Map<string, Buffer>([
-      ["/app/hello.txt", Buffer.from("hi")],
+    const files = new Map<string, Uint8Array>([
+      ["/app/hello.txt", new TextEncoder().encode("hi")],
     ]);
-    const home = mkdtempSync(join(tmpdir(), "tp-guida-home-"));
     const config = memoryGuidaConfig(files, {
       cwd: "/app",
-      homedir: home,
+      homedir: "/home",
+      XMLHttpRequest: createPackageRegistryXhr(files, "/home"),
     });
-    try {
-      expect((await config.readFile("hello.txt")).toString()).toBe("hi");
-      await config.writeFile("src/Main.elm", "module Main exposing (main)");
-      expect((await config.readFile("/app/src/Main.elm")).toString()).toContain(
-        "Main",
-      );
-      const listed = await config.readDirectory("/app");
-      expect(listed.files).toEqual(expect.arrayContaining(["hello.txt", "src"]));
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-    }
+    expect(utf8(await config.readFile("hello.txt"))).toBe("hi");
+    await config.writeFile("src/Main.elm", "module Main exposing (main)");
+    expect(utf8(await config.readFile("/app/src/Main.elm"))).toContain("Main");
+    const listed = await config.readDirectory("/app");
+    expect(listed.files).toEqual(expect.arrayContaining(["hello.txt", "src"]));
   });
 });

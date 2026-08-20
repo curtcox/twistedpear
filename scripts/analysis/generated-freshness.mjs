@@ -17,6 +17,8 @@ export const GENERATED_OUTPUTS = [
   "packages/guida-twistedpear/elm/TwistedPear/Widget.elm",
   "packages/guida-twistedpear/elm/TwistedPear/Style.elm",
   "packages/guida-twistedpear/src/shim.generated.js",
+  "packages/guida-twistedpear/src/seed-files.generated.js",
+  "packages/guida-twistedpear/src/guida-lib.generated.js",
   "specs/spec-sdk/schema/api-capabilities.json",
   "apps/harness-mobile/worklet/store-posture.generated.mjs",
   "apps/harness-mobile/worklet/worklet.bundle.mjs",
@@ -60,6 +62,7 @@ const STEPS = [
   [process.execPath, ["scripts/generate-capability-risk.mjs"]],
   [process.execPath, ["scripts/generate-guida-widget.mjs"]],
   [process.execPath, ["scripts/generate-guida-sdk.mjs"]],
+  [process.execPath, ["scripts/generate-guida-compiler-asset.mjs"]],
   ["npm", ["run", "build:worklet"]],
   ["npm", ["run", "build", "--workspace=host-desktop"]],
 ];

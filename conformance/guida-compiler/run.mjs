@@ -61,7 +61,7 @@ async function run() {
   );
 
   section("shipping worklets");
-  const shipping = shippingCompilerAvailability();
+  const shipping = shippingCompilerAvailability(bare);
   for (const sample of Object.values(shipping)) {
     const annotated = annotate(sample);
     shipping[annotated.runtime] = annotated;

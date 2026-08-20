@@ -71,17 +71,20 @@ a second published app.
 `elm.json`, and `guida-stuff/` from the archive.
 
 On-device compiling uses the same JavaScript compiler module
-(`JsModuleGuidaCompiler`) with an injectable filesystem, including an in-memory
-workspace for DevStudio. `apps.compile` (capability `apps:package`) runs in host
-chrome, never inside the sandbox. `code-editor` accepts `elm`.
+(`JsModuleGuidaCompiler` on Node, a `node:fs`-free worklet entry elsewhere) with
+an injectable filesystem, including an in-memory workspace for DevStudio.
+`apps.compile` (capability `apps:package`) runs in host chrome, never inside the
+sandbox. `code-editor` accepts `elm`.
 
-Interactive compiling is **usable on Node and Chromium** (hello-world ~1.5 s /
-~4 s, parse under 20 ms, heap under 512 MiB) and **not available on shipping
-worklets**. The 810 KB compiler is not packed into the desktop or mobile Bare
-worklet, so `apps.compile` returns "not available" there; iOS React Native is
-not the compile path. A host that cannot compile locally must say so rather
-than embedding the compiler in a mini-app payload. The intended fallback is a
-peer-delegated build over LXMF. Numbers: `npm run test:guida-compiler` →
+Interactive compiling is **usable on Node, Chromium, and shipping Bare
+worklets** (hello-world ~2 s / ~4 s / ~1.3 s, parse under 20 ms, heap under
+512 MiB). The compiler image is a host asset packed into the desktop and mobile
+worklets, seeded with `elm/core` and `elm/json` so a template compile does not
+reach the network. It is never a mini-app payload and is never distributed over
+Reticulum. iOS React Native / Hermes is not the compile path — production
+compile runs in the BareKit worklet. On-device output is wrap+shim without
+terser (hello ~104 KB vs ~27 KB Node-minified). A host that cannot compile
+locally must say so. Numbers: `npm run test:guida-compiler` →
 [`conformance/guida-compiler/measured.json`](../conformance/guida-compiler/measured.json).
 
 ## Size
@@ -98,6 +101,7 @@ few-kilobyte JS bundle on LoRa. See [LIMITATIONS.md](../LIMITATIONS.md) §6.
 ```sh
 npm run generate:guida-widget
 npm run generate:guida-sdk
+npm run generate:guida-compiler-asset
 npm test -- packages/guida-twistedpear/test
 npm test -- packages/cli/test/guida-init.test.ts packages/cli/test/pack-files.test.ts
 npm run test:guida-parity

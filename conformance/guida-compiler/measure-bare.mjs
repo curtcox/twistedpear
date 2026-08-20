@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -7,6 +7,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../..");
 const bareBin = join(repoRoot, "node_modules/bare/bin/bare");
 const tmpDir = join(repoRoot, ".tmp/guida-compiler-bare");
+const helloDir = join(repoRoot, "packages/guida-twistedpear/templates/hello");
 
 function esbuild(args) {
   return spawnSync(
@@ -24,33 +25,70 @@ export function measureBare() {
       error: "bare binary is not installed",
     };
   }
+  const workletEntry = join(
+    repoRoot,
+    "packages/guida-twistedpear/dist/worklet.js",
+  );
+  if (!existsSync(workletEntry)) {
+    return {
+      runtime: "bare",
+      available: false,
+      error: "packages/guida-twistedpear/dist/worklet.js is missing; run npm run build",
+    };
+  }
   mkdirSync(tmpDir, { recursive: true });
+  const files = [
+    {
+      path: "elm.json",
+      content: readFileSync(join(helloDir, "elm.json"), "utf8"),
+    },
+    {
+      path: "src/Main.elm",
+      content: readFileSync(join(helloDir, "src/Main.elm"), "utf8"),
+    },
+  ];
   const entry = join(tmpDir, "entry.mjs");
   writeFileSync(
     entry,
-    `import * as guidaNs from ${JSON.stringify(join(repoRoot, "node_modules/guida/lib/index.js"))};
-const loaded = guidaNs.default ?? guidaNs;
+    `import { compileGuidaWorkspace } from ${JSON.stringify(workletEntry)};
+const files = ${JSON.stringify(files)};
 const coldParseMs =
   typeof globalThis.__GUIDA_PARSE_START === "number"
     ? Date.now() - globalThis.__GUIDA_PARSE_START
     : 0;
-const ok = loaded !== undefined && typeof loaded.make === "function";
+const heap = () =>
+  typeof process !== "undefined" && typeof process.memoryUsage === "function"
+    ? process.memoryUsage().heapUsed
+    : 0;
+let peakHeapBytes = heap();
+const compileStarted = Date.now();
+const result = await compileGuidaWorkspace(files);
+peakHeapBytes = Math.max(peakHeapBytes, heap());
 console.log(JSON.stringify({
   runtime: "bare",
-  available: false,
+  available: true,
   coldParseMs,
-  compilerLoaded: ok,
-  error: "hello compile is not runnable under Bare without a Node fs/XHR host; shipping worklets do not pack the compiler",
+  helloCompileMs: Date.now() - compileStarted,
+  peakHeapBytes,
+  minifiedBytes: result.minifiedBytes,
+  compiler: result.compilerVersion,
 }));
 `,
   );
   const outfile = join(tmpDir, "bundle.js");
+  const encoderShim =
+    "if(typeof TextEncoder!=='function'){globalThis.TextEncoder=class{" +
+    "encode(i=''){const s=String(i);const o=new Uint8Array(s.length);" +
+    "for(let n=0;n<s.length;n++)o[n]=s.charCodeAt(n)&255;return o}};}";
+  const decoderShim =
+    "if(typeof TextDecoder!=='function'){globalThis.TextDecoder=class{" +
+    "decode(i=new Uint8Array()){let o='';for(const b of i)o+=String.fromCharCode(b);return o}};}";
   const bundled = esbuild([
     entry,
     "--bundle",
-    "--format=iife",
+    "--format=esm",
     "--platform=browser",
-    "--banner:js=var __GUIDA_PARSE_START=Date.now();",
+    `--banner:js=${encoderShim}${decoderShim}globalThis.__GUIDA_PARSE_START=Date.now();`,
     `--outfile=${outfile}`,
   ]);
   if (bundled.status !== 0) {
@@ -63,7 +101,7 @@ console.log(JSON.stringify({
   const result = spawnSync(bareBin, [outfile], {
     cwd: repoRoot,
     encoding: "utf8",
-    timeout: 15_000,
+    timeout: 60_000,
     killSignal: "SIGKILL",
     maxBuffer: 16 * 1024 * 1024,
   });
@@ -75,8 +113,7 @@ console.log(JSON.stringify({
     return {
       runtime: "bare",
       available: false,
-      error:
-        "compiler image loaded but hello compile is not runnable under Bare without a Node fs/XHR host",
+      error: "Bare hello compile timed out",
     };
   }
   const line = `${result.stdout ?? ""}\n${result.stderr ?? ""}`

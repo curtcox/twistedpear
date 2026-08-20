@@ -1,5 +1,4 @@
-import { FetchXmlHttpRequest } from "./xhr.js";
-import type { GuidaFsConfig } from "./node-config.js";
+import { bytesOf, type GuidaFsConfig, type GuidaXhrCtor } from "./fs-config.js";
 
 function normalize(path: string): string {
   return path.replaceAll("\\", "/").replace(/\/{2,}/gu, "/");
@@ -11,13 +10,20 @@ function parentDir(path: string): string {
   return index <= 0 ? "/" : trimmed.slice(0, index);
 }
 
+export interface MemoryGuidaOptions {
+  readonly cwd: string;
+  readonly homedir: string;
+  readonly env?: Readonly<Record<string, string | undefined>>;
+  readonly XMLHttpRequest: GuidaXhrCtor;
+}
+
 /**
  * In-memory filesystem for embedding `guida` in host chrome (DevStudio).
- * Package fetches still go through XHR into the real `homedir` cache.
+ * Package metadata is served by the injected XHR; sources live in `files`.
  */
 export function memoryGuidaConfig(
-  files: Map<string, Buffer>,
-  options: { cwd: string; homedir: string; env?: NodeJS.ProcessEnv },
+  files: Map<string, Uint8Array>,
+  options: MemoryGuidaOptions,
 ): GuidaFsConfig {
   const cwd = normalize(options.cwd);
   const locate = (path: string) => {
@@ -37,13 +43,10 @@ export function memoryGuidaConfig(
   }
 
   return {
-    XMLHttpRequest: FetchXmlHttpRequest,
+    XMLHttpRequest: options.XMLHttpRequest,
     async writeFile(path, data) {
       const resolved = locate(path);
-      files.set(
-        resolved,
-        Buffer.isBuffer(data) ? data : Buffer.from(data as string | Uint8Array),
-      );
+      files.set(resolved, bytesOf(data));
       directories.add(parentDir(resolved));
     },
     async readFile(path) {
@@ -91,6 +94,6 @@ export function memoryGuidaConfig(
     async homedir() {
       return options.homedir;
     },
-    env: options.env ?? process.env,
+    env: options.env ?? {},
   };
 }

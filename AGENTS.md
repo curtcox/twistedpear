@@ -183,6 +183,8 @@ source plus output together. Important examples:
 - `apps/harness-mobile/worklet/store-posture.generated.mjs` — same command
 - `apps/host-desktop/worklet/worklet.bundle` —
   `npm run build --workspace=host-desktop`
+- `packages/guida-twistedpear/src/guida-lib.generated.js` and
+  `seed-files.generated.js` — `npm run generate:guida-compiler-asset`
 - `violations.json` — `npm run sansio:inventory`
 
 Ignored local outputs include `dist/`, `.tmp/`, `site/src/`, `site/public/`,

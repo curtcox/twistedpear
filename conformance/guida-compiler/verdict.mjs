@@ -15,7 +15,8 @@ export const HEAP_USABLE_BYTES = 512 * 1024 * 1024;
  * @returns {"usable" | "slow" | "unusable" | "unavailable"}
  */
 export function verdictFor(sample) {
-  if (sample.available === false || sample.error) return "unavailable";
+  if (sample.available === false) return "unavailable";
+  if (sample.error && sample.available !== true) return "unavailable";
   const parseMs = sample.coldParseMs;
   const compileMs = sample.helloCompileMs;
   const heap = sample.peakHeapBytes;

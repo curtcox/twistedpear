@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-08-20T20:57:22.196Z",
+  "measuredAt": "2026-08-20T21:48:14.501Z",
   "bar": {
     "parseUsableMs": 5000,
     "compileUsableMs": 10000,
@@ -10,9 +10,9 @@
     "desktop-node": {
       "runtime": "node",
       "available": true,
-      "coldParseMs": 14.2,
-      "helloCompileMs": 1541.3,
-      "peakHeapBytes": 152568656,
+      "coldParseMs": 13.2,
+      "helloCompileMs": 2034.2,
+      "peakHeapBytes": 161918536,
       "minifiedBytes": 26654,
       "compiler": "1.0.0-beta.2",
       "verdict": "usable",
@@ -20,58 +20,69 @@
     },
     "desktop-bare": {
       "runtime": "bare",
-      "available": false,
-      "coldParseMs": 0,
-      "compilerLoaded": true,
-      "error": "hello compile is not runnable under Bare without a Node fs/XHR host; shipping worklets do not pack the compiler",
-      "verdict": "unavailable",
-      "fallback": "peer-delegate"
+      "available": true,
+      "coldParseMs": 3,
+      "helloCompileMs": 1295,
+      "peakHeapBytes": 0,
+      "minifiedBytes": 103893,
+      "compiler": "1.0.0-beta.2",
+      "verdict": "usable",
+      "fallback": "local"
     },
     "web": {
       "runtime": "chromium",
       "available": true,
-      "coldParseMs": 6.8,
-      "helloCompileMs": 2836.9,
-      "peakHeapBytes": 231137897,
+      "coldParseMs": 6.6,
+      "helloCompileMs": 3519.9,
+      "peakHeapBytes": 60641258,
       "compiledChars": 94278,
       "verdict": "usable",
       "fallback": "local"
     },
     "desktop-worklet": {
       "runtime": "desktop-worklet",
-      "available": false,
-      "error": "compiler module is not in the packed worklet",
+      "available": true,
       "evidence": {
-        "present": false,
+        "present": true,
         "path": "apps/host-desktop/worklet/worklet.bundle",
-        "reason": "compiler module is not in the packed worklet"
+        "marker": "compileGuidaWorkspace"
       },
-      "verdict": "unavailable",
-      "fallback": "peer-delegate"
+      "proxyRuntime": "bare",
+      "coldParseMs": 3,
+      "helloCompileMs": 1295,
+      "peakHeapBytes": 0,
+      "verdict": "usable",
+      "fallback": "local"
     },
     "android-worklet": {
       "runtime": "android-worklet",
-      "available": false,
-      "error": "compiler module is not in the packed worklet",
+      "available": true,
       "evidence": {
-        "present": false,
+        "present": true,
         "path": "apps/harness-mobile/worklet/worklet.bundle.mjs",
-        "reason": "compiler module is not in the packed worklet"
+        "marker": "compileGuidaWorkspace"
       },
-      "verdict": "unavailable",
-      "fallback": "peer-delegate"
+      "proxyRuntime": "bare",
+      "coldParseMs": 3,
+      "helloCompileMs": 1295,
+      "peakHeapBytes": 0,
+      "verdict": "usable",
+      "fallback": "local"
     },
     "ios-worklet": {
       "runtime": "ios-worklet",
-      "available": false,
-      "error": "iOS BareKit shares the mobile worklet bundle; compiler module is not packed",
+      "available": true,
       "evidence": {
-        "present": false,
+        "present": true,
         "path": "apps/harness-mobile/worklet/worklet.bundle.mjs",
-        "reason": "compiler module is not in the packed worklet"
+        "marker": "compileGuidaWorkspace"
       },
-      "verdict": "unavailable",
-      "fallback": "peer-delegate"
+      "proxyRuntime": "bare",
+      "coldParseMs": 3,
+      "helloCompileMs": 1295,
+      "peakHeapBytes": 0,
+      "verdict": "usable",
+      "fallback": "local"
     },
     "ios-rn": {
       "runtime": "ios-rn",

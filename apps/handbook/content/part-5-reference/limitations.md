@@ -14,7 +14,7 @@ and the [live difference matrix](chapter:difference-matrix).
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-18
+audited: 2026-08-20
 register: none
 -->
 
@@ -179,10 +179,11 @@ limits iOS and Android impose from the ones this platform added on top.
   17 ms for JS and a steady tap is ~6 ms for both. Size does not block Guida, but it
   is a product choice on LoRa. See docs/guida-ui.md.
 
-  **Guida interactive compile is Node/Chromium only today.** Hello-world compile is
-  ~1.5 s on Node and ~4 s in Chromium (`npm run test:guida-compiler`). Shipping
-  desktop and mobile Bare worklets do not pack the compiler, so `apps.compile` is
-  unavailable there; the fallback is a peer-delegated build, not a mini-app payload.
+  **Guida interactive compile is packed into shipping hosts.** Hello-world compile is
+  ~2 s on Node, ~4 s in Chromium, and ~1.3 s under Bare (`npm run test:guida-compiler`).
+  Desktop and mobile Bare worklets pack the compiler as a host asset with seeded
+  `elm/core` / `elm/json`; `apps.compile` is local there. iOS React Native is not
+  the compile path. The compiler is never a mini-app payload.
 
 - Android emulator Bare Worker spawn/kill/busy-loop metrics: `conformance/android-emulator/measured-worker.json`
   (`ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5` on KVM emulator).

@@ -188,6 +188,8 @@ export default [
       "apps/**",
       "conformance/**",
       "scripts/**",
+      "**/*.generated.js",
+      "**/*.generated.mjs",
     ],
   },
   {

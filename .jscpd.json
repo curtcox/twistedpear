@@ -25,6 +25,7 @@
     "apps/harness-mobile/worklet/web-entry-part-*.mjs",
     "apps/handbook/generated/**",
     "apps/handbook/seeds/**",
+    "packages/guida-twistedpear/seed/**",
     "apps/host-desktop/src/renderer/vendor/**",
     "packages/reticulum-ts/docs/api/**",
     "conformance/docs/.tmp-handbook-capture/**",
