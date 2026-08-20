@@ -52,8 +52,9 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID  | Status | Item | Evidence | Verify |
-| --- | ------ | ---- | -------- | ------ |
+| ID                     | Status | Item                                                              | Evidence | Verify                        |
+| ---------------------- | ------ | ----------------------------------------------------------------- | -------- | ----------------------------- |
+| GUIDA-WORKLET-COMPILER | open   | Pack the Guida compiler into shipping desktop and mobile worklets | —        | `npm run test:guida-compiler` |
 
 ## Blocked backlog
 

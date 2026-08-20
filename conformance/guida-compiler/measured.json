@@ -1,0 +1,84 @@
+{
+  "measuredAt": "2026-08-20T20:57:22.196Z",
+  "bar": {
+    "parseUsableMs": 5000,
+    "compileUsableMs": 10000,
+    "compileSlowMs": 30000,
+    "heapUsableBytes": 536870912
+  },
+  "platforms": {
+    "desktop-node": {
+      "runtime": "node",
+      "available": true,
+      "coldParseMs": 14.2,
+      "helloCompileMs": 1541.3,
+      "peakHeapBytes": 152568656,
+      "minifiedBytes": 26654,
+      "compiler": "1.0.0-beta.2",
+      "verdict": "usable",
+      "fallback": "local"
+    },
+    "desktop-bare": {
+      "runtime": "bare",
+      "available": false,
+      "coldParseMs": 0,
+      "compilerLoaded": true,
+      "error": "hello compile is not runnable under Bare without a Node fs/XHR host; shipping worklets do not pack the compiler",
+      "verdict": "unavailable",
+      "fallback": "peer-delegate"
+    },
+    "web": {
+      "runtime": "chromium",
+      "available": true,
+      "coldParseMs": 6.8,
+      "helloCompileMs": 2836.9,
+      "peakHeapBytes": 231137897,
+      "compiledChars": 94278,
+      "verdict": "usable",
+      "fallback": "local"
+    },
+    "desktop-worklet": {
+      "runtime": "desktop-worklet",
+      "available": false,
+      "error": "compiler module is not in the packed worklet",
+      "evidence": {
+        "present": false,
+        "path": "apps/host-desktop/worklet/worklet.bundle",
+        "reason": "compiler module is not in the packed worklet"
+      },
+      "verdict": "unavailable",
+      "fallback": "peer-delegate"
+    },
+    "android-worklet": {
+      "runtime": "android-worklet",
+      "available": false,
+      "error": "compiler module is not in the packed worklet",
+      "evidence": {
+        "present": false,
+        "path": "apps/harness-mobile/worklet/worklet.bundle.mjs",
+        "reason": "compiler module is not in the packed worklet"
+      },
+      "verdict": "unavailable",
+      "fallback": "peer-delegate"
+    },
+    "ios-worklet": {
+      "runtime": "ios-worklet",
+      "available": false,
+      "error": "iOS BareKit shares the mobile worklet bundle; compiler module is not packed",
+      "evidence": {
+        "present": false,
+        "path": "apps/harness-mobile/worklet/worklet.bundle.mjs",
+        "reason": "compiler module is not in the packed worklet"
+      },
+      "verdict": "unavailable",
+      "fallback": "peer-delegate"
+    },
+    "ios-rn": {
+      "runtime": "ios-rn",
+      "available": false,
+      "error": "production compile runs in the BareKit worklet, not on the React Native / Hermes thread",
+      "verdict": "unavailable",
+      "fallback": "peer-delegate"
+    }
+  }
+}

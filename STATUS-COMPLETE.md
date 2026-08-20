@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-05
+audited: 2026-08-20
 register: complete
 -->
 
@@ -13,7 +13,7 @@ This is an evidence archive, not a backlog. Open software work is tracked in
 [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md); device-, account-, and real-network-gated work is
 tracked in [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
 
-Last audited: 2026-08-05.
+Last audited: 2026-08-20.
 
 ## v1 release pipeline
 
@@ -108,6 +108,7 @@ Last audited: 2026-08-05.
 | GUIDA-VECTORS                                       | done   | Guida SDK binding replay of SPEC-SDK call vectors                                                                                                                           | `packages/guida-twistedpear/test/sdk-vectors.test.ts`, `packages/guida-twistedpear/fixtures/vector-harness/src/Main.elm`                                                                                                                                                                                                                                                            | `vitest run packages/guida-twistedpear/test/sdk-vectors.test.ts`                                                                                                                                                                                                                                                                                                                     |
 | GUIDA-SAMPLES                                       | done   | Guida source variants for every cookbook and example sample                                                                                                                 | `packages/guida-twistedpear/test/parity.test.ts`, `cookbook/apps/unit-converter/src/Main.elm`                                                                                                                                                                                                                                                                                       | `npm run test:guida-parity`                                                                                                                                                                                                                                                                                                                                                          |
 | GUIDA-DEVSTUDIO                                     | done   | On-device Guida compiling in DevStudio                                                                                                                                      | `packages/miniapp-runtime/test/apps.test.ts`, `packages/miniapp-runtime/src/host-api.ts`, `packages/miniapp-runtime/src/services/apps.ts`                                                                                                                                                                                                                                           | `npm test -- packages/miniapp-runtime/test`                                                                                                                                                                                                                                                                                                                                          |
+| GUIDA-P5-MEASURE                                    | done   | Measure Guida compiler speed on desktop, web, and mobile worklets                                                                                                           | `conformance/guida-compiler/measured.json`, `docs/guida-ui.md`, `conformance/guida-compiler/run.mjs`                                                                                                                                                                                                                                                                                | `npm run test:guida-compiler`                                                                                                                                                                                                                                                                                                                                                        |
 
 Closed capability-scoping and hostile-author Phase 0 rows live in
 [STATUS-COMPLETE-PHASES.md](STATUS-COMPLETE-PHASES.md#capability-scoping-and-hostile-author-phase-0).

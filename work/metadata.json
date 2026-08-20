@@ -671,6 +671,19 @@
       ],
       "notes": "Phase 0 remaining: .tpkg size, spawn/first-render/steady-state latency via conformance/budgets and test:miniapp-benchmark; write numbers into LIMITATIONS.md §6."
     },
+    "GUIDA-P5-MEASURE": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run test:guida-compiler",
+      "added": "2026-08-20",
+      "completed": "2026-08-20",
+      "evidence": [
+        "conformance/guida-compiler/measured.json",
+        "docs/guida-ui.md",
+        "conformance/guida-compiler/run.mjs"
+      ],
+      "notes": "Phase 5 P5.0 of docs/guida-ui-plan.md: cold parse, hello-world compile, and peak memory on desktop, web, Android worklet, iOS worklet, and iOS RN; per-platform verdict on interactive compiling, with peer-delegated builds as the fallback."
+    },
     "GUIDA-SAMPLES": {
       "type": "feature",
       "requires": [],
@@ -694,6 +707,13 @@
         "packages/guida-twistedpear/fixtures/vector-harness/src/Main.elm"
       ],
       "notes": "Phase 2 exit: replay specs/spec-sdk/vectors/calls.json through generated Guida bindings after existing vector normalization."
+    },
+    "GUIDA-WORKLET-COMPILER": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm run test:guida-compiler",
+      "added": "2026-08-20",
+      "notes": "Follow-up from P5.0: Node/Chromium compile is usable (~1.5s/~4s) but apps.compile is unavailable on shipping Bare worklets because the 810 KB compiler is not packed. Needs a node:fs-free compile path and the compiler as a host asset (plan P5.2), then remeasure."
     },
     "H1": {
       "type": "release-gate",

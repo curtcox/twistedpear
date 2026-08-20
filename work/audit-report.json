@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-19T03:33:43.371Z",
-  "commit": "cfa9d8650583fc5dbe4c4b0171fe875a5ea469f0",
+  "generatedAt": "2026-08-20T20:58:06.824Z",
+  "commit": "ff7d3d7345485a7d107f39e6775e43f55cf3c341",
   "counts": {
-    "total": 19,
-    "high": 0,
-    "medium": 15,
+    "total": 26,
+    "high": 1,
+    "medium": 21,
     "low": 4
   },
   "ratchets": {
@@ -18,12 +18,36 @@
   },
   "findings": [
     {
+      "family": "closed",
+      "check": "digest-mismatch",
+      "severity": "high",
+      "where": "release/evidence-logs/2026-08-14-ql-complexity-typescript-eslint-ban-ts-comment.log",
+      "summary": "QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT: the evidence log no longer hashes to the digest recorded at close",
+      "ask": "The log was edited or regenerated after QL-COMPLEXITY-TYPESCRIPT-ESLINT-BAN-TS-COMMENT closed. Re-run the verification and close it again, or explain the edit."
+    },
+    {
       "family": "gates",
       "check": "unverified-record",
       "severity": "medium",
       "where": "checks.json",
       "summary": "55 gate result(s) were measured at 5003b836e721, not at HEAD",
       "ask": "Re-run `npm run checks:status`, or import what CI already measured with `npm run checks:status:import`. A green recorded against another commit is not evidence about this one."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "apps/harness-mobile/scripts/build-worklet.mjs",
+      "summary": "BUG-WORKLET-BARE-PACK-HOST closed 2026-08-12, but its evidence apps/harness-mobile/scripts/build-worklet.mjs changed on 2026-08-19",
+      "ask": "Would `npm run build:worklet && npm run build --workspace=host-desktop` still pass? Re-run it if apps/harness-mobile/scripts/build-worklet.mjs carries the behaviour BUG-WORKLET-BARE-PACK-HOST claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "apps/harness-mobile/worklet/worklet.bundle.mjs",
+      "summary": "BUG-WORKLET-BARE-PACK-HOST closed 2026-08-12, but its evidence apps/harness-mobile/worklet/worklet.bundle.mjs changed on 2026-08-19",
+      "ask": "Would `npm run build:worklet && npm run build --workspace=host-desktop` still pass? Re-run it if apps/harness-mobile/worklet/worklet.bundle.mjs carries the behaviour BUG-WORKLET-BARE-PACK-HOST claimed."
     },
     {
       "family": "closed",
@@ -48,6 +72,22 @@
       "where": "docs/static-analysis.md",
       "summary": "QL-HARNESS-MOBILE-TYPECHECK closed 2026-08-11, but its evidence docs/static-analysis.md changed on 2026-08-18",
       "ask": "Would `npm run harness-mobile:typecheck` still pass? Re-run it if docs/static-analysis.md carries the behaviour QL-HARNESS-MOBILE-TYPECHECK claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "package-lock.json",
+      "summary": "BUG-REACT-DOM-MISMATCH closed 2026-08-12, but its evidence package-lock.json changed on 2026-08-20",
+      "ask": "Would `npm run test:web-widget-renderer` still pass? Re-run it if package-lock.json carries the behaviour BUG-REACT-DOM-MISMATCH claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "package.json",
+      "summary": "BUG-ELECTRON-BUILDER-VERSION closed 2026-08-12, but its evidence package.json changed on 2026-08-20",
+      "ask": "Would `npm run desktop:pack` still pass? Re-run it if package.json carries the behaviour BUG-ELECTRON-BUILDER-VERSION claimed."
     },
     {
       "family": "closed",
@@ -86,7 +126,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "APPR-UPDATE-DELTA",
-      "summary": "APPR-UPDATE-DELTA (bug) closed 0 day(s) ago on a verification that ran in 600ms: `npx vitest run packages/app-registry/test/update-delta.test.ts`",
+      "summary": "APPR-UPDATE-DELTA (bug) closed 2 day(s) ago on a verification that ran in 600ms: `npx vitest run packages/app-registry/test/update-delta.test.ts`",
       "ask": "Did `npx vitest run packages/app-registry/test/update-delta.test.ts` actually exercise APPR-UPDATE-DELTA, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -94,7 +134,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "BUG-REACT-DOM-MISMATCH",
-      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 6 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
+      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 8 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
       "ask": "Did `npm run test:web-widget-renderer` actually exercise BUG-REACT-DOM-MISMATCH, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -102,7 +142,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "CAP-ANNOUNCE-SCOPE",
-      "summary": "CAP-ANNOUNCE-SCOPE (bug) closed 0 day(s) ago on a verification that ran in 1891ms: `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts`",
+      "summary": "CAP-ANNOUNCE-SCOPE (bug) closed 2 day(s) ago on a verification that ran in 1891ms: `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts`",
       "ask": "Did `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts` actually exercise CAP-ANNOUNCE-SCOPE, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -110,7 +150,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "CAP-DEVICE-FAILCLOSED",
-      "summary": "CAP-DEVICE-FAILCLOSED (bug) closed 0 day(s) ago on a verification that ran in 1528ms: `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts`",
+      "summary": "CAP-DEVICE-FAILCLOSED (bug) closed 2 day(s) ago on a verification that ran in 1528ms: `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts`",
       "ask": "Did `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts` actually exercise CAP-DEVICE-FAILCLOSED, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -118,7 +158,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "CAP-FREENET-READ",
-      "summary": "CAP-FREENET-READ (bug) closed 0 day(s) ago on a verification that ran in 1504ms: `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts`",
+      "summary": "CAP-FREENET-READ (bug) closed 2 day(s) ago on a verification that ran in 1504ms: `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts`",
       "ask": "Did `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts` actually exercise CAP-FREENET-READ, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -126,7 +166,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "CAP-GRANT-STALE",
-      "summary": "CAP-GRANT-STALE (bug) closed 0 day(s) ago on a verification that ran in 1816ms: `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts`",
+      "summary": "CAP-GRANT-STALE (bug) closed 2 day(s) ago on a verification that ran in 1816ms: `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts`",
       "ask": "Did `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts` actually exercise CAP-GRANT-STALE, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -134,8 +174,24 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "ID-APPSCOPE",
-      "summary": "ID-APPSCOPE (bug) closed 8 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
+      "summary": "ID-APPSCOPE (bug) closed 10 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
       "ask": "Did `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` actually exercise ID-APPSCOPE, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "docs",
+      "check": "audit-date-behind-edits",
+      "severity": "medium",
+      "where": "STATUS-COMPLETE.md",
+      "summary": "STATUS-COMPLETE.md: audited 2026-08-05, last git edit 2026-08-20",
+      "ask": "Re-read STATUS-COMPLETE.md against the code it describes, then move its `audited:` date — or fix what has drifted."
+    },
+    {
+      "family": "docs",
+      "check": "audit-date-behind-edits",
+      "severity": "medium",
+      "where": "specs/spec-device/spec.md",
+      "summary": "specs/spec-device/spec.md: audited 2026-07-23, last git edit 2026-08-18",
+      "ask": "Re-read specs/spec-device/spec.md against the code it describes, then move its `audited:` date — or fix what has drifted."
     },
     {
       "family": "closed",

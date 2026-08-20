@@ -73,13 +73,16 @@ a second published app.
 On-device compiling uses the same JavaScript compiler module
 (`JsModuleGuidaCompiler`) with an injectable filesystem, including an in-memory
 workspace for DevStudio. `apps.compile` (capability `apps:package`) runs in host
-chrome, never inside the sandbox; the 810 KB compiler is a host asset.
-`code-editor` accepts `elm`. Create a Guida project in DevStudio, then Preview
-or Package to compile.
+chrome, never inside the sandbox. `code-editor` accepts `elm`.
 
-Interactive speed on iOS/Android worklets is still being measured — a host that
-cannot compile locally should say so rather than embedding the compiler in a
-mini-app payload.
+Interactive compiling is **usable on Node and Chromium** (hello-world ~1.5 s /
+~4 s, parse under 20 ms, heap under 512 MiB) and **not available on shipping
+worklets**. The 810 KB compiler is not packed into the desktop or mobile Bare
+worklet, so `apps.compile` returns "not available" there; iOS React Native is
+not the compile path. A host that cannot compile locally must say so rather
+than embedding the compiler in a mini-app payload. The intended fallback is a
+peer-delegated build over LXMF. Numbers: `npm run test:guida-compiler` →
+[`conformance/guida-compiler/measured.json`](../conformance/guida-compiler/measured.json).
 
 ## Size
 
@@ -98,4 +101,5 @@ npm run generate:guida-sdk
 npm test -- packages/guida-twistedpear/test
 npm test -- packages/cli/test/guida-init.test.ts packages/cli/test/pack-files.test.ts
 npm run test:guida-parity
+npm run test:guida-compiler
 ```

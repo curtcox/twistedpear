@@ -179,6 +179,11 @@ limits iOS and Android impose from the ones this platform added on top.
   17 ms for JS and a steady tap is ~6 ms for both. Size does not block Guida, but it
   is a product choice on LoRa. See docs/guida-ui.md.
 
+  **Guida interactive compile is Node/Chromium only today.** Hello-world compile is
+  ~1.5 s on Node and ~4 s in Chromium (`npm run test:guida-compiler`). Shipping
+  desktop and mobile Bare worklets do not pack the compiler, so `apps.compile` is
+  unavailable there; the fallback is a peer-delegated build, not a mini-app payload.
+
 - Android emulator Bare Worker spawn/kill/busy-loop metrics: `conformance/android-emulator/measured-worker.json`
   (`ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5` on KVM emulator).
 - Holepunch's DHT bootstrap nodes are an external dependency; fully-sovereign deployments

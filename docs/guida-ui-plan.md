@@ -9,10 +9,11 @@ counterpart: docs/guida-ui.md
 
 **This document describes intended remaining work, not current behaviour.** The compile
 target, vendored package, generated bindings, shim, CLI, cookbook/example twins, SPEC-SDK
-vector replay, hello size/latency budgets, and DevStudio `apps.compile` path ship today
-— see [guida-ui.md](guida-ui.md). Remaining work is interactive compiler speed on
-iOS/Android worklets (plan Phase 5 P5.0). Where the live document disagrees
-with this plan, it wins. The JavaScript authoring path in
+vector replay, hello size/latency budgets, DevStudio `apps.compile` path, and P5.0
+compiler-speed measurements ship today — see [guida-ui.md](guida-ui.md). Remaining
+work is packing the 810 KB compiler image into shipping desktop/mobile worklets
+so on-device `apps.compile` can run where P5.0 recorded it as unavailable.
+Where the live document disagrees with this plan, it wins. The JavaScript authoring path in
 [the mini-app runtime](miniapp-runtime.md), [the SDK](miniapp-sdk.md), and
 [the App Authoring Guide](../authors/README.md) is unchanged;
 [SPEC-WIDGET](../specs/spec-widget/spec.md) and [SPEC-SDK](../specs/spec-sdk/spec.md) are
@@ -307,7 +308,9 @@ cost is unknown. Sequencing:
   Hermes results are not BareKit evidence. Exit criterion: numbers, plus a per-platform
   verdict on whether interactive compiling is usable. A platform that fails the bar falls
   back to **delegating the build to a paired peer** over LXMF, which needs no new transport
-  and is the most local-first option available.
+  and is the most local-first option available. **Executed 2026-08-20**
+  (`npm run test:guida-compiler`): Node ~1.5 s and Chromium ~4 s are usable;
+  shipping desktop/mobile worklets do not pack the compiler (unavailable, peer-delegate).
 - **P5.1 — host embedding.** A `HostGuidaCompiler` interface with a JS-module
   implementation and a native-CLI implementation, so desktop can prefer a locally installed
   `guida` when present. The compiler runs in **host chrome, not in a sandbox**: it is host

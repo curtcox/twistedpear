@@ -1,0 +1,28 @@
+
+> twistedpear@0.0.0 test:guida-compiler
+> npm run build && node conformance/guida-compiler/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+
+== desktop Node ==
+  · cold parse + hello compile
+  parse 14.2ms · compile 1541.3ms · heap 152568656 · usable
+
+== desktop Bare ==
+  · same compile under node_modules/bare
+  unavailable: hello compile is not runnable under Bare without a Node fs/XHR host; shipping worklets do not pack the compiler
+
+== web Chromium ==
+  · esbuild-bundle guida and compile hello in Playwright
+  parse 6.8ms · compile 2836.9ms · usable
+
+== shipping worklets ==
+  desktop-worklet: unavailable (compiler module is not in the packed worklet)
+  android-worklet: unavailable (compiler module is not in the packed worklet)
+  ios-worklet: unavailable (iOS BareKit shares the mobile worklet bundle; compiler module is not packed)
+  ios-rn: unavailable (production compile runs in the BareKit worklet, not on the React Native / Hermes thread)
+  · wrote /Users/curt/me/twistedpear/conformance/guida-compiler/measured.json
+PASS
