@@ -302,6 +302,16 @@
       "skipBinding": true
     },
     {
+      "id": "apps.compile",
+      "namespace": "apps",
+      "method": "compile",
+      "capability": "apps:package",
+      "sdkPath": ["apps", "compile"],
+      "args": [{ "name": "projectPrefix", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
       "id": "apps.packageProject",
       "namespace": "apps",
       "method": "packageProject",

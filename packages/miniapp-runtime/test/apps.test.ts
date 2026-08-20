@@ -7,7 +7,9 @@ import {
   type ConfirmationRequest,
 } from "../src/index.js";
 
-const context = { appId: "devstudio", publisherPublicKey: "publisher" };
+function contextFor(appId: string) {
+  return { appId, publisherPublicKey: "publisher" };
+}
 const manifest = {
   name: "hello",
   version: "1.0.0",
@@ -17,6 +19,10 @@ const manifest = {
 
 function stubBackend(calls: string[]): AppsBackend {
   return {
+    compile: async () => {
+      calls.push("compile");
+      return { compiled: true, bytes: 12, compiler: "1.0.0-beta.2" };
+    },
     package: async () => {
       calls.push("package");
       return { packageHash: "ab".repeat(32), size: 100, t256: "A".repeat(94) };
@@ -47,9 +53,13 @@ describe("apps service", () => {
   it("denies every dangerous method without a confirmation channel", async () => {
     const calls: string[] = [];
     const service = new AppsService(stubBackend(calls), undefined);
+    const context = contextFor("devstudio-no-channel");
 
     await expect(
       service.package(context, { projectPrefix: "hello", manifest }),
+    ).rejects.toBeInstanceOf(ConfirmationError);
+    await expect(
+      service.compile(context, { projectPrefix: "hello" }),
     ).rejects.toBeInstanceOf(ConfirmationError);
     await expect(
       service.publish(context, { t256: "A".repeat(94) }),
@@ -81,24 +91,41 @@ describe("apps service", () => {
       },
     });
 
-    await service.package(context, { projectPrefix: "hello", manifest });
-    await service.publish(context, { t256: "A".repeat(94) });
-    await service.install(context, { t256: "A".repeat(94) });
-    await service.preview(context, {
+    await service.package(contextFor("devstudio-package"), {
+      projectPrefix: "hello",
+      manifest,
+    });
+    await service.compile(contextFor("devstudio-compile"), {
+      projectPrefix: "hello",
+    });
+    await service.publish(contextFor("devstudio-publish"), {
+      t256: "A".repeat(94),
+    });
+    await service.install(contextFor("devstudio-install"), {
+      t256: "A".repeat(94),
+    });
+    await service.preview(contextFor("devstudio-preview"), {
       projectPrefix: "hello",
       manifest,
       grants: [],
     });
 
-    expect(calls).toEqual(["package", "publish", "install", "preview"]);
+    expect(calls).toEqual(["package", "compile", "publish", "install", "preview"]);
     expect(confirmations.map((entry) => entry.kind)).toEqual([
+      "package",
       "package",
       "publish",
       "install",
       "preview",
     ]);
+    expect(confirmations.map((entry) => entry.appId)).toEqual([
+      "devstudio-package",
+      "devstudio-compile",
+      "devstudio-publish",
+      "devstudio-install",
+      "devstudio-preview",
+    ]);
     for (const confirmation of confirmations) {
-      expect(confirmation.appId).toBe("devstudio");
       expect(confirmation.publisherPublicKey).toBe("publisher");
       expect(confirmation.token).toMatch(/^[0-9a-f]{32}$/);
     }
@@ -110,7 +137,7 @@ describe("apps service", () => {
       confirm: async () => ({ approved: false }),
     });
     await expect(
-      service.publish(context, { t256: "A".repeat(94) }),
+      service.publish(contextFor("devstudio-denied"), { t256: "A".repeat(94) }),
     ).rejects.toMatchObject({
       code: "CONFIRMATION_DENIED",
     });
@@ -127,6 +154,7 @@ describe("apps service", () => {
       },
     });
 
+    const context = contextFor("devstudio-validate");
     await expect(
       service.package(context, {
         projectPrefix: "hello",
@@ -162,12 +190,38 @@ describe("apps service", () => {
       confirm: async () => ({ approved: true }),
     });
     await expect(
-      service.preview(context, {
+      service.preview(contextFor("devstudio-escalate"), {
         projectPrefix: "hello",
         manifest,
         grants: ["lxmf:send"],
       }),
     ).rejects.toMatchObject({ code: "APPS_BAD_REQUEST" });
     expect(calls).toEqual([]);
+  });
+
+  it("reports APPS_UNCONFIGURED when compile is not injected", async () => {
+    const service = new AppsService(
+      {
+        package: async () => {
+          throw new Error("unused");
+        },
+        publish: async () => {
+          throw new Error("unused");
+        },
+        install: async () => {
+          throw new Error("unused");
+        },
+        preview: async () => {
+          throw new Error("unused");
+        },
+        stopPreview: async () => undefined,
+      },
+      { confirm: async () => ({ approved: true }) },
+    );
+    await expect(
+      service.compile(contextFor("devstudio-unconfigured"), {
+        projectPrefix: "hello",
+      }),
+    ).rejects.toMatchObject({ code: "APPS_UNCONFIGURED" });
   });
 });

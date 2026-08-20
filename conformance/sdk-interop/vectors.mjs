@@ -28,11 +28,20 @@ const VECTORS_PATH = join(
  * @param {object} vectorApp
  * @param {object} vector
  */
-async function configureVectorHost(host, vectorApp, vector) {
+export async function configureVectorHost(host, vectorApp, vector) {
   if (vectorApp.register !== false) await registerApp(host, vectorApp);
   if (vector.setup?.maxMessagesPerSecond !== undefined) {
     host.setResourceLimits(vectorApp.name, {
       maxMessagesPerSecond: vector.setup.maxMessagesPerSecond,
+    });
+  }
+  if (vectorApp.granted.includes("lxmf:send")) {
+    host.grantEgressOffer({
+      appId: vectorApp.name,
+      capability: "lxmf:send",
+      targetKind: "peer",
+      targetId: vectorApp.name,
+      ttlMs: 60_000,
     });
   }
 }
@@ -75,7 +84,7 @@ function successMismatchDescription(response, expect, where) {
   return null;
 }
 
-function mismatchDescription(response, expect, where) {
+export function mismatchDescription(response, expect, where) {
   if (response.ok !== expect.ok) {
     return `${where}: expected ok=${expect.ok}, got ok=${response.ok} (${JSON.stringify(response.error ?? response.result)})`;
   }

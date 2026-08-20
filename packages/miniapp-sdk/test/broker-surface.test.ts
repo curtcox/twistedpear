@@ -303,6 +303,14 @@ const cases: ReadonlyArray<SurfaceCase> = [
     payload: { path: "a.txt" },
   },
   {
+    label: "apps.compile",
+    call: () => apps.compile("src/"),
+    namespace: "apps",
+    method: "compile",
+    capability: "apps:package",
+    payload: { projectPrefix: "src/" },
+  },
+  {
     label: "apps.packageProject",
     call: () => apps.packageProject("src/", MANIFEST),
     namespace: "apps",

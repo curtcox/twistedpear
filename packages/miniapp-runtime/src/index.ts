@@ -225,6 +225,7 @@ export { AppsService, AppsServiceError } from "./services/apps.js";
 export type {
   AppManifestDraft,
   AppsBackend,
+  AppsCompileResult,
   AppsInstallResult,
   AppsPackageResult,
   AppsPublishResult,

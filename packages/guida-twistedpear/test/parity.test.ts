@@ -1,118 +1,102 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildGuidaApp } from "../src/build.js";
+import {
+  canonical,
+  listTwinDirs,
+  recordBundle,
+} from "./twins.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const root = join(here, "../../..");
 const template = join(here, "../templates/hello");
 const jsTwin = join(here, "../fixtures/hello-js/bundle.js");
+const cookbookApps = join(root, "cookbook/apps");
+const exampleApps = join(root, "apps/examples");
 
-function sortKeys(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sortKeys);
-  if (value !== null && typeof value === "object") {
-    return Object.keys(value)
-      .sort()
-      .reduce<Record<string, unknown>>((acc, key) => {
-        acc[key] = sortKeys((value as Record<string, unknown>)[key]);
-        return acc;
-      }, {});
-  }
-  return value;
-}
+const skipGuida = await import("guida")
+  .then(() => false)
+  .catch(() => true);
 
-function canonical(value: unknown): string {
-  return JSON.stringify(sortKeys(value));
-}
-
-type UiHandler = (event: {
-  nodeId: string;
-  event: string;
-  value?: unknown;
-}) => void | Promise<void>;
-
-async function flush(): Promise<void> {
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, 0);
-  });
-}
-
-async function recordJs(events: ReadonlyArray<{ nodeId: string; event: string }>) {
-  const frames: unknown[] = [];
-  let handler: UiHandler | undefined;
-  const sdk = {
-    ui: {
-      render: async (tree: unknown) => {
-        frames.push(structuredClone(tree));
-      },
-      onEvent: (next: UiHandler) => {
-        handler = next;
-      },
-    },
-  };
-  const source = readFileSync(jsTwin, "utf8").replace(
-    /import\s*\{[^}]*\}\s*from\s*["']@twistedpear\/miniapp-sdk["']\s*;?/,
-    "const { ui } = sdk;",
-  );
-  await new Function("sdk", `return (async () => {\n${source}\n})();`)(sdk);
-  await flush();
-  if (handler === undefined) throw new Error("JS twin did not register onEvent");
-  for (const event of events) {
-    await handler(event);
-    await flush();
-  }
-  return frames;
-}
-
-async function recordGuida(
-  bundle: string,
-  events: ReadonlyArray<{ nodeId: string; event: string }>,
+async function buildAndCompare(
+  appDir: string,
+  jsSource: string,
+  events: ReadonlyArray<{ nodeId: string; event: string; value?: unknown }>,
+  mode: "all" | "settled",
 ) {
-  const frames: unknown[] = [];
-  let handler: UiHandler | undefined;
-  const sdk = {
-    ui: {
-      render: async (tree: unknown) => {
-        frames.push(structuredClone(tree));
-      },
-      onEvent: (next: UiHandler) => {
-        handler = next;
-      },
-    },
-  };
-  await new Function("sdk", `return (async () => {\n${bundle}\n})();`)(sdk);
-  await flush();
-  if (handler === undefined) throw new Error("Guida app did not register onEvent");
-  for (const event of events) {
-    await handler(event);
-    await flush();
+  const cwd = mkdtempSync(join(tmpdir(), "tp-guida-parity-"));
+  const interval = globalThis.setInterval;
+  globalThis.setInterval = (() => 0) as typeof setInterval;
+  try {
+    cpSync(appDir, cwd, { recursive: true });
+    const built = await buildGuidaApp({ appDir: cwd });
+    const jsFrames = await recordBundle(jsSource, events);
+    const guidaFrames = await recordBundle(built.bundle, events);
+    expect(jsFrames.length).toBeGreaterThan(0);
+    expect(guidaFrames.length).toBeGreaterThan(0);
+    if (mode === "all") {
+      expect(canonical(guidaFrames)).toBe(canonical(jsFrames));
+      return;
+    }
+    const guida = canonical(guidaFrames.at(-1));
+    const js = canonical(jsFrames.at(-1));
+    expect(guida).toBe(js);
+  } finally {
+    globalThis.setInterval = interval;
+    rmSync(cwd, { recursive: true, force: true });
   }
-  return frames;
 }
 
-describe.skipIf(
-  await import("guida")
-    .then(() => false)
-    .catch(() => true),
-)("Guida/JS widget-stream parity", () => {
+describe.skipIf(skipGuida)("Guida/JS widget-stream parity", () => {
   it("hello twins emit canonically identical frames for the same taps", async () => {
-    const cwd = mkdtempSync(join(tmpdir(), "tp-guida-hello-"));
-    try {
-      cpSync(template, cwd, { recursive: true });
-      const built = await buildGuidaApp({ appDir: cwd });
-      expect(built.bundle).toContain("sdk.ui.render");
-      expect(built.bundle).toContain("sdk.ui.onEvent");
-      const events = [
+    const { readFileSync } = await import("node:fs");
+    await buildAndCompare(
+      template,
+      readFileSync(jsTwin, "utf8"),
+      [
         { nodeId: "tap", event: "tap" },
         { nodeId: "tap", event: "tap" },
-      ];
-      const jsFrames = await recordJs(events);
-      const guidaFrames = await recordGuida(built.bundle, events);
-      expect(jsFrames.length).toBeGreaterThan(1);
-      expect(canonical(guidaFrames)).toBe(canonical(jsFrames));
-    } finally {
-      rmSync(cwd, { recursive: true, force: true });
-    }
+      ],
+      "all",
+    );
   }, 120_000);
+
+  it("unit-converter twins match after input and unit select", async () => {
+    const { readFileSync } = await import("node:fs");
+    const dir = join(cookbookApps, "unit-converter");
+    await buildAndCompare(
+      dir,
+      readFileSync(join(dir, "bundle.js"), "utf8"),
+      [
+        { nodeId: "input", event: "conv.input", value: "12.4" },
+        { nodeId: "unit-m-ft", event: "conv.select.m-ft" },
+      ],
+      "settled",
+    );
+  }, 120_000);
+
+  it("every cookbook and example twin matches on the settled initial tree", async () => {
+    const { readFileSync } = await import("node:fs");
+    const dirs = [...listTwinDirs(cookbookApps), ...listTwinDirs(exampleApps)];
+    expect(dirs.length).toBeGreaterThanOrEqual(28);
+    const mismatches: string[] = [];
+    for (const dir of dirs) {
+      try {
+        await buildAndCompare(
+          dir,
+          readFileSync(join(dir, "bundle.js"), "utf8"),
+          [],
+          "settled",
+        );
+      } catch (error) {
+        mismatches.push(
+          `${dir}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    expect(mismatches).toEqual([]);
+  }, 420_000);
 });

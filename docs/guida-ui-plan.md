@@ -8,10 +8,10 @@ counterpart: docs/guida-ui.md
 -->
 
 **This document describes intended remaining work, not current behaviour.** The compile
-target, vendored package, generated bindings, shim, CLI, and hello parity test ship today
-— see [guida-ui.md](guida-ui.md). Remaining work is tracked as `GUIDA-SAMPLES`,
-`GUIDA-VECTORS`, `GUIDA-MEASURE`, and `GUIDA-DEVSTUDIO` in
-[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md). Where the live document disagrees
+target, vendored package, generated bindings, shim, CLI, cookbook/example twins, SPEC-SDK
+vector replay, hello size/latency budgets, and DevStudio `apps.compile` path ship today
+— see [guida-ui.md](guida-ui.md). Remaining work is interactive compiler speed on
+iOS/Android worklets (plan Phase 5 P5.0). Where the live document disagrees
 with this plan, it wins. The JavaScript authoring path in
 [the mini-app runtime](miniapp-runtime.md), [the SDK](miniapp-sdk.md), and
 [the App Authoring Guide](../authors/README.md) is unchanged;
@@ -101,7 +101,7 @@ view : Model -> Widget Msg
 view model =
     W.view "root" [ S.padding 16, S.gap 12 ]
         [ W.text "title" [ S.fontSize 20, S.bold ] "Hello"
-        , W.button "tap" [] { label = "Tap me", onPress = Tapped }
+        , W.button "tap" [] { label = "Tap me", onPress = Tapped, event = "tap" }
         , W.text "count" [] ("Taps: " ++ String.fromInt model.taps)
         ]
 ```
@@ -350,7 +350,7 @@ than assuming it. `npm run test:doc-audit` covers the new docs; work rows go in 
 | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Guida is pre-1.0 and young** — a beta compiler with a small maintainer base under the whole authoring path     | The source is Elm 0.19.1-compatible by Guida's own core principle, so a stalled compiler is recoverable by rebuilding the same tree elsewhere. Keep the widget layer generated and the shim thin. |
 | **Guida 1.x intends to diverge from Elm** — the compatibility escape hatch above weakens as the language evolves | Pin exactly (D4); treat upgrades as deliberate work gated by the Phase 1 parity suite and the Phase 2 vector replay, not as dependency bumps.                                                     |
-| **Bundle size versus off-grid distribution** — the platform's distinguishing constraint                          | Measured in Phase 0 at ~10 KB for hello world, inside both RNode thresholds. D3 still stands for larger apps: measure per sample, publish the numbers, document the limit.                        |
+| **Bundle size versus off-grid distribution** — the platform's distinguishing constraint                          | Measured hello world at ~27 KiB (JS twin ~1.3 KiB), past the 9 KiB one-minute RNode ceiling and just under the 32 KiB warning. D3 still stands: publish the numbers, document the limit. |
 | **28 ported samples are 28 things that can rot**                                                                 | The Phase 1 parity test runs over every pair in CI; drift fails the build rather than aging quietly.                                                                                              |
 | Ports-only effects make the SDK less pleasant than the JavaScript one                                            | Generate the whole surface so the awkwardness is uniform and documented, not per-call surprise.                                                                                                   |
 | An 810 KB self-hosted compiler may be too slow to be interactive on phones                                       | P5.0 is a measure-first gate per platform, with peer-delegated builds as the documented fallback.                                                                                                 |

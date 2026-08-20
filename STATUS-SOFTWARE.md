@@ -52,12 +52,8 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID              | Status | Item                                                             | Evidence | Verify                                                           |
-| --------------- | ------ | ---------------------------------------------------------------- | -------- | ---------------------------------------------------------------- |
-| GUIDA-SAMPLES   | open   | Guida source variants for every cookbook and example sample      | —        | `npm run test:guida-parity`                                      |
-| GUIDA-VECTORS   | open   | Guida SDK binding replay of SPEC-SDK call vectors                | —        | `vitest run packages/guida-twistedpear/test/sdk-vectors.test.ts` |
-| GUIDA-MEASURE   | open   | Publish in-repo Guida hello size and latency next to the JS twin | —        | `npm run test:budgets`                                           |
-| GUIDA-DEVSTUDIO | open   | On-device Guida compiling in DevStudio                           | —        | `npm test -- packages/miniapp-runtime/test`                      |
+| ID  | Status | Item | Evidence | Verify |
+| --- | ------ | ---- | -------- | ------ |
 
 ## Blocked backlog
 

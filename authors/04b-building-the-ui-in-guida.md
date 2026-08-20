@@ -28,7 +28,7 @@ view : Model -> Widget Msg
 view model =
     W.view "root" [ S.padding 16, S.gap 12 ]
         [ W.text "title" [ S.fontSize 20, S.bold ] "Hello"
-        , W.button "tap" [] { label = "Tap me", onPress = Tapped }
+        , W.button "tap" [] { label = "Tap me", onPress = Tapped, event = "tap" }
         , W.text "count" [] ("Taps: " ++ String.fromInt model.taps)
         ]
 ```

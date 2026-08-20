@@ -11,6 +11,7 @@
         "TwistedPear.Style",
         "TwistedPear.Sdk.Error",
         "TwistedPear.Sdk.Core",
+        "TwistedPear.Sdk.Dispatch",
         "TwistedPear.Sdk.Identity",
         "TwistedPear.Sdk.Lxmf",
         "TwistedPear.Sdk.Announce",

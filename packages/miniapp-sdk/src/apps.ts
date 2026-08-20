@@ -26,6 +26,22 @@ export interface InstallResult {
   readonly trusted: boolean;
 }
 
+export interface CompileResult {
+  readonly compiled: boolean;
+  readonly bytes?: number;
+  readonly compiler?: string;
+  readonly reason?: string;
+}
+
+export async function compile(projectPrefix: string): Promise<CompileResult> {
+  return (await callHost(
+    "apps",
+    "compile",
+    { projectPrefix },
+    "apps:package",
+  )) as CompileResult;
+}
+
 export async function packageProject(
   projectPrefix: string,
   manifest: AppManifestDraft,

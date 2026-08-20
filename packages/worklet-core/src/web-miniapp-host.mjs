@@ -13,6 +13,7 @@ import {
 } from "../../miniapp-runtime/dist/device-manager.js";
 import { WebCodecsMediaCodecDriver } from "../../effects/dist/media-codec.js";
 import {
+  createAppsBackendCompileAction,
   createAppsBackendPackageAction,
   createAppsBackendPreviewAction,
   createAppsBackendPublishAction,
@@ -211,6 +212,7 @@ export function createWebWorkletMiniappHost(options) {
   let requirePublisherIdentity;
   /** @type {ReturnType<typeof createWorkspaceFileCollector>} */
   let collectWorkspaceFiles;
+  let writeWorkspaceFile;
 
   /** @type {import("../../miniapp-runtime/dist/device-manager.js").DeviceManager} */
   const deviceManager =
@@ -266,6 +268,11 @@ export function createWebWorkletMiniappHost(options) {
     hostInfoBackend: createCommonHostInfoBackend(options, "web"),
     resourceBackend: createCommonResourceBackend(kvStore),
     appsBackend: {
+      compile: (...args) =>
+        createAppsBackendCompileAction({
+          collectWorkspaceFiles,
+          writeWorkspaceFile,
+        })(...args),
       package: (...args) =>
         createAppsBackendPackageAction({
           requirePublisherIdentity,
@@ -334,6 +341,8 @@ export function createWebWorkletMiniappHost(options) {
     "No publisher identity is available; create an identity first",
   );
   collectWorkspaceFiles = createWorkspaceFileCollector(host);
+  writeWorkspaceFile = (appId, path, content) =>
+    host.workspace.write(appId, path, content);
   pushPreviewRuntime = createPreviewRuntimePusher(options.send, previewRef);
   pushRuntime = createMainRuntimePusher(options.send, host, devBadgeRef);
   stopPreviewHost = createPreviewHostStopper(options.send, previewRef);

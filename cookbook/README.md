@@ -14,8 +14,8 @@ The [App Authoring Guide](../authors/README.md) teaches you the SDK one namespac
 time. This cookbook goes the other way: it starts with an app somebody would want, and
 works backwards to the three or four calls that build it. Every recipe ships as a working
 directory you can pack and side-load. JavaScript `bundle.js` is the published artifact;
-Guida source variants of these samples are tracked in
-[docs/guida-ui-plan.md](../docs/guida-ui-plan.md) Phase 4.
+each sample also ships a Guida variant (`elm.json` + `src/Main.elm`) that emits the same
+widget tree. See [docs/guida-ui.md](../docs/guida-ui.md).
 
 ![The cookbook's sample apps running side by side](/cookbook/images/00-hero-cookbook.png)
 
@@ -59,8 +59,9 @@ these on your own host.
 
 ## The sample apps
 
-All twenty-five live under [`cookbook/apps/`](apps/), one directory each, each holding an
-`app.manifest.json` and a single `bundle.js`. The directory layout is deliberately the same
+All twenty-five live under [`cookbook/apps/`](apps/), one directory each. JavaScript
+`bundle.js` is the published artifact the host packs; `elm.json` and `src/Main.elm` are
+the Guida source variant of the same app. The directory layout is deliberately the same
 as [`apps/examples/`](../apps/examples/README.md), so anything you learn about packing one
 applies to the others.
 
@@ -77,7 +78,9 @@ cookbook/
     ├── unit-converter/
     │   ├── README.md            ← what it is, what it shows, how to run it
     │   ├── app.manifest.json    ← name, version, entry, capabilities
-    │   └── bundle.js            ← the whole app, one file
+    │   ├── bundle.js            ← published JS artifact
+    │   ├── elm.json             ← Guida project (Elm source variant)
+    │   └── src/Main.elm         ← Guida source; same widget tree as bundle.js
     ├── dice-table/
     … twenty-three more …
     └── net-ledger/

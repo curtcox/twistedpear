@@ -650,6 +650,12 @@
       "requires": [],
       "verify": "npm test -- packages/miniapp-runtime/test",
       "added": "2026-08-20",
+      "completed": "2026-08-20",
+      "evidence": [
+        "packages/miniapp-runtime/test/apps.test.ts",
+        "packages/miniapp-runtime/src/host-api.ts",
+        "packages/miniapp-runtime/src/services/apps.ts"
+      ],
       "notes": "Phase 5: P5.0 per-platform compiler speed, HostGuidaCompiler in host chrome, compiler image as host asset, elm language allowlist with HOST_API_VERSION bump."
     },
     "GUIDA-MEASURE": {
@@ -657,6 +663,12 @@
       "requires": [],
       "verify": "npm run test:budgets",
       "added": "2026-08-20",
+      "completed": "2026-08-20",
+      "evidence": [
+        "conformance/budgets/measured.json",
+        "LIMITATIONS.md",
+        "conformance/budgets/guida.mjs"
+      ],
       "notes": "Phase 0 remaining: .tpkg size, spawn/first-render/steady-state latency via conformance/budgets and test:miniapp-benchmark; write numbers into LIMITATIONS.md §6."
     },
     "GUIDA-SAMPLES": {
@@ -664,6 +676,11 @@
       "requires": [],
       "verify": "npm run test:guida-parity",
       "added": "2026-08-20",
+      "completed": "2026-08-20",
+      "evidence": [
+        "packages/guida-twistedpear/test/parity.test.ts",
+        "cookbook/apps/unit-converter/src/Main.elm"
+      ],
       "notes": "Phase 4 of docs/guida-ui-plan.md: 25 cookbook apps plus 3 examples as Guida source variants with headed JS/Guida listings; JS bundle.js stays the published artifact; parity must cover every pair."
     },
     "GUIDA-VECTORS": {
@@ -671,6 +688,11 @@
       "requires": [],
       "verify": "vitest run packages/guida-twistedpear/test/sdk-vectors.test.ts",
       "added": "2026-08-20",
+      "completed": "2026-08-20",
+      "evidence": [
+        "packages/guida-twistedpear/test/sdk-vectors.test.ts",
+        "packages/guida-twistedpear/fixtures/vector-harness/src/Main.elm"
+      ],
       "notes": "Phase 2 exit: replay specs/spec-sdk/vectors/calls.json through generated Guida bindings after existing vector normalization."
     },
     "H1": {

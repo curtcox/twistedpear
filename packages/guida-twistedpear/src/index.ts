@@ -18,3 +18,9 @@ export {
   type GuidaBuildOptions,
   type GuidaBuildResult,
 } from "./build.js";
+export { memoryGuidaConfig } from "./memory-config.js";
+export {
+  compileGuidaWorkspace,
+  compilerForMemoryWorkspace,
+  type WorkspaceFile,
+} from "./compile-workspace.js";

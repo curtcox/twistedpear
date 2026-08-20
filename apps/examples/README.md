@@ -22,7 +22,9 @@ npm run build
 npm run test:examples
 ```
 
-Each example ships as a pre-built `bundle.js` plus `app.manifest.json`. To repack locally:
+Each example ships as a pre-built `bundle.js` plus `app.manifest.json`. Guida source
+lives beside it as `elm.json` and `src/Main.elm`; `bundle.js` remains the published
+artifact. To repack locally:
 
 ```sh
 cd apps/examples/chat

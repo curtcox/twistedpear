@@ -53,6 +53,8 @@ The whole app is a pure function from two variables to one string. There is no s
 persist, so there is nothing to load on launch and nothing to save on exit — the app simply
 starts empty every time.
 
+### JavaScript
+
 ```javascript
 let selected = UNITS[0];
 let raw = "";
@@ -80,6 +82,42 @@ ui.onEvent(async ({ event, value }) => {
   }
   await render();
 });
+```
+
+### Guida
+
+```elm
+converted : Model -> String
+converted model =
+    case String.toFloat model.raw of
+        Nothing ->
+            "—"
+
+        Just number ->
+            format3 (number * model.selected.factor) ++ " " ++ model.selected.suffix
+```
+
+`update` is the same two events: `Typed` writes the input, `Select` swaps the unit. Unknown
+events never reach `update` — the Guida runtime looks them up by event name and ignores
+misses.
+
+```elm
+update : Msg -> Model -> ( Model, Effect.Effect Msg )
+update msg model =
+    case msg of
+        Typed raw ->
+            ( { model | raw = raw }, Effect.none )
+
+        Select id ->
+            ( { model
+                | selected =
+                    units
+                        |> List.filter (\unit -> unit.id == id)
+                        |> List.head
+                        |> Maybe.withDefault model.selected
+              }
+            , Effect.none
+            )
 ```
 
 Note the `else { return; }`. Every recipe here does this. An event you do not recognise
@@ -120,6 +158,8 @@ the surface.
 ### The interesting part
 
 The history cap is the whole lesson.
+
+### JavaScript
 
 ```javascript
 const HISTORY_LIMIT = 12;
@@ -165,6 +205,8 @@ button, and a small note reading "Stopping the app stops the pacer. Mini-apps do
 the background."
 
 ### The interesting part
+
+### JavaScript
 
 ```javascript
 const TICK_MS = 250; // four renders per second, against a 60-per-second ceiling

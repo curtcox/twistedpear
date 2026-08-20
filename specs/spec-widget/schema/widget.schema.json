@@ -118,6 +118,7 @@
                     "event": true,
                     "language": {
                       "enum": [
+                        "elm",
                         "javascript",
                         "json",
                         "text"

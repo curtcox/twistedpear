@@ -5,7 +5,7 @@
 -}
 
 module TwistedPear.Sdk.Apps exposing
-    ( packageProject, publish, install, preview, stopPreview )
+    ( compile, packageProject, publish, install, preview, stopPreview )
 
 {-| Generated SDK wrappers. Effects complete as a continuation message; there is no Task. -}
 
@@ -14,6 +14,11 @@ import Json.Encode as E
 import TwistedPear.Effect exposing (Effect)
 import TwistedPear.Sdk.Core as Core
 import TwistedPear.Sdk.Error exposing (Error)
+
+
+compile : String -> (Result Error D.Value -> msg) -> Effect msg
+compile projectPrefix toMsg =
+    Core.typed "apps" "compile" (E.object [ ( "projectPrefix", E.string projectPrefix ) ]) Core.json toMsg
 
 
 packageProject : String -> D.Value -> (Result Error D.Value -> msg) -> Effect msg

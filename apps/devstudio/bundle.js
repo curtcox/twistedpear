@@ -20,6 +20,55 @@ await ui.render({
 });
 `;
 
+const GUIDA_ELM_JSON = `{
+    "type": "application",
+    "source-directories": ["src"],
+    "elm-version": "0.19.1",
+    "dependencies": {
+        "direct": { "elm/core": "1.0.5", "elm/json": "1.1.3" },
+        "indirect": {}
+    },
+    "test-dependencies": { "direct": {}, "indirect": {} }
+}
+`;
+
+const HELLO_GUIDA = `module Main exposing (main)
+
+import TwistedPear.Effect as Effect
+import TwistedPear.Program as Program
+import TwistedPear.Style as S
+import TwistedPear.Widget as W
+
+type alias Model =
+    { taps : Int }
+
+type Msg
+    = Tapped
+
+main =
+    Program.app
+        { init = ( { taps = 0 }, Effect.none )
+        , update = update
+        , view = view
+        , subscriptions = subscriptions
+        }
+
+update msg model =
+    case msg of
+        Tapped ->
+            ( { taps = model.taps + 1 }, Effect.none )
+
+view model =
+    W.view "root" [ S.padding 16, S.gap 12 ]
+        [ W.text "title" [ S.fontSize 20, S.bold ] "Hello from DevStudio"
+        , W.button "tap" [] { label = "Tap me", onPress = Tapped, event = "tap" }
+        , W.text "count" [] ("Taps: " ++ String.fromInt model.taps)
+        ]
+
+subscriptions _ =
+    Sub.none
+`;
+
 const AI_SYSTEM_PROMPT =
   "You are a code assistant for TwistedPear mini-apps. Mini-apps are single-file " +
   "JavaScript bundles that may only import from \"@twistedpear/miniapp-sdk\" and render " +
@@ -72,7 +121,8 @@ async function render() {
     { id: "title", type: "text", props: { value: "DevStudio" }, style: { fontSize: 24, fontWeight: "bold" } },
     { id: "status", type: "text", props: { value: statusLine } },
     { id: "sep0", type: "divider" },
-    widgetButton("new-project", "New hello project", "ds.newproject")
+    widgetButton("new-project", "New hello project", "ds.newproject"),
+    widgetButton("new-guida", "New Guida project", "ds.newguida")
   ];
 
   for (const name of projects) {
@@ -97,7 +147,7 @@ async function render() {
     children.push({
       id: "editor",
       type: "code-editor",
-      props: { documentId: openFile, language: openFile.endsWith(".json") ? "json" : "javascript", event: "ds.edit" }
+      props: { documentId: openFile, language: editorLanguage(openFile), event: "ds.edit" }
     });
     children.push({
       id: "ai-prompt",
@@ -185,6 +235,26 @@ async function setStatus(line) {
   await render();
 }
 
+function editorLanguage(path) {
+  if (path.endsWith(".json")) return "json";
+  if (path.endsWith(".elm")) return "elm";
+  if (path.endsWith(".js")) return "javascript";
+  return "text";
+}
+
+async function maybeCompileGuida() {
+  const listed = await workspace.list(`${project}/`);
+  if (!listed.some((file) => file.path.endsWith("elm.json"))) return;
+  try {
+    const result = await apps.compile(project);
+    if (result.compiled) {
+      await refreshFiles();
+    }
+  } catch (error) {
+    if (!String(error.message).includes("not configured")) throw error;
+  }
+}
+
 async function handleEvent({ nodeId, event, value }) {
   if (event === "ds.newproject") {
     const base = "hello-app";
@@ -204,6 +274,27 @@ async function handleEvent({ nodeId, event, value }) {
     await refreshFiles();
     openFile = `${name}/bundle.js`;
     await setStatus(`Created project ${name}.`);
+    return;
+  }
+
+  if (event === "ds.newguida") {
+    const base = "hello-guida";
+    let name = base;
+    let counter = 2;
+    while (projects.includes(name)) {
+      name = `${base}-${counter++}`;
+    }
+    await workspace.write(
+      `${name}/app.json`,
+      JSON.stringify({ name, version: "0.1.0", entry: "bundle.js", capabilities: [] }, null, 2)
+    );
+    await workspace.write(`${name}/elm.json`, GUIDA_ELM_JSON);
+    await workspace.write(`${name}/src/Main.elm`, HELLO_GUIDA);
+    await refreshProjects();
+    project = name;
+    await refreshFiles();
+    openFile = `${name}/src/Main.elm`;
+    await setStatus(`Created Guida project ${name}. Compile on Preview.`);
     return;
   }
 
@@ -293,6 +384,7 @@ async function handleEvent({ nodeId, event, value }) {
 
   if (event === "ds.preview") {
     try {
+      await maybeCompileGuida();
       const manifest = await readManifest();
       await apps.preview(project, manifest, manifest.capabilities);
       previewRunning = true;
@@ -312,6 +404,7 @@ async function handleEvent({ nodeId, event, value }) {
 
   if (event === "ds.package") {
     try {
+      await maybeCompileGuida();
       const manifest = await readManifest();
       lastPackage = await apps.packageProject(project, manifest);
       lastPublish = null;

@@ -418,7 +418,7 @@
               "appData": {
                 "$textBytes": "post-1"
               },
-              "namespace": "board"
+              "namespace": "vector-app"
             }
           },
           "expect": {
@@ -434,7 +434,7 @@
             "method": "subscribe",
             "capability": "announce:subscribe",
             "payload": {
-              "namespace": "board"
+              "namespace": "vector-app"
             }
           },
           "expect": {

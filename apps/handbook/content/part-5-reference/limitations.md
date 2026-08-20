@@ -161,6 +161,8 @@ limits iOS and Android impose from the ones this platform added on top.
   | -------------------------------- | -------: | ------------- | -------------- | ----------------- |
   | `tiny` (budget hello-world)      |   ~900 B | <1 s       | <1 s        | ~6 s              |
   | `example-app` (minimal mini-app) |   ~780 B | <1 s       | <1 s        | ~6 s              |
+  | `hello-js` (JS hello twin)       |  ~1.3 KiB | <1 s       | <1 s        | ~9 s              |
+  | `hello-guida` (Guida hello + shim) | ~27 KiB | <1 s       | ~9 s           | ~3 m              |
   | `chat` (Phase 4 example)         | ~2.6 KiB | <1 s       | <1 s        | ~18 s             |
   | `file-drop` (Phase 4 example)    | ~1.8 KiB | <1 s       | <1 s        | ~12 s             |
   | `board` (Phase 4 example)        | ~2.1 KiB | <1 s       | <1 s        | ~15 s             |
@@ -169,6 +171,13 @@ limits iOS and Android impose from the ones this platform added on top.
   `bridge-hyper` blocks automatic bulk fetch over RNode-only links above 64 KiB and warns
   above 32 KiB; BLE warnings start at 256 KiB. See `conformance/budgets/measured.json`
   for regenerated numbers (`npm run test:budgets`).
+
+  **Guida bundles are larger than JavaScript twins.** The in-repo hello-world Guida
+  package is **27,371 bytes** (~27 KiB) versus **1,333 bytes** for the JavaScript twin
+  — past the 9 KiB one-minute RNode ceiling (~3 minutes at 1.2 kbps) and just under
+  the 32 KiB RNode warning. On `NodeWorkerSandboxBackend`, first paint is 20 ms vs
+  17 ms for JS and a steady tap is ~6 ms for both. Size does not block Guida, but it
+  is a product choice on LoRa. See docs/guida-ui.md.
 
 - Android emulator Bare Worker spawn/kill/busy-loop metrics: `conformance/android-emulator/measured-worker.json`
   (`ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5` on KVM emulator).

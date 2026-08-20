@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
+import { measureGuidaHello } from "./guida.mjs";
 
 const fixtureDir = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -210,6 +211,8 @@ async function main() {
     rmSync(cwd, { recursive: true, force: true });
   }
 
+  const guidaHello = await measureGuidaHello();
+
   const packages = [
     {
       name: "tiny",
@@ -220,6 +223,16 @@ async function main() {
       name: "example-app",
       bytes: exampleBytes.length,
       description: "Typical minimal mini-app",
+    },
+    {
+      name: "hello-js",
+      bytes: guidaHello.js.bytes,
+      description: "JavaScript hello twin (Guida comparison)",
+    },
+    {
+      name: "hello-guida",
+      bytes: guidaHello.guida.bytes,
+      description: "Guida hello world plus shim",
     },
     ...examplePackages,
   ];
@@ -251,6 +264,10 @@ async function main() {
       underOneMinuteLanMaxBytes: Math.floor((BITRATES.lan * 60) / 8),
       underOneMinuteBleMaxBytes: Math.floor((BITRATES.ble * 60) / 8),
       underOneMinuteRnodeMaxBytes: Math.floor((BITRATES.rnode * 60) / 8),
+    },
+    guidaHello: {
+      js: guidaHello.js,
+      guida: guidaHello.guida,
     },
   };
 

@@ -211,7 +211,7 @@ map tagger (Widget record) =
 leaf : String -> String -> List S.Style -> Maybe E.Value -> Dict String (D.Decoder msg) -> Widget msg
 leaf type_ id styles props eventMap =
     Widget
-        { node = encodeNode id type_ props styles []
+        { node = encodeNode id type_ props styles Nothing
         , events = eventMap
         }
 
@@ -228,12 +228,12 @@ parent type_ id styles props children extraEvents =
             List.map (\\(Widget child) -> child.node) children
     in
     Widget
-        { node = encodeNode id type_ props styles childNodes
+        { node = encodeNode id type_ props styles (Just childNodes)
         , events = childEvents
         }
 
 
-encodeNode : String -> String -> Maybe E.Value -> List S.Style -> List E.Value -> E.Value
+encodeNode : String -> String -> Maybe E.Value -> List S.Style -> Maybe (List E.Value) -> E.Value
 encodeNode id type_ props styles children =
     E.object
         (List.filterMap identity
@@ -241,11 +241,7 @@ encodeNode id type_ props styles children =
             , Just ( "type", E.string type_ )
             , Maybe.map (\\value -> ( "props", value )) props
             , Maybe.map (\\value -> ( "style", value )) (S.encode styles)
-            , if List.isEmpty children then
-                Nothing
-
-              else
-                Just ( "children", E.list identity children )
+            , Maybe.map (\\nodes -> ( "children", E.list identity nodes )) children
             ]
         )
 `;
@@ -256,7 +252,7 @@ encodeNode id type_ props styles children =
 module TwistedPear.Widget exposing
     ( ${exposing} )
 
-{-| SPEC-WIDGET node builders. Node ids are the first argument and become event names. -}
+{-| SPEC-WIDGET node builders. Node ids are the first argument; event names are independent. -}
 
 import Dict exposing (Dict)
 import Json.Decode as D
@@ -286,18 +282,18 @@ ${name} id styles value =
   }
   if (type === "button") {
     return `
-${name} : String -> List S.Style -> { label : String, onPress : msg } -> Widget msg
+${name} : String -> List S.Style -> { label : String, onPress : msg, event : String } -> Widget msg
 ${name} id styles config =
     leaf "${type}"
         id
         styles
-        (Just (E.object [ ( "label", E.string config.label ), ( "event", E.string id ) ]))
-        (Dict.singleton id (D.succeed config.onPress))
+        (Just (E.object [ ( "label", E.string config.label ), ( "event", E.string config.event ) ]))
+        (Dict.singleton config.event (D.succeed config.onPress))
 `;
   }
   if (type === "text-input") {
     return `
-${name} : String -> List S.Style -> { value : String, placeholder : String, onInput : String -> msg } -> Widget msg
+${name} : String -> List S.Style -> { value : String, placeholder : String, onInput : String -> msg, event : String } -> Widget msg
 ${name} id styles config =
     leaf "${type}"
         id
@@ -306,22 +302,22 @@ ${name} id styles config =
             (E.object
                 [ ( "value", E.string config.value )
                 , ( "placeholder", E.string config.placeholder )
-                , ( "event", E.string id )
+                , ( "event", E.string config.event )
                 ]
             )
         )
-        (Dict.singleton id (D.map config.onInput D.string))
+        (Dict.singleton config.event (D.map config.onInput D.string))
 `;
   }
   if (type === "switch") {
     return `
-${name} : String -> List S.Style -> { value : Bool, onChange : Bool -> msg } -> Widget msg
+${name} : String -> List S.Style -> { value : Bool, onChange : Bool -> msg, event : String } -> Widget msg
 ${name} id styles config =
     leaf "${type}"
         id
         styles
-        (Just (E.object [ ( "value", E.bool config.value ), ( "event", E.string id ) ]))
-        (Dict.singleton id (D.map config.onChange D.bool))
+        (Just (E.object [ ( "value", E.bool config.value ), ( "event", E.string config.event ) ]))
+        (Dict.singleton config.event (D.map config.onChange D.bool))
 `;
   }
   if (type === "image") {
@@ -382,7 +378,7 @@ ${name} id styles config =
   }
   if (type === "code-editor") {
     return `
-${name} : String -> List S.Style -> { documentId : String, language : String, readOnly : Bool, onEvent : String -> msg } -> Widget msg
+${name} : String -> List S.Style -> { documentId : String, language : String, readOnly : Bool, event : String, onEvent : String -> msg } -> Widget msg
 ${name} id styles config =
     leaf "${type}"
         id
@@ -392,11 +388,11 @@ ${name} id styles config =
                 [ ( "documentId", E.string config.documentId )
                 , ( "language", E.string config.language )
                 , ( "readOnly", E.bool config.readOnly )
-                , ( "event", E.string id )
+                , ( "event", E.string config.event )
                 ]
             )
         )
-        (Dict.singleton id (D.map config.onEvent D.string))
+        (Dict.singleton config.event (D.map config.onEvent D.string))
 `;
   }
   // Preview surfaces and remaining types: session-bearing props as a JSON object.

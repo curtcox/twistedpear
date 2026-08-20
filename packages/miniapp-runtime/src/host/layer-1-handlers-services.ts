@@ -149,6 +149,17 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
 
     this.broker.register(
       "apps",
+      "compile",
+      "apps:package",
+      async (request, context) =>
+        appsService().compile(
+          context,
+          request.payload as { projectPrefix: string },
+        ),
+    );
+
+    this.broker.register(
+      "apps",
       "package",
       "apps:package",
       async (request, context) =>

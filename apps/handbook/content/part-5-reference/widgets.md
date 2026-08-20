@@ -52,7 +52,7 @@ duplicate ids, or oversized trees are rejected.
 ## Limits
 
 - Widget tree JSON budget: 256 KiB (default validator)
-- `code-editor` languages: javascript, json, text
+- `code-editor` languages: elm, javascript, json, text
 - `qr-code` value: up to 512 characters (94-char 256t ids fit)
 
 Live gallery: [Widget gallery](chapter:sdk-widget-gallery).

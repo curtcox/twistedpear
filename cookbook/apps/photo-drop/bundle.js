@@ -84,7 +84,7 @@ async function render() {
         },
         identifier.length === 94
           ? { id: "qr", type: "qr-code", props: { value: identifier } }
-          : { id: "qr-placeholder", type: "spacer" },
+          : { id: "qr-placeholder", type: "spacer", props: { size: 0 } },
         {
           id: "budget",
           type: "text-input",

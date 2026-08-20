@@ -7,7 +7,7 @@
 module TwistedPear.Widget exposing
     ( Widget, encodeRoot, events, map, audioMeter, button, cameraPreview, codeEditor, divider, image, list, mapPreview, progress, qrCode, remoteVideo, scroll, spacer, switch, text, textInput, view, waveform )
 
-{-| SPEC-WIDGET node builders. Node ids are the first argument and become event names. -}
+{-| SPEC-WIDGET node builders. Node ids are the first argument; event names are independent. -}
 
 import Dict exposing (Dict)
 import Json.Decode as D
@@ -43,7 +43,7 @@ map tagger (Widget record) =
 leaf : String -> String -> List S.Style -> Maybe E.Value -> Dict String (D.Decoder msg) -> Widget msg
 leaf type_ id styles props eventMap =
     Widget
-        { node = encodeNode id type_ props styles []
+        { node = encodeNode id type_ props styles Nothing
         , events = eventMap
         }
 
@@ -60,12 +60,12 @@ parent type_ id styles props children extraEvents =
             List.map (\(Widget child) -> child.node) children
     in
     Widget
-        { node = encodeNode id type_ props styles childNodes
+        { node = encodeNode id type_ props styles (Just childNodes)
         , events = childEvents
         }
 
 
-encodeNode : String -> String -> Maybe E.Value -> List S.Style -> List E.Value -> E.Value
+encodeNode : String -> String -> Maybe E.Value -> List S.Style -> Maybe (List E.Value) -> E.Value
 encodeNode id type_ props styles children =
     E.object
         (List.filterMap identity
@@ -73,11 +73,7 @@ encodeNode id type_ props styles children =
             , Just ( "type", E.string type_ )
             , Maybe.map (\value -> ( "props", value )) props
             , Maybe.map (\value -> ( "style", value )) (S.encode styles)
-            , if List.isEmpty children then
-                Nothing
-
-              else
-                Just ( "children", E.list identity children )
+            , Maybe.map (\nodes -> ( "children", E.list identity nodes )) children
             ]
         )
 
@@ -96,13 +92,13 @@ audioMeter id styles props =
         Dict.empty
 
 
-button : String -> List S.Style -> { label : String, onPress : msg } -> Widget msg
+button : String -> List S.Style -> { label : String, onPress : msg, event : String } -> Widget msg
 button id styles config =
     leaf "button"
         id
         styles
-        (Just (E.object [ ( "label", E.string config.label ), ( "event", E.string id ) ]))
-        (Dict.singleton id (D.succeed config.onPress))
+        (Just (E.object [ ( "label", E.string config.label ), ( "event", E.string config.event ) ]))
+        (Dict.singleton config.event (D.succeed config.onPress))
 
 
 cameraPreview : String -> List S.Style -> List ( String, E.Value ) -> Widget msg
@@ -119,7 +115,7 @@ cameraPreview id styles props =
         Dict.empty
 
 
-codeEditor : String -> List S.Style -> { documentId : String, language : String, readOnly : Bool, onEvent : String -> msg } -> Widget msg
+codeEditor : String -> List S.Style -> { documentId : String, language : String, readOnly : Bool, event : String, onEvent : String -> msg } -> Widget msg
 codeEditor id styles config =
     leaf "code-editor"
         id
@@ -129,11 +125,11 @@ codeEditor id styles config =
                 [ ( "documentId", E.string config.documentId )
                 , ( "language", E.string config.language )
                 , ( "readOnly", E.bool config.readOnly )
-                , ( "event", E.string id )
+                , ( "event", E.string config.event )
                 ]
             )
         )
-        (Dict.singleton id (D.map config.onEvent D.string))
+        (Dict.singleton config.event (D.map config.onEvent D.string))
 
 
 divider : String -> Widget msg
@@ -220,13 +216,13 @@ spacer id size =
     leaf "spacer" id [] (Just (E.object [ ( "size", E.float size ) ])) Dict.empty
 
 
-switch : String -> List S.Style -> { value : Bool, onChange : Bool -> msg } -> Widget msg
+switch : String -> List S.Style -> { value : Bool, onChange : Bool -> msg, event : String } -> Widget msg
 switch id styles config =
     leaf "switch"
         id
         styles
-        (Just (E.object [ ( "value", E.bool config.value ), ( "event", E.string id ) ]))
-        (Dict.singleton id (D.map config.onChange D.bool))
+        (Just (E.object [ ( "value", E.bool config.value ), ( "event", E.string config.event ) ]))
+        (Dict.singleton config.event (D.map config.onChange D.bool))
 
 
 text : String -> List S.Style -> String -> Widget msg
@@ -234,7 +230,7 @@ text id styles value =
     leaf "text" id styles (Just (E.object [ ( "value", E.string value ) ])) Dict.empty
 
 
-textInput : String -> List S.Style -> { value : String, placeholder : String, onInput : String -> msg } -> Widget msg
+textInput : String -> List S.Style -> { value : String, placeholder : String, onInput : String -> msg, event : String } -> Widget msg
 textInput id styles config =
     leaf "text-input"
         id
@@ -243,11 +239,11 @@ textInput id styles config =
             (E.object
                 [ ( "value", E.string config.value )
                 , ( "placeholder", E.string config.placeholder )
-                , ( "event", E.string id )
+                , ( "event", E.string config.event )
                 ]
             )
         )
-        (Dict.singleton id (D.map config.onInput D.string))
+        (Dict.singleton config.event (D.map config.onInput D.string))
 
 
 view : String -> List S.Style -> List (Widget msg) -> Widget msg

@@ -33,13 +33,14 @@ view : Model -> Widget Msg
 view model =
     W.view "root" [ S.padding 16, S.gap 12 ]
         [ W.text "title" [ S.fontSize 20, S.bold ] "Hello"
-        , W.button "tap" [] { label = "Tap me", onPress = Tapped }
+        , W.button "tap" [] { label = "Tap me", onPress = Tapped, event = "tap" }
         , W.text "count" [] ("Taps: " ++ String.fromInt model.taps)
         ]
 ```
 
-Node ids are the first argument and become event names, so a Guida app and a JavaScript
-app that use the same ids emit the same widget frames.
+Node ids are the first argument; interactive widgets take an independent `event` name
+so a Guida app and a JavaScript app that use the same ids and events emit the same
+widget frames.
 
 `TwistedPear.Widget` / `TwistedPear.Style` are generated from
 [`specs/spec-widget/schema/widget.schema.json`](../specs/spec-widget/schema/widget.schema.json)
@@ -70,16 +71,24 @@ a second published app.
 `elm.json`, and `guida-stuff/` from the archive.
 
 On-device compiling uses the same JavaScript compiler module
-(`JsModuleGuidaCompiler`) with an injectable filesystem. Interactive DevStudio projects
-and per-platform speed measurements remain planned — see
-[guida-ui-plan.md](guida-ui-plan.md) Phase 5.
+(`JsModuleGuidaCompiler`) with an injectable filesystem, including an in-memory
+workspace for DevStudio. `apps.compile` (capability `apps:package`) runs in host
+chrome, never inside the sandbox; the 810 KB compiler is a host asset.
+`code-editor` accepts `elm`. Create a Guida project in DevStudio, then Preview
+or Package to compile.
+
+Interactive speed on iOS/Android worklets is still being measured — a host that
+cannot compile locally should say so rather than embedding the compiler in a
+mini-app payload.
 
 ## Size
 
-A minified Guida hello world plus shim is larger than a JavaScript sample but inside both
-RNode automatic-fetch thresholds (32 KiB warn / 64 KiB block). Measure a specific app
-before treating Guida as interchangeable with a few-kilobyte JS bundle on LoRa. See
-[LIMITATIONS.md](../LIMITATIONS.md) §6.
+The in-repo hello-world Guida package is **27,371 bytes** (~27 KiB) versus **1,333 bytes**
+for the JavaScript twin (`npm run test:budgets` → `conformance/budgets/measured.json`).
+That is past the 9 KiB one-minute RNode ceiling and just under the 32 KiB warning.
+First paint on `NodeWorkerSandboxBackend` is 20 ms vs 17 ms for JS; a steady tap is ~6 ms
+for both. Measure a specific app before treating Guida as interchangeable with a
+few-kilobyte JS bundle on LoRa. See [LIMITATIONS.md](../LIMITATIONS.md) §6.
 
 ## Verify
 

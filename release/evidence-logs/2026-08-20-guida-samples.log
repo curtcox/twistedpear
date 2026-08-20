@@ -1,0 +1,13 @@
+
+> twistedpear@0.0.0 test:guida-parity
+> vitest run packages/guida-twistedpear/test/parity.test.ts packages/guida-twistedpear/test/wrap-scope.test.ts packages/guida-twistedpear/test/sdk-descriptor.test.ts packages/guida-twistedpear/test/sdk-vectors.test.ts packages/guida-twistedpear/test/compiler.test.ts
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  5 passed (5)
+      Tests  15 passed (15)
+   Start at  15:27:13
+   Duration  36.80s (transform 1.23s, setup 0ms, import 1.88s, tests 40.98s, environment 0ms)
+

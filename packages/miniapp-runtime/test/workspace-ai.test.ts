@@ -436,6 +436,15 @@ describe("new widgets", () => {
               },
             },
             {
+              id: "elm-editor",
+              type: "code-editor",
+              props: {
+                documentId: "hello/src/Main.elm",
+                language: "elm",
+                event: "edit-elm",
+              },
+            },
+            {
               id: "qr",
               type: "qr-code",
               props: { value: "A".repeat(94), caption: "Scan to install" },

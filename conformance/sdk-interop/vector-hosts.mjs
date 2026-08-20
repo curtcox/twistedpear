@@ -152,6 +152,7 @@ export function manifestFor(app) {
 }
 
 export function expandDirectives(value) {
+  if (value instanceof Uint8Array) return value;
   if (value !== null && typeof value === "object") {
     if (typeof value.$textBytes === "string")
       return new TextEncoder().encode(value.$textBytes);

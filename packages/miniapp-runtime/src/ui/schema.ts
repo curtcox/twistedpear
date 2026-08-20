@@ -115,6 +115,7 @@ export const CODE_EDITOR_LANGUAGES: ReadonlySet<string> = new Set([
   "javascript",
   "json",
   "text",
+  "elm",
 ]);
 export const MAX_QR_CODE_VALUE_LENGTH = 512;
 export const MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH = 256;

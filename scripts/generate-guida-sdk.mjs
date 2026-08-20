@@ -183,13 +183,28 @@ function generateShim(calls) {
     if (Array.isArray(value)) return Uint8Array.from(value);
     return value;
   }
+  function jsonSafe(value) {
+    if (value instanceof Uint8Array) return Array.from(value);
+    if (Array.isArray(value)) return value.map(jsonSafe);
+    if (value && typeof value === "object" && value.constructor === Object) {
+      var out = {};
+      for (var key in value) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) out[key] = jsonSafe(value[key]);
+      }
+      return out;
+    }
+    return value;
+  }
   function dispatchCall(frame) {
+    if (typeof sdk.invoke === "function") {
+      return sdk.invoke(frame.namespace, frame.method, frame.payload);
+    }
 ${cases}
     return Promise.reject(new Error("unknown Guida SDK call: " + frame.namespace + "." + frame.method));
   }
   function reply(id, ok, result, error) {
     var frame = { type: "reply", id: id, ok: ok };
-    if (ok) frame.result = result === undefined ? null : result;
+    if (ok) frame.result = jsonSafe(result === undefined ? null : result);
     else frame.error = error;
     send(frame);
   }
@@ -246,8 +261,113 @@ function updatePackageElmJson(moduleNames) {
     "TwistedPear.Sdk.Core",
   ];
   const generated = moduleNames.map((name) => `TwistedPear.Sdk.${name}`);
-  elmJson["exposed-modules"] = [...handwritten, ...generated];
+  elmJson["exposed-modules"] = [
+    ...handwritten,
+    "TwistedPear.Sdk.Dispatch",
+    ...generated,
+  ];
   writeFileSync(elmJsonPath, `${JSON.stringify(elmJson, null, 4)}\n`);
+}
+
+function argDecoder(arg) {
+  switch (arg.type) {
+    case "string":
+      return `D.field "${arg.name}" D.string`;
+    case "int":
+      return `D.field "${arg.name}" D.int`;
+    case "bool":
+      return `D.field "${arg.name}" D.bool`;
+    case "bytes":
+      return `D.field "${arg.name}" (D.list D.int)`;
+    default:
+      return `D.field "${arg.name}" D.value`;
+  }
+}
+
+function resultEncode(result) {
+  switch (result) {
+    case "void":
+      return "(\\_ -> E.null)";
+    case "string":
+      return "E.string";
+    case "bytes":
+      return "Core.encodeBytes";
+    case "bytes?":
+      return "encodeMaybeBytes";
+    default:
+      return "identity";
+  }
+}
+
+function generateDispatchCase(call) {
+  const mod = elmModuleName(call.namespace);
+  const fn = elmFnName(call.method);
+  const args = call.args ?? [];
+  const encode = resultEncode(call.result);
+  const tagged = `(mapResult ${encode} toMsg)`;
+  if (args.length === 0) {
+    return `        ( "${call.namespace}", "${call.method}" ) ->
+            ${mod}.${fn} ${tagged}`;
+  }
+  const names = args.map((_, index) => `decoded${index}`);
+  const invoke = `${mod}.${fn} ${names.join(" ")} ${tagged}`;
+  const decoders = args.map((arg) => `(${argDecoder(arg)})`).join(" ");
+  const lambda = `(\\${names.join(" ")} -> ${invoke})`;
+  const mapFn = args.length === 1 ? "D.map" : `D.map${args.length}`;
+  return `        ( "${call.namespace}", "${call.method}" ) ->
+            case D.decodeValue (${mapFn} ${lambda} ${decoders}) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg`;
+}
+
+function generateDispatch(calls) {
+  const bindable = calls.filter((call) => !call.skipBinding);
+  const imports = [
+    ...new Set(bindable.map((call) => elmModuleName(call.namespace))),
+  ];
+  const cases = bindable.map(generateDispatchCase).join("\n\n");
+  const importLines = imports
+    .map((name) => `import TwistedPear.Sdk.${name} as ${name}`)
+    .join("\n");
+  return `${HEADER}
+module TwistedPear.Sdk.Dispatch exposing (run)
+
+{-| Route a namespace/method/payload triple through the generated typed wrappers. -}
+
+import Json.Decode as D
+import Json.Encode as E
+import TwistedPear.Effect as Effect exposing (Effect)
+import TwistedPear.Sdk.Core as Core
+import TwistedPear.Sdk.Error exposing (Error)
+${importLines}
+
+
+run : String -> String -> D.Value -> (Result Error D.Value -> msg) -> Effect msg
+run namespace method payload toMsg =
+    case ( namespace, method ) of
+${cases}
+
+        _ ->
+            Effect.call namespace method payload toMsg
+
+
+mapResult : (a -> E.Value) -> (Result Error E.Value -> msg) -> Result Error a -> msg
+mapResult encode toMsg result =
+    toMsg (Result.map encode result)
+
+
+encodeMaybeBytes : Maybe (List Int) -> E.Value
+encodeMaybeBytes value =
+    case value of
+        Nothing ->
+            E.null
+
+        Just bytes ->
+            Core.encodeBytes bytes
+`;
 }
 
 export function generateGuidaSdk(descriptorPath = DESCRIPTOR_PATH) {
@@ -270,6 +390,7 @@ export function generateGuidaSdk(descriptorPath = DESCRIPTOR_PATH) {
     writeFileSync(path, generateElmModule(moduleName, moduleCalls));
     written.push(path);
   }
+  writeFileSync(join(SDK_DIR, "Dispatch.elm"), generateDispatch(calls));
   updatePackageElmJson([...byModule.keys()]);
 
   mkdirSync(dirname(SHIM_PATH), { recursive: true });

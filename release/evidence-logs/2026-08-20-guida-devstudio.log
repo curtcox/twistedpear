@@ -1,0 +1,13 @@
+
+> twistedpear@0.0.0 test
+> vitest run packages/miniapp-runtime/test
+
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  47 passed (47)
+      Tests  384 passed (384)
+   Start at  15:27:52
+   Duration  5.22s (transform 7.18s, setup 0ms, import 27.46s, tests 2.26s, environment 5ms)
+

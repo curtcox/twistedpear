@@ -1,0 +1,46 @@
+
+> twistedpear@0.0.0 test:budgets
+> npm run build && node conformance/budgets/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+Publisher identity: df5037f7518c66e60373127faa4ca122f48adb523bf5c5917c1fc3859e3ce8687481149b3393cc8012483c0ebbf6253ed8ed1a3b22dfc96c47a71ca5659de9e6
+Wrote example.tpkg (613e0520187ad816a7c28a75616b10998b732f55803f159d55dd7b87276e7e95)
+Publisher identity: 20d2cdd58689eb2f116b757d4790ada55c456bf2f49da69ad9734726df2eb91ddb69af7ce3fac42f7376df23ecedd7a3d7c81cbdecd3583bdbf7ef8627b26196
+Wrote chat.tpkg (e8d02da749e60aa1b82197155c50cba48b9a3f2d5cb380084a5de95f0939d9d4)
+Publisher identity: 6d53f752d8b46a217c05d2814d888fd3ec5b3db1bfb47bec889c92f82c808b6bf5be0d13ad4b880681c042b96e401b222e5b25e751ff2a9c8b48de7050138ad6
+Wrote file-drop.tpkg (ef8073dd725fddf268d24cef46b243e80b91ea996eaab5f9d13869c3caba6e43)
+Publisher identity: 60f7e5ed654a61e2319bceaae773a6c3a73d28593a222c629361c473ab2e4b1f0eeeccb895a58964fc5348f5a789cf6955fcdfa42dfb4625e5424da02d17c82d
+Wrote board.tpkg (b186e66878b4b1727fff82f990a5b0f6b6f6aa933b9bd8d82b39ff9e95d14ca2)
+Publisher identity: dc6b4781aeaa7a3eecae2eb4d4282872b5229b7293f66feaaee8942d41d0cf067a27a12638bcdaf36e6eb12fcedf435c2913b8583b7129b51f203ac5f970bbed
+Wrote handbook.tpkg (3d0cff5352be5dac0d238bbbd6c542769a1260f9ce39bba033785c455eb85a2c)
+Publisher identity: 3842f62133c99516e11a72e4814036f3e7bdcf228d41159708b210b34bc15367e6199fb486bc35424d5f283ec2096c204b4888b42ccea14cbe32b84aecb670cc
+Wrote handbook-part-1-concepts.tpkg (e1c18b6053cb18bcd10cd32d1a4d40dd10d44c87156dc8ab4bd7e038146597f0)
+Publisher identity: e2d1660e43a0f83832616603bdc394fc01069645b6539a3ecb470a59442daf483cb11102ee967872bde6f33f205b188c8751ecbdebe6a99d8b707f56bf34538f
+Wrote handbook-part-2-hosts.tpkg (a44a38803be19a339c435b0cc080115e94f5c68ad2b5cf781e42644a94aae488)
+Publisher identity: 069d0dbb0e7afc227b2e69d4651bd6c995f44977f67138c3a517be3e354e6137d74797d4ba84c3b1ecaa8c3a4f860ef24d520bcaf7d5a97c2315ec9a072a3095
+Wrote handbook-part-3-sdk.tpkg (fcaf7804d62204a891d68d419c6b40f937eb129aa52339934ea081ebd3446412)
+Publisher identity: e02b2ce0bc644739154bada6c48481e281104846b862587c42e6102a3779b3589d4125fb276275f8e30446760f144a9c89ef2cda3076ebd737f90ff408070aaf
+Wrote handbook-part-4-diagnostics.tpkg (cd376ca4749a6158322cf7d6f0241c36fa3c5ce1a12efe892995a74fb061c6b7)
+Publisher identity: b51555613020c3a700cc5b59a95e3372c53e9a3d7129825fd2b82557baa70b5462382dbc07896447917f48770b05dbcfcdc7294d2bfe6c357d68b99b7c860589
+Wrote handbook-part-5-reference.tpkg (15e6ef31d6ed139f15f0dbfd152db335977c0f892aaab81ca4e76b7f603cdf43)
+Publisher identity: 4ca2bb9f68fdd95b95295438f5457ba8ba38740c73a9a5c8980cc2dea1419e473892c4e65018815420b020d0a4888b2c6af3b3bfd12350961834be7a4868f072
+Wrote hello-js.tpkg (2ac3c404931196b032144e072905a75a4419339f6fa895c2c015d43609fb21dc)
+Publisher identity: e8ea247b4d126f4912be8e2b6b76672149ae4d794e0cc144871265c3dd834f0b616ca6494b8d6b369093ccc6adb2bf9cf39f5c0bb211d919e969c4a4b554d5f2
+Wrote hello-guida.tpkg (fe6fd78b61280d6cf48c7c3c0e99af22b539c4caf68738dd9e75ec3517bafea4)
+budgets: tiny 894 bytes — LAN 1s, BLE 1s, RNode 6s
+budgets: example-app 781 bytes — LAN 1s, BLE 1s, RNode 6s
+budgets: hello-js 1333 bytes — LAN 1s, BLE 1s, RNode 9s
+budgets: hello-guida 27371 bytes — LAN 1s, BLE 9s, RNode 3m 3s
+budgets: chat 2629 bytes — LAN 1s, BLE 1s, RNode 18s
+budgets: file-drop 1762 bytes — LAN 1s, BLE 1s, RNode 12s
+budgets: board 2129 bytes — LAN 1s, BLE 1s, RNode 15s
+budgets: handbook 396254 bytes — LAN 1s, BLE 2m 9s, RNode 44m 2s
+budgets: handbook-part-1-concepts 67743 bytes — LAN 1s, BLE 23s, RNode 7m 32s
+budgets: handbook-part-2-hosts 97195 bytes — LAN 1s, BLE 32s, RNode 10m 48s
+budgets: handbook-part-3-sdk 174008 bytes — LAN 1s, BLE 57s, RNode 19m 21s
+budgets: handbook-part-4-diagnostics 77884 bytes — LAN 1s, BLE 26s, RNode 8m 40s
+budgets: handbook-part-5-reference 167854 bytes — LAN 1s, BLE 55s, RNode 18m 40s
+budgets: wrote /Users/curt/me/twistedpear/conformance/budgets/measured.json

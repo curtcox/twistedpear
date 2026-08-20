@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.14.0";
+export const HOST_API_VERSION = "0.15.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -59,7 +59,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "Brokered app-to-app channels: apps:channel, destination-named confirmation on both sides, no shared storage.",
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.14.0",
     note: "runtime:background (Android foreground-service execution) and runtime:wake (rationed periodic wake).",
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "code-editor language elm, and apps.compile for on-device Guida builds behind apps:package confirmation.",
   },
 ];

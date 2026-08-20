@@ -61,7 +61,18 @@ export interface AppsInstallResult {
  * Injected so miniapp-runtime never imports app-registry or bridge-hyper.
  * All user consent happens in AppsService BEFORE these methods run.
  */
+export interface AppsCompileResult {
+  readonly compiled: boolean;
+  readonly bytes?: number;
+  readonly compiler?: string;
+  readonly reason?: string;
+}
+
 export interface AppsBackend {
+  compile?(
+    appId: string,
+    request: { projectPrefix: string },
+  ): Promise<AppsCompileResult>;
   package(
     appId: string,
     request: { projectPrefix: string; manifest: AppManifestDraft },
@@ -174,6 +185,33 @@ export class AppsService {
       confirmationEffects,
     );
     return this.backend.package(context.appId, { projectPrefix, manifest });
+  }
+
+  async compile(
+    context: { appId: string; publisherPublicKey: string },
+    request: { projectPrefix: unknown },
+  ): Promise<AppsCompileResult> {
+    const projectPrefix = validateWorkspacePath(String(request.projectPrefix));
+    if (this.backend.compile === undefined) {
+      throw new AppsServiceError(
+        "APPS_UNCONFIGURED",
+        "Guida compiling is not configured on this host",
+      );
+    }
+    await requestHostConfirmation(
+      this.confirmationChannel,
+      {
+        kind: "package",
+        appId: context.appId,
+        publisherPublicKey: context.publisherPublicKey,
+        summary: {
+          operation: "compile",
+          projectPrefix,
+        },
+      },
+      confirmationEffects,
+    );
+    return this.backend.compile(context.appId, { projectPrefix });
   }
 
   async publish(

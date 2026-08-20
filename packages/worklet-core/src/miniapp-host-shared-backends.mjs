@@ -246,6 +246,42 @@ export function createMediaPipeline(options, now, openMediaCodecDefault) {
   };
 }
 
+export function createAppsBackendCompileAction({
+  collectWorkspaceFiles,
+  writeWorkspaceFile,
+}) {
+  return async function compileApp(appId, { projectPrefix }) {
+    const files = await collectWorkspaceFiles(appId, projectPrefix);
+    if (!files.some((file) => file.path === "elm.json")) {
+      return { compiled: false, reason: "not a Guida project" };
+    }
+    let compileGuidaWorkspace;
+    try {
+      ({ compileGuidaWorkspace } = await import(
+        "../../guida-twistedpear/dist/index.js"
+      ));
+    } catch {
+      return {
+        compiled: false,
+        reason: "Guida compiler is not available on this host",
+      };
+    }
+    const result = await compileGuidaWorkspace(
+      files.map((file) => ({ path: file.path, content: file.content })),
+    );
+    await writeWorkspaceFile(
+      appId,
+      `${projectPrefix}/bundle.js`,
+      result.bundle,
+    );
+    return {
+      compiled: true,
+      bytes: result.minifiedBytes,
+      compiler: result.compilerVersion,
+    };
+  };
+}
+
 export function createAppsBackendPackageAction({
   requirePublisherIdentity,
   collectWorkspaceFiles,

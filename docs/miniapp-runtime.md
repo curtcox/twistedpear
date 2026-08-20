@@ -7,7 +7,7 @@ register: none
 -->
 
 Phase 4 introduces a host-rendered, brokered mini-app runtime. The current host API
-anchor is `HOST_API_VERSION = 0.14.0`; package `minHostApi` checks and capability
+anchor is `HOST_API_VERSION = 0.15.0`; package `minHostApi` checks and capability
 validation use that value.
 
 ## Isolation ADR

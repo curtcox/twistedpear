@@ -14,6 +14,7 @@ import { createAppScopedIdentityBackend } from "../../host-core/dist/app-scoped-
 import { CasStore } from "../../cas-256t/dist/index.js";
 import { GrantStore } from "../../miniapp-runtime/dist/capabilities.js";
 import {
+  createAppsBackendCompileAction,
   createAppsBackendPackageAction,
   createAppsBackendPreviewAction,
   createAppsBackendPublishAction,
@@ -258,6 +259,7 @@ export function createWorkletMiniappHost(options) {
   let requirePublisherIdentity;
   /** @type {ReturnType<typeof createWorkspaceFileCollector>} */
   let collectWorkspaceFiles;
+  let writeWorkspaceFile;
 
   /** @type {import("../../miniapp-runtime/dist/worklet.js").DeviceManager} */
   const deviceManager =
@@ -357,6 +359,11 @@ export function createWorkletMiniappHost(options) {
     hostInfoBackend: createCommonHostInfoBackend(options, defaultPlatform),
     resourceBackend: createCommonResourceBackend(kvStore),
     appsBackend: {
+      compile: (...args) =>
+        createAppsBackendCompileAction({
+          collectWorkspaceFiles,
+          writeWorkspaceFile,
+        })(...args),
       package: (...args) =>
         createAppsBackendPackageAction({
           requirePublisherIdentity,
@@ -420,6 +427,8 @@ export function createWorkletMiniappHost(options) {
     "No publisher identity is available; start the node first",
   );
   collectWorkspaceFiles = createWorkspaceFileCollector(host);
+  writeWorkspaceFile = (appId, path, content) =>
+    host.workspace.write(appId, path, content);
   pushPreviewRuntime = createPreviewRuntimePusher(options.send, previewRef);
   pushRuntime = createMainRuntimePusher(options.send, host, devBadgeRef, {
     slot: "main",
