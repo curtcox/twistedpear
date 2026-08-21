@@ -17,9 +17,13 @@
  *   It cannot make a gate green for a tree the run never saw, and if that
  *   commit is not HEAD the unverified item says so.
  *
- * The alternative — having CI commit `checks.json` back to the branch — was
- * rejected: it puts a write to main on the publish path, and it would still be
- * wrong for anyone whose working tree differs from the commit CI measured.
+ * The Pages workflow calls this itself — `record-gate-results` imports the run's
+ * own summary and commits the record to main — so the queue hears about a CI
+ * failure without anyone remembering to pull. Running it by hand stays useful
+ * for a run whose commit is not yet on main, or to see what CI measured without
+ * writing anything. The write is safe to automate precisely because of the
+ * asymmetry above: an imported pass carries no tree digest, so it can never
+ * claim your working tree is green.
  */
 import { readFileSync } from "node:fs";
 import { repoRoot } from "../doc-audit/repo-root.mjs";

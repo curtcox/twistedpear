@@ -291,3 +291,84 @@ jobs:
           node-version: "22"
       - name: Verify published analysis provenance
         run: node scripts/site/verify-publication.mjs "https://curtcox.github.io/twistedpear/results/raw/summary.json?sha=${GITHUB_SHA}" "${GITHUB_SHA}"
+
+  record-gate-results:
+    # The reverse channel for the work queue. Every gate this run measured is
+    # published to /results/, but nothing wrote that back to the repository, so
+    # `work:next` kept answering from whatever the last local run had recorded —
+    # 29 gates red on the published page, a clean tree in `checks.json`.
+    #
+    # Importing them here makes the failures top-priority work: a red PR-tier
+    # gate in `checks.json` derives a `GATE-*` item of type `broken-gate`, and
+    # that type outranks every other class in `scripts/work/lib.mjs`. The item
+    # exists only while the gate is red, so the only way to clear it is to fix
+    # the check.
+    #
+    # It waits on `deploy` so the write to `main` stays off the publish path,
+    # but runs whatever `build` and `deploy` concluded: a build that died after
+    # the reports — the site build failing, say — is exactly when the queue most
+    # needs to hear what the gates said. Pushing with GITHUB_TOKEN does not
+    # start another workflow run, so this cannot loop.
+    needs: [build, deploy]
+    if: always() && !cancelled() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+      - id: fetch
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: site-results
+          path: site-results
+      - name: Note that the build measured nothing
+        if: steps.fetch.outcome != 'success'
+        run: |
+          echo "This run recorded no site-results artifact; it did not get far"
+          echo "enough to measure any gate. Nothing to record."
+      - name: Record what CI measured in checks.json
+        if: steps.fetch.outcome == 'success'
+        run: |
+          set -euo pipefail
+          node scripts/checks/import.mjs \
+            --from=site-results/summary.json --write | tee "$RUNNER_TEMP/import.log"
+          {
+            echo "### Gate results recorded in checks.json"
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/import.log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit the record when it changed
+        if: steps.fetch.outcome == 'success'
+        env:
+          COMMIT: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- checks.json; then
+            echo "checks.json already says what this run measured."
+            exit 0
+          fi
+          # A record of a commit that is no longer main is not worth a write:
+          # the run for the newer commit records its own results, and pushing
+          # here would only lose a race with it.
+          git fetch --depth=1 origin main
+          current="$(git rev-parse FETCH_HEAD)"
+          if [ "$current" != "$COMMIT" ]; then
+            echo "main is now ${current}, not ${COMMIT}; leaving the record to that run."
+            exit 0
+          fi
+          # writeChecks emits JSON.stringify(..., 2), so a red gate is always
+          # its own line; counting them needs no second node invocation.
+          red="$(grep -c '"ok": false' checks.json || true)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add checks.json
+          git commit --message "Record ${red} red gate(s) measured at ${COMMIT:0:12}" \
+            --message "Imported from the published run summary by the Pages workflow. Red PR-tier gates derive GATE-* broken-gate items, so work:next now returns them ahead of every other kind of work. ${RUN_URL}"
+          git push origin HEAD:main

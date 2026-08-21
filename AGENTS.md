@@ -63,10 +63,12 @@ npm run work:audit    # periodic review: what looks stale, unproven, or worth fi
 returns it ahead of everything else and no plan-duration soak may start. Those
 `GATE-*` items are derived from `checks.json` rather than filed by hand, so the
 only way to clear one is to make the check pass (`npm run checks:status` re-records
-it). No workflow writes that file, so a gate that failed in CI reaches the queue
-only once someone runs the gates here or imports the published run with
-`npm run checks:status:import`; until then `GATE-UNVERIFIED` says the record
-describes a different commit. A gate that genuinely cannot be fixed now takes a bounded, reasoned exemption
+it). The Pages workflow records what CI measured: after each publish it imports
+the run's own summary and commits `checks.json` back to `main`, so a gate that
+failed in CI is at the head of the queue by the next `git pull`. Locally,
+`npm run checks:status:import` pulls the published run on demand; either way
+`GATE-UNVERIFIED` keeps saying the record describes a different commit until the
+gates run here. A gate that genuinely cannot be fixed now takes a bounded, reasoned exemption
 via `npm run checks:waive` — see the green-gate rule in `RELEASE-PLAN.md` §3. Note
 the distinction the rule turns on: a _ratchet with entries in it_ is green and is
 ordinary `quality` work; only a _failing check_ is red.

@@ -1,6 +1,6 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   collect,
@@ -584,5 +584,47 @@ describe("importing what CI already measured", () => {
     );
     expect(result.gates.coverage).toBeUndefined();
     expect(result.imported).toEqual([]);
+  });
+});
+
+describe("the Pages workflow records what it measured", () => {
+  const workflow = readFileSync(
+    join(resolve(import.meta.dirname, "../.."), ".github/workflows/pages.yml"),
+    "utf8",
+  );
+  const job = workflow.slice(workflow.indexOf("\n  record-gate-results:"));
+
+  it("imports the run's own summary and commits it", () => {
+    expect(job).toContain("node scripts/checks/import.mjs");
+    expect(job).toContain("--from=site-results/summary.json --write");
+    expect(job).toContain("git push origin HEAD:main");
+    // Only the record. A bot commit that swept up whatever else the run left in
+    // the tree would be a publish path writing source.
+    expect(job).toContain("git add checks.json");
+    expect(job).not.toContain("git add -A");
+    expect(job).not.toContain("git add .");
+  });
+
+  it("stays off the publish path", () => {
+    // Waits on deploy, and nothing waits on it: a failure to record can never
+    // fail a publish that worked, and the write cannot supersede the commit
+    // being published.
+    expect(job).toContain("needs: [build, deploy]");
+    expect(
+      workflow.slice(0, workflow.indexOf("\n  record-gate-results:")),
+    ).not.toContain("record-gate-results");
+    expect(job).toContain("contents: write");
+  });
+
+  it("records whatever the build concluded, and only for current main", () => {
+    // A build that died after the reports is exactly when the queue most needs
+    // to hear what the gates said, so the guard is on the ref, not on success.
+    expect(job).toContain(
+      "if: always() && !cancelled() && github.ref == 'refs/heads/main'",
+    );
+    // A record of a commit that is no longer main loses a race it should not
+    // enter; the run for that commit records its own results.
+    expect(job).toContain('current="$(git rev-parse FETCH_HEAD)"');
+    expect(job).toContain('if [ "$current" != "$COMMIT" ]; then');
   });
 });

@@ -107,13 +107,13 @@ soak guard refuses again. See the green-gate rule in
 ### A record from another commit is not evidence
 
 Derivation only works if the record is about the tree in front of you. It was
-not: `checks.json` is written by `npm run checks:status` and by nothing else —
-no workflow writes it — so gates that ran only in CI could go red for a week
-while the queue kept reporting whatever the last local run had said. Six gates
-were failing on the published results page and `work:unblocked` reported a clean
-tree.
+not: `checks.json` was written by `npm run checks:status` and by nothing else,
+so gates that ran only in CI could go red for a week while the queue kept
+reporting whatever the last local run had said. Six gates were failing on the
+published results page and `work:unblocked` reported a clean tree; by the time
+the publish step below was written it was twenty-nine.
 
-Two things close that:
+Three things close that:
 
 - **Any gate whose result was measured at another commit derives
   `GATE-UNVERIFIED`.** One item, not one per gate, ranked behind every gate
@@ -127,6 +127,10 @@ Two things close that:
   failed somewhere is a real failure until shown otherwise, while a CI **pass**
   imports only its commit — a run on another commit cannot show this tree is
   green, and `GATE-UNVERIFIED` keeps saying so until the gates run here.
+- **The Pages workflow runs that import itself** and commits the record to
+  `main`, so the pull is a convenience rather than the only channel. See
+  [The Pages workflow records its own results](#the-pages-workflow-records-its-own-results)
+  below.
 
 ```sh
 npm run checks:status:import           # what did CI measure? (report only)
@@ -139,10 +143,31 @@ the host is already swapping or Gradle/JDT heaps are resident on a <32 GB
 machine. Prefer the import on a 16 GB Mac. `--force-headroom` bypasses the
 probe that exists to stop a watchdog reset.
 
-CI does not commit `checks.json` back to the branch: that would put a write to
-`main` on the publish path and would still be wrong for anyone whose working
-tree differs from the commit CI measured. The import is a pull, run by whoever
-is picking up work.
+### The Pages workflow records its own results
+
+The import above is a pull, and a pull only helps whoever remembers to run it.
+The `record-gate-results` job in `.github/workflows/pages.yml` runs the same
+import over the run's own `site-results/summary.json` and commits the result to
+`main`, so every red gate CI measured is at the head of `work:next` by the next
+`git pull` — nobody has to notice the results page.
+
+Three properties keep that write honest:
+
+- **It is off the publish path.** The job waits on `deploy`, so nothing it does
+  can supersede the commit being published or fail a publish that worked. It
+  runs whatever `build` and `deploy` concluded, because a build that died after
+  the reports is exactly when the queue most needs to hear what the gates said.
+- **It refuses a stale write.** If `main` has moved past the commit the run
+  measured, the job leaves the record to the run for that commit rather than
+  losing a race with it.
+- **It cannot loop.** A push made with `GITHUB_TOKEN` does not start another
+  workflow run, so the record commit does not trigger a fresh publish.
+
+What it writes is still a claim about the commit CI measured, not about your
+working tree: the imported passes carry no tree digest, and `GATE-UNVERIFIED`
+goes on saying the record describes a different commit until the gates run here.
+That was the objection this file used to raise against a write-back, and it is
+answered by the asymmetry rather than by refusing to write.
 
 ### Adding work
 
