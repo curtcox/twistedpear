@@ -112,6 +112,7 @@ them as current behaviour.
 | In-platform development environment                | [DevStudio](devstudio.md) (including the documentation-site [browser editor](devstudio.md#browser-editor-documentation-site)) |
 | Interactive documentation implementation           | [Handbook](handbook.md)                                                                                                       |
 | Authoring mini-app UIs in Guida                    | [Guida UI](guida-ui.md)                                                                                                       |
+| Unblocked runtime, SDK, and tooling work           | [Mini-app facilities plan](miniapp-facilities-plan.md)                                                                        |
 
 The package-level READMEs for
 [miniapp-runtime](../packages/miniapp-runtime/),

@@ -1078,6 +1078,118 @@
       "evidence": ["scripts/languages/check.mjs", ".config/ruff.toml"],
       "notes": "scripts/languages/check.mjs runs ruff from the repo root without --config, and ruff only discovers ruff.toml/.ruff.toml/pyproject.toml beside the file or in an ancestor — never .config/ruff.toml. Nothing else in the tree references that file either, so its select = [E, F, I, UP, B] and line-length = 100 have never applied: the gate has been running ruff's defaults (E4/E7/E9/F, line-length 88). Passing --config .config/ruff.toml turns on I/UP/B across every tracked .py file, so it needs its own baselining decision rather than a one-line change."
     },
+    "MAF-AMBIENT-SURFACE": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/ambient-globals.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream D. SPEC-SDK scopes itself to brokered calls and says nothing about which JavaScript globals exist inside a sandbox. Apps already depend on unspecified ones — the pocket-notes cookbook sample uses TextEncoder and TextDecoder — and the Node worker, Bare worker and browser worker backends need not agree on crypto, Intl, structuredClone or timer semantics, with nothing detecting it when they diverge. A probe bundle enumerating a fixed global list, executed under each backend and recorded as a golden fixture per backend, plus a SPEC-SDK appendix naming the guaranteed set, the forbidden set, and every known per-backend divergence. The fixture diff then fails CI on a change that is invisible today."
+    },
+    "MAF-CLI-DOCTOR": {
+      "type": "feature",
+      "requires": ["MAF-TEST-HARNESS"],
+      "verify": "npx vitest run packages/cli/test/doctor-command.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream H. Reports declared-but-unused and used-but-undeclared capabilities, total size against the LAN, BLE and LoRa ceilings, missing accessibilityLabel, minHostApi against the SDK calls actually made, and unknown widget props. Most of this already exists inside conformance/cookbook/cookbook.test.mjs, which type-checks every sample and cross-references specs/spec-sdk/schema/api-capabilities.json. Extract it; do not write it twice."
+    },
+    "MAF-CLI-INSPECT": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/cli/test/inspect-command.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream H. Resolve a 256t id, verify the SHA-512, the SHA-256 and the manifest signature, then print name, version, publisher fingerprint, declared capabilities with risk class, the file list with sizes, and estimated install time at LAN, BLE and LoRa rates using the measured table already in authors/12-limits-and-budgets.md. Serves authors, reviewers, and any user who wants to look before installing — the platform has no central moderation, so looking before installing is the defence. New file under packages/cli/src/commands/ for the size reason recorded on MAF-TEST-CLI."
+    },
+    "MAF-CRYPTO": {
+      "type": "feature",
+      "requires": ["MAF-AMBIENT-SURFACE"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/crypto-service.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream G. identity exposes only destinationHash and sign, so an app cannot hash, take random bytes, or compare in constant time. The under-one-minute LoRa install ceiling is about 9 KiB for code, icon and assets combined, so bundling a crypto library is not a real option. Sequenced behind MAF-AMBIENT-SURFACE because whether crypto exists in a given sandbox is precisely the unspecified surface that item pins down. No capability: these expose no user data and no device state, only bounded pure computation. Seal and open against a peer public key are deliberately excluded — they touch app-scoped identity derivation and the egress model, and deserve their own decision rather than arriving as a footnote to a primitives change. Bumps HOST_API_VERSION to 0.19.0."
+    },
+    "MAF-DOC-DRIFT": {
+      "type": "docs",
+      "requires": [],
+      "verify": "npx vitest run conformance/doc-audit/sdk-surface-claims.test.mjs",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream D. authors/11-testing-and-debugging.md promises console output surfaced by the host, which nothing implements — it becomes true only once MAF-LOG-RING lands, and is wrong until then. The Session API table in docs/device-io.md lists device.subscribe and device.configure, neither of which packages/miniapp-sdk exports; that file is lifecycle live, so it is read as authoritative for current behaviour. The new check asserts documented SDK surface against the exported namespace, so the next drift fails CI rather than waiting for a reader to trip over it."
+    },
+    "MAF-ERROR-VISIBILITY": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/sandbox-error-reporting.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream A. Both bootstraps dispatch UI events as void Promise.resolve(uiEventHandler(...)) with no catch — createBareBootstrapSource in sandbox/worker.ts and createBrowserWorkerBootstrapSource in sandbox/browser-worker-bootstrap.ts. Every cookbook sample puts its whole logic inside that handler, so a throw is either swallowed or becomes an unhandled rejection that kills the worker with no message. Widen app-error to { phase, message, stack?, event?, nodeId? } and surface it in desktop chrome, which references app-error nowhere today. The watchdog path stays unchanged: a caught handler error must not mask a genuinely wedged app."
+    },
+    "MAF-LINK-SIM": {
+      "type": "feature",
+      "requires": ["MAF-TEST-HARNESS"],
+      "verify": "npx vitest run packages/cli/test/link-profiles.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream K. authors/11-testing-and-debugging.md is emphatic that the interesting failures are not on the author desk, and then offers no tool for reaching them; the deterministic simulator under conformance/sim-* targets abuse resistance, not authoring. Add link, loss and peer-offline profiles to tp dev that inject bitrate, latency and loss into the dev side-load path, and expose the same profiles as a harness option so a degradation test runs in CI rather than by hand."
+    },
+    "MAF-LOG-CHROME": {
+      "type": "feature",
+      "requires": ["MAF-LOG-RING"],
+      "verify": "npx vitest run apps/host-desktop/test/diagnostics-panel.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream B, host half. A log pane in the desktop Runtime controls panel beside the lifecycle chip, and a tp dev stream of the same ring. Field reports stay user-initiated per docs/observability.md, so ring contents never join an export without an explicit user action. Log lines are app-authored and must be badged as such, never rendered as chrome assurance — the same rule the device plan applies to app-supplied purpose strings."
+    },
+    "MAF-LOG-RING": {
+      "type": "feature",
+      "requires": ["MAF-ERROR-VISIBILITY"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/diagnostics-ring.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream B. packages/miniapp-runtime/src contains no reference to console at all — nothing bridges sandbox output anywhere, while authors/11-testing-and-debugging.md tells authors they have console output surfaced by the host. Inject a console shim in all three bootstraps feeding a bounded per-app ring (200 entries, 4 KiB each, drop-oldest, retained drop count) exposed beside BrokerAuditEntry in broker.ts. Two constraints do the load-bearing work: the ring must not travel the broker request path, or logging consumes the 60/s budget and changes program behaviour; and it must not be readable by the app, or it becomes covert unmetered storage."
+    },
+    "MAF-MULTI-FILE-JS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/cli/test/multifile-build.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream J. JavaScript projects are single-file bundles while Guida projects are multi-file, so there are no shared libraries, no reuse between apps, and no way for a project to grow past one file. A deterministic ES-module linking step in tp app build and in the DevStudio host-chrome compile path: resolve relative imports within the project, order topologically, emit one bundle. No npm resolution, no node_modules, no network — explicitly not an esbuild-class bundler. Determinism is a packaging requirement rather than a nicety, because the .tpkg archive is byte-deterministic and signed, so identical sources must produce an identical bundle. Existing workspace quotas (256 KiB per file, 4 MiB total, 512 files) already bound the input. Enables an author standard library of render helpers, which is the smaller alternative to the React reconciler carried in STATUS-SOFTWARE-OPTIONAL.md; decide between the two before building either."
+    },
+    "MAF-NOTIFY": {
+      "type": "feature",
+      "requires": ["MAF-PUSH-DELIVERY"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/notify-service.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream F. No notification API exists anywhere in the runtime or the SDK, so an installed app cannot tell its user that anything happened unless the user is already looking at it, and runtime:wake ships with nowhere to report to. The durable owner already exists: NamespacedLxmfService persists per-app inboxes into KV under the miniapp-lxmf-inbox prefix, constructed for every host by createHostLayer1Services in host/layer-1-init.ts, so app-addressed state already survives suspend, stop and restart. Rationed per host rather than per app, the same reasoning runtime:wake already states in its grant description. The app supplies text only; the host draws the notification and badges the app-authored strings. Bumps HOST_API_VERSION to 0.18.0."
+    },
+    "MAF-PUSH-DELIVERY": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/push-delivery.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream E. lxmf.receive, announce.subscribe and apps.channel.receive all drain arrays, so authors/12-limits-and-budgets.md has to recommend polling on a human timescale against a 60/s broker budget — the platform most-recommended anti-pattern. The broker already pushes ui-event into the sandbox, so the mechanism exists. Define subscribe on the LxmfBackend interface rather than on NamespacedLxmfService, so a later transport-backed implementation is a drop-in: that is exactly what keeps this item independent of the unresolved question of whether mini-app LXMF loopback is deliberate. At-least-once with an explicit drain, or the destructive semantics of receive change silently under existing apps. Never deliver into a suspended sandbox; queue and deliver on resume. Bumps HOST_API_VERSION to 0.17.0."
+    },
+    "MAF-TEST-CLI": {
+      "type": "feature",
+      "requires": ["MAF-TEST-HARNESS"],
+      "verify": "npx vitest run packages/cli/test/test-command.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream C. The four-loop table in authors/11-testing-and-debugging.md lists preview, side-load, package install and second-device install, and has no automated loop at all; this is it. Lands in a new file under packages/cli/src/commands/ — app-commands.ts is at 398 lines against the 400-line typescript warn threshold in size-rules.json."
+    },
+    "MAF-TEST-HARNESS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-test/test/harness.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream C. conformance/cookbook/cookbook.test.mjs already stands up a real MiniappHost with NodeWorkerSandboxBackend, GrantStore and KvStorageBeeBackend and drives packaged apps headlessly, but imports across the repository from dist/, so no third-party author can use it. Extract rather than rewrite, as packages/miniapp-test published as @twistedpear/miniapp-test. Surface: mountApp, tree, fire, plus fault injection — revoke, setQuota, setRateLimit, suspend/resume exercising setCheckpoint and onResume, crash. Assertions reuse describeWidgetTree so harness output and conformance/fixtures/widget-trees stay one vocabulary rather than two. It must construct the same MiniappHost a shipping host does: a rehearsal, not a mock, which is the property that makes the dev-preview slot trustworthy."
+    },
+    "MAF-WIDGET-CONTROLS": {
+      "type": "feature",
+      "requires": ["MAF-WIDGET-TEXT-INPUT"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/ui-schema-controls.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream I. Three new node types in the order select, slider, date, each carrying the same five artifacts as MAF-WIDGET-TEXT-INPUT. Verified through the widget-parity and ui-golden suites, which are what stop the three renderers diverging. Bumps HOST_API_VERSION to 0.20.0 once for the batch, not once per widget."
+    },
+    "MAF-WIDGET-TEXT-INPUT": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/ui-schema-text-input.test.ts",
+      "added": "2026-08-21",
+      "notes": "miniapp-facilities-plan.md workstream I, ordered first because it is a pure prop addition with no new node type. text-input carries only value, placeholder and event in ui/schema.ts today. One change carries all five artifacts: the SPEC-WIDGET vocabulary entry, the schema prop set, a golden fixture under conformance/fixtures/widget-trees, and renderer support in widget-renderer-rn, the desktop renderer, and the headless geometry model. Props and styles stay closed sets — the host rejects unknown props today and must keep doing so, because a widget that degrades by ignoring an unknown prop is how vocabulary drift starts."
+    },
     "MINIAPP-APP-TO-APP": {
       "type": "feature",
       "requires": [],
