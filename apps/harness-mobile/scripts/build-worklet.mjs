@@ -18,6 +18,14 @@ const assemble = spawnSync(
 if (assemble.status !== 0) {
   process.exit(assemble.status ?? 1);
 }
+const guidaBuild = spawnSync(
+  "npm",
+  ["run", "build", "--workspace=@twistedpear/guida-twistedpear"],
+  { cwd: repoRoot, stdio: "inherit" },
+);
+if (guidaBuild.status !== 0) {
+  process.exit(guidaBuild.status ?? 1);
+}
 const entry = join(harnessRoot, "worklet/prelude.mjs");
 const output = join(harnessRoot, "worklet/worklet.bundle.mjs");
 const nobleCrypto = join(repoRoot, "conformance/bare-interop/noble-crypto.mjs");

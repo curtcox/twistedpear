@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { dirname, join, resolve, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { chromium } from "playwright";
@@ -13,41 +13,42 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../..");
 const tmpDir = join(repoRoot, ".tmp/guida-compiler-web");
 
-function fileUnderRoot(root, requestUrl) {
-  const url = requestUrl === "/" ? "/index.html" : (requestUrl ?? "/");
-  const relative = decodeURIComponent(url.replace(/^\//u, ""));
-  const resolved = resolve(root, relative);
-  const rootResolved = resolve(root);
-  if (
-    resolved !== rootResolved &&
-    !resolved.startsWith(`${rootResolved}${sep}`)
-  ) {
-    return null;
-  }
-  return resolved;
+const MEASURE_FILES = Object.freeze([
+  "index.html",
+  "guida.js",
+  "runner.js",
+  "engine-core.js",
+  "files.json",
+  "files-cookbook.json",
+]);
+
+function contentType(name) {
+  if (name.endsWith(".js")) return "text/javascript";
+  if (name.endsWith(".json")) return "application/json";
+  return "text/html; charset=utf-8";
 }
 
-function startServer(root) {
+function measureFileMap(root) {
+  return new Map(
+    MEASURE_FILES.map((name) => [
+      `/${name}`,
+      { body: readFileSync(join(root, name)), type: contentType(name) },
+    ]),
+  );
+}
+
+function startServer(files) {
   const server = createServer((request, response) => {
-    const path = fileUnderRoot(root, request.url);
-    if (path === null) {
-      response.writeHead(403);
+    const urlPath = (request.url ?? "/").split("?")[0].split("#")[0];
+    const key = urlPath === "/" ? "/index.html" : urlPath;
+    const file = files.get(key);
+    if (file === undefined) {
+      response.writeHead(404);
       response.end();
       return;
     }
-    try {
-      const body = readFileSync(path);
-      const type = path.endsWith(".js")
-        ? "text/javascript"
-        : path.endsWith(".json")
-          ? "application/json"
-          : "text/html; charset=utf-8";
-      response.writeHead(200, { "content-type": type });
-      response.end(body);
-    } catch {
-      response.writeHead(404);
-      response.end();
-    }
+    response.writeHead(200, { "content-type": file.type });
+    response.end(file.body);
   });
   return new Promise((resolve, reject) => {
     server.once("error", reject);
@@ -118,7 +119,7 @@ function bundleGuida() {
 
 export async function measureWeb() {
   const root = bundleGuida();
-  const server = await startServer(root);
+  const server = await startServer(measureFileMap(root));
   const browser = await chromium.launch({
     args: ["--enable-precise-memory-info"],
   });

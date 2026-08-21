@@ -28,12 +28,14 @@ export class FetchXmlHttpRequest extends GuidaXhrBase {
         method: this.method,
         headers: this.headers,
         redirect: "manual",
-        signal: AbortSignal.timeout(30_000),
       };
       if (body !== undefined && body !== null) {
         init.body = body as NonNullable<RequestInit["body"]>;
       }
-      const response = await fetch(this.url, init);
+      const response = await fetch(this.url, {
+        ...init,
+        signal: AbortSignal.timeout(30_000),
+      });
       this.status = response.status;
       response.headers.forEach((value, key) => {
         this.responseHeaders[key] = value;

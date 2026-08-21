@@ -14,6 +14,9 @@
     },
     {
       "path": "../../packages/reticulum-interfaces"
+    },
+    {
+      "path": "../../packages/guida-twistedpear"
     }
   ]
 }

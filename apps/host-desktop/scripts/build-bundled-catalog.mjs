@@ -117,6 +117,7 @@ const build = spawnSync(
     "--workspace=@twistedpear/app-registry",
     "--workspace=@twistedpear/reticulum-ts",
     "--workspace=@twistedpear/cas-256t",
+    "--workspace=@twistedpear/guida-twistedpear",
   ],
   { cwd: repoRoot, stdio: "inherit" },
 );
