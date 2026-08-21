@@ -45,13 +45,16 @@ export default withMermaid(
       /simulation-architecture/,
       // Raw report artifacts
       /\/results\/raw/,
-      /\.\/raw\//
+      /\.\/raw\//,
+      /\/editor\//,
+      /\/react-native-web\//
     ],
     themeConfig: {
       nav: [
         { text: "Guide", link: "/guide/" },
         { text: "Build an app", link: "/authors/" },
         { text: "Cookbook", link: "/cookbook/" },
+        { text: "Editor", link: "/editor/" },
         { text: "Docs", link: "/docs/" },
         { text: "Specs", link: "/specs/" },
         { text: "Results", link: "/results/" },

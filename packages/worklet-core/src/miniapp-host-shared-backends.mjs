@@ -34,6 +34,12 @@ import {
 } from "../../miniapp-runtime/dist/media-stream.js";
 import { bytesToHex } from "../../reticulum-ts/dist/crypto/bytes.js";
 import { hostRandomBytes } from "./miniapp-host-shared-core.mjs";
+import {
+  createAppsBackendCompileAction as createCompileAction,
+  createAppsBackendDiagnosticsAction as createDiagnosticsAction,
+  createAppsBackendFormatAction as createFormatAction,
+  createAppsBackendPreviewAction as createPreviewAction,
+} from "./miniapp-host-apps-compile.mjs";
 
 export function createDevSideLoadMethod({
   getDeveloperMode,
@@ -246,51 +252,6 @@ export function createMediaPipeline(options, now, openMediaCodecDefault) {
   };
 }
 
-export function createAppsBackendCompileAction({
-  collectWorkspaceFiles,
-  writeWorkspaceFile,
-}) {
-  return async function compileApp(appId, { projectPrefix }) {
-    const files = await collectWorkspaceFiles(appId, projectPrefix);
-    if (!files.some((file) => file.path === "elm.json")) {
-      return { compiled: false, reason: "not a Guida project" };
-    }
-    const worklet = await loadGuidaWorklet();
-    if (worklet === null) {
-      return {
-        compiled: false,
-        reason: "Guida compiler is not available on this host",
-      };
-    }
-    const snapshot = files.map((file) => ({
-      path: file.path,
-      content: file.content,
-    }));
-    try {
-      const result = await worklet.compileGuidaWorkspace(snapshot);
-      await writeWorkspaceFile(
-        appId,
-        `${projectPrefix}/bundle.js`,
-        result.bundle,
-      );
-      return {
-        compiled: true,
-        bytes: result.minifiedBytes,
-        compiler: result.compilerVersion,
-      };
-    } catch (error) {
-      const problems = await worklet
-        .diagnoseGuidaWorkspace(snapshot, "src/Main.elm")
-        .catch(() => []);
-      return {
-        compiled: false,
-        reason: error instanceof Error ? error.message : String(error),
-        problems,
-      };
-    }
-  };
-}
-
 async function loadGuidaWorklet() {
   try {
     return await import("../../guida-twistedpear/dist/worklet.js");
@@ -299,37 +260,31 @@ async function loadGuidaWorklet() {
   }
 }
 
-export function createAppsBackendFormatAction() {
-  return async function formatApp(_appId, { content }) {
-    const worklet = await loadGuidaWorklet();
-    if (worklet === null) {
-      throw new Error("Guida compiler is not available on this host");
-    }
-    const formatted = await worklet.formatGuidaSource(content);
-    return { formatted };
-  };
+export function createAppsBackendCompileAction(options) {
+  return createCompileAction({
+    ...options,
+    loadWorklet: options.loadWorklet ?? loadGuidaWorklet,
+  });
 }
 
-export function createAppsBackendDiagnosticsAction({ collectWorkspaceFiles }) {
-  return async function diagnoseApp(appId, { projectPrefix, path }) {
-    const files = await collectWorkspaceFiles(appId, projectPrefix);
-    if (!files.some((file) => file.path === "elm.json")) {
-      return { problems: [] };
-    }
-    const worklet = await loadGuidaWorklet();
-    if (worklet === null) {
-      throw new Error("Guida compiler is not available on this host");
-    }
-    const snapshot = files.map((file) => ({
-      path: file.path,
-      content: file.content,
-    }));
-    const problems = await worklet.diagnoseGuidaWorkspace(
-      snapshot,
-      path ?? "src/Main.elm",
-    );
-    return { problems };
-  };
+export function createAppsBackendFormatAction(options = {}) {
+  return createFormatAction({
+    loadWorklet: options.loadWorklet ?? loadGuidaWorklet,
+  });
+}
+
+export function createAppsBackendDiagnosticsAction(options) {
+  return createDiagnosticsAction({
+    ...options,
+    loadWorklet: options.loadWorklet ?? loadGuidaWorklet,
+  });
+}
+
+export function createAppsBackendPreviewAction(options) {
+  return createPreviewAction({
+    ...options,
+    grantTtlMs: options.grantTtlMs ?? grantTtlMsForCapabilities,
+  });
 }
 
 export function createAppsBackendPackageAction({
@@ -388,50 +343,6 @@ export function createAppsBackendPublishAction(options, casStore) {
     }
 
     return options.publishArchive({ t256, archive });
-  };
-}
-
-export function createAppsBackendPreviewAction({
-  collectWorkspaceFiles,
-  stopPreviewHost,
-  createPreviewHost,
-  previewRef,
-  pushPreviewRuntime,
-  now,
-}) {
-  return async function previewApp(appId, { projectPrefix, manifest, grants }) {
-    const files = await collectWorkspaceFiles(appId, projectPrefix);
-    const entryFile = files.find((file) => file.path === manifest.entry);
-    if (entryFile === undefined) {
-      throw new Error(
-        `Entry file "${manifest.entry}" not found under ${projectPrefix}/`,
-      );
-    }
-
-    await stopPreviewHost();
-    const previewHost = createPreviewHost();
-    const publisherKey = `dev-preview:${appId}`;
-    await previewHost.grantStore.set({
-      appId: manifest.name,
-      publisherPublicKey: publisherKey,
-      declared: manifest.capabilities,
-      requestedGrants: grants,
-      now: now(),
-      ttlMs: grantTtlMsForCapabilities(grants),
-    });
-    await previewHost.host.launch(
-      {
-        name: manifest.name,
-        version: manifest.version,
-        entry: manifest.entry,
-        capabilities: manifest.capabilities,
-        publisherPublicKey: publisherKey,
-      },
-      entryFile.content,
-    );
-    previewRef.current = previewHost;
-    pushPreviewRuntime();
-    return { launched: true };
   };
 }
 

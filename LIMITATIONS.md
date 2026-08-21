@@ -299,6 +299,15 @@ limits iOS and Android impose from the ones this platform added on top.
   `@hyperswarm/dht-relay` ↔ `hyperdht` compatibility and is treated as experimental.
 - **Storage is evictable:** OPFS/IndexedDB live under browser quota and can be cleared by
   the user agent; `navigator.storage.persist()` mitigates but does not guarantee.
+- **Documentation-site editor (`/editor/`):** runs the real DevStudio mini-app in the
+  visitor's tab with in-page demo backends. It cannot publish, has no Reticulum network,
+  does not grant `ai:chat`, and has no BLE or local peer discovery. Package/install are
+  stubs that say so. Guida hello-world compile is ~4 s in Chromium
+  (`conformance/guida-compiler/measured.json`). The web measure runner also
+  attempts a cookbook-sized compile (`unit-converter`) as extra evidence and
+  records `cookbookCompileMs` when that finishes. Workspace persistence uses
+  `localStorage` (`tp.editor.v1/`) and falls back
+  to memory when storage is blocked or over quota.
 
 ## 9. General
 

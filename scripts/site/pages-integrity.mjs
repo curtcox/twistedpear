@@ -69,6 +69,25 @@ export function inspectSite(options = {}) {
     problems.push("site/.vitepress/dist is missing; run npm run site:build");
   }
 
+  const requiredPublicPages = [
+    "react-native-web/index.html",
+    "editor/index.html",
+    "editor/app.js",
+    "editor/guida-worker.js",
+  ];
+  for (const rel of requiredPublicPages) {
+    const published = path.join(SITE_ROOT, "public", rel);
+    if (!fs.existsSync(published)) {
+      problems.push(`missing public page ${rel}`);
+    }
+    if (requireDist && fs.existsSync(SITE_DIST)) {
+      const distFile = path.join(SITE_DIST, rel);
+      if (!fs.existsSync(distFile)) {
+        problems.push(`dist missing /${rel}`);
+      }
+    }
+  }
+
   for (const { id, label } of SECTIONS) {
     const dir = sectionDir(id);
     if (!fs.existsSync(dir)) {

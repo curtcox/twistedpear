@@ -136,10 +136,41 @@ export function problemFromError(error: unknown): GuidaProblem {
   };
 }
 
+function formattedSourceFrom(record: Record<string, unknown>): string | undefined {
+  for (const key of [
+    "content",
+    "formatted",
+    "source",
+    "code",
+    "elm",
+    "text",
+    "output",
+  ]) {
+    const value = record[key];
+    if (typeof value === "string" && value.length > 0) return value;
+    const flattened = flattenMessage(value);
+    if (flattened.length > 0) return flattened;
+  }
+  return undefined;
+}
+
 export function extractFormatted(raw: unknown): string {
   if (typeof raw === "string") return raw;
   const record = asRecord(raw);
-  if (typeof record?.content === "string") return record.content;
-  if (typeof record?.formatted === "string") return record.formatted;
-  throw new Error("unexpected guida format result");
+  const fromRecord = record === undefined ? undefined : formattedSourceFrom(record);
+  if (fromRecord !== undefined) return fromRecord;
+  throw new Error(
+    `unexpected guida format result: ${describeFormatResult(raw)}`,
+  );
+}
+
+function describeFormatResult(raw: unknown): string {
+  try {
+    return JSON.stringify(raw)?.slice(0, 300) ?? typeof raw;
+  } catch {
+    if (raw === null) return "null";
+    if (Array.isArray(raw)) return `array(${raw.length})`;
+    if (typeof raw !== "object") return typeof raw;
+    return Object.keys(raw as Record<string, unknown>).slice(0, 12).join(",");
+  }
 }

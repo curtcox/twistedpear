@@ -155,7 +155,16 @@ export async function formatGuidaMemory(
   options: FormatMemoryOptions,
 ): Promise<string> {
   const { config } = seedGuidaMemory(options);
-  return extractFormatted(await options.format(config, options.content));
+  const raw = await options.format(config, options.content);
+  const record =
+    raw !== null && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : undefined;
+  const type = typeof record?.type === "string" ? record.type : "";
+  if (type === "already-formatted" || type === "already formatted") {
+    return options.content;
+  }
+  return extractFormatted(raw);
 }
 
 export async function compileGuidaMemory(

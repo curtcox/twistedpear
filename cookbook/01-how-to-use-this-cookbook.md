@@ -124,6 +124,11 @@ status strip reads "Preview running · grants: storage:hyperbee".
 
 This is the loop that works on a phone, and the loop that needs nothing installed.
 
+Every recipe on the documentation site also has **Open in the editor**, which loads that
+sample into the same DevStudio bundle in the browser
+([`/editor/?app=<slug>`](https://curtcox.github.io/twistedpear/editor/)). Package and
+publish stay stubs there.
+
 > **⚠️ Works, with limits — one preview slot.** Previewing a second app replaces the first.
 > There is no way to have two previews running at once.
 

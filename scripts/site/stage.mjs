@@ -277,14 +277,14 @@ function stageMarkdownFile(srcAbs, destAbs, siteRel) {
     const slug = samplePage[1];
     source = source.replace(
       /^(# [^\n]+)$/m,
-      `$1\n\n> **Run it in a browser:** [Open the React Native Web implementation](/react-native-web/?app=${slug}).`
+      `$1\n\n> **Run it in a browser:** [Open the React Native Web implementation](/react-native-web/?app=${slug}). [Open in the editor](/editor/?app=${slug}).`
     );
   }
   if (/^cookbook\/\d{2}-/.test(siteRel)) {
     source = source.replace(/^## ([^\n]+)$/gm, (heading, title) => {
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       if (!fs.existsSync(path.join(ROOT, "cookbook", "apps", slug, "app.manifest.json"))) return heading;
-      return `${heading}\n\n> **Run it in a browser:** [Open the React Native Web implementation](/react-native-web/?app=${slug}).`;
+      return `${heading}\n\n> **Run it in a browser:** [Open the React Native Web implementation](/react-native-web/?app=${slug}). [Open in the editor](/editor/?app=${slug}).`;
     });
   }
   const text = rewriteMarkdownLinks(source, siteRel);

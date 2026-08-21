@@ -49,6 +49,7 @@ for authoring shots.
 | `02-new-project.png`          | 2       | A freshly seeded hello project                            |
 | `02-ai-edit.png`              | 2       | An AI proposal shown as a whole-file diff                 |
 | `02-preview-grants.png`       | 2       | The preview-slot confirmation with a subset of grants     |
+| `02-web-editor.png`           | 2       | DevStudio running in the documentation-site browser editor |
 | `02-package-256t.png`         | 2       | The packaged app's QR code and 256t string                |
 | `02-installed-on-phone.png`   | 2       | The published app running on a phone                      |
 | `03-tp-init.png`              | 3       | `tp init` printing a publisher public key                 |

@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { chromium } from "playwright";
-import { collectHelloFiles } from "./hello-files.mjs";
+import { collectHelloFiles, collectCookbookMeasureFiles } from "./hello-files.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../..");
@@ -68,6 +68,10 @@ function bundleGuida() {
     );
   }
   writeFileSync(join(tmpDir, "files.json"), JSON.stringify(collectHelloFiles()));
+  writeFileSync(
+    join(tmpDir, "files-cookbook.json"),
+    JSON.stringify(collectCookbookMeasureFiles("unit-converter")),
+  );
   writeFileSync(join(tmpDir, "engine-core.js"), readFileSync(join(here, "engine-core.js")));
   writeFileSync(join(tmpDir, "runner.js"), readFileSync(join(here, "web-runner.js")));
   writeFileSync(

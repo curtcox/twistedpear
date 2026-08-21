@@ -43,3 +43,23 @@ export function collectHelloFiles() {
   }
   return files;
 }
+
+export function collectCookbookMeasureFiles(slug) {
+  const appDir = join(repoRoot, "cookbook/apps", slug);
+  const elmJson = JSON.parse(readFileSync(join(appDir, "elm.json"), "utf8"));
+  elmJson["source-directories"] = ["src", "guida-vendor"];
+  const files = [
+    { path: "elm.json", content: `${JSON.stringify(elmJson, null, 4)}\n` },
+    {
+      path: "src/Main.elm",
+      content: readFileSync(join(appDir, "src/Main.elm"), "utf8"),
+    },
+  ];
+  for (const file of walkFiles(vendorDir)) {
+    files.push({
+      path: `guida-vendor/${file.path}`,
+      content: file.content,
+    });
+  }
+  return files;
+}

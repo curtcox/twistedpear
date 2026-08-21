@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-08-20T21:48:14.501Z",
+  "measuredAt": "2026-08-21T14:04:37.788Z",
   "bar": {
     "parseUsableMs": 5000,
     "compileUsableMs": 10000,
@@ -10,9 +10,9 @@
     "desktop-node": {
       "runtime": "node",
       "available": true,
-      "coldParseMs": 13.2,
-      "helloCompileMs": 2034.2,
-      "peakHeapBytes": 161918536,
+      "coldParseMs": 40.5,
+      "helloCompileMs": 2018.3,
+      "peakHeapBytes": 126679232,
       "minifiedBytes": 26654,
       "compiler": "1.0.0-beta.2",
       "verdict": "usable",
@@ -22,7 +22,7 @@
       "runtime": "bare",
       "available": true,
       "coldParseMs": 3,
-      "helloCompileMs": 1295,
+      "helloCompileMs": 1360,
       "peakHeapBytes": 0,
       "minifiedBytes": 103893,
       "compiler": "1.0.0-beta.2",
@@ -49,7 +49,7 @@
       },
       "proxyRuntime": "bare",
       "coldParseMs": 3,
-      "helloCompileMs": 1295,
+      "helloCompileMs": 1360,
       "peakHeapBytes": 0,
       "verdict": "usable",
       "fallback": "local"
@@ -64,7 +64,7 @@
       },
       "proxyRuntime": "bare",
       "coldParseMs": 3,
-      "helloCompileMs": 1295,
+      "helloCompileMs": 1360,
       "peakHeapBytes": 0,
       "verdict": "usable",
       "fallback": "local"
@@ -79,7 +79,7 @@
       },
       "proxyRuntime": "bare",
       "coldParseMs": 3,
-      "helloCompileMs": 1295,
+      "helloCompileMs": 1360,
       "peakHeapBytes": 0,
       "verdict": "usable",
       "fallback": "local"

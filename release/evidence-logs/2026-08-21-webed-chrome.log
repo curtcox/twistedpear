@@ -1,0 +1,19 @@
+Built editor (28 seeds) into /Users/curt/me/twistedpear/site/public/editor — main 2911827 B, worker 1962108 B
+
+== javascript project ==
+  · open seeded hello-app and edit
+  · preview
+web-editor: js-preview passed
+
+== guida project ==
+  · create Guida project
+  · check diagnostic
+  · restore, format, preview
+web-editor: guida-loop passed
+
+== deep link ==
+web-editor: deep-link passed
+
+== share link ==
+web-editor: share-link passed
+web-editor: all scenarios passed

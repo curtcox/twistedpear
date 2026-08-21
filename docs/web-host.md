@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-05
+audited: 2026-08-21
 register: none
 -->
 
@@ -22,6 +22,12 @@ packages, and the same host UI as mobile. It is not a thin remote UI for another
 node — the protocol stack runs in the browser. What the browser cannot do
 (listen for inbound connections, raw TCP/UDP, BLE, multicast) is bridged through
 a new **first-class WebSocket Reticulum interface** to any gateway node.
+
+The documentation site also ships an in-page editor at `/editor/` that runs the
+DevStudio mini-app with demo backends (no gateway, no Reticulum leaf). Guida
+`apps.compile` on that page uses a split module worker so the compiler is not in
+first paint; the Expo web host worker can adopt the same split. See
+[DevStudio](devstudio.md#browser-editor-documentation-site).
 
 ## Why this is feasible now
 

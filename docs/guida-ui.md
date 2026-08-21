@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-20
+audited: 2026-08-21
 register: software
 -->
 
@@ -20,7 +20,11 @@ Main.elm ──guida make --optimize──> guida-out.js ──scope wrapper + m
 ```
 
 The compiler is pinned at **guida 1.0.0-beta.2**, an npm JavaScript package with no
-platform binary. Source files are `.elm`; the project file is `elm.json`.
+platform binary. Source files are `.elm`; the project file is `elm.json`. On the
+documentation site the same compiler runs in a module worker behind
+[`/editor/`](https://curtcox.github.io/twistedpear/editor/), so a Guida project can be
+checked, formatted, and previewed in the tab. See
+[DevStudio](devstudio.md#browser-editor-documentation-site).
 
 ## What you write
 
@@ -91,6 +95,8 @@ compile runs in the BareKit worklet. On-device output is wrap+shim without
 terser (hello ~104 KB vs ~27 KB Node-minified). A host that cannot compile
 locally must say so. Numbers: `npm run test:guida-compiler` →
 [`conformance/guida-compiler/measured.json`](../conformance/guida-compiler/measured.json).
+The documentation-site editor fetches the same compiler as a ~2 MB module worker on the
+first Guida action; see [DevStudio](devstudio.md#browser-editor-documentation-site).
 
 ## Size
 

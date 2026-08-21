@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-21
+audited: 2026-08-21
 register: none
 -->
 
@@ -79,3 +79,13 @@ force-quits. See [conformance/devstudio-loop](../conformance/devstudio-loop/READ
 - One preview slot; previewing again replaces the previous preview.
 - Desktop accepts pasted 256t strings and host-owned camera scans when Chromium
   `BarcodeDetector` is available.
+
+## Browser editor (documentation site)
+
+The documentation site hosts the same signed DevStudio bundle at
+[`/editor/`](https://curtcox.github.io/twistedpear/editor/) — no install, no account, no
+server. Page chrome around it handles confirmations, share links (`#w=`), workspace reset,
+and the preview pane. Guida compile/format/diagnostics run in a dedicated module worker
+fetched on the first Guida action (~2 MB). Package and publish are stubs: a static GitHub
+Pages origin has nothing to sign with or announce to. Cookbook recipes link
+`/editor/?app=<slug>`. Verified by `npm run test:web-editor`.

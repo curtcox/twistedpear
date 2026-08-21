@@ -1550,6 +1550,70 @@
       ],
       "notes": "simulation-plan.md S-B. The held rung is L2 (authored); L3 is the next queued increment, gated on shipping escrow/recovery semantics so that simulator-only collusion results are not relabelled as product evidence. Loop mechanics in docs/abuse-resistance-loop.md."
     },
+    "WEBED-CHROME": {
+      "type": "feature",
+      "requires": ["WEBED-GUIDA", "WEBED-SEEDS"],
+      "verify": "env -u PLAYWRIGHT_BROWSERS_PATH node conformance/web-editor/run.mjs",
+      "added": "2026-08-21",
+      "completed": "2026-08-21",
+      "evidence": [
+        "scripts/site/editor/",
+        "conformance/web-editor/run.mjs",
+        "docs/devstudio.md"
+      ]
+    },
+    "WEBED-GATE": {
+      "type": "feature",
+      "requires": ["WEBED-CHROME"],
+      "verify": "env -u PLAYWRIGHT_BROWSERS_PATH node conformance/web-editor/run.mjs",
+      "added": "2026-08-21",
+      "completed": "2026-08-21",
+      "evidence": [
+        "conformance/web-editor/run.mjs",
+        ".github/workflows/ci.yml",
+        "authors/images/02-web-editor.png",
+        "scripts/site/pages-integrity.mjs",
+        "docs/ci-policy.md"
+      ]
+    },
+    "WEBED-GUIDA": {
+      "type": "feature",
+      "requires": ["WEBED-HOST"],
+      "verify": "node scripts/site/build-editor.mjs",
+      "added": "2026-08-21",
+      "completed": "2026-08-21",
+      "evidence": [
+        "scripts/site/editor/guida-worker.ts",
+        "scripts/site/editor/guida-client.ts",
+        "scripts/site/build-editor.mjs",
+        "packages/worklet-core/src/miniapp-host-apps-compile.mjs"
+      ],
+      "notes": "Main chunk must not contain compileGuidaMemory"
+    },
+    "WEBED-HOST": {
+      "type": "feature",
+      "requires": [],
+      "verify": "node scripts/site/build-react-native-web-samples.mjs",
+      "added": "2026-08-21",
+      "completed": "2026-08-21",
+      "evidence": [
+        "scripts/site/browser-host/",
+        "scripts/site/react-native-web-samples/entry.tsx",
+        "scripts/site/cookbook-fixtures.mjs"
+      ],
+      "notes": "Phase 1 of the archived web-editor plan"
+    },
+    "WEBED-SEEDS": {
+      "type": "feature",
+      "requires": ["WEBED-HOST"],
+      "verify": "node --input-type=module -e 'import { editorSeeds } from \"./scripts/site/editor-seeds.mjs\"; const n = editorSeeds().length; if (n < 3) throw new Error(\"too few seeds: \"+n); console.log(\"seeds\", n);'",
+      "added": "2026-08-21",
+      "completed": "2026-08-21",
+      "evidence": [
+        "scripts/site/editor-seeds.mjs",
+        "scripts/site/cookbook-fixtures.mjs"
+      ]
+    },
     "WORK-EFFORT": {
       "type": "feature",
       "requires": [],

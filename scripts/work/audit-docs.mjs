@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoRoot, trackedMarkdownPaths } from "../doc-audit/repo-root.mjs";
 import { auditStaleness } from "../doc-audit/staleness.mjs";
@@ -39,7 +39,9 @@ function readDocs(root) {
   const docs = [];
   for (const rel of trackedMarkdownPaths(root)) {
     if (rel.startsWith("archive/")) continue;
-    const meta = parseTpDoc(readFileSync(join(root, rel), "utf8"));
+    const full = join(root, rel);
+    if (!existsSync(full)) continue;
+    const meta = parseTpDoc(readFileSync(full, "utf8"));
     if (meta) docs.push({ path: rel, meta });
   }
   return docs;

@@ -23,6 +23,24 @@ try {
     coldParseMs: resourceDuration("guida.js"),
     ...compiled,
   };
+  window.__done = true;
+  try {
+    const cookbook = await fetch("./files-cookbook.json").then((response) =>
+      response.json(),
+    );
+    const larger = await compileHello(
+      globalThis.GuidaLib,
+      cookbook,
+      XMLHttpRequest,
+      heap,
+    );
+    window.__result = {
+      ...window.__result,
+      cookbookCompileMs: larger.helloCompileMs,
+    };
+  } catch {
+    // Cookbook-sized compile is extra evidence, not a requirement for hello.
+  }
 } catch (error) {
   window.__result = {
     runtime: "chromium",

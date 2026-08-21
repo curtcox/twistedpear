@@ -13,7 +13,9 @@ events are the same.
 
 The live implementation, toolchain commands, and the `Effect` vs `Task` restriction are in
 [docs/guida-ui.md](../docs/guida-ui.md). DevStudio compiles Guida projects on the device
-and can add, format, and check `.elm` files.
+and can add, format, and check `.elm` files. The documentation-site editor compiles Guida
+in the tab the same way: [Open in the editor](https://curtcox.github.io/twistedpear/editor/?app=hello-guida)
+(first Guida action fetches the ~2 MB compiler worker; hello-world is ~4 s in Chromium).
 
 ## Hello
 

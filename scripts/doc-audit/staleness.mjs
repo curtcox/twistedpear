@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { defaultTpDocForPath } from "./lifecycle-rules.mjs";
 import { repoRoot, trackedMarkdownPaths } from "./repo-root.mjs";
@@ -45,7 +45,9 @@ export function auditStaleness(root = repoRoot()) {
   /** @type {StalenessFinding[]} */
   const findings = [];
   for (const rel of trackedMarkdownPaths(root)) {
-    const text = readFileSync(join(root, rel), "utf8");
+    const full = join(root, rel);
+    if (!existsSync(full)) continue;
+    const text = readFileSync(full, "utf8");
     const meta = parseTpDoc(text) ?? defaultTpDocForPath(rel);
     if (meta.lifecycle !== "live") continue;
     if (meta.register === "none") continue;
@@ -75,7 +77,9 @@ export function auditLifecycleHeaders(root = repoRoot()) {
   const historicalOutsideArchive = [];
 
   for (const rel of trackedMarkdownPaths(root)) {
-    const text = readFileSync(join(root, rel), "utf8");
+    const full = join(root, rel);
+    if (!existsSync(full)) continue;
+    const text = readFileSync(full, "utf8");
     const meta = parseTpDoc(text);
     if (!meta) {
       missing.push(rel);

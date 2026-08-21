@@ -5,14 +5,14 @@
  * There was no accessibility check anywhere, on any surface, and several UIs
  * ship. This adds one, and the hardest part was choosing what to point it at.
  *
- * **Not the fourteen `conformance/web-*` harnesses.** Every one of them serves a
- * page whose entire body is `<script src="…bundle.js">`; they drive logic in a
+ * **Not the empty `conformance/web-*` harnesses.** Most of them serve a page
+ * whose entire body is `<script src="…bundle.js">`; they drive logic in a
  * browser rather than rendering anything. axe on `web-handbook` reports on an
  * empty document, which is a green tick over nothing — the same measurement
  * that cannot fail that this round has already paid for twice. (`web-examples`
- * and `web-widget-renderer` do build DOM, and are worth adding next; they were
- * left out of the first pass so the ratchet starts on surfaces a reader
- * actually looks at.)
+ * and `web-widget-renderer` do build DOM, and are worth adding next.) The
+ * documentation-site editor at `/editor/` is different: it renders real chrome
+ * around DevStudio, so this runner scans it.
  *
  * The surfaces below are those. The Handbook reader is rendered here exactly the
  * way `conformance/docs/capture-handbook-web-ui.mjs` renders it for the
@@ -45,6 +45,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 import { chromium } from "playwright";
 
 import {
@@ -302,6 +303,43 @@ async function scanDesktopHost(browser) {
   }
 }
 
+/** The documentation-site DevStudio editor chrome, after the mini-app has started. */
+async function scanEditor(browser) {
+  const build = spawnSync("node", ["scripts/site/build-editor.mjs"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+  });
+  if (build.status !== 0) {
+    throw new Error("editor build failed; cannot scan accessibility");
+  }
+  const pageRoot = join(repoRoot, "site/public/editor");
+  const server = await startStaticServer(pageRoot);
+  try {
+    return await withPage(
+      browser,
+      { width: 1280, height: 800 },
+      async (page) => {
+        await page.goto(`${server.url}index.html`, {
+          waitUntil: "load",
+          timeout: 60_000,
+        });
+        await page
+          .locator('[data-testid="editor-status"]')
+          .getByText("DevStudio is running in the browser sandbox", {
+            exact: true,
+          })
+          .waitFor({ timeout: 60_000 });
+        await page.evaluate(axeSource);
+        return {
+          "web-editor": await scanTwice(page, "#root", "web-editor"),
+        };
+      },
+    );
+  } finally {
+    await server.close();
+  }
+}
+
 function loadRatchet() {
   return JSON.parse(readFileSync(RATCHET_PATH, "utf8"));
 }
@@ -377,6 +415,7 @@ try {
   surfaces = {
     ...(await scanReaderScenes(browser)),
     ...(await scanDesktopHost(browser)),
+    ...(await scanEditor(browser)),
   };
 } finally {
   await browser.close();

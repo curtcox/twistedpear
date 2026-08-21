@@ -139,6 +139,8 @@ The `interfaces` job runs `npm run test:integration-soak` (default 12 s; configu
 | `web`            | `npm run test:web-examples`                  | W2: Playwright chat/file-drop/board install + launch + UI exercise in browser tab                        |
 | `web`            | `npm run test:web-distribution`              | W3: Playwright chat install from 256t via Resource fetch + install review in browser                     |
 | `web`            | `npm run test:web-devstudio`                 | W3: Playwright DevStudio hello project + package/sign/publish through WS gateway                         |
+| `web`            | `npm run test:web-editor`                    | Documentation-site DevStudio editor: JS/Guida preview, `?app=` and `#w=` links                           |
+| `web`            | `npm run test:web-handbook`                  | Phase D: Playwright Handbook install + chapters + applets + report export                                |
 | `web`            | `npm run test:web-handbook`                  | Phase D: Playwright Handbook install + chapters + applets + report export                                |
 | `web`            | `npm run test:web-soak`                      | W4: Playwright web host mini-app launch/stop soak in browser tab                                         |
 | `web`            | `npm run test:web-pwa`                       | W4: PWA app-shell offline load + deferred install prompt CTA (`build:web-host`)                          |

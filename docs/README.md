@@ -108,7 +108,7 @@ them as current behaviour.
 | Capability × peer-type implementation matrix       | [Platform capabilities status](platform-capabilities-status.md) |
 | Signed package structure and fetch paths           | [Package format](package-format.md)                             |
 | 256t identifiers and package resolution            | [256t distribution](256t-distribution.md)                       |
-| In-platform development environment                | [DevStudio](devstudio.md)                                       |
+| In-platform development environment                | [DevStudio](devstudio.md) (including the documentation-site [browser editor](devstudio.md#browser-editor-documentation-site)) |
 | Interactive documentation implementation           | [Handbook](handbook.md)                                         |
 | Authoring mini-app UIs in Guida                    | [Guida UI](guida-ui.md)                                         |
 

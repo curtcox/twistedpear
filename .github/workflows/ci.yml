@@ -853,6 +853,7 @@ jobs:
       # where its result now reaches /results/. Running it here too would only
       # duplicate an 11s job and give it a second place to be red unnoticed.
       - run: npm run test:web-cookbook
+      - run: npm run test:web-editor
       - run: npm run test:web-distribution
       - run: npm run test:web-devstudio
       - run: npm run test:web-handbook

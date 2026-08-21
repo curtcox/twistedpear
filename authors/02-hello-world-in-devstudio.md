@@ -35,6 +35,18 @@ the AI row reads "Prompts may include your workspace content." Buttons: **Instal
 Every one of those is optional. Without `ai:chat` the editor still works. Without
 `apps:publish` you have a local-only IDE. Grant what you want.
 
+You can also run the same DevStudio bundle in the browser, with no install:
+[Open in the editor](https://curtcox.github.io/twistedpear/editor/). Cookbook samples
+deep-link with `?app=<slug>`. Package and publish are stubs on that page — there is no
+network to publish to.
+
+![DevStudio in the documentation-site editor](/authors/images/02-web-editor.png)
+
+**Screenshot 2.1b — The documentation-site editor.** DevStudio's widget tree on the left,
+an empty Preview pane on the right, and host chrome for share, reset, and confirmations.
+The editing surface is the `code-editor` widget: no syntax highlighting until that widget
+grows it.
+
 ## New project
 
 **New project → hello** seeds two files into your workspace. **New Guida project**

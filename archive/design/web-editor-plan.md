@@ -1,12 +1,17 @@
 # Web Editor Plan — DevStudio on the documentation site
 
 <!-- tp-doc
-lifecycle: planned
+lifecycle: historical
 audited: 2026-08-21
-register: software
+register: none
 -->
 
-**This is a plan, not a description of current behaviour.** What ships today is
+> **Status of this plan (archived 2026-08-21):** Executed. Current behaviour is in
+> [docs/devstudio.md](../../docs/devstudio.md#browser-editor-documentation-site) and
+> [docs/web-host.md](../../docs/web-host.md). The sections below are retained as the
+> original design rationale.
+
+**This document describes intended remaining work, not current behaviour.** What ships today is
 [DevStudio](devstudio.md) (the in-platform environment), the
 [web host](web-host.md) (the browser port of the whole stack), and the
 [Guida UI](guida-ui.md) surface that a Guida app compiles against. Those documents win

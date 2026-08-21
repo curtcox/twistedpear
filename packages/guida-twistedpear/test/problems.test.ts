@@ -65,6 +65,20 @@ describe("Guida diagnostic flattening", () => {
       "module Main",
     );
     expect(extractFormatted({ content: "formatted" })).toBe("formatted");
+    expect(extractFormatted({ source: "from-source" })).toBe("from-source");
+    expect(extractFormatted({ output: "from-output" })).toBe("from-output");
+  });
+
+  it("returns original source when Guida says it is already formatted", async () => {
+    await expect(
+      formatGuidaMemory({
+        format: async () => ({ type: "already-formatted" }),
+        content: "module Main exposing (main)\n",
+        files: [],
+        vendorFiles: {},
+        homeFiles: {},
+      }),
+    ).resolves.toBe("module Main exposing (main)\n");
   });
 
   it("diagnose and format memory helpers call through the injected library", async () => {

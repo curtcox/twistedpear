@@ -54,6 +54,7 @@ Published site: [curtcox.github.io/twistedpear](https://curtcox.github.io/twiste
 ([user guide](https://curtcox.github.io/twistedpear/guide/),
 [app authoring guide](https://curtcox.github.io/twistedpear/authors/),
 [cookbook](https://curtcox.github.io/twistedpear/cookbook/),
+[editor](https://curtcox.github.io/twistedpear/editor/),
 [docs](https://curtcox.github.io/twistedpear/docs/),
 [specs](https://curtcox.github.io/twistedpear/specs/),
 [quality results](https://curtcox.github.io/twistedpear/results/)).
