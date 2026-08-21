@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-18
+audited: 2026-08-20
 register: none
 counterpart: docs/static-analysis-plan.md
 -->
@@ -594,7 +594,5 @@ leaving `/results/` behind current `main`.
 
 Structured summaries include coverage percentages and package floors; finding counts for
 structure, complexity, repository lint, typed lint, formatting, and language analyzers;
-file-size totals; dependency-license and advisory counts; SBOM component count; secret
-count; and mutation score, floor, killed, timed-out, error, survived, no-coverage, and
-ignored-static counts. Gates without a separate numeric report still publish their
-pass/fail result and duration.
+file-size totals; licenses, advisories, SBOM components, secrets, mutation outcomes, and
+GitHub Pages image/page counts. Gates without a numeric report still publish pass/fail.

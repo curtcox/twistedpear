@@ -90,8 +90,8 @@ function main() {
     copyTree(imagesSrc, path.join(publicDir, "docs", "images"));
   }
 
-  // Guide screenshots (user guide, authoring guide): real captures where supplied,
-  // placeholders otherwise
+  // Guide screenshots (user guide, authoring guide, cookbook): real captures
+  // where supplied, allowlisted pending placeholders otherwise.
   run("node", ["scripts/site/section-images.mjs"]);
 
   // Standalone React Native Web implementations linked from every cookbook recipe.
@@ -114,13 +114,8 @@ function main() {
     copyTree(rawSrc, path.join(dist, "results", "raw"));
   }
 
-  // 7. Link validation on staged markdown
-  try {
-    run("node", ["scripts/site/validate-links.mjs"]);
-  } catch (err) {
-    console.warn(String(err));
-    console.warn("Continuing despite link validation warnings");
-  }
+  // 7. Fail the build if the generated tree is missing pages, real images, or links.
+  run("node", ["scripts/site/pages-integrity.mjs", "--require-dist"]);
 
   console.log("Site build complete");
 }

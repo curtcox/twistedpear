@@ -350,6 +350,19 @@ const RENDERERS = {
   },
 
   sbom: ({ json }) => [metric("Components", count(json("sbom.cdx.json")?.components))],
+
+  "site-pages": ({ json }) => {
+    const report = json("site-pages.json");
+    if (!report) return [];
+    return [
+      metric("Pages", number(report.pages)),
+      metric("Images supplied", number(report.supplied)),
+      metric("Pending captures", number(report.pending)),
+      metric("Placeholder leaks", number(report.placeholderLeaks)),
+      metric("Broken links", number(report.brokenLinks)),
+      metric("Dist images", report.distChecked ? number(report.distImages) : "not built"),
+    ];
+  },
 };
 
 /** Gates whose only metric is the finding count, and the report holding it. */

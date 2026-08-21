@@ -55,7 +55,21 @@ function existsTarget(fromAbs, href) {
   return candidates.some((c) => fs.existsSync(c));
 }
 
-function main() {
+function skipHref(href) {
+  return (
+    href.startsWith("http://") ||
+    href.startsWith("https://") ||
+    href.startsWith("mailto:") ||
+    href.startsWith("#") ||
+    href.startsWith("data:") ||
+    href.includes("typedoc") ||
+    href.includes("/raw/") ||
+    href.startsWith("./raw/")
+  );
+}
+
+/** @returns {{ files: number; broken: string[] }} */
+export function findBrokenSiteLinks() {
   const files = collectFiles(SITE_SRC);
   /** @type {string[]} */
   const broken = [];
@@ -68,32 +82,24 @@ function main() {
     let m;
     while ((m = re.exec(text))) {
       const href = m[1];
-      if (
-        href.startsWith("http://") ||
-        href.startsWith("https://") ||
-        href.startsWith("mailto:") ||
-        href.startsWith("#") ||
-        href.startsWith("data:")
-      ) {
-        continue;
-      }
-      // Skip VitePress public typedoc relative until after copy
-      if (href.includes("typedoc")) continue;
-      // Optional report artifacts may be absent in local fixture builds
-      if (href.includes("/raw/") || href.startsWith("./raw/")) continue;
-      if (!existsTarget(file, href)) {
-        broken.push(`${rel}: ${href}`);
-      }
+      if (skipHref(href)) continue;
+      if (!existsTarget(file, href)) broken.push(`${rel}: ${href}`);
     }
   }
+  return { files: files.length, broken };
+}
 
+function main() {
+  const { files, broken } = findBrokenSiteLinks();
   if (broken.length) {
     console.error(`Broken internal links (${broken.length}):`);
     for (const b of broken.slice(0, 50)) console.error(`  ${b}`);
     if (broken.length > 50) console.error(`  … and ${broken.length - 50} more`);
     process.exit(1);
   }
-  console.log(`Validated links in ${files.length} files — ok`);
+  console.log(`Validated links in ${files} files — ok`);
 }
 
-main();
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}

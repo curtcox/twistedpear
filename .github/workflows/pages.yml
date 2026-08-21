@@ -204,12 +204,10 @@ jobs:
           # here so generated output from an earlier gate cannot greenwash a
           # later one (see scripts/site/isolate-worktree.mjs).
           SITE_REPORT_ISOLATE: "1"
-      - name: Report pending screenshots for the guide, authoring guide, and cookbook
-        run: npm run site:section-images:report
       - name: Build documentation site
         run: npm run site:build
-      - name: Verify the reader-facing guide sections were published
-        run: node scripts/site/verify-sections.mjs
+      - name: Verify the generated site, including screenshots
+        run: npm run site:verify -- --require-dist --record
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: site/.vitepress/dist

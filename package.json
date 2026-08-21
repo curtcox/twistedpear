@@ -179,6 +179,7 @@
     "site:section-images:report": "node scripts/site/section-images.mjs --report",
     "site:react-native-web": "node scripts/site/build-react-native-web-samples.mjs",
     "site:validate": "node scripts/site/validate-links.mjs",
+    "site:verify": "node scripts/site/pages-integrity.mjs",
     "site:build": "node scripts/site/build.mjs",
     "site:check": "node scripts/site/check-aggregate.mjs",
     "site:dev": "npm run site:stage && npm run site:render-reports && npm run site:sidebar && npm run site:section-images && vitepress dev site",

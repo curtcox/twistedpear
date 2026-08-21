@@ -2,10 +2,9 @@
 /**
  * Publish screenshots for the reader-facing guide sections into site/public/<section>/images.
  *
- * Each guide references screenshots by absolute site path (/<section>/images/<name>.png) so a
- * not-yet-supplied capture can never fail the VitePress build. Real captures are copied from
- * <section>/images; anything still missing gets a generated "screenshot pending" placeholder so
- * the published page reads as intentional rather than broken.
+ * Each guide references screenshots by absolute site path (/<section>/images/<name>.png).
+ * Real captures are copied from <section>/images. Only hardware-pending names listed in
+ * PENDING_CAPTURES may receive a generated hatch PNG; anything else fails the publish.
  *
  * Usage:
  *   node scripts/site/section-images.mjs                     # copy + generate placeholders
@@ -28,6 +27,31 @@ export const SECTIONS = [
   { id: "authors", label: "App authoring guide" },
   { id: "cookbook", label: "Cookbook" }
 ];
+
+/**
+ * Captures the current hosts cannot produce honestly. Listed in each section's
+ * `images/README.md`. A placeholder is allowed only for these names, and only
+ * while the source file is still absent.
+ *
+ * @type {Readonly<Record<string, readonly string[]>>}
+ */
+export const PENDING_CAPTURES = {
+  guide: [
+    "02-host-lineup.png",
+    "02-android-home.png",
+    "02-ios-suspended.png",
+    "04-ble-link.png",
+    "04-rnode.png",
+    "09-android-notification.png"
+  ],
+  authors: ["02-installed-on-phone.png", "04-component-gallery.png"],
+  cookbook: ["06-photo-drop-scan.png", "07-chapter-opener.png", "09-chapter-opener.png"]
+};
+
+/** @param {string} id @param {string} name */
+export function isPendingCapture(id, name) {
+  return (PENDING_CAPTURES[id] ?? []).includes(name);
+}
 
 const PLACEHOLDER_WIDTH = 1280;
 const PLACEHOLDER_HEIGHT = 720;
@@ -103,6 +127,20 @@ function pngChunk(type, data) {
   return Buffer.concat([length, typed, crc]);
 }
 
+/** True when `buf` is the generated 1280×720 greyscale hatch PNG. */
+export function isPlaceholderPng(buf) {
+  if (!Buffer.isBuffer(buf) || buf.length < 26) return false;
+  if (buf[0] !== 0x89 || buf[1] !== 0x50 || buf[2] !== 0x4e || buf[3] !== 0x47) {
+    return false;
+  }
+  return (
+    buf.readUInt32BE(16) === PLACEHOLDER_WIDTH &&
+    buf.readUInt32BE(20) === PLACEHOLDER_HEIGHT &&
+    buf[24] === 8 &&
+    buf[25] === 0
+  );
+}
+
 /**
  * An 8-bit greyscale PNG with a diagonal hatch, so a placeholder is never mistaken for a
  * real capture. No text: rendering glyphs would need a font, and the guides already carry
@@ -150,30 +188,45 @@ function publishSection(id) {
   const { names, missing } = surveySection(id);
   const dest = publicImagesDir(id);
   fs.mkdirSync(dest, { recursive: true });
+  /** @type {string[]} */
+  const unexpected = [];
   for (const name of names) {
     const src = path.join(sectionImagesDir(id), name);
     const target = path.join(dest, name);
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, target);
-    } else {
-      fs.writeFileSync(target, placeholderPng());
+      continue;
     }
+    if (isPendingCapture(id, name) && name.endsWith(".png")) {
+      fs.writeFileSync(target, placeholderPng());
+      continue;
+    }
+    unexpected.push(name);
   }
+  const pending = missing.filter((name) => isPendingCapture(id, name));
   console.log(
-    `${id} images → ${dest} (${names.length - missing.length} supplied, ${missing.length} placeholder)`
+    `${id} images → ${dest} (${names.length - missing.length} supplied, ${pending.length} pending placeholder)`
   );
-  if (missing.length) {
+  if (pending.length) {
     console.log(`Pending captures are listed in ${id}/images/README.md`);
   }
+  return unexpected.map((name) => `${id}/images/${name}`);
 }
 
 /** @param {string} id */
 function reportSection(id) {
   const { names, missing } = surveySection(id);
+  const pending = missing.filter((name) => isPendingCapture(id, name));
+  const unexpected = missing.filter((name) => !isPendingCapture(id, name));
   console.log(`${id} screenshots referenced: ${names.length}`);
   console.log(`  supplied: ${names.length - missing.length}`);
-  console.log(`  missing:  ${missing.length}`);
-  for (const name of missing) console.log(`    pending: ${id}/images/${name}`);
+  console.log(`  pending:  ${pending.length}`);
+  for (const name of pending) console.log(`    pending: ${id}/images/${name}`);
+  if (unexpected.length) {
+    console.log(`  unexpected missing: ${unexpected.length}`);
+    for (const name of unexpected) console.log(`    missing: ${id}/images/${name}`);
+  }
+  return unexpected.map((name) => `${id}/images/${name}`);
 }
 
 function main() {
@@ -188,9 +241,15 @@ function main() {
     process.exit(1);
   }
 
+  /** @type {string[]} */
+  const unexpected = [];
   for (const section of selected) {
-    if (report) reportSection(section.id);
-    else publishSection(section.id);
+    unexpected.push(...(report ? reportSection(section.id) : publishSection(section.id)));
+  }
+  if (unexpected.length) {
+    console.error(`Unexpected missing captures (${unexpected.length}):`);
+    for (const name of unexpected) console.error(`  ${name}`);
+    process.exit(1);
   }
 }
 

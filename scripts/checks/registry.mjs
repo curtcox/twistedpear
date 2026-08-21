@@ -61,7 +61,18 @@ export const gates = [
     "node",
   ]),
   gate("doc-audit", "Documentation audit", "test:doc-audit", "pr", ["node"]),
-  // `doc-audit` above checks everything about these files except what they say.
+  // `doc-audit` is structure (headers, counterparts, repo links). This one is
+  // the generated GitHub Pages tree: real screenshots, not hatch placeholders.
+  gate(
+    "site-pages",
+    "GitHub Pages site integrity",
+    "site:verify",
+    "pr",
+    ["node"],
+    ["artifacts/site-pages.json"],
+    "site-pages",
+  ),
+  // `doc-audit` checks everything about these files except what they say.
   // Lifecycle metadata, counterpart links, every link and image resolving — all
   // structure, none of it reading a sentence. The user guide, authoring guide,
   // cookbook, specs and docs tree are what a reader meets before any code, and

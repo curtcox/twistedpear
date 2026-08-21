@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-18
+audited: 2026-08-20
 register: none
 -->
 
@@ -232,6 +232,7 @@ Pushes to `main` (and `workflow_dispatch`) build and deploy
   and raw artifacts; a registry-derived matrix imports every non-Linux and nightly result
   from parallel evidence jobs
 - Unit tests, TypeScript, Sans-IO gates, formal/model conformance, symbolic lint, and TLC results
+- `site-pages` (`npm run site:verify`): every reader-guide screenshot in the generated tree is a real capture (or an allowlisted hardware-pending hatch), public/dist bytes match the source, chapters rendered, and internal links resolve. After the VitePress build the same check runs with `--require-dist --record` so `/results/` reports the deployed image counts.
 
 Reports are published even when a reported check fails. A Pages run’s status reflects only
 whether the site published; the separate **Site checks** workflow (`site-checks.yml`) runs

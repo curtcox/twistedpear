@@ -298,6 +298,7 @@ describe("static-analysis gate registry", () => {
       "audit",
       "sbom",
       "mutation",
+      "site-pages",
     ];
     for (const id of structured) {
       const gate = gates.find((candidate) => candidate.id === id);
