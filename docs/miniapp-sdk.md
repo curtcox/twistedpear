@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-18
+audited: 2026-08-20
 register: none
 -->
 
@@ -228,6 +228,17 @@ ui.onEvent(async ({ event }) => {
   }
 });
 ```
+
+```elm
+view : Model -> Widget Msg
+view _ =
+    W.view "root" [ S.padding 16, S.gap 8 ]
+        [ W.text "title" [ S.fontSize 20 ] "Hello"
+        , W.button "go" [] { label = "Tap me", onPress = Tapped, event = "hello.tap" }
+        ]
+```
+
+The Guida `view` is the same widget protocol. See [Guida UI](guida-ui.md).
 
 ## Example Apps
 

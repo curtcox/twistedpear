@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -28,6 +28,12 @@ const value = saved === null ? "" : new TextDecoder().decode(saved);
 await storage.kv.delete("last-peer");
 ```
 
+```elm
+StorageKv.set "last-peer" encoded GotSet
+StorageKv.get "last-peer" GotSaved
+StorageKv.delete "last-peer" GotDeleted
+```
+
 Values are bytes, not strings — encode and decode yourself, as the `chat` example does. A
 missing key returns `null`; it does not throw.
 
@@ -46,6 +52,14 @@ for await (const item of bee.list({ gte: "2026-07-01", lt: "2026-08-01" })) {
   // ordered by key
 }
 await bee.del("2026-07-21T09:00:00Z");
+```
+
+```elm
+StorageBee.open GotBee
+StorageBee.put "2026-07-21T09:00:00Z" encoded GotPut
+StorageBee.get "2026-07-21T09:00:00Z" GotEntry
+StorageBee.list (E.object [ ( "gte", E.string "2026-07-01" ), ( "lt", E.string "2026-08-01" ) ]) GotList
+StorageBee.del "2026-07-21T09:00:00Z" GotDel
 ```
 
 Keys sort lexicographically, so design them to sort the way you want to read them —
@@ -75,6 +89,13 @@ await workspace.write("hello-app/bundle.js", updated);
 await workspace.remove("hello-app/old.js");
 ```
 
+```elm
+Workspace.list "hello-app/" GotFiles
+Workspace.read "hello-app/bundle.js" GotSource
+Workspace.write "hello-app/bundle.js" updated GotWrite
+Workspace.remove "hello-app/old.js" GotRemove
+```
+
 Content is **strings**, not bytes — this is a source-file store, not a blob store. Paths are
 strictly relative: no leading slash, no `..`, no escaping your own tree.
 
@@ -100,6 +121,11 @@ try {
   // Out of quota, or the host tightened it while you were running.
   await showStorageFullNotice();
 }
+```
+
+```elm
+GotSet (Err err) ->
+    ( { model | status = err.message }, Effect.none )
 ```
 
 Quotas are also **adjustable at runtime by the host** — the desktop Runtime controls panel

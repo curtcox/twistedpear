@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -31,9 +31,17 @@ Your app imports `@twistedpear/miniapp-sdk` and nothing else.
 import { identity, lxmf, storage, ui } from "@twistedpear/miniapp-sdk";
 ```
 
-There is no filesystem, no socket, no `require`, no `fetch`, and no access to the host's Bare
-APIs. Not "discouraged" — absent. If you reach for something outside the SDK, the code will
-not resolve, and if you smuggle it in the sandbox has nothing to give you.
+```elm
+import TwistedPear.Sdk.Identity as Identity
+import TwistedPear.Sdk.Lxmf as Lxmf
+import TwistedPear.Sdk.StorageKv as StorageKv
+```
+
+Guida apps import `TwistedPear.Sdk.*` modules instead of the JavaScript package. The compiled
+bundle still talks to the same broker. There is no filesystem, no socket, no `require`, no
+`fetch`, and no access to the host's Bare APIs. Not "discouraged" — absent. If you reach for
+something outside the SDK, the code will not resolve, and if you smuggle it in the sandbox
+has nothing to give you.
 
 This is what makes the security story checkable. Every capability a mini-app has must have
 crossed the broker, and the broker validates request size, per-app message rate, the
@@ -79,6 +87,17 @@ ui.onEvent(async ({ event, value }) => {
   }
 });
 ```
+
+```elm
+view : Model -> Widget Msg
+view model =
+    W.view "root" [ S.padding 16, S.gap 8 ]
+        [ W.text "title" [ S.fontSize 20 ] "Hello"
+        , W.button "go" [] { label = "Tap me", onPress = Tapped, event = "hello.tap" }
+        ]
+```
+
+The Guida `view` function is the same tree: node ids, types, and event names must match a JavaScript twin. See [Chapter 4b](04b-building-the-ui-in-guida.md).
 
 Two consequences worth internalising now:
 

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -19,6 +19,11 @@ import { identity } from "@twistedpear/miniapp-sdk";
 
 const me = await identity.destinationHash(); // your app's address
 const signature = await identity.sign(payload); // brokered signing
+```
+
+```elm
+Identity.destinationHash GotMe
+Identity.sign payload GotSignature
 ```
 
 `destinationHash()` returns an address derived from the **host identity plus your app id**.
@@ -42,6 +47,18 @@ const messages = await lxmf.receive();
 for (const message of messages) {
   console.log(message.from, message.body);
 }
+```
+
+```elm
+Lxmf.send
+    (E.object
+        [ ( "to", E.string peerAppId )
+        , ( "subject", E.string "hello" )
+        , ( "body", E.string ("Hi from " ++ me) )
+        ]
+    )
+    GotSend
+Lxmf.receive GotInbox
 ```
 
 `lxmf.send` sends **from your app's destination**, not from the user's personal address —
@@ -99,6 +116,11 @@ for (const event of events) {
 }
 ```
 
+```elm
+Announce.publish appData "my-app" GotPublish
+Announce.subscribe "my-app" GotEvents
+```
+
 `subscribe` resolves **once** with a snapshot array; it is not a live stream and does not push
 later announces at you. To keep discovering peers who announce after you start, call it again
 on a timer — the same polling pattern `presence.snapshot()` needs, and for the same reason:
@@ -138,6 +160,11 @@ const snapshot = await presence.snapshot(); // coarse peer/interface state
 const info = await host.info();
 ```
 
+```elm
+Presence.snapshot GotSnapshot
+Host.info GotInfo
+```
+
 `presence.snapshot()` is deliberately **coarse**. You learn roughly whether you have peers
 and what kinds of interfaces are up. You do not get a peer list you could use to profile the
 user's surroundings.
@@ -161,12 +188,27 @@ if (radioOnly) {
 }
 ```
 
+```elm
+GotInfo (Ok info) ->
+    -- decode availableInterfaceTypes; if "tcp" is absent, warn
+```
+
 ## Fetching resources
 
 ```javascript
 import { resource } from "@twistedpear/miniapp-sdk";
 
 const bytes = await resource.fetch({ resourceId, budgetBytes: 32 * 1024 });
+```
+
+```elm
+Resource.fetch
+    (E.object
+        [ ( "resourceId", E.string resourceId )
+        , ( "budgetBytes", E.int (32 * 1024) )
+        ]
+    )
+    GotBytes
 ```
 
 This pulls package resources through the host's budget rules. `budgetBytes` is your declared
@@ -185,6 +227,11 @@ import { share } from "@twistedpear/miniapp-sdk";
 
 const t256 = await share.put(content); // returns a 94-character identifier
 const content = await share.get(t256); // fetch by identifier
+```
+
+```elm
+ShareCas.put content GotPut
+ShareCas.get t256 GotContent
 ```
 
 Bounded content-addressed storage and retrieval, keyed by 256t identifier. Use it when you

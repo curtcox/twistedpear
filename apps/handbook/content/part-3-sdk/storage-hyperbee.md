@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -30,6 +30,14 @@ await storage.bee.put("post:1", bytes);
 const value = await storage.bee.get("post:1");
 const entries = await storage.bee.list({ limit: 10 });
 await storage.bee.del("post:1");
+```
+
+```elm
+StorageBee.open GotBee
+StorageBee.put "post:1" bytes GotPut
+StorageBee.get "post:1" GotValue
+StorageBee.list (E.object [ ( "limit", E.int 10 ) ]) GotEntries
+StorageBee.del "post:1" GotDel
 ```
 
 ## Outcomes

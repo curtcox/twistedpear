@@ -650,6 +650,13 @@
       "requires": [],
       "verify": "node scripts/doc-audit/guida-doc-samples.mjs --scope=apps",
       "added": "2026-08-21",
+      "completed": "2026-08-21",
+      "evidence": [
+        "cookbook/examples/contract-notebook/src/Main.elm",
+        "cookbook/examples/contract-notebook/elm.json",
+        "cookbook/examples/contract-notebook/README.md",
+        "packages/guida-twistedpear/test/parity.test.ts"
+      ],
       "notes": "cookbook/examples/contract-notebook is the only documented sample app without elm.json + src/Main.elm. GUIDA-SAMPLES covered the 25 cookbook apps and 3 examples. Add the Guida twin, headed README listings, and include the pair in test:guida-parity."
     },
     "GUIDA-DEVSTUDIO": {
@@ -670,6 +677,14 @@
       "requires": [],
       "verify": "node scripts/doc-audit/guida-doc-samples.mjs --scope=prose",
       "added": "2026-08-21",
+      "completed": "2026-08-21",
+      "evidence": [
+        "scripts/doc-audit/guida-doc-samples.mjs",
+        "conformance/doc-audit/guida-doc-samples.test.mjs",
+        "docs/miniapp-sdk.md",
+        "authors/01-what-you-are-building.md",
+        "apps/handbook/content/part-3-sdk/identity.md"
+      ],
       "notes": "GUIDA-SAMPLES closed cookbook/example source twins and per-app README listings. Cookbook chapters now link Guida source. Remaining: every JavaScript fence in authors/, apps/handbook/content/part-3-sdk/, and docs/miniapp-sdk.md needs an elm fence or .elm link in the same heading section. Audit: node scripts/doc-audit/guida-doc-samples.mjs --scope=prose."
     },
     "GUIDA-MEASURE": {

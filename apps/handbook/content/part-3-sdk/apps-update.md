@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -27,6 +27,12 @@ await apps.publish(packed.t256);
 const installed = await apps.install(packed.t256);
 ```
 
+```elm
+Apps.packageProject "my-app" manifest GotPacked
+Apps.publish t256 GotPublished
+Apps.install t256 GotInstalled
+```
+
 See [Publish & install](chapter:sdk-apps-publish) for the first-install probe.
 
 ## OTA update
@@ -40,6 +46,13 @@ await workspace.write("my-app/app.json", JSON.stringify(manifestV2, null, 2));
 const packedV2 = await apps.packageProject("my-app", manifestV2);
 await apps.publish(packedV2.t256);
 const updated = await apps.install(packedV2.t256);
+```
+
+```elm
+Workspace.write "my-app/app.json" manifestJson GotWrite
+Apps.packageProject "my-app" manifestV2 GotPacked
+Apps.publish t256 GotPublished
+Apps.install t256 GotUpdated
 ```
 
 CLI equivalent: `tp update <app-dir> --version <semver>` — see

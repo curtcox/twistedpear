@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -42,6 +42,28 @@ const ranked = await ai.search({
   limit: 1,
 });
 ```
+
+```elm
+Ai.chat
+    (E.object
+        [ ( "messages"
+          , E.list identity
+                [ E.object [ ( "role", E.string "user" ), ( "content", E.string "hello" ) ]
+                ]
+          )
+        ]
+    )
+    GotReply
+Ai.search
+    (E.object
+        [ ( "query", E.string "radio package budget" )
+        , ( "limit", E.int 1 )
+        ]
+    )
+    GotRanked
+```
+
+Guida has `Ai.chat`, `Ai.embed`, and `Ai.search`. Streaming (`ai.chatStream`) is JavaScript-only.
 
 Whole responses and final stream events include model id and usage counters when the host
 provides them. Stream deltas are coalesced and are not token boundaries. Both calls share one

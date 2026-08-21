@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -28,7 +28,21 @@ import {
 } from "@twistedpear/miniapp-sdk";
 ```
 
-All calls without a matching grant fail with a typed `CapabilityError`.
+```elm
+import TwistedPear.Sdk.Identity as Identity
+import TwistedPear.Sdk.Lxmf as Lxmf
+import TwistedPear.Sdk.Announce as Announce
+import TwistedPear.Sdk.StorageKv as StorageKv
+import TwistedPear.Sdk.Resource as Resource
+import TwistedPear.Sdk.Presence as Presence
+import TwistedPear.Sdk.Host as Host
+import TwistedPear.Sdk.Workspace as Workspace
+import TwistedPear.Sdk.Ai as Ai
+import TwistedPear.Sdk.Apps as Apps
+import TwistedPear.Sdk.ShareCas as ShareCas
+```
+
+All calls without a matching grant fail with a typed `CapabilityError`. Guida wrappers complete as `Result Error a` on a continuation message instead of throwing.
 
 ## identity
 

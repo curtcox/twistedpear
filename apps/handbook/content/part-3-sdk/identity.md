@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -22,6 +22,11 @@ import { identity } from "@twistedpear/miniapp-sdk";
 
 const hash = await identity.destinationHash();
 const signature = await identity.sign(payloadBytes);
+```
+
+```elm
+Identity.destinationHash GotHash
+Identity.sign payloadBytes GotSignature
 ```
 
 `destinationHash` is stable for a given install. `sign` accepts raw bytes and returns

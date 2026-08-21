@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -42,6 +42,16 @@ await ui.render({
     ],
   },
 });
+```
+
+```elm
+W.view "root" [ S.padding 16, S.gap 12 ]
+    [ W.text "title" [ S.fontSize 20, S.bold ] "Chat"
+    , W.textInput "peer"
+        []
+        { value = model.peer, placeholder = "Peer app id", onInput = Peer, event = "chat.peer" }
+    , W.button "send" [] { label = "Send", onPress = Send, event = "chat.send" }
+    ]
 ```
 
 Every node needs a unique `id`. Duplicate ids reject the tree. Ids are also how events are
@@ -111,6 +121,10 @@ style: {
 }
 ```
 
+```elm
+[ S.padding 16, S.gap 8, S.fontSize 20, S.bold ]
+```
+
 You cannot ship CSS, web fonts, animations, or arbitrary drawing. Two things follow:
 
 - **Your app looks like the host.** Users get a consistent surface across every mini-app they
@@ -135,6 +149,26 @@ ui.onEvent(async ({ event, value }) => {
     await render();
   }
 });
+```
+
+```elm
+update : Msg -> Model -> ( Model, Effect Msg )
+update msg model =
+    case msg of
+        Peer peer ->
+            ( { model | peer = peer }, Effect.none )
+
+        Send ->
+            ( model
+            , Lxmf.send
+                (E.object
+                    [ ( "to", E.string model.peer )
+                    , ( "subject", E.string "hello" )
+                    , ( "body", E.string "Hi" )
+                    ]
+                )
+                GotSend
+            )
 ```
 
 - `event` is the string you put in the node's `props.event`. Namespace them (`chat.send`, not

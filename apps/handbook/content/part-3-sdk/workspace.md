@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -28,6 +28,14 @@ await workspace.patch("src/main.js", text.length, [
 ]);
 const files = await workspace.list("src/");
 await workspace.remove("src/main.js");
+```
+
+```elm
+Workspace.write "src/main.js" source GotWrite
+Workspace.read "src/main.js" GotText
+Workspace.patch "src/main.js" (String.length text) edits GotPatch
+Workspace.list "src/" GotFiles
+Workspace.remove "src/main.js" GotRemove
 ```
 
 Paths are relative; traversal outside the app root is rejected. Patch offsets are UTF-16

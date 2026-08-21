@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -78,6 +78,13 @@ await ui.render({
 });
 ```
 
+```elm
+view : Model -> Widget Msg
+view _ =
+    W.view "root" [ S.padding 16, S.gap 8 ]
+        [ W.text "title" [ S.fontSize 20 ] "Hello" ]
+```
+
 ## Editing
 
 The editor is the `code-editor` widget. It is **content-by-reference**: the widget tree
@@ -135,6 +142,27 @@ ui.onEvent(async ({ event }) => {
 });
 
 await render();
+```
+
+```elm
+type alias Model =
+    { taps : Int }
+
+
+update : Msg -> Model -> ( Model, Effect Msg )
+update msg model =
+    case msg of
+        Tapped ->
+            ( { model | taps = model.taps + 1 }, Effect.none )
+
+
+view : Model -> Widget Msg
+view model =
+    W.view "root" [ S.padding 16, S.gap 8 ]
+        [ W.text "title" [ S.fontSize 20 ] "Hello"
+        , W.text "count" [] ("Taps: " ++ String.fromInt model.taps)
+        , W.button "go" [] { label = "Tap me", onPress = Tapped, event = "hello.tap" }
+        ]
 ```
 
 ## AI-assisted editing

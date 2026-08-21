@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -42,6 +42,15 @@ try {
     // Explain what identity would allow; offer to open Settings
   }
 }
+```
+
+```elm
+GotHash (Err err) ->
+    if err.code == "CAPABILITY_DENIED" then
+        ( { model | status = "Identity is turned off" }, Effect.none )
+
+    else
+        ( { model | status = err.message }, Effect.none )
 ```
 
 ## Live probe

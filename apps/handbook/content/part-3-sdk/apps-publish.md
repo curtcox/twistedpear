@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -22,6 +22,11 @@ import { apps } from "@twistedpear/miniapp-sdk";
 
 await apps.publish(t256);
 const installed = await apps.install(t256);
+```
+
+```elm
+Apps.publish t256 GotPublished
+Apps.install t256 GotInstalled
 ```
 
 Package first with `apps.packageProject` — see [Packaging & preview](chapter:sdk-apps-package).

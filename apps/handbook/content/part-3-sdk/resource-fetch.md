@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -21,6 +21,16 @@ const bytes = await resource.fetch({
   resourceId: "offer:demo",
   budgetBytes: 4096,
 });
+```
+
+```elm
+Resource.fetch
+    (E.object
+        [ ( "resourceId", E.string "offer:demo" )
+        , ( "budgetBytes", E.int 4096 )
+        ]
+    )
+    GotBytes
 ```
 
 Exceeding `budgetBytes` fails before transfer starts. The host enforces per-link

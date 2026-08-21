@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-29
+audited: 2026-08-20
 register: none
 -->
 
@@ -35,8 +35,14 @@ whose encoding and update rules you understand.
 | -------------------------------------- | ------------------------------------------------------------ |
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
 | [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
+| [elm.json](elm.json)                   | Guida project file for the Elm source variant.               |
+| [src/Main.elm](src/Main.elm)           | Guida source. Compiles to the same widget tree as bundle.js. |
 
-There is no Guida source variant for this notebook yet.
+### JavaScript
+Full source: [bundle.js](bundle.js)
+
+### Guida
+Full source: [src/Main.elm](src/Main.elm)
 
 ## Run it
 

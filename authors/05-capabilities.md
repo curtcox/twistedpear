@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -107,6 +107,15 @@ async function publishPresence() {
 }
 ```
 
+```elm
+GotPublish (Err err) ->
+    if err.code == "CAPABILITY_DENIED" then
+        ( { model | status = "not announcing — permission not granted" }, Effect.none )
+
+    else
+        ( { model | status = err.message }, Effect.none )
+```
+
 Better: ask the host what you have, once, at startup, and branch on it rather than on
 exceptions.
 
@@ -117,6 +126,13 @@ const can = new Set(info.grantedCapabilities);
 if (can.has("announce:publish")) {
   await announce.publish(appData);
 }
+```
+
+```elm
+Host.info GotInfo
+
+-- in GotInfo (Ok info), decode grantedCapabilities and only then:
+Announce.publish appData "my-app" GotPublish
 ```
 
 Three patterns that work:

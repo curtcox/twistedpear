@@ -2,14 +2,14 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
 All twenty-six cookbook samples in one table, sorted by chapter. Every directory under
 `cookbook/apps/` holds a `README.md`, an `app.manifest.json`, a published `bundle.js`, and a
 Guida variant (`elm.json` + `src/Main.elm`). The Freenet integration notebook under
-`cookbook/examples/` is the exception: it is still JavaScript-only.
+`cookbook/examples/` ships the same pair.
 
 The **size** column is the approximate packaged `.tpkg` size. All twenty-five are far inside
 the 180 KiB BLE install budget, and the four largest are still under a minute of BLE transfer

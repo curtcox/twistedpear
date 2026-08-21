@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -22,6 +22,12 @@ import { storage } from "@twistedpear/miniapp-sdk";
 await storage.kv.set("key", bytes);
 const value = await storage.kv.get("key");
 await storage.kv.delete("key");
+```
+
+```elm
+StorageKv.set "key" bytes GotSet
+StorageKv.get "key" GotValue
+StorageKv.delete "key" GotDeleted
 ```
 
 The Handbook persists reading position and seed version in KV.

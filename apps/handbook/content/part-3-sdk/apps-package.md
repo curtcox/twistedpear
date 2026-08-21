@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -25,6 +25,12 @@ import { apps } from "@twistedpear/miniapp-sdk";
 const packed = await apps.packageProject("my-app", manifest);
 const { launched } = await apps.preview("my-app", manifest, grants);
 await apps.stopPreview();
+```
+
+```elm
+Apps.packageProject "my-app" manifest GotPacked
+Apps.preview "my-app" manifest grants GotPreview
+Apps.stopPreview GotStopped
 ```
 
 Only one preview slot exists per host. Stop preview before starting another.

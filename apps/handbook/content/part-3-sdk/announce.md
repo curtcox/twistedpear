@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -28,6 +28,11 @@ import { announce } from "@twistedpear/miniapp-sdk";
 
 await announce.publish({ namespace: "my-app" });
 const stream = await announce.subscribe({ namespace: "my-app" });
+```
+
+```elm
+Announce.publish appData "my-app" GotPublish
+Announce.subscribe "my-app" GotEvents
 ```
 
 Namespaces are app-scoped. Publishing without subscribe (or vice versa) limits what

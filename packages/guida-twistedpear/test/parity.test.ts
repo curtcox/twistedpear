@@ -1,9 +1,10 @@
-import { cpSync, mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildGuidaApp } from "../src/build.js";
+import { compileGuidaWorkspace } from "../src/compile-workspace.js";
 import {
   canonical,
   listTwinDirs,
@@ -16,6 +17,7 @@ const template = join(here, "../templates/hello");
 const jsTwin = join(here, "../fixtures/hello-js/bundle.js");
 const cookbookApps = join(root, "cookbook/apps");
 const exampleApps = join(root, "apps/examples");
+const cookbookExamples = join(root, "cookbook/examples");
 
 const skipGuida = await import("guida")
   .then(() => false)
@@ -64,6 +66,31 @@ describe.skipIf(skipGuida)("Guida/JS widget-stream parity", () => {
     );
   }, 120_000);
 
+  it("contract-notebook twins match on the settled initial tree", async () => {
+    const dir = join(cookbookExamples, "contract-notebook");
+    const interval = globalThis.setInterval;
+    globalThis.setInterval = (() => 0) as typeof setInterval;
+    try {
+      const built = await compileGuidaWorkspace([
+        { path: "elm.json", content: readFileSync(join(dir, "elm.json"), "utf8") },
+        {
+          path: "src/Main.elm",
+          content: readFileSync(join(dir, "src/Main.elm"), "utf8"),
+        },
+      ]);
+      const jsFrames = await recordBundle(
+        readFileSync(join(dir, "bundle.js"), "utf8"),
+        [],
+      );
+      const guidaFrames = await recordBundle(built.bundle, []);
+      expect(jsFrames.length).toBeGreaterThan(0);
+      expect(guidaFrames.length).toBeGreaterThan(0);
+      expect(canonical(guidaFrames.at(-1))).toBe(canonical(jsFrames.at(-1)));
+    } finally {
+      globalThis.setInterval = interval;
+    }
+  }, 120_000);
+
   it("unit-converter twins match after input and unit select", async () => {
     const { readFileSync } = await import("node:fs");
     const dir = join(cookbookApps, "unit-converter");
@@ -80,8 +107,12 @@ describe.skipIf(skipGuida)("Guida/JS widget-stream parity", () => {
 
   it("every cookbook and example twin matches on the settled initial tree", async () => {
     const { readFileSync } = await import("node:fs");
-    const dirs = [...listTwinDirs(cookbookApps), ...listTwinDirs(exampleApps)];
-    expect(dirs.length).toBeGreaterThanOrEqual(28);
+    const dirs = [
+      ...listTwinDirs(cookbookApps),
+      ...listTwinDirs(exampleApps),
+      ...listTwinDirs(cookbookExamples),
+    ];
+    expect(dirs.length).toBeGreaterThanOrEqual(29);
     const mismatches: string[] = [];
     for (const dir of dirs) {
       try {

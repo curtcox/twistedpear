@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -23,6 +23,11 @@ import { share } from "@twistedpear/miniapp-sdk";
 
 const { t256, size } = await share.put("hello");
 const again = await share.get(t256);
+```
+
+```elm
+ShareCas.put "hello" GotPut
+ShareCas.get t256 GotAgain
 ```
 
 Payload size is capped by the host quota snapshot in `host.info()`.

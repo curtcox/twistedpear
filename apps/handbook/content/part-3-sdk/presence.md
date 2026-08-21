@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -22,6 +22,10 @@ import { presence } from "@twistedpear/miniapp-sdk";
 
 const snap = await presence.snapshot();
 // { peers, preferredInterface, ... }
+```
+
+```elm
+Presence.snapshot GotSnapshot
 ```
 
 Grant `presence` at install. Without it, host info and presence probes become

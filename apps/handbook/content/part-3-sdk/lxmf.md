@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-08-20
 register: none
 -->
 
@@ -30,6 +30,18 @@ import { lxmf } from "@twistedpear/miniapp-sdk";
 
 await lxmf.send({ to: peerAppId, subject: "hello", body: "hi" });
 const inbox = await lxmf.receive();
+```
+
+```elm
+Lxmf.send
+    (E.object
+        [ ( "to", E.string peerAppId )
+        , ( "subject", E.string "hello" )
+        , ( "body", E.string "hi" )
+        ]
+    )
+    GotSend
+Lxmf.receive GotInbox
 ```
 
 Messages are namespaced to the app id. The host never exposes the device private key.

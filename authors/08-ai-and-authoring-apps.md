@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-20
 register: none
 -->
 
@@ -36,6 +36,24 @@ for await (const event of ai.chatStream({ messages })) {
   if (event.type === "done") usage = event.response.usage;
 }
 ```
+
+```elm
+Ai.chat
+    (E.object
+        [ ( "messages"
+          , E.list identity
+                [ E.object [ ( "role", E.string "system" ), ( "content", E.string "You rewrite mini-app source files." ) ]
+                , E.object [ ( "role", E.string "user" ), ( "content", E.string (instruction ++ "\n\n---\n" ++ currentSource) ) ]
+                ]
+          )
+        , ( "maxTokens", E.int 4096 )
+        , ( "temperature", E.float 0.2 )
+        ]
+    )
+    GotReply
+```
+
+Guida wrappers return `Effect msg`; there is no `for await` stream. Use `Ai.chat` for the complete reply. Streaming stays a JavaScript surface.
 
 The host holds the endpoint URL, the API key, and the model allowlist. Desktop configures
 these under **Settings → AI**; headless nodes use `HostConfig.ai`. **The key never enters the
@@ -95,6 +113,11 @@ const { t256, packageHash, size } = await apps.packageProject(
 await apps.publish(t256);
 ```
 
+```elm
+Apps.packageProject "hello-app/" manifest GotPacked
+Apps.publish t256 GotPublished
+```
+
 `packageProject` signs under **this device's publisher identity**. Your app is not signing
 anything; it is asking the host to, and the user is approving that the host does.
 
@@ -138,6 +161,16 @@ async function publishCurrentProject() {
     return { ok: false, reason: describe(error) };
   }
 }
+```
+
+```elm
+GotPacked (Ok packed) ->
+    ( model
+    , Apps.publish (t256From packed) GotPublished
+    )
+
+GotPublished (Err err) ->
+    ( { model | status = err.message }, Effect.none )
 ```
 
 - **Do not chain confirmations without telling the user.** Two dialogs in a row with no
