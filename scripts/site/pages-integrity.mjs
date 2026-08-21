@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
-import { ROOT, SITE_DIST, SITE_ROOT, RESULTS_DIR, PAGES_BASE } from "./paths.mjs";
+import { ROOT, SITE_DIST, SITE_ROOT, SITE_SRC, RESULTS_DIR, PAGES_BASE } from "./paths.mjs";
 import { findBrokenSiteLinks } from "./validate-links.mjs";
 import { summarizeStaticAnalysis } from "./static-analysis-metrics.mjs";
 import { gateById } from "../checks/registry.mjs";
