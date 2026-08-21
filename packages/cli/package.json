@@ -23,7 +23,7 @@
     "@twistedpear/bridge-freenet": "0.1.0",
     "@twistedpear/bridge-hyper": "0.1.0",
     "@twistedpear/host-core": "0.1.4",
-    "@twistedpear/miniapp-runtime": "0.1.6",
+    "@twistedpear/miniapp-runtime": "0.1.7",
     "@twistedpear/reticulum-ts": "0.0.0",
     "@twistedpear/cas-256t": "0.1.0"
   }

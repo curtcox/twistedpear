@@ -33,6 +33,60 @@ describe("bare worker mailbox", () => {
     expect(typeof globals.Worker).toBe("function");
     expect(installBareWorkerPolyfill(globals)).toBe(false);
   });
+
+  it("rejects an oversized mailbox payload and an unsupported Worker source", () => {
+    const slot = createMessageSlot();
+    expect(() => tryWriteSlot(slot, "x".repeat(40_000))).toThrow(/overflow/);
+    expect(() =>
+      decodeWorkerSource("https://example.invalid/worker.js"),
+    ).toThrow(/unsupported Bare Worker source/);
+  });
+
+  it("constructs a Bare thread Worker, posts, and terminates", () => {
+    class Thread {
+      terminated = false;
+      constructor(
+        readonly script: string,
+        readonly options: { source: string; data: unknown },
+      ) {}
+      terminate() {
+        this.terminated = true;
+      }
+    }
+
+    const globals: Record<string, unknown> = {
+      Bare: { Thread },
+      SharedArrayBuffer,
+    };
+    expect(installBareWorkerPolyfill(globals)).toBe(true);
+    const Worker = globals.Worker as new (
+      source: string,
+      options?: { data?: unknown },
+    ) => {
+      onmessage: ((event: { data: unknown }) => void) | null;
+      postMessage(data: unknown): void;
+      terminate(): void;
+      _toHost: SharedArrayBuffer;
+      _thread: Thread;
+    };
+    const worker = new Worker(
+      `data:text/javascript,${encodeURIComponent("self.onmessage = () => {}")}`,
+      { data: { role: "sandbox" } },
+    );
+    try {
+      expect(worker._thread.script).toBe("/tp-sandbox-worker.js");
+      expect(worker._thread.options.source).toContain("Bare.Thread.self.data");
+      const received: unknown[] = [];
+      worker.onmessage = (event) => received.push(event.data);
+      expect(tryWriteSlot(worker._toHost, { type: "from-thread" })).toBe(true);
+      worker.postMessage({ type: "ping" });
+      expect(received).toEqual([{ type: "from-thread" }]);
+    } finally {
+      worker.terminate();
+      expect(worker._thread.terminated).toBe(true);
+      worker.terminate();
+    }
+  });
 });
 
 describe("webAssemblyInstantiateAvailable", () => {
