@@ -1,9 +1,9 @@
 import { validateManifestCapabilities } from "../capabilities.js";
 import {
-  createNodeConfirmationEffects,
   requestHostConfirmation,
   type HostConfirmationChannel,
 } from "../confirm.js";
+import { createNodeConfirmationEffects } from "./confirmation-effects.js";
 import { validateWorkspacePath } from "./workspace.js";
 
 const confirmationEffects = createNodeConfirmationEffects();

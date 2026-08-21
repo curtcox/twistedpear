@@ -1,8 +1,8 @@
 import {
-  createNodeConfirmationEffects,
   requestHostConfirmation,
   type HostConfirmationChannel,
 } from "../confirm.js";
+import { createNodeConfirmationEffects } from "./confirmation-effects.js";
 
 export class FreenetBrokerServiceError extends Error {
   constructor(

@@ -28,11 +28,11 @@ function contentType(name) {
   return "text/html; charset=utf-8";
 }
 
-function measureFileMap(root) {
+function measureFileMap() {
   return new Map(
     MEASURE_FILES.map((name) => [
       `/${name}`,
-      { body: readFileSync(join(root, name)), type: contentType(name) },
+      { body: readFileSync(join(tmpDir, name)), type: contentType(name) },
     ]),
   );
 }
@@ -118,8 +118,8 @@ function bundleGuida() {
 }
 
 export async function measureWeb() {
-  const root = bundleGuida();
-  const server = await startServer(measureFileMap(root));
+  bundleGuida();
+  const server = await startServer(measureFileMap());
   const browser = await chromium.launch({
     args: ["--enable-precise-memory-info"],
   });

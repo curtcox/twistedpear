@@ -1,8 +1,8 @@
 import {
-  createNodeConfirmationEffects,
   requestHostConfirmation,
   type HostConfirmationChannel,
 } from "../confirm.js";
+import { createNodeConfirmationEffects } from "./confirmation-effects.js";
 
 const APP_CHANNEL_MAX_PAYLOAD_BYTES = 16 * 1024;
 const APP_CHANNEL_MAX_INBOX = 32;

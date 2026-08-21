@@ -327,6 +327,14 @@ const cases: ReadonlyArray<SurfaceCase> = [
     payload: { projectPrefix: "hello", path: "src/Main.elm" },
   },
   {
+    label: "apps.diagnostics without a path",
+    call: () => apps.diagnostics("hello"),
+    namespace: "apps",
+    method: "diagnostics",
+    capability: "apps:package",
+    payload: { projectPrefix: "hello" },
+  },
+  {
     label: "apps.packageProject",
     call: () => apps.packageProject("src/", MANIFEST),
     namespace: "apps",

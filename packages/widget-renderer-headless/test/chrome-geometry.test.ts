@@ -35,4 +35,59 @@ describe("host chrome geometry", () => {
       ),
     ).toBe(false);
   });
+
+  it("treats a missing confirmation overlay as host-owned", () => {
+    expect(
+      confirmationIsHostLayer({
+        ...REFERENCE_CONFIRMATION_FRAME,
+        confirmation: null,
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects app boxes that escape the surface and matches chrome copy in the tree", () => {
+    const frame = REFERENCE_CONFIRMATION_FRAME;
+    expect(
+      appBoxesStayInsideSurface(
+        { escaped: { x: -1, y: 0, width: 10, height: 10 } },
+        frame.appSurface,
+      ),
+    ).toBe(false);
+    const tree = {
+      root: {
+        id: "root",
+        type: "view" as const,
+        children: [
+          {
+            id: "title",
+            type: "text" as const,
+            props: { value: "Install an app?" },
+          },
+          {
+            id: "hint",
+            type: "text" as const,
+            props: { label: "Reads your files" },
+          },
+        ],
+      },
+    };
+    expect(
+      confirmationCopyInTree(tree, {
+        title: "Install an app?",
+        descriptions: [],
+      }),
+    ).toBe(true);
+    expect(
+      confirmationCopyInTree(
+        { root: { id: "root", type: "view" as const } },
+        { title: "", descriptions: ["Reads your files"] },
+      ),
+    ).toBe(false);
+    expect(
+      confirmationCopyInTree(tree, {
+        title: "",
+        descriptions: ["Reads your files"],
+      }),
+    ).toBe(true);
+  });
 });

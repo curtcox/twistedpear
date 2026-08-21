@@ -23,6 +23,18 @@ export function writeJson(file, value) {
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+/**
+ * True when `percent` is more than `tolerance` below `floor`.
+ *
+ * Adds in decimal-safe arithmetic so `99.1 + 0.05` does not become
+ * `99.14999999999999` and fail a floor of `99.15`.
+ */
+export function percentBelowFloor(percent, floor, tolerance) {
+  return (
+    Number((percent + tolerance).toFixed(4)) < Number(Number(floor).toFixed(4))
+  );
+}
+
 function refExists(root, ref) {
   return (
     spawnSync("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], {

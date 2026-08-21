@@ -37,6 +37,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   compareDiagnosticSet,
+  percentBelowFloor,
   printDiagnosticResult,
   readJson,
   writeJson,
@@ -157,7 +158,11 @@ if (kind === "type-coverage") {
     const projects = {};
     for (const [project, percent] of Object.entries(current)) {
       const floor = existing.projects?.[project];
-      if (!allowRegressions && floor != null && percent + tolerance < floor) {
+      if (
+        !allowRegressions &&
+        floor != null &&
+        percentBelowFloor(percent, floor, tolerance)
+      ) {
         throw new Error(`Refusing to lower ${project}: ${floor} -> ${percent}`);
       }
       projects[project] = allowRegressions
@@ -182,7 +187,7 @@ if (kind === "type-coverage") {
     const percent = current[project];
     if (percent == null) continue;
     const required = Math.max(floor, rules.absoluteFloor);
-    if (percent + tolerance < required) {
+    if (percentBelowFloor(percent, required, tolerance)) {
       failed = true;
       console.error(`${project}: ${percent}% < floor ${required}%`);
     }

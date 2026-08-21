@@ -200,6 +200,9 @@ export async function captureHandbookWidgetTree(options = {}) {
       capabilities,
       capabilities,
     );
+    // Handbook seeds 122 workspace files at launch, then host.info + ui.render.
+    // Default 128/s rate-limits those last calls (logged as "broker denied").
+    host.setResourceLimits(packed.app.name, { maxMessagesPerSecond: 2_000 });
     await host.launch(
       {
         name: packed.app.name,
