@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-20
+audited: 2026-08-21
 register: none
 -->
 
@@ -14,6 +14,10 @@ Guida variant (`elm.json` + `src/Main.elm`). The Freenet integration notebook un
 The **size** column is the approximate packaged `.tpkg` size. All twenty-five are far inside
 the 180 KiB BLE install budget, and the four largest are still under a minute of BLE transfer
 — but see [Chapter 9](09-apps-for-a-bad-link.md) for what any of them cost over LoRa.
+
+The published documentation site also has a [searchable sample catalog](https://curtcox.github.io/twistedpear/samples/)
+of every fenced listing in the guides, with GitHub, recipe, React Native Web, and editor
+links.
 
 > **Verified by CI.** `npm run test:cookbook` packs every sample through `tp pack`, verifies
 > its manifest, signature, capabilities, and BLE size budget, then launches it in the sandbox

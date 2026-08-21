@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-19
+audited: 2026-08-21
 register: none
 -->
 
@@ -58,6 +58,7 @@ one-sided `counterpart:` all fail the build.
 | Understand the platform and run it locally                                      | [Repository README](../README.md)                                                                                                                   |
 | See the specification decomposition and per-spec conformance                    | [Specifications index](../specs/README.md)                                                                                                          |
 | Look up a term used in the code, specs, or docs                                 | [Developer glossary](glossary.md)                                                                                                                   |
+| Browse every documented code sample, with live and editor links                 | [Sample catalog](https://curtcox.github.io/twistedpear/samples/)                                                                                    |
 | Learn the platform interactively                                                | [Handbook mini-app](../apps/handbook/README.md)                                                                                                     |
 | Check implemented and verified work                                             | [Completed-work evidence](../STATUS-COMPLETE.md) (index); [early phases](complete-phases-early.md); [phase 2+ tables](../STATUS-COMPLETE-PHASES.md) |
 | Check remaining software work                                                   | [Software backlog](../STATUS-SOFTWARE.md)                                                                                                           |

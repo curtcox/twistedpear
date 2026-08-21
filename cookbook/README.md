@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-21
 register: none
 -->
 
@@ -142,4 +142,6 @@ These come up in nearly every chapter, so they are stated once here rather than 
   threat model.
 - [apps/examples](../apps/examples/README.md) — the three reference apps that ship with the
   platform.
+- [Sample catalog](https://curtcox.github.io/twistedpear/samples/) — every fenced listing in
+  the published docs, with search plus GitHub, recipe, live, and editor links.
 - [glossary](../guide/glossary.md) — terms this cookbook uses without defining.

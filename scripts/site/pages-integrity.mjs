@@ -88,6 +88,16 @@ export function inspectSite(options = {}) {
     }
   }
 
+  if (!fs.existsSync(path.join(SITE_SRC, "samples/index.md"))) {
+    problems.push("samples catalog page missing; run npm run site:stage");
+  }
+  if (!fs.existsSync(path.join(SITE_SRC, "samples/catalog.json"))) {
+    problems.push("samples catalog data missing; run npm run site:stage");
+  }
+  if (requireDist && fs.existsSync(SITE_DIST) && !fs.existsSync(path.join(SITE_DIST, "samples/index.html"))) {
+    problems.push("dist missing /samples/");
+  }
+
   for (const { id, label } of SECTIONS) {
     const dir = sectionDir(id);
     if (!fs.existsSync(dir)) {

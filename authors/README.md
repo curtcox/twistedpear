@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-21
 register: none
 -->
 
@@ -111,3 +111,5 @@ you can move a project between them by copying two files.
   quotes from.
 - [Cookbook](../cookbook/README.md) — twenty-five sample apps, indexed
   [by capability](../cookbook/appendix-app-index.md).
+- [Sample catalog](https://curtcox.github.io/twistedpear/samples/) — every fenced listing in
+  the published docs, with search plus GitHub, recipe, live, and editor links.

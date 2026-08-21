@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ROOT, SITE_SRC, REPO_URL } from "./paths.mjs";
+import { writeSamplePages } from "./sample-catalog.mjs";
 
 const ROOT_DOCS = [
   "README.md",
@@ -310,6 +311,9 @@ hero:
       text: Cookbook
       link: /cookbook/
     - theme: alt
+      text: Samples
+      link: /samples/
+    - theme: alt
       text: Documentation
       link: /docs/
     - theme: alt
@@ -328,6 +332,9 @@ features:
   - title: Cookbook
     details: Twenty-five complete sample mini-apps, from a no-capability calculator to an app that publishes other apps.
     link: /cookbook/
+  - title: Sample catalog
+    details: Every fenced code listing in the published docs, with search, GitHub source, recipe, React Native Web, and editor links.
+    link: /samples/
   - title: Documentation
     details: Canonical guides for hosts, runtime, distribution, networking, and release operations.
     link: /docs/
@@ -460,7 +467,8 @@ function main() {
   stageSpecs();
   stageApiPlaceholder();
   stageResultsPlaceholder();
-  console.log(`Staged site content into ${SITE_SRC}`);
+  const samples = writeSamplePages(SITE_SRC);
+  console.log(`Staged site content into ${SITE_SRC} (${samples.length} sample-catalog rows)`);
 }
 
 main();

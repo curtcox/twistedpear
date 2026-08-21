@@ -88,4 +88,6 @@ server. Page chrome around it handles confirmations, share links (`#w=`), worksp
 and the preview pane. Guida compile/format/diagnostics run in a dedicated module worker
 fetched on the first Guida action (~2 MB). Package and publish are stubs: a static GitHub
 Pages origin has nothing to sign with or announce to. Cookbook recipes link
-`/editor/?app=<slug>`. Verified by `npm run test:web-editor`.
+`/editor/?app=<slug>`. The [sample catalog](https://curtcox.github.io/twistedpear/samples/)
+lists every fenced listing in the published docs with those editor links, plus GitHub and
+React Native Web where they exist. Verified by `npm run test:web-editor`.

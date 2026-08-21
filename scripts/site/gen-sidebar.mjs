@@ -153,6 +153,7 @@ function main() {
     guide: sectionSidebar("guide", "User guide"),
     authors: sectionSidebar("authors", "App authoring guide"),
     cookbook: sectionSidebar("cookbook", "Cookbook"),
+    samples: [{ text: "Samples", items: [{ text: "Sample catalog", link: "/samples/" }] }],
     docs: docsSidebar(),
     specs: specsSidebar(),
     reference: referenceSidebar(),

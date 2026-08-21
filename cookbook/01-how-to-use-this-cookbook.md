@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-21
 register: none
 -->
 
@@ -127,7 +127,9 @@ This is the loop that works on a phone, and the loop that needs nothing installe
 Every recipe on the documentation site also has **Open in the editor**, which loads that
 sample into the same DevStudio bundle in the browser
 ([`/editor/?app=<slug>`](https://curtcox.github.io/twistedpear/editor/)). Package and
-publish stay stubs there.
+publish stay stubs there. The [sample catalog](https://curtcox.github.io/twistedpear/samples/)
+lists every fenced listing with those editor links, plus GitHub and React Native Web where
+they exist.
 
 > **⚠️ Works, with limits — one preview slot.** Previewing a second app replaces the first.
 > There is no way to have two previews running at once.
