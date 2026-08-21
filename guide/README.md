@@ -57,10 +57,9 @@ behind that appendix are [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) (open softw
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (device- and account-gated work), and
 [LIMITATIONS.md](../LIMITATIONS.md) (permanent design trade-offs).
 
-> **⏳ Screenshots are pending.** Images in this guide are placeholders. Each one is
-> accompanied by a numbered caption describing exactly what the final screenshot must
-> show; the images themselves are supplied in a separate pass. See
-> [images/README.md](images/README.md) for the full shot list.
+> Screenshots in this guide are real captures except for the hardware-only shots
+> listed in [images/README.md](images/README.md), which still use a hatch
+> placeholder until those surfaces can be captured honestly.
 
 ## Related documents
 

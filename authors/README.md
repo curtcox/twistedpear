@@ -76,10 +76,9 @@ The authoritative registers behind that appendix are
 [LIMITATIONS.md](../LIMITATIONS.md) (permanent design trade-offs). Where those disagree with
 this guide, they win.
 
-> **⏳ Screenshots are pending.** Images in this guide are placeholders. Each one is
-> accompanied by a numbered caption describing exactly what the final screenshot must show;
-> the images themselves are supplied in a separate pass. See
-> [images/README.md](images/README.md) for the full shot list.
+> Screenshots in this guide are real captures except for the hardware-only shots
+> listed in [images/README.md](images/README.md), which still use a hatch
+> placeholder until those surfaces can be captured honestly.
 
 ## The two paths
 

@@ -8,8 +8,8 @@ register: none
 
 This directory holds the screenshots referenced by the
 [TwistedPear App Authoring Guide](../README.md). Each
-screenshot is described in place in the guide, in a bold caption directly beneath its image,
-and the guide renders with placeholder graphics until the real files land.
+screenshot is described in place in the guide, in a bold caption directly beneath its image.
+Only the hardware-pending filenames below still render as a generated hatch PNG.
 
 ## How to supply a screenshot
 

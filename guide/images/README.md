@@ -9,7 +9,7 @@ register: none
 This directory holds the screenshots referenced by the
 [TwistedPear User Guide](../README.md). Each
 screenshot is described in place in the guide, in a bold caption directly beneath its
-image, and the guide renders with placeholder graphics until the real files land.
+image, and only the hardware-pending filenames listed below still render as a hatch PNG.
 
 ## How to supply a screenshot
 

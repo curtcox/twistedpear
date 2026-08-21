@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { gates } from "../../scripts/checks/registry.mjs";
@@ -13,6 +13,88 @@ import {
 } from "../../scripts/site/section-images.mjs";
 
 const root = join(import.meta.dirname, "../..");
+
+function parseVersion(value) {
+  return value.split(".").map((part) => Number.parseInt(part, 10));
+}
+
+function versionAtLeast(version, base) {
+  const left = parseVersion(version);
+  const right = parseVersion(base);
+  for (let i = 0; i < 3; i += 1) {
+    if ((left[i] ?? 0) > (right[i] ?? 0)) return true;
+    if ((left[i] ?? 0) < (right[i] ?? 0)) return false;
+  }
+  return true;
+}
+
+/** Ranges `npm ci` can satisfy from a workspace package without hitting the registry. */
+function workspaceRangeSatisfied(range, version) {
+  if (range === "*" || range.startsWith("file:") || range.startsWith("workspace:")) {
+    return true;
+  }
+  if (range === version) return true;
+  if (range.startsWith("^")) {
+    const base = range.slice(1);
+    const [major] = parseVersion(version);
+    const [baseMajor] = parseVersion(base);
+    return major === baseMajor && versionAtLeast(version, base);
+  }
+  if (range.startsWith("~")) {
+    const [major, minor] = parseVersion(version);
+    const [baseMajor, baseMinor] = parseVersion(range.slice(1));
+    return (
+      major === baseMajor &&
+      minor === baseMinor &&
+      versionAtLeast(version, range.slice(1))
+    );
+  }
+  return false;
+}
+
+function workspaceManifests(repoRoot) {
+  const manifests = [];
+  for (const dir of [
+    join(repoRoot, "packages"),
+    join(repoRoot, "apps"),
+    join(repoRoot, "apps/harness-mobile/modules"),
+  ]) {
+    if (!existsSync(dir)) continue;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const file = join(dir, entry.name, "package.json");
+      if (existsSync(file)) manifests.push(file);
+    }
+  }
+  return manifests;
+}
+
+function workspaceRangeMismatches(repoRoot) {
+  const versions = new Map();
+  const manifests = workspaceManifests(repoRoot);
+  for (const file of manifests) {
+    const pkg = JSON.parse(readFileSync(file, "utf8"));
+    if (typeof pkg.name === "string" && typeof pkg.version === "string") {
+      versions.set(pkg.name, pkg.version);
+    }
+  }
+  /** @type {string[]} */
+  const mismatches = [];
+  for (const file of manifests) {
+    const pkg = JSON.parse(readFileSync(file, "utf8"));
+    for (const block of [pkg.dependencies, pkg.devDependencies, pkg.peerDependencies]) {
+      if (!block) continue;
+      for (const [name, range] of Object.entries(block)) {
+        const version = versions.get(name);
+        if (!version || workspaceRangeSatisfied(range, version)) continue;
+        mismatches.push(
+          `${file.slice(repoRoot.length + 1)}: ${name}@${range} (workspace is ${version})`,
+        );
+      }
+    }
+  }
+  return mismatches;
+}
 
 describe("GitHub Pages site integrity", () => {
   it("is a registered PR gate that publishes a structured report", () => {
@@ -45,6 +127,11 @@ describe("GitHub Pages site integrity", () => {
         expect(existsSync(join(sectionImagesDir(id), name))).toBe(false);
       }
     }
+  });
+
+  it("keeps workspace dependency ranges on unpublished packages", () => {
+    const mismatches = workspaceRangeMismatches(root);
+    expect(mismatches, mismatches.join("\n")).toEqual([]);
   });
 
   it("does not keep a hatch PNG as a committed capture", () => {
