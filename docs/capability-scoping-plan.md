@@ -153,9 +153,9 @@ host-fixed (open question 1); announce stays own-namespace (open question 3).
 `CAP-EGRESS-CHROME` landed: offers are authored from pick-contact / accept-call /
 scan-qr, and settings list/revoke them.
 
-| ID                  | Type    | Requires           | Work                                                                                                                                                                                           |
-| ------------------- | ------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ~~`CAP-EGRESS-CHROME`~~ | feature | `CAP-EGRESS-OFFER` | Shipped. Desktop, mobile, and web chrome authors offers as a byproduct of natural use (§3); offer list and revoke in host settings                                                          |
+| ID                      | Type    | Requires           | Work                                                                                                                               |
+| ----------------------- | ------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| ~~`CAP-EGRESS-CHROME`~~ | feature | `CAP-EGRESS-OFFER` | Shipped. Desktop, mobile, and web chrome authors offers as a byproduct of natural use (§3); offer list and revoke in host settings |
 
 ### Phase 3 — scoped declarations (package format v2)
 

@@ -4,7 +4,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { chromium } from "playwright";
-import { collectHelloFiles, collectCookbookMeasureFiles } from "./hello-files.mjs";
+import {
+  collectHelloFiles,
+  collectCookbookMeasureFiles,
+} from "./hello-files.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../..");
@@ -67,13 +70,22 @@ function bundleGuida() {
       `esbuild guida failed: ${(bundled.stderr || bundled.stdout || "").slice(0, 800)}`,
     );
   }
-  writeFileSync(join(tmpDir, "files.json"), JSON.stringify(collectHelloFiles()));
+  writeFileSync(
+    join(tmpDir, "files.json"),
+    JSON.stringify(collectHelloFiles()),
+  );
   writeFileSync(
     join(tmpDir, "files-cookbook.json"),
     JSON.stringify(collectCookbookMeasureFiles("unit-converter")),
   );
-  writeFileSync(join(tmpDir, "engine-core.js"), readFileSync(join(here, "engine-core.js")));
-  writeFileSync(join(tmpDir, "runner.js"), readFileSync(join(here, "web-runner.js")));
+  writeFileSync(
+    join(tmpDir, "engine-core.js"),
+    readFileSync(join(here, "engine-core.js")),
+  );
+  writeFileSync(
+    join(tmpDir, "runner.js"),
+    readFileSync(join(here, "web-runner.js")),
+  );
   writeFileSync(
     join(tmpDir, "index.html"),
     `<!doctype html>
@@ -89,9 +101,9 @@ function bundleGuida() {
 export async function measureWeb() {
   const root = bundleGuida();
   const server = await startServer(root);
-    const browser = await chromium.launch({
-      args: ["--enable-precise-memory-info"],
-    });
+  const browser = await chromium.launch({
+    args: ["--enable-precise-memory-info"],
+  });
   try {
     const page = await browser.newPage();
     page.setDefaultTimeout(180_000);

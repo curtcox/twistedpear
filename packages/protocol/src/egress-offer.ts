@@ -4,12 +4,7 @@ import { interpret, type EventClass, type Machine } from "@twistedpear/effects";
 
 export type EgressOfferPhase = "absent" | "active" | "expired" | "revoked";
 export type EgressTargetKind =
-  | "peer"
-  | "group"
-  | "namespace"
-  | "key-prefix"
-  | "cas-id"
-  | "address";
+  "peer" | "group" | "namespace" | "key-prefix" | "cas-id" | "address";
 
 export interface EgressOfferConstraints {
   readonly tierId?: string;

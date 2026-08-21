@@ -8,6 +8,8 @@ import { repoRoot } from "./repo-root.mjs";
 export const REGISTER_FILES = [
   "STATUS-COMPLETE.md",
   "STATUS-COMPLETE-PHASES.md",
+  "STATUS-COMPLETE-PIPELINE.md",
+  "STATUS-COMPLETE-APPS.md",
   "STATUS-SOFTWARE.md",
   "STATUS-HARDWARE.md",
   "RELEASE-PLAN.md",
@@ -19,7 +21,7 @@ const EPHEMERAL_EVIDENCE_PATHS = new Set([
 ]);
 
 /** @param {string} token */
-function isEphemeralEvidencePath(token) {
+export function isEphemeralEvidencePath(token) {
   if (EPHEMERAL_EVIDENCE_PATHS.has(token.replace(/^\.\//, ""))) return true;
   if (token === "conformance/sim-regressions/") return true;
   return false;

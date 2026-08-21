@@ -29,6 +29,8 @@ const CLOSE_POLICY = {
   "STATUS-HARDWARE.md": null,
   "STATUS-COMPLETE.md": null,
   "STATUS-COMPLETE-PHASES.md": null,
+  "STATUS-COMPLETE-PIPELINE.md": null,
+  "STATUS-COMPLETE-APPS.md": null,
   "RELEASE-PLAN.md": null,
 };
 

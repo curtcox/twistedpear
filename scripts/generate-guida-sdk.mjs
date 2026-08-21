@@ -245,12 +245,7 @@ function generateCapabilities(calls) {
 }
 
 function updatePackageElmJson(moduleNames) {
-  const elmJsonPath = join(
-    ROOT,
-    "packages",
-    "guida-twistedpear",
-    "elm.json",
-  );
+  const elmJsonPath = join(ROOT, "packages", "guida-twistedpear", "elm.json");
   const elmJson = JSON.parse(readFileSync(elmJsonPath, "utf8"));
   const handwritten = [
     "TwistedPear.Program",
@@ -395,7 +390,10 @@ export function generateGuidaSdk(descriptorPath = DESCRIPTOR_PATH) {
 
   mkdirSync(dirname(SHIM_PATH), { recursive: true });
   writeFileSync(SHIM_PATH, generateShim(calls));
-  writeFileSync(CAPS_PATH, `${JSON.stringify(generateCapabilities(calls), null, 2)}\n`);
+  writeFileSync(
+    CAPS_PATH,
+    `${JSON.stringify(generateCapabilities(calls), null, 2)}\n`,
+  );
   return { modules: written, shimPath: SHIM_PATH, capsPath: CAPS_PATH };
 }
 

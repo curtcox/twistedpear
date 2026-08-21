@@ -37,7 +37,8 @@ export class Buffer extends Uint8Array {
       if (encoding === "base64") {
         const binary = globalThis.atob(data);
         const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        for (let i = 0; i < binary.length; i += 1)
+          bytes[i] = binary.charCodeAt(i);
         return new Buffer(bytes);
       }
       return new Buffer(encoder.encode(data));
@@ -65,7 +66,9 @@ export class Buffer extends Uint8Array {
 
   toString(encoding = "utf8") {
     if (encoding === "hex") {
-      return [...this].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      return [...this]
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
     }
     if (encoding === "base64") {
       let binary = "";

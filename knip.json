@@ -9,6 +9,11 @@
         "conformance/**/*.test.mjs",
         "vitest.config.ts",
         "scripts/site/react-native-web-samples/entry.tsx",
+        "scripts/site/editor/entry.tsx",
+        "scripts/site/editor/guida-worker.ts",
+        "scripts/site/browser-host/index.ts",
+        "conformance/guida-compiler/engine-core.js",
+        "conformance/guida-compiler/web-runner.js",
         "eslint.config.js",
         "eslint.*.config.js",
         "eslint.concat-groups.mjs",
@@ -55,6 +60,7 @@
     "jscpd",
     "mermaid",
     "opusscript",
+    "terser",
     "qrcode-generator",
     "react",
     "react-dom",
@@ -104,6 +110,7 @@
     "conformance/**/web-hyper-fetch.js",
     "conformance/web-storage/fixture.mjs",
     "apps/handbook/generated/**",
-    "apps/handbook/seeds/**"
+    "apps/handbook/seeds/**",
+    "packages/guida-twistedpear/seed/**"
   ]
 }

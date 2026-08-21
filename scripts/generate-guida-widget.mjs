@@ -74,8 +74,23 @@ bold =
 function generateStyle(schema) {
   const properties = schema.$defs.style.properties;
   const keys = Object.keys(properties).sort();
-  const pctNames = keys.filter((key) => properties[key].oneOf).map((key) => `${key}Pct`);
-  const fnNames = [...keys, ...pctNames, "flex", "hidden", "row", "column", "regular", "medium", "bold", "none", "batch", "encode"];
+  const pctNames = keys
+    .filter((key) => properties[key].oneOf)
+    .map((key) => `${key}Pct`);
+  const fnNames = [
+    ...keys,
+    ...pctNames,
+    "flex",
+    "hidden",
+    "row",
+    "column",
+    "regular",
+    "medium",
+    "bold",
+    "none",
+    "batch",
+    "encode",
+  ];
   const exposing = fnNames.join(", ");
   const functions = keys.map((key) => {
     const spec = properties[key];
@@ -180,7 +195,9 @@ function generateWidget(schema) {
   const branches = schema.$defs.node.allOf[0].oneOf;
   const types = branches.map((branch) => branch.properties.type.const).sort();
   const names = types.map(elmFnName);
-  const exposing = ["Widget", "encodeRoot", "events", "map", ...names].join(", ");
+  const exposing = ["Widget", "encodeRoot", "events", "map", ...names].join(
+    ", ",
+  );
 
   const helpers = `
 type Widget msg

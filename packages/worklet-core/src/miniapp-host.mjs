@@ -563,7 +563,9 @@ export function createWorkletMiniappHost(options) {
             const wasmExecuted = await measureWasmOnBareIsolate();
 
             if (!busyLoop.busyLoopKilled) {
-              throw new Error("busy-loop sandbox worker was not killed by watchdog");
+              throw new Error(
+                "busy-loop sandbox worker was not killed by watchdog",
+              );
             }
 
             return {

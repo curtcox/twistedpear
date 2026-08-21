@@ -23,7 +23,10 @@ const descriptor = JSON.parse(
   }>;
 };
 const capabilities = JSON.parse(
-  readFileSync(join(root, "specs/spec-sdk/schema/api-capabilities.json"), "utf8"),
+  readFileSync(
+    join(root, "specs/spec-sdk/schema/api-capabilities.json"),
+    "utf8",
+  ),
 ) as Record<string, string>;
 
 describe("Guida SDK descriptor", () => {

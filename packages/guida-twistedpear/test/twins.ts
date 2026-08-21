@@ -13,7 +13,8 @@ export function listTwinDirs(root: string): string[] {
     .map((entry) => join(root, entry.name))
     .filter(
       (dir) =>
-        existsSync(join(dir, "bundle.js")) && existsSync(join(dir, "src/Main.elm")),
+        existsSync(join(dir, "bundle.js")) &&
+        existsSync(join(dir, "src/Main.elm")),
     )
     .sort();
 }
@@ -239,7 +240,9 @@ export function makeTwinSdk(frames: unknown[]) {
   return record;
 }
 
-export async function waitSettled(sdk: { inflight: () => number }): Promise<void> {
+export async function waitSettled(sdk: {
+  inflight: () => number;
+}): Promise<void> {
   let idle = 0;
   for (let i = 0; i < 80; i += 1) {
     await flush();
@@ -267,10 +270,23 @@ export async function recordBundle(
   );
   const utcMinutes = Date.prototype.getUTCMinutes;
   const localeTime = Date.prototype.toLocaleTimeString;
+  const isoString = Date.prototype.toISOString;
   Date.prototype.getUTCMinutes = () => 0;
   Date.prototype.toLocaleTimeString = () => "";
+  // Cookbook Guida twins without elm/time pin the calendar date they were
+  // ported on (2026-08-20). Pin JS `new Date().toISOString()` to the same day
+  // so the settled trees match regardless of when the gate runs.
+  Date.prototype.toISOString = function toISOString() {
+    const value = isoString.call(this);
+    if (Math.abs(this.getTime() - Date.now()) < 60_000) {
+      return `2026-08-20T${value.slice(11)}`;
+    }
+    return value;
+  };
   try {
-    await new Function("sdk", `return (async () => {\n${rewritten}\n})();`)(sdk);
+    await new Function("sdk", `return (async () => {\n${rewritten}\n})();`)(
+      sdk,
+    );
     await waitSettled(sdk);
     const handler = sdk.handler();
     if (handler === undefined) throw new Error("app did not register onEvent");
@@ -282,5 +298,6 @@ export async function recordBundle(
   } finally {
     Date.prototype.getUTCMinutes = utcMinutes;
     Date.prototype.toLocaleTimeString = localeTime;
+    Date.prototype.toISOString = isoString;
   }
 }

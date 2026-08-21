@@ -2,17 +2,8 @@
   "schema": "twistedpear.transition-v1",
   "machine": "egress-offer",
   "generatedBy": "scripts/vectors-generate-egress-offer.mjs",
-  "states": [
-    "absent",
-    "active",
-    "expired",
-    "revoked"
-  ],
-  "eventClasses": [
-    "grant",
-    "ttl/expired",
-    "revoke"
-  ],
+  "states": ["absent", "active", "expired", "revoked"],
+  "eventClasses": ["grant", "ttl/expired", "revoke"],
   "cells": [
     {
       "state": "absent",

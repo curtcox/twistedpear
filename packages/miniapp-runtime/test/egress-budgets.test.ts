@@ -89,7 +89,11 @@ describe("per-offer egress budgets", () => {
         namespace: "lxmf",
         method: "send",
         capability: "lxmf:send",
-        payload: { to: "peer-a", subject: "x".repeat(80), body: "x".repeat(80) },
+        payload: {
+          to: "peer-a",
+          subject: "x".repeat(80),
+          body: "x".repeat(80),
+        },
       },
       manifest,
       capabilities,

@@ -145,15 +145,15 @@ limits iOS and Android impose from the ones this platform added on top.
 
   **Measured install budgets (Phase 3 M9, conservative bitrates):**
 
-  | Package                          |     Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode (~1.2 kbps) |
-  | -------------------------------- | -------: | ------------- | -------------- | ----------------- |
-  | `tiny` (budget hello-world)      |   ~900 B | &lt;1 s       | &lt;1 s        | ~6 s              |
-  | `example-app` (minimal mini-app) |   ~780 B | &lt;1 s       | &lt;1 s        | ~6 s              |
-  | `hello-js` (JS hello twin)       |  ~1.3 KiB | &lt;1 s       | &lt;1 s        | ~9 s              |
-  | `hello-guida` (Guida hello + shim) | ~27 KiB | &lt;1 s       | ~9 s           | ~3 m              |
-  | `chat` (Phase 4 example)         | ~2.6 KiB | &lt;1 s       | &lt;1 s        | ~18 s             |
-  | `file-drop` (Phase 4 example)    | ~1.8 KiB | &lt;1 s       | &lt;1 s        | ~12 s             |
-  | `board` (Phase 4 example)        | ~2.1 KiB | &lt;1 s       | &lt;1 s        | ~15 s             |
+  | Package                            |     Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode (~1.2 kbps) |
+  | ---------------------------------- | -------: | ------------- | -------------- | ----------------- |
+  | `tiny` (budget hello-world)        |   ~900 B | &lt;1 s       | &lt;1 s        | ~6 s              |
+  | `example-app` (minimal mini-app)   |   ~780 B | &lt;1 s       | &lt;1 s        | ~6 s              |
+  | `hello-js` (JS hello twin)         | ~1.3 KiB | &lt;1 s       | &lt;1 s        | ~9 s              |
+  | `hello-guida` (Guida hello + shim) |  ~27 KiB | &lt;1 s       | ~9 s           | ~3 m              |
+  | `chat` (Phase 4 example)           | ~2.6 KiB | &lt;1 s       | &lt;1 s        | ~18 s             |
+  | `file-drop` (Phase 4 example)      | ~1.8 KiB | &lt;1 s       | &lt;1 s        | ~12 s             |
+  | `board` (Phase 4 example)          | ~2.1 KiB | &lt;1 s       | &lt;1 s        | ~15 s             |
 
   Under-one-minute ceilings at these rates: LAN ~60 MiB, BLE ~180 KiB, RNode ~9 KiB.
   `bridge-hyper` blocks automatic bulk fetch over RNode-only links above 64 KiB and warns

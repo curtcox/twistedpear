@@ -64,7 +64,7 @@ export async function dispatch(
 
 export function denyCode(response, code) {
   if (response.ok) return null;
-  return response.error?.code === code ? code : response.error?.code ?? null;
+  return response.error?.code === code ? code : (response.error?.code ?? null);
 }
 
 export { capabilityUpdateDelta, describeCapability };

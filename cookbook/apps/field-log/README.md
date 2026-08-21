@@ -27,13 +27,15 @@ Hyperbee's lexicographic key order used deliberately, so listing is a range scan
 | -------------------------------------- | ------------------------------------------------------------ |
 | [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
 | [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
-| [elm.json](elm.json)                         | Guida project file for the Elm source variant.             |
-| [src/Main.elm](src/Main.elm)                 | Guida source. Compiles to the same widget tree as bundle.js. |
+| [elm.json](elm.json)                   | Guida project file for the Elm source variant.               |
+| [src/Main.elm](src/Main.elm)           | Guida source. Compiles to the same widget tree as bundle.js. |
 
 ### JavaScript
+
 Full source: [bundle.js](bundle.js)
 
 ### Guida
+
 Full source: [src/Main.elm](src/Main.elm)
 
 ## Run it

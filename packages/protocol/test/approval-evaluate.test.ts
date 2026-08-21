@@ -46,22 +46,14 @@ describe("evaluateApproval", () => {
   });
 
   it("treats elevated as ordinary approval — no evidence gate", () => {
-    const decision = evaluateApproval(
-      { capabilities: ["identity"] },
-      NONE,
-      T,
-    );
+    const decision = evaluateApproval({ capabilities: ["identity"] }, NONE, T);
     expect(decision.tier).toBe("elevated");
     expect(decision.required).toEqual([]);
     expect(decision.unmet).toEqual([]);
   });
 
   it("lists every sensitive requirement unmet when the host has no evidence", () => {
-    const decision = evaluateApproval(
-      { capabilities: ["lxmf:send"] },
-      NONE,
-      T,
-    );
+    const decision = evaluateApproval({ capabilities: ["lxmf:send"] }, NONE, T);
     expect(decision.tier).toBe("sensitive");
     expect(decision.unmet).toEqual([
       "provenance",

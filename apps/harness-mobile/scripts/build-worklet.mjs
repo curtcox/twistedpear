@@ -156,7 +156,7 @@ if (result.status !== 0) {
   const neutralized = packed
     .replaceAll('new TextDecoder(\\"utf-16le\\")', "void 0")
     .replaceAll('new TextDecoder("utf-16le")', "void 0")
-    .replaceAll('new TextDecoder(\'utf-16le\')', "void 0");
+    .replaceAll("new TextDecoder('utf-16le')", "void 0");
   if (neutralized === packed) {
     console.warn("worklet: no utf-16le TextDecoder sites found to neutralize");
   } else {

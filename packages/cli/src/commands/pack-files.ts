@@ -1,9 +1,4 @@
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-} from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { PackageFile } from "@twistedpear/app-registry";
 import { readBytes } from "../config.js";
@@ -50,7 +45,10 @@ function matchIgnore(path: string, pattern: string): boolean {
   }
   if (body.startsWith("*.")) {
     const suffix = body.slice(1);
-    return path.endsWith(suffix) || path.split("/").some((part) => part.endsWith(suffix));
+    return (
+      path.endsWith(suffix) ||
+      path.split("/").some((part) => part.endsWith(suffix))
+    );
   }
   return path === body || path.endsWith(`/${body}`);
 }

@@ -136,7 +136,9 @@ export function problemFromError(error: unknown): GuidaProblem {
   };
 }
 
-function formattedSourceFrom(record: Record<string, unknown>): string | undefined {
+function formattedSourceFrom(
+  record: Record<string, unknown>,
+): string | undefined {
   for (const key of [
     "content",
     "formatted",
@@ -157,7 +159,8 @@ function formattedSourceFrom(record: Record<string, unknown>): string | undefine
 export function extractFormatted(raw: unknown): string {
   if (typeof raw === "string") return raw;
   const record = asRecord(raw);
-  const fromRecord = record === undefined ? undefined : formattedSourceFrom(record);
+  const fromRecord =
+    record === undefined ? undefined : formattedSourceFrom(record);
   if (fromRecord !== undefined) return fromRecord;
   throw new Error(
     `unexpected guida format result: ${describeFormatResult(raw)}`,
@@ -171,6 +174,8 @@ function describeFormatResult(raw: unknown): string {
     if (raw === null) return "null";
     if (Array.isArray(raw)) return `array(${raw.length})`;
     if (typeof raw !== "object") return typeof raw;
-    return Object.keys(raw as Record<string, unknown>).slice(0, 12).join(",");
+    return Object.keys(raw as Record<string, unknown>)
+      .slice(0, 12)
+      .join(",");
   }
 }

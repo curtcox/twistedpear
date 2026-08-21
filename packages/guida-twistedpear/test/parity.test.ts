@@ -5,11 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildGuidaApp } from "../src/build.js";
 import { compileGuidaWorkspace } from "../src/compile-workspace.js";
-import {
-  canonical,
-  listTwinDirs,
-  recordBundle,
-} from "./twins.js";
+import { canonical, listTwinDirs, recordBundle } from "./twins.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "../../..");
@@ -19,9 +15,7 @@ const cookbookApps = join(root, "cookbook/apps");
 const exampleApps = join(root, "apps/examples");
 const cookbookExamples = join(root, "cookbook/examples");
 
-const skipGuida = await import("guida")
-  .then(() => false)
-  .catch(() => true);
+const skipGuida = await import("guida").then(() => false).catch(() => true);
 
 async function buildAndCompare(
   appDir: string,
@@ -72,7 +66,10 @@ describe.skipIf(skipGuida)("Guida/JS widget-stream parity", () => {
     globalThis.setInterval = (() => 0) as typeof setInterval;
     try {
       const built = await compileGuidaWorkspace([
-        { path: "elm.json", content: readFileSync(join(dir, "elm.json"), "utf8") },
+        {
+          path: "elm.json",
+          content: readFileSync(join(dir, "elm.json"), "utf8"),
+        },
         {
           path: "src/Main.elm",
           content: readFileSync(join(dir, "src/Main.elm"), "utf8"),

@@ -23,6 +23,7 @@ export const GENERATED_PATH_PATTERN = new RegExp(
     "(^|/)vendor/",
     "(^|/)generated/",
     "(^|/)seeds/",
+    "(^|/)seed/",
     // Native toolchain output: Gradle, SwiftPM, Expo prebuild, CocoaPods.
     "(^|/)(build|\\.build|\\.gradle|\\.expo|Pods)/",
     "\\.gen\\.(ts|tsx|js|mjs|cjs)$",

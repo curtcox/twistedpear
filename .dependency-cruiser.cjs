@@ -46,7 +46,7 @@ module.exports = {
         orphan: true,
         path: "^(packages|apps)/",
         pathNot:
-          "(^|/)(index|main|entry|setup-tripwire|.*\\.test)\\.(ts|tsx|js|mjs)$|\\.gen\\.ts$|\\.d\\.ts$|/stubs/[^/]+\\.web\\.js$|/public/web-core\\.worker\\.js$|/modules/[^/]+/app\\.plugin\\.js$|(^|/)apps/handbook/src/runtime(-applets)?\\.js$",
+          "(^|/)(index|main|entry|setup-tripwire|.*\\.test)\\.(ts|tsx|js|mjs)$|\\.gen\\.ts$|\\.d\\.ts$|/stubs/[^/]+\\.web\\.js$|/public/web-core\\.worker\\.js$|/modules/[^/]+/app\\.plugin\\.js$|(^|/)apps/handbook/src/runtime(-applets)?\\.js$|(^|/)packages/guida-twistedpear/seed/",
       },
       to: {},
     },
@@ -92,7 +92,7 @@ module.exports = {
   options: {
     doNotFollow: { path: "node_modules" },
     exclude: {
-      path: "^(apps/harness-mobile/(android|ios)|apps/handbook/(generated|seeds)|apps/host-desktop/packages|packages/reticulum-ts/docs/api|conformance/docs/\\.tmp-handbook-capture)/",
+      path: "^(apps/harness-mobile/(android|ios)|apps/handbook/(generated|seeds)|apps/host-desktop/packages|packages/reticulum-ts/docs/api|conformance/docs/\\.tmp-handbook-capture|packages/guida-twistedpear/seed)/",
     },
     tsPreCompilationDeps: true,
     combinedDependencies: true,

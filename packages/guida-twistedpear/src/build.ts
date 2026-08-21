@@ -5,10 +5,7 @@ import { fileURLToPath } from "node:url";
 import { JsModuleGuidaCompiler } from "./compiler.js";
 import { minifyGuida } from "./minify.js";
 import { GUIDA_SHIM_SOURCE } from "./shim.js";
-import {
-  GUIDA_COMPILER_VERSION,
-  GUIDA_VENDOR_DIR,
-} from "./version.js";
+import { GUIDA_COMPILER_VERSION, GUIDA_VENDOR_DIR } from "./version.js";
 import { wrapGuidaScope } from "./wrap-scope.js";
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");

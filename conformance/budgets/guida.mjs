@@ -15,12 +15,12 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../..");
-const guidaHello = join(
-  repoRoot,
-  "packages/guida-twistedpear/templates/hello",
-);
+const guidaHello = join(repoRoot, "packages/guida-twistedpear/templates/hello");
 const jsHello = join(repoRoot, "packages/guida-twistedpear/fixtures/hello-js");
-const ITERATIONS = Number.parseInt(process.env.GUIDA_BUDGET_ITERATIONS ?? "8", 10);
+const ITERATIONS = Number.parseInt(
+  process.env.GUIDA_BUDGET_ITERATIONS ?? "8",
+  10,
+);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

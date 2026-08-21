@@ -64,12 +64,12 @@ differently from `Allow`, names the unmet set, and
 `ConsentRecord`. A fresh device with no evidence states that limitation rather
 than "safe" or "malicious".
 
-| Tier        | Evidence required                                      | Provenance met by                         | Review met by      |
-| ----------- | ------------------------------------------------------ | ----------------------------------------- | ------------------ |
-| `benign`    | none                                                   | —                                         | —                  |
-| `elevated`  | none (today's capability dialog is host chrome)        | —                                         | —                  |
-| `sensitive` | provenance, age (T₁), stability (T₂), review           | any trust degree, **or** ≥1 attestation   | ≥1 attestation     |
-| `critical`  | provenance, age (T₃), stability (T₄), review           | `direct` trust                            | ≥ K attestations   |
+| Tier        | Evidence required                               | Provenance met by                       | Review met by    |
+| ----------- | ----------------------------------------------- | --------------------------------------- | ---------------- |
+| `benign`    | none                                            | —                                       | —                |
+| `elevated`  | none (today's capability dialog is host chrome) | —                                       | —                |
+| `sensitive` | provenance, age (T₁), stability (T₂), review    | any trust degree, **or** ≥1 attestation | ≥1 attestation   |
+| `critical`  | provenance, age (T₃), stability (T₄), review    | `direct` trust                          | ≥ K attestations |
 
 T₁…T₄ and K are arguments (`ApprovalThresholds`), not defaults. They remain a
 product call informed by the sim campaign. The executable table is

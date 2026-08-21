@@ -21,15 +21,15 @@ TwistedPear test failure, and it does not move a `STATUS-*.md` row.
 
 On Apple Silicon with SIP enabled, the useful artifacts write themselves:
 
-| Source | Where |
-| --- | --- |
-| Panic log + process stackshot | `/Library/Logs/DiagnosticReports/panic-full-*.panic` (then `Retired/`) |
-| Watchdog reset | `/Library/Logs/DiagnosticReports/ResetCounter-*.diag` (`Boot faults: wdog,…`) |
-| PanicMedic | NVRAM `panicmedic-telemetry` / `panicmedic-timestamps` |
-| Analytics auto-submit | `/Library/Application Support/CrashReporter/DiagnosticMessagesHistory.plist` (`AutoSubmit`, `ThirdPartyDataSubmit`) |
+| Source                        | Where                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Panic log + process stackshot | `/Library/Logs/DiagnosticReports/panic-full-*.panic` (then `Retired/`)                                              |
+| Watchdog reset                | `/Library/Logs/DiagnosticReports/ResetCounter-*.diag` (`Boot faults: wdog,…`)                                       |
+| PanicMedic                    | NVRAM `panicmedic-telemetry` / `panicmedic-timestamps`                                                              |
+| Analytics auto-submit         | `/Library/Application Support/CrashReporter/DiagnosticMessagesHistory.plist` (`AutoSubmit`, `ThirdPartyDataSubmit`) |
 
 Unified logs from the dying boot are usually gone after the watchdog reboot.
-`log show --last boot` after login is the *new* boot. Do not expect it to
+`log show --last boot` after login is the _new_ boot. Do not expect it to
 reconstruct the last seconds before the panic.
 
 Kernel debug `boot-args`, KDP, and `keepsyms` need a security downgrade and
@@ -112,9 +112,9 @@ Macmini9,1, 16 GB, macOS 26.5.2 (25F84), SIP on, zero third-party kexts,
 zero system extensions. Analytics `LastFullSubmissionSuccess` for the
 19 Aug panic was 08:56 CDT the same morning.
 
-| When (CDT) | File | Panic | Load in stackshot |
-| --- | --- | --- | --- |
-| 2026-08-18 08:13 | `panic-full-2026-08-18-081309.0002.panic` | `initproc exited` (launchd) | `freenet-bin` ~4.5 GB, Cursor; no iOS sim / harness |
+| When (CDT)       | File                                      | Panic                                                   | Load in stackshot                                                                                                                                                                                                              |
+| ---------------- | ----------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-18 08:13 | `panic-full-2026-08-18-081309.0002.panic` | `initproc exited` (launchd)                             | `freenet-bin` ~4.5 GB, Cursor; no iOS sim / harness                                                                                                                                                                            |
 | 2026-08-19 08:34 | `panic-full-2026-08-19-083442.0002.panic` | Kernel data abort in `com.apple.iokit.EndpointSecurity` | `freenet-bin` ~4.2 GB, Cursor + 1.4 GB `node`, ~323 sim-guest processes, `TwistedPearHarness` 144 MB, `SimMetalHost (iPhone 17 Pro…)`. `xcodebuild`/Maestro not still running. Memory pressure flag false; ~4.5 GB compressed. |
 
 The 19 Aug session started 07:37 (STATUS-SOFTWARE backlog, soaks skipped).

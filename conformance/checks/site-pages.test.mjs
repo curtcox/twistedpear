@@ -30,7 +30,11 @@ function versionAtLeast(version, base) {
 
 /** Ranges `npm ci` can satisfy from a workspace package without hitting the registry. */
 function workspaceRangeSatisfied(range, version) {
-  if (range === "*" || range.startsWith("file:") || range.startsWith("workspace:")) {
+  if (
+    range === "*" ||
+    range.startsWith("file:") ||
+    range.startsWith("workspace:")
+  ) {
     return true;
   }
   if (range === version) return true;
@@ -82,7 +86,11 @@ function workspaceRangeMismatches(repoRoot) {
   const mismatches = [];
   for (const file of manifests) {
     const pkg = JSON.parse(readFileSync(file, "utf8"));
-    for (const block of [pkg.dependencies, pkg.devDependencies, pkg.peerDependencies]) {
+    for (const block of [
+      pkg.dependencies,
+      pkg.devDependencies,
+      pkg.peerDependencies,
+    ]) {
       if (!block) continue;
       for (const [name, range] of Object.entries(block)) {
         const version = versions.get(name);

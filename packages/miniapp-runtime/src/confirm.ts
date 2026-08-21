@@ -77,7 +77,10 @@ export class ConfirmationRateLimiter {
   }
 }
 
-const CONTROL_CHARS = /[\u0000-\u001F\u007F\u202A-\u202E\u2066-\u2069]/g;
+const CONTROL_CHARS = new RegExp(
+  `[${String.fromCharCode(0)}-${String.fromCharCode(31)}\u007F\u202A-\u202E\u2066-\u2069]`,
+  "g",
+);
 
 export function sanitizeConfirmationSummary(
   summary: Readonly<Record<string, string>>,

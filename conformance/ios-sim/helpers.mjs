@@ -121,10 +121,7 @@ export function harnessAppPath(
  * `expo run:ios` opens the dev-client URL even with `--no-bundler`; xcodebuild
  * installs the same Release binary Maestro expects.
  */
-export function buildHarnessApp(
-  repoRoot,
-  options = {},
-) {
+export function buildHarnessApp(repoRoot, options = {}) {
   const harnessDir = join(repoRoot, "apps/harness-mobile");
   const iosDir = join(harnessDir, "ios");
   const derivedDataPath = options.derivedDataPath ?? defaultDerivedDataPath;

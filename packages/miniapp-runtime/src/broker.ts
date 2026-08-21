@@ -278,7 +278,11 @@ export class MiniappBroker {
 
 function egressTargetFromRequest(request: BrokerRequest): string | undefined {
   const payload = request.payload;
-  if (payload === undefined || typeof payload !== "object" || payload === null) {
+  if (
+    payload === undefined ||
+    typeof payload !== "object" ||
+    payload === null
+  ) {
     return undefined;
   }
   if (request.namespace === "lxmf" && request.method === "send") {

@@ -11,7 +11,9 @@ describe("wrapGuidaScope", () => {
   });
 
   it("strips the HTML try/catch wrapper Elm puts around index.html output", () => {
-    const wrapped = wrapGuidaScope(`try {\n${FAKE_GUIDA}\n} catch (e) { throw e; }`);
+    const wrapped = wrapGuidaScope(
+      `try {\n${FAKE_GUIDA}\n} catch (e) { throw e; }`,
+    );
     expect(wrapped).not.toContain("try {");
     const Elm = new Function(`${wrapped}\nreturn Elm;`)();
     expect(Elm.Main.init).toBeTypeOf("function");
@@ -27,7 +29,9 @@ describe("wrapGuidaScope", () => {
     const wrapped = wrapGuidaScope(FAKE_GUIDA);
     const moduleSource = `${wrapped}\nexport { Elm };`;
     const url = `data:text/javascript,${encodeURIComponent(moduleSource)}`;
-    const imported = (await import(url)) as { Elm: { Main: { init: unknown } } };
+    const imported = (await import(url)) as {
+      Elm: { Main: { init: unknown } };
+    };
     expect(imported.Elm.Main.init).toBeTypeOf("function");
   });
 });

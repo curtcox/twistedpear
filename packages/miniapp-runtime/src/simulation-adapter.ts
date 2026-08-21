@@ -132,7 +132,8 @@ export class ProductionCapabilityAdapter {
     this.nowValue = at;
     const operation = operationFor(capability);
     if (capability === "lxmf:send") {
-      const to = (operation.payload as { to?: string } | undefined)?.to ?? "peer";
+      const to =
+        (operation.payload as { to?: string } | undefined)?.to ?? "peer";
       this.host.grantEgressOffer({
         appId: this.appId,
         capability: "lxmf:send",

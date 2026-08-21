@@ -36,10 +36,7 @@ function deviceClassPages() {
 }
 
 function guidaSdkModules() {
-  const dir = path.join(
-    ROOT,
-    "packages/guida-twistedpear/elm/TwistedPear/Sdk",
-  );
+  const dir = path.join(ROOT, "packages/guida-twistedpear/elm/TwistedPear/Sdk");
   if (!fs.existsSync(dir)) return [];
   return fs
     .readdirSync(dir)

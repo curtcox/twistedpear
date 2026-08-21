@@ -34,7 +34,9 @@ describe("publisher trust degree", () => {
     expect(trustDegreeFromSource("manual")).toBe("direct");
     expect(trustDegreeFromSource("paste")).toBe("imported");
     expect(trustDegreeFromSource("introduced")).toBe("introduced");
-    expect(TRUST_DEGREE_RANK.direct).toBeGreaterThan(TRUST_DEGREE_RANK.imported);
+    expect(TRUST_DEGREE_RANK.direct).toBeGreaterThan(
+      TRUST_DEGREE_RANK.imported,
+    );
     expect(TRUST_DEGREE_RANK.imported).toBe(TRUST_DEGREE_RANK.introduced);
   });
 

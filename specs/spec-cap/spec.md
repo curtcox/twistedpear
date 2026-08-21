@@ -63,12 +63,12 @@ in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Every capability also has a
 Four classes, floors from four questions on each registry row
 ([app approval risk](../../docs/app-approval-risk.md)):
 
-| Class       | Meaning                                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| `benign`    | Local or read-only observation                                                                          |
-| `elevated`  | Today's capability-review dialog; identity, host-fixed AI/fetch, `low` device consent                   |
-| `sensitive` | App-chosen egress, irreversible publish/install, `elevated`/`sensitive` device tiers                    |
-| `critical`  | `relay:configure` only — misuse harms people who never approved the grant                               |
+| Class       | Meaning                                                                               |
+| ----------- | ------------------------------------------------------------------------------------- |
+| `benign`    | Local or read-only observation                                                        |
+| `elevated`  | Today's capability-review dialog; identity, host-fixed AI/fetch, `low` device consent |
+| `sensitive` | App-chosen egress, irreversible publish/install, `elevated`/`sensitive` device tiers  |
+| `critical`  | `relay:configure` only — misuse harms people who never approved the grant             |
 
 `namesDestination` or `irreversibleOrThirdParty` floors at `sensitive`.
 `readsSensorSecretOrForeignData` floors at `elevated`. `standing` is recorded but is
@@ -94,15 +94,15 @@ dimension, with the same four cross-checked representations as the grant lifecyc
 `assertEgressAllowed` is the permit function each emitting service runs after the
 capability check.
 
-Package format v2 lets a signed manifest declare the *shape* of that scope so the
+Package format v2 lets a signed manifest declare the _shape_ of that scope so the
 install review can distinguish "messages contacts you choose" from "messages anyone"
 before launch:
 
-| `scope.kind`     | Meaning                                                                 |
-| ---------------- | ----------------------------------------------------------------------- |
-| `offer`          | Live host-authored offers of the stated `targetKind`                    |
-| `own-namespace`  | This app's announce namespace only                                      |
-| omitted / string | v1 unscoped meaning                                                     |
+| `scope.kind`     | Meaning                                              |
+| ---------------- | ---------------------------------------------------- |
+| `offer`          | Live host-authored offers of the stated `targetKind` |
+| `own-namespace`  | This app's announce namespace only                   |
+| omitted / string | v1 unscoped meaning                                  |
 
 `lxmf:send` and `link:probe` take offers; `announce:publish` / `announce:subscribe`
 are own-namespace; `share:cas`, `peer:connect`, and `freenet:contract` stay
@@ -211,14 +211,14 @@ terminal unless re-granted. Re-grant of the same id from any phase returns `acti
 
 ### Events and edges
 
-| From    | Event class   | To     | Guard / effect                                  |
-| ------- | ------------- | ------ | ----------------------------------------------- |
-| absent  | `grant`       | active | copies offer fields; `expiresAt = grantedAt + ttlMs` |
-| active  | `grant`       | active | renew / replace                                 |
-| expired | `grant`       | active | re-grant                                        |
-| revoked | `grant`       | active | re-grant                                        |
-| active  | `ttl/expired` | expired | only if `at >= expiresAt`                      |
-| active  | `revoke`      | revoked | records `revokedAt`                            |
+| From    | Event class   | To      | Guard / effect                                       |
+| ------- | ------------- | ------- | ---------------------------------------------------- |
+| absent  | `grant`       | active  | copies offer fields; `expiresAt = grantedAt + ttlMs` |
+| active  | `grant`       | active  | renew / replace                                      |
+| expired | `grant`       | active  | re-grant                                             |
+| revoked | `grant`       | active  | re-grant                                             |
+| active  | `ttl/expired` | expired | only if `at >= expiresAt`                            |
+| active  | `revoke`      | revoked | records `revokedAt`                                  |
 
 `egress/clear-sensitive` is a store-wide wipe, not a per-offer edge. Time enters only
 through event payloads. `egressOfferPermits` is live only when `phase = active` and
@@ -233,11 +233,11 @@ fields match.
 
 ### Normative artifacts
 
-| Representation            | Artifact                                                                                                                               |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| TLA+ model (Layer-2 twin) | [model/egress_offer.tla](model/egress_offer.tla) + [model/egress_offer.cfg](model/egress_offer.cfg)                                    |
-| Checked traces            | [model/egress-offer-conformance-traces.json](model/egress-offer-conformance-traces.json)                                               |
-| Executable table          | `egressOfferMachine` in [packages/protocol/src/egress-offer.ts](../../packages/protocol/src/egress-offer.ts)                           |
+| Representation            | Artifact                                                                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| TLA+ model (Layer-2 twin) | [model/egress_offer.tla](model/egress_offer.tla) + [model/egress_offer.cfg](model/egress_offer.cfg)                                             |
+| Checked traces            | [model/egress-offer-conformance-traces.json](model/egress-offer-conformance-traces.json)                                                        |
+| Executable table          | `egressOfferMachine` in [packages/protocol/src/egress-offer.ts](../../packages/protocol/src/egress-offer.ts)                                    |
 | Layer-3 vector            | [conformance/vectors/egress-offer.json](../../conformance/vectors/egress-offer.json) (generated by `scripts/vectors-generate-egress-offer.mjs`) |
 
 ```sh

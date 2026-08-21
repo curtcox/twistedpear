@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 /**
- * A throwaway git repo shaped like the real one: the five register files the
+ * A throwaway git repo shaped like the real one: the register files the
  * audit reads, plus the work/ sidecar. Needed because the interesting cases are
  * all failures, and the real repo is (by design) always in the passing state.
  */
@@ -58,6 +58,8 @@ export class WorkFixture {
     const others = [
       "STATUS-COMPLETE.md",
       "STATUS-COMPLETE-PHASES.md",
+      "STATUS-COMPLETE-PIPELINE.md",
+      "STATUS-COMPLETE-APPS.md",
       "STATUS-HARDWARE.md",
       "RELEASE-PLAN.md",
     ];

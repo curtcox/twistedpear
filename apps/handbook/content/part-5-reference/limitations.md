@@ -157,15 +157,15 @@ limits iOS and Android impose from the ones this platform added on top.
 
   **Measured install budgets (Phase 3 M9, conservative bitrates):**
 
-  | Package                          |     Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode (~1.2 kbps) |
-  | -------------------------------- | -------: | ------------- | -------------- | ----------------- |
-  | `tiny` (budget hello-world)      |   ~900 B | <1 s       | <1 s        | ~6 s              |
-  | `example-app` (minimal mini-app) |   ~780 B | <1 s       | <1 s        | ~6 s              |
-  | `hello-js` (JS hello twin)       |  ~1.3 KiB | <1 s       | <1 s        | ~9 s              |
-  | `hello-guida` (Guida hello + shim) | ~27 KiB | <1 s       | ~9 s           | ~3 m              |
-  | `chat` (Phase 4 example)         | ~2.6 KiB | <1 s       | <1 s        | ~18 s             |
-  | `file-drop` (Phase 4 example)    | ~1.8 KiB | <1 s       | <1 s        | ~12 s             |
-  | `board` (Phase 4 example)        | ~2.1 KiB | <1 s       | <1 s        | ~15 s             |
+  | Package                            |     Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode (~1.2 kbps) |
+  | ---------------------------------- | -------: | ------------- | -------------- | ----------------- |
+  | `tiny` (budget hello-world)        |   ~900 B | <1 s       | <1 s        | ~6 s              |
+  | `example-app` (minimal mini-app)   |   ~780 B | <1 s       | <1 s        | ~6 s              |
+  | `hello-js` (JS hello twin)         | ~1.3 KiB | <1 s       | <1 s        | ~9 s              |
+  | `hello-guida` (Guida hello + shim) |  ~27 KiB | <1 s       | ~9 s           | ~3 m              |
+  | `chat` (Phase 4 example)           | ~2.6 KiB | <1 s       | <1 s        | ~18 s             |
+  | `file-drop` (Phase 4 example)      | ~1.8 KiB | <1 s       | <1 s        | ~12 s             |
+  | `board` (Phase 4 example)          | ~2.1 KiB | <1 s       | <1 s        | ~15 s             |
 
   Under-one-minute ceilings at these rates: LAN ~60 MiB, BLE ~180 KiB, RNode ~9 KiB.
   `bridge-hyper` blocks automatic bulk fetch over RNode-only links above 64 KiB and warns
@@ -315,8 +315,10 @@ limits iOS and Android impose from the ones this platform added on top.
   visitor's tab with in-page demo backends. It cannot publish, has no Reticulum network,
   does not grant `ai:chat`, and has no BLE or local peer discovery. Package/install are
   stubs that say so. Guida hello-world compile is ~4 s in Chromium
-  (`conformance/guida-compiler/measured.json`); a cookbook-sized project is measured
-  alongside it. Workspace persistence uses `localStorage` (`tp.editor.v1/`) and falls back
+  (`conformance/guida-compiler/measured.json`). The web measure runner also
+  attempts a cookbook-sized compile (`unit-converter`) as extra evidence and
+  records `cookbookCompileMs` when that finishes. Workspace persistence uses
+  `localStorage` (`tp.editor.v1/`) and falls back
   to memory when storage is blocked or over quota.
 
 ## 9. General

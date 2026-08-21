@@ -195,9 +195,9 @@ describe("coverage serialisation", () => {
   it("pins one Vitest worker locally and leaves CI on the default pool", () => {
     expect(coverageWorkerArgs({})).toEqual(["--maxWorkers=1"]);
     expect(coverageWorkerArgs({ CI: "true" })).toEqual([]);
-    expect(coverageWorkerArgs({ CI: "true", TP_COVERAGE_SERIAL: "1" })).toEqual([
-      "--maxWorkers=1",
-    ]);
+    expect(coverageWorkerArgs({ CI: "true", TP_COVERAGE_SERIAL: "1" })).toEqual(
+      ["--maxWorkers=1"],
+    );
   });
 });
 

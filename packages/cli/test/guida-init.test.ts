@@ -16,9 +16,9 @@ describe("tp guida init", () => {
       expect(manifest.minHostApi).toBe(HOST_API_VERSION);
       expect(manifest.entry).toBe("bundle.js");
       expect(manifest.capabilities).toEqual([]);
-      expect(readFileSync(join(cwd, "demo", "src", "Main.elm"), "utf8")).toMatch(
-        /Program\.app/,
-      );
+      expect(
+        readFileSync(join(cwd, "demo", "src", "Main.elm"), "utf8"),
+      ).toMatch(/Program\.app/);
       expect(readFileSync(join(cwd, "demo", "elm.json"), "utf8")).toMatch(
         /"elm-version": "0.19.1"/,
       );

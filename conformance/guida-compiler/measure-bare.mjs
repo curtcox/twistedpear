@@ -33,7 +33,8 @@ export function measureBare() {
     return {
       runtime: "bare",
       available: false,
-      error: "packages/guida-twistedpear/dist/worklet.js is missing; run npm run build",
+      error:
+        "packages/guida-twistedpear/dist/worklet.js is missing; run npm run build",
     };
   }
   mkdirSync(tmpDir, { recursive: true });

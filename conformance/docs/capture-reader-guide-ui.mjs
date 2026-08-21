@@ -370,10 +370,7 @@ try {
                   "Grants must be a subset of the app's declared capabilities.",
                 ],
               ],
-              [
-                "storage:kv — Store local data",
-                "lxmf:send — Send messages",
-              ],
+              ["storage:kv — Store local data", "lxmf:send — Send messages"],
             );
             break;
           case "render-rejection":
@@ -546,10 +543,16 @@ try {
       const gatewayOutput = join(repoRoot, "guide/images/04-web-gateway.png");
       await webPage.evaluate(() => {
         for (const node of document.querySelectorAll("div, span, p")) {
-          if (node.childElementCount === 0 && node.textContent?.startsWith("Gateway:")) {
+          if (
+            node.childElementCount === 0 &&
+            node.textContent?.startsWith("Gateway:")
+          ) {
             node.textContent = "Gateway: wss://tp-demo.example:9474";
           }
-          if (node.childElementCount === 0 && node.textContent?.startsWith("Gateway link:")) {
+          if (
+            node.childElementCount === 0 &&
+            node.textContent?.startsWith("Gateway link:")
+          ) {
             node.textContent = "Gateway link: online";
           }
         }

@@ -18,7 +18,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "../../..");
 const harnessDir = join(here, "../fixtures/vector-harness");
 const descriptor = JSON.parse(
-  readFileSync(join(root, "specs/spec-sdk/schema/calls.descriptor.json"), "utf8"),
+  readFileSync(
+    join(root, "specs/spec-sdk/schema/calls.descriptor.json"),
+    "utf8",
+  ),
 ) as {
   calls: ReadonlyArray<{
     namespace: string;
@@ -32,11 +35,21 @@ const descriptor = JSON.parse(
 const vectors = JSON.parse(
   readFileSync(join(root, "specs/spec-sdk/vectors/calls.json"), "utf8"),
 ) as {
-  defaultApp: { name: string; declared: string[]; granted: string[]; register?: boolean };
+  defaultApp: {
+    name: string;
+    declared: string[];
+    granted: string[];
+    register?: boolean;
+  };
   vectors: ReadonlyArray<{
     name: string;
     host?: string;
-    app?: { name: string; declared: string[]; granted: string[]; register?: boolean };
+    app?: {
+      name: string;
+      declared: string[];
+      granted: string[];
+      register?: boolean;
+    };
     setup?: { maxMessagesPerSecond?: number };
     steps: ReadonlyArray<{
       call: {
@@ -45,7 +58,13 @@ const vectors = JSON.parse(
         capability?: string;
         payload?: unknown;
       };
-      expect: { ok: boolean; code?: string; result?: unknown; resultKeys?: string[]; messageIncludes?: string };
+      expect: {
+        ok: boolean;
+        code?: string;
+        result?: unknown;
+        resultKeys?: string[];
+        messageIncludes?: string;
+      };
       repeat?: number;
     }>;
   }>;
@@ -74,10 +93,18 @@ function jsonSafe(value: unknown): unknown {
 function findBinding(namespace: string, method: string) {
   return descriptor.calls.find((call) => {
     if (call.namespace === namespace && call.method === method) return true;
-    if (namespace === "apps" && method === "package" && call.method === "packageProject") {
+    if (
+      namespace === "apps" &&
+      method === "package" &&
+      call.method === "packageProject"
+    ) {
       return true;
     }
-    if (namespace === "workspace" && method === "delete" && call.method === "remove") {
+    if (
+      namespace === "workspace" &&
+      method === "delete" &&
+      call.method === "remove"
+    ) {
       return true;
     }
     return false;
@@ -88,7 +115,8 @@ function wrapPayload(
   binding: (typeof descriptor.calls)[number] | undefined,
   payload: unknown,
 ): unknown {
-  if (binding === undefined || binding.skipBinding) return jsonSafe(payload ?? null);
+  if (binding === undefined || binding.skipBinding)
+    return jsonSafe(payload ?? null);
   const args = binding.args ?? [];
   if (args.length === 0) return null;
   const record =
@@ -120,12 +148,20 @@ function toBrokerPayload(
   if (payload === undefined || payload === null) return payload;
   const args = binding?.args ?? [];
   if (args.length === 1 && args[0].name === "request") {
-    if (payload !== null && typeof payload === "object" && "request" in payload) {
+    if (
+      payload !== null &&
+      typeof payload === "object" &&
+      "request" in payload
+    ) {
       return (payload as { request: unknown }).request;
     }
     return payload;
   }
-  if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
+  if (
+    payload !== null &&
+    typeof payload === "object" &&
+    !Array.isArray(payload)
+  ) {
     const body = { ...(payload as Record<string, unknown>) };
     for (const arg of args) {
       if (arg.type === "bytes" && arg.name in body) {
@@ -144,7 +180,11 @@ function brokerMethod(namespace: string, method: string): string {
 }
 
 function resultText(frames: unknown[]): string {
-  const last = frames.at(-1) as { root?: { children?: ReadonlyArray<{ id?: string; props?: { value?: string } }> } };
+  const last = frames.at(-1) as {
+    root?: {
+      children?: ReadonlyArray<{ id?: string; props?: { value?: string } }>;
+    };
+  };
   const node = last?.root?.children?.find((child) => child.id === "result");
   return node?.props?.value ?? "";
 }
@@ -197,7 +237,13 @@ async function replayVector(
 ): Promise<string[]> {
   const frames: unknown[] = [];
   let handler: UiHandler | undefined;
-  let lastResponse: { ok: boolean; error?: { code?: string; message?: string }; result?: unknown } | undefined;
+  let lastResponse:
+    | {
+        ok: boolean;
+        error?: { code?: string; message?: string };
+        result?: unknown;
+      }
+    | undefined;
   let pendingCapability: string | undefined;
   let requestId = 0;
 
@@ -249,7 +295,8 @@ async function replayVector(
 
   await new Function("sdk", `return (async () => {\n${bundle}\n})();`)(sdk);
   await flush();
-  if (handler === undefined) throw new Error("harness did not register onEvent");
+  if (handler === undefined)
+    throw new Error("harness did not register onEvent");
 
   const failures: string[] = [];
   for (const [index, step] of vector.steps.entries()) {

@@ -129,4 +129,3 @@ export function createAppsBackendPreviewAction({
     return { launched: true };
   };
 }
-

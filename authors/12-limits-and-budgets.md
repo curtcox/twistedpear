@@ -62,8 +62,8 @@ Measured install times at conservative bitrates, from
 | Package                         |     Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode/LoRa (~1.2 kbps) |
 | ------------------------------- | -------: | ------------- | -------------- | ---------------------- |
 | `tiny` (budget hello-world)     |   ~900 B | &lt;1 s       | &lt;1 s        | ~6 s                   |
-| `hello-js` (JS hello twin)      |  ~1.3 KiB | &lt;1 s       | &lt;1 s        | ~9 s                   |
-| `hello-guida` (Guida hello)     |   ~27 KiB | &lt;1 s       | ~9 s           | ~3 m                   |
+| `hello-js` (JS hello twin)      | ~1.3 KiB | &lt;1 s       | &lt;1 s        | ~9 s                   |
+| `hello-guida` (Guida hello)     |  ~27 KiB | &lt;1 s       | ~9 s           | ~3 m                   |
 | `chat` (reference example)      | ~2.6 KiB | &lt;1 s       | &lt;1 s        | ~18 s                  |
 | `file-drop` (reference example) | ~1.8 KiB | &lt;1 s       | &lt;1 s        | ~12 s                  |
 | `board` (reference example)     | ~2.1 KiB | &lt;1 s       | &lt;1 s        | ~15 s                  |

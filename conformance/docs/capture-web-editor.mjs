@@ -23,15 +23,22 @@ mkdirSync(dirname(output), { recursive: true });
 const server = await startStaticServer(pageRoot);
 const browser = await chromium.launch({ headless: true });
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  await page.goto(`${server.url}index.html`, { waitUntil: "load", timeout: 60_000 });
+  const page = await browser.newPage({
+    viewport: { width: 1280, height: 800 },
+  });
+  await page.goto(`${server.url}index.html`, {
+    waitUntil: "load",
+    timeout: 60_000,
+  });
   await page
     .locator('[data-testid="editor-status"]')
     .getByText("DevStudio is running in the browser sandbox", { exact: true })
     .waitFor({ timeout: 60_000 });
   await page.locator('[data-testid="proj-hello-app"]').click();
   await page.locator('[data-testid="open-hello-app/bundle.js"]').click();
-  await page.locator('[data-testid="editor"]').waitFor({ state: "visible", timeout: 15_000 });
+  await page
+    .locator('[data-testid="editor"]')
+    .waitFor({ state: "visible", timeout: 15_000 });
   await page.screenshot({ path: output, fullPage: false });
   console.log(`wrote ${output}`);
 } finally {

@@ -41,7 +41,12 @@ describe("sample catalog extraction", () => {
   });
 
   it("finds a snippet's line range in a source file", () => {
-    expect(findSnippet("a\nconst convertedValue = 1;\nz\n", "const convertedValue = 1;")).toEqual({
+    expect(
+      findSnippet(
+        "a\nconst convertedValue = 1;\nz\n",
+        "const convertedValue = 1;",
+      ),
+    ).toEqual({
       startLine: 2,
       endLine: 2,
     });
@@ -51,9 +56,9 @@ describe("sample catalog extraction", () => {
 
 describe("sample catalog search", () => {
   it("requires every whitespace token to match", () => {
-    expect(matchesQuery("unit converter javascript storage:kv", "unit kv")).toBe(
-      true,
-    );
+    expect(
+      matchesQuery("unit converter javascript storage:kv", "unit kv"),
+    ).toBe(true);
     expect(matchesQuery("unit converter javascript", "elm")).toBe(false);
     expect(matchesQuery("anything", "  ")).toBe(true);
   });
@@ -79,7 +84,9 @@ describe("published sample catalog", () => {
     expect(unitJs.length).toBeGreaterThan(0);
     expect(unitJs[0].rnwHref).toBe("/react-native-web/?app=unit-converter");
     expect(unitJs[0].editorHref).toBe("/editor/?app=unit-converter");
-    expect(unitJs[0].githubHref).toContain("github.com/curtcox/twistedpear/blob/main/");
+    expect(unitJs[0].githubHref).toContain(
+      "github.com/curtcox/twistedpear/blob/main/",
+    );
     expect(unitJs[0].docsHref).toContain("unit-converter");
     expect(unitJs[0].capabilities).toEqual([]);
   });

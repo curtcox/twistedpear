@@ -297,6 +297,10 @@ function main() {
   if (!requireDist) {
     run("scripts/site/stage.mjs");
     run("scripts/site/section-images.mjs");
+    // Cookbook and sample-catalog pages link at /react-native-web/ and /editor/;
+    // those are esbuild outputs, not staged markdown, so verify has to build them.
+    run("scripts/site/build-react-native-web-samples.mjs");
+    run("scripts/site/build-editor.mjs");
   }
   const result = inspectSite({ requireDist });
   writeSitePagesArtifact(result);

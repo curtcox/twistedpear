@@ -16,14 +16,14 @@ hardware debt ([STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H11).
 
 ## Scope
 
-| Surface                            | Code                                          | Conformance                      |
-| ---------------------------------- | --------------------------------------------- | -------------------------------- |
-| Broker dispatch + rate/size limits | `packages/miniapp-runtime/src/broker.ts`      | `broker.test.ts`, `hostile-apps` |
-| Capability grants                  | `capabilities.ts`, `GrantStore`               | `host.test.ts` grant matrix      |
-| Host handlers                      | `host.ts`                                     | `hostile-apps`, `test:examples`  |
+| Surface                            | Code                                          | Conformance                                |
+| ---------------------------------- | --------------------------------------------- | ------------------------------------------ |
+| Broker dispatch + rate/size limits | `packages/miniapp-runtime/src/broker.ts`      | `broker.test.ts`, `hostile-apps`           |
+| Capability grants                  | `capabilities.ts`, `GrantStore`               | `host.test.ts` grant matrix                |
+| Host handlers                      | `host.ts`                                     | `hostile-apps`, `test:examples`            |
 | Widget tree validation             | `ui/validate.ts`, `ui/chrome-lexicon.ts`      | `hostile-apps`, `test:chrome`, HA-20…HA-24 |
-| Sandbox backends                   | `sandbox/node-worker.ts`, `sandbox/worker.ts` | `hostile-apps` escape probes     |
-| Reticulum wire parsers             | `reticulum-ts`, `lxmf-ts`                     | `npm run test:fuzz`              |
+| Sandbox backends                   | `sandbox/node-worker.ts`, `sandbox/worker.ts` | `hostile-apps` escape probes               |
+| Reticulum wire parsers             | `reticulum-ts`, `lxmf-ts`                     | `npm run test:fuzz`                        |
 
 Out of scope: host OS hardening, Electron renderer XSS, package signature cryptography
 (covered by `app-registry` tests), and physical side channels.

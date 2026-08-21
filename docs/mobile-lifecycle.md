@@ -84,10 +84,10 @@ One row per piece of utility a mini-app does not get because of the mobile lifec
 
 <!-- Generated from mobile-lifecycle-ledger.json; conformance/doc-audit/mobile-lifecycle.test.mjs fails if they diverge. -->
 
-| Row                  | Utility withheld                                                | Cause | Revisit when |
-| -------------------- | --------------------------------------------------------------- | ----- | ------------ |
-| `MLC-BACKGROUND-IOS` | Mini-app code running while the host app is backgrounded on iOS | `os`  | 2027-02-01   |
-| `MLC-ALWAYS-ON-ROLES`| A phone carrying transport, seeding, or propagation for other peers | `os`  | 2027-02-01   |
+| Row                   | Utility withheld                                                    | Cause | Revisit when |
+| --------------------- | ------------------------------------------------------------------- | ----- | ------------ |
+| `MLC-BACKGROUND-IOS`  | Mini-app code running while the host app is backgrounded on iOS     | `os`  | 2027-02-01   |
+| `MLC-ALWAYS-ON-ROLES` | A phone carrying transport, seeding, or propagation for other peers | `os`  | 2027-02-01   |
 
 The decision in force, the cost it carries, what would unlock it, and the files that show
 it are recorded per row in [mobile-lifecycle-ledger.json](../mobile-lifecycle-ledger.json).

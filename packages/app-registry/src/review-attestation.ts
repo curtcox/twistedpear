@@ -194,7 +194,8 @@ export function decodeReviewAnnounceData(
   offset += 8;
   const publisherKeyHash = bytesToHex(appData.subarray(offset, offset + 8));
   offset += 8;
-  const verdict: ReviewVerdict = appData[offset++] === 1 ? "concern" : "endorse";
+  const verdict: ReviewVerdict =
+    appData[offset++] === 1 ? "concern" : "endorse";
   const expiresAt = Number(
     new DataView(appData.buffer, appData.byteOffset + offset, 8).getBigUint64(
       0,

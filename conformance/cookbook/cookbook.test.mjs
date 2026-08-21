@@ -426,13 +426,6 @@ async function createHost(name = "", hostOptions = {}) {
         model: "cookbook-test",
         usage: null,
       }),
-      stream: async function* () {
-        yield {
-          delta: answers[name] ?? "Cookbook response",
-          model: "cookbook-test",
-          usage: null,
-        };
-      },
       embed: async (_appId, request) => ({
         vectors: request.inputs.map((input) => [
           input.toLowerCase().includes("identity") ? 1 : 0,
@@ -592,7 +585,30 @@ async function createHost(name = "", hostOptions = {}) {
       stopPreview: async () => undefined,
     },
   });
+  grantCookbookEgress(host, name);
   return { host, store, announceService };
+}
+
+/** Host-authored destinations the primary workflows actually send or probe. */
+function grantCookbookEgress(host, name) {
+  const ttlMs = 60 * 60 * 1000;
+  const offers = {
+    "dead-drop": [{ capability: "lxmf:send", targetId: "peer-one" }],
+    "roll-call": [{ capability: "lxmf:send", targetId: "peer-one" }],
+    "signal-check": [{ capability: "lxmf:send", targetId: "peer-one" }],
+    "nine-line": [{ capability: "lxmf:send", targetId: "rescue-control" }],
+    "net-ledger": [{ capability: "lxmf:send", targetId: "N0CALL" }],
+    "line-check": [{ capability: "link:probe", targetId: "peer-ana" }],
+  };
+  for (const offer of offers[name] ?? []) {
+    host.grantEgressOffer({
+      appId: name,
+      capability: offer.capability,
+      targetKind: "peer",
+      targetId: offer.targetId,
+      ttlMs,
+    });
+  }
 }
 
 async function launchApp(host, name) {

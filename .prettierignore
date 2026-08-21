@@ -30,6 +30,8 @@ conformance/web-storage/fixture.mjs
 conformance/fixtures/packages/tiny.*
 apps/handbook/generated/
 apps/handbook/seeds/
+packages/guida-twistedpear/seed/
+docs/device-classes/
 # Emitted by apps/handbook/build-reference.mjs
 apps/handbook/content/part-5-reference/
 

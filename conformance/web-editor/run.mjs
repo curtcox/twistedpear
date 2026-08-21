@@ -24,7 +24,9 @@ function runBuild() {
 }
 
 function encodeShare(files) {
-  return deflateRawSync(Buffer.from(JSON.stringify(files))).toString("base64url");
+  return deflateRawSync(Buffer.from(JSON.stringify(files))).toString(
+    "base64url",
+  );
 }
 
 async function waitRunning(page) {
@@ -51,7 +53,10 @@ async function clickTestId(page, id) {
 
 async function testJsPreview(page, pageUrl) {
   section("javascript project");
-  await page.goto(`${pageUrl}index.html`, { waitUntil: "load", timeout: 60_000 });
+  await page.goto(`${pageUrl}index.html`, {
+    waitUntil: "load",
+    timeout: 60_000,
+  });
   await waitRunning(page);
   step("open seeded hello-app and edit");
   await clickTestId(page, "proj-hello-app");
@@ -59,7 +64,9 @@ async function testJsPreview(page, pageUrl) {
   const editor = page.locator('[data-testid="editor"]');
   await editor.waitFor({ state: "visible", timeout: 15_000 });
   const current = await editor.inputValue();
-  await editor.fill(current.replace("Hello from DevStudio", "Hello from the browser editor"));
+  await editor.fill(
+    current.replace("Hello from DevStudio", "Hello from the browser editor"),
+  );
   await editor.blur();
   step("preview");
   await clickTestId(page, "preview");
@@ -72,11 +79,16 @@ async function testJsPreview(page, pageUrl) {
 
 async function testGuidaLoop(page, pageUrl) {
   section("guida project");
-  await page.goto(`${pageUrl}index.html`, { waitUntil: "load", timeout: 60_000 });
+  await page.goto(`${pageUrl}index.html`, {
+    waitUntil: "load",
+    timeout: 60_000,
+  });
   await waitRunning(page);
   step("create Guida project");
   await clickTestId(page, "new-guida");
-  await page.getByText("Created Guida project hello-guida.").waitFor({ timeout: 15_000 });
+  await page
+    .getByText("Created Guida project hello-guida.")
+    .waitFor({ timeout: 15_000 });
   await clickTestId(page, "open-hello-guida/src/Main.elm");
   const editor = page.locator('[data-testid="editor"]');
   await editor.waitFor({ state: "visible", timeout: 15_000 });
@@ -114,7 +126,9 @@ async function testDeepLink(page, pageUrl) {
   });
   await waitRunning(page);
   await clickTestId(page, "proj-unit-converter");
-  await page.getByText("Opened project unit-converter.").waitFor({ timeout: 15_000 });
+  await page
+    .getByText("Opened project unit-converter.")
+    .waitFor({ timeout: 15_000 });
 }
 
 async function testShareLink(page, pageUrl) {
@@ -129,7 +143,9 @@ async function testShareLink(page, pageUrl) {
   });
   await waitRunning(page);
   await clickTestId(page, "proj-shared-app");
-  await page.getByText("Opened project shared-app.").waitFor({ timeout: 15_000 });
+  await page
+    .getByText("Opened project shared-app.")
+    .waitFor({ timeout: 15_000 });
 }
 
 runBuild();
@@ -149,10 +165,15 @@ try {
     page.on("pageerror", (error) => pageErrors.push(error.message));
     try {
       await run(page, server.url);
-      assert(pageErrors.length === 0, `uncaught browser error: ${pageErrors.join("; ")}`);
+      assert(
+        pageErrors.length === 0,
+        `uncaught browser error: ${pageErrors.join("; ")}`,
+      );
       console.log(`web-editor: ${name} passed`);
     } catch (error) {
-      failures.push(`${name}: ${error instanceof Error ? error.message : String(error)}`);
+      failures.push(
+        `${name}: ${error instanceof Error ? error.message : String(error)}`,
+      );
       console.error(`web-editor: ${name} failed`);
     } finally {
       await page.close();

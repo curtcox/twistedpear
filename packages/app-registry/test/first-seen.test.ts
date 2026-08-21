@@ -91,9 +91,9 @@ describe("FirstSeenLedger", () => {
     expect(ledger.record(observation, 50)).toBe(10);
     expect(ledger.get(observation)).toBe(10);
     expect(ledger.ageMs(observation, 40)).toBe(30);
-    expect(
-      ledger.record({ ...observation, packageHash: "hash-2" }, 80),
-    ).toBe(80);
+    expect(ledger.record({ ...observation, packageHash: "hash-2" }, 80)).toBe(
+      80,
+    );
     expect(ledger.get(observation)).toBe(10);
   });
 
@@ -135,29 +135,35 @@ describe("catalog first-seen ledger", () => {
       publisherPublicKey: entry!.publisherPublicKey,
       packageHash: packed.packageHash,
     };
-    expect(catalog.firstSeenAt(
-      lookup.appId,
-      lookup.publisherPublicKey,
-      lookup.packageHash,
-    )).toBe(100);
+    expect(
+      catalog.firstSeenAt(
+        lookup.appId,
+        lookup.publisherPublicKey,
+        lookup.packageHash,
+      ),
+    ).toBe(100);
     expect(catalog.pruneExpired(120)).toBe(1);
     expect(catalog.list()).toHaveLength(0);
-    expect(catalog.firstSeenAt(
-      lookup.appId,
-      lookup.publisherPublicKey,
-      lookup.packageHash,
-    )).toBe(100);
+    expect(
+      catalog.firstSeenAt(
+        lookup.appId,
+        lookup.publisherPublicKey,
+        lookup.packageHash,
+      ),
+    ).toBe(100);
 
     const kv = memoryKv();
     await catalog.save(kv);
     const restored = new CatalogStore(provider, { entryTtlMs: 10 });
     await restored.load(kv);
     expect(restored.list()).toHaveLength(0);
-    expect(restored.firstSeenAt(
-      lookup.appId,
-      lookup.publisherPublicKey,
-      lookup.packageHash,
-    )).toBe(100);
+    expect(
+      restored.firstSeenAt(
+        lookup.appId,
+        lookup.publisherPublicKey,
+        lookup.packageHash,
+      ),
+    ).toBe(100);
 
     const again = restored.ingest({
       destinationHash: "abc",
@@ -167,11 +173,13 @@ describe("catalog first-seen ledger", () => {
       now: 500,
     });
     expect(again).not.toBeNull();
-    expect(restored.firstSeenAt(
-      lookup.appId,
-      lookup.publisherPublicKey,
-      lookup.packageHash,
-    )).toBe(100);
+    expect(
+      restored.firstSeenAt(
+        lookup.appId,
+        lookup.publisherPublicKey,
+        lookup.packageHash,
+      ),
+    ).toBe(100);
     expect(
       restored.firstSeenAgeMs(
         lookup.appId,
@@ -208,15 +216,19 @@ describe("catalog first-seen ledger", () => {
     const updated = ingest(second, 40);
     expect(original).not.toBeNull();
     expect(updated).not.toBeNull();
-    expect(catalog.firstSeenAt(
-      original!.appId,
-      original!.publisherPublicKey,
-      first.packageHash,
-    )).toBe(10);
-    expect(catalog.firstSeenAt(
-      updated!.appId,
-      updated!.publisherPublicKey,
-      second.packageHash,
-    )).toBe(40);
+    expect(
+      catalog.firstSeenAt(
+        original!.appId,
+        original!.publisherPublicKey,
+        first.packageHash,
+      ),
+    ).toBe(10);
+    expect(
+      catalog.firstSeenAt(
+        updated!.appId,
+        updated!.publisherPublicKey,
+        second.packageHash,
+      ),
+    ).toBe(40);
   });
 });

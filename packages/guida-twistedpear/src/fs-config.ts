@@ -18,10 +18,7 @@ export interface GuidaXhrLike {
 
 export interface GuidaFsConfig {
   XMLHttpRequest: new () => GuidaXhrLike;
-  writeFile: (
-    path: string,
-    data: string | Uint8Array,
-  ) => Promise<void>;
+  writeFile: (path: string, data: string | Uint8Array) => Promise<void>;
   readFile: (path: string) => Promise<Uint8Array>;
   readDirectory: (path: string) => Promise<{ files: string[] }>;
   createDirectory: (path: string) => Promise<void>;

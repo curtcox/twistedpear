@@ -15,7 +15,7 @@ they are separate peers with separate identities unless you deliberately share o
 | Android phone or tablet         | [Android host](#android)                                              | Carrying the network with you; Bluetooth and LoRa radios.   |
 | iPhone or iPad                  | [iOS host](#iphone-and-ipad)                                          | Messaging and using apps. The most restricted host.         |
 | Any browser                     | [Web host](#web-browser)                                              | Trying TwistedPear in two minutes, with no install.         |
-| Any browser (docs site)         | [Mini-app editor](https://curtcox.github.io/twistedpear/editor/)     | Edit and preview a mini-app with no install and no account. |
+| Any browser (docs site)         | [Mini-app editor](https://curtcox.github.io/twistedpear/editor/)      | Edit and preview a mini-app with no install and no account. |
 | A spare computer or server      | [Headless node](09-managing-your-device.md#running-an-always-on-peer) | Keeping a community's network up 24/7.                      |
 
 ![The five host types side by side](/guide/images/02-host-lineup.png)

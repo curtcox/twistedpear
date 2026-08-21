@@ -407,12 +407,7 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
         };
         const targetId =
           typeof payload.peer === "string" ? payload.peer : payload.peer.id;
-        this.assertEgressAllowed(
-          context.appId,
-          "link:probe",
-          "peer",
-          targetId,
-        );
+        this.assertEgressAllowed(context.appId, "link:probe", "peer", targetId);
         return links().probe(
           context.appId,
           payload.peer as PeerHandle,

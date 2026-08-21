@@ -37,9 +37,8 @@ describe("bare worker mailbox", () => {
 
 describe("webAssemblyInstantiateAvailable", () => {
   it("treats a namespace object with instantiate as available", async () => {
-    const { webAssemblyInstantiateAvailable } = await import(
-      "../src/webassembly-available.mjs"
-    );
+    const { webAssemblyInstantiateAvailable } =
+      await import("../src/webassembly-available.mjs");
     expect(
       webAssemblyInstantiateAvailable({
         WebAssembly: { instantiate: async () => {} },
@@ -48,9 +47,8 @@ describe("webAssemblyInstantiateAvailable", () => {
   });
 
   it("rejects a missing or non-callable instantiate", async () => {
-    const { webAssemblyInstantiateAvailable } = await import(
-      "../src/webassembly-available.mjs"
-    );
+    const { webAssemblyInstantiateAvailable } =
+      await import("../src/webassembly-available.mjs");
     expect(webAssemblyInstantiateAvailable({})).toBe(false);
     expect(webAssemblyInstantiateAvailable({ WebAssembly: {} })).toBe(false);
   });

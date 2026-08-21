@@ -51,7 +51,8 @@ async function run() {
     web = annotate({
       runtime: "chromium",
       available: false,
-      error: error instanceof Error ? error.message.slice(0, 800) : String(error),
+      error:
+        error instanceof Error ? error.message.slice(0, 800) : String(error),
     });
   }
   console.log(

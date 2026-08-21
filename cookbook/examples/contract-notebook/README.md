@@ -39,9 +39,11 @@ whose encoding and update rules you understand.
 | [src/Main.elm](src/Main.elm)           | Guida source. Compiles to the same widget tree as bundle.js. |
 
 ### JavaScript
+
 Full source: [bundle.js](bundle.js)
 
 ### Guida
+
 Full source: [src/Main.elm](src/Main.elm)
 
 ## Run it

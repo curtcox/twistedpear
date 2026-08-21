@@ -571,28 +571,17 @@ log, and all declared structured artifacts. Artifact paths are preserved below
 `/results/raw/artifacts/`, so a gate result cannot overwrite a report with the same
 basename.
 
-The Linux Pages build installs and runs the Linux PR toolchain that does not
-need a JVM. Each locally run gate starts from a restored worktree
-(`SITE_REPORT_ISOLATE=1`) so generated output from an earlier gate cannot change
-what a later graph gate measures — the same isolation CI gets by running one
-gate per job. The registry-derived Pages plan sends every non-Linux, nightly, or
-JVM gate to a parallel evidence job; JVM gates use a separate job template that
-is the only place `setup-java` is listed, because GitHub downloads every
-`uses:` at job start. Those results are
-imported into the same registry-driven report. The checks table on `/results/` lists
-failed gates first. A failed or missing imported result is
-rendered as a failed page rather than omitted. Imported logs and artifacts use the same
-report paths as Linux results. Deployment still occurs so failure details
-remain inspectable, and the final aggregate job then fails the workflow.
+The Linux Pages build runs the non-JVM PR toolchain. Each local gate starts from
+a restored worktree (`SITE_REPORT_ISOLATE=1`) so one gate cannot change what the
+next measures. Non-Linux, nightly, and JVM gates import from parallel evidence
+jobs into the same report; failed gates list first, and a missing import is a
+failed page. Deployment still happens so failure details remain inspectable.
 
-Every gate artifact records both its checkout commit and branch SHA. The report build
-rejects imported evidence unless both match the Pages build SHA. Superseded Pages runs
-are cancelled without running their downstream site build, a pre-deployment freshness job
-refuses to deploy when `main` has advanced, and a post-deployment check waits for the
-public raw summary to report the deployed SHA. This prevents a successful older run from
-leaving `/results/` behind current `main`.
+Every gate artifact records both its checkout commit and branch SHA. The report
+build rejects imported evidence unless both match the Pages build SHA. Superseded
+runs cannot deploy. A post-deploy check waits for the public raw summary to
+report the deployed SHA, so `/results/` cannot stay behind current `main`.
 
-Structured summaries include coverage percentages and package floors; finding counts for
-structure, complexity, repository lint, typed lint, formatting, and language analyzers;
-file-size totals; licenses, advisories, SBOM components, secrets, mutation outcomes, and
-GitHub Pages image/page counts. Gates without a numeric report still publish pass/fail.
+Structured summaries include coverage, finding counts, file sizes, licenses,
+advisories, SBOM components, secrets, mutation outcomes, and Pages image/page
+counts. Gates without a numeric report still publish pass/fail.

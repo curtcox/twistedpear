@@ -2,7 +2,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoRoot } from "../doc-audit/repo-root.mjs";
-import { resolveEvidencePath } from "../doc-audit/paths.mjs";
+import {
+  isEphemeralEvidencePath,
+  resolveEvidencePath,
+} from "../doc-audit/paths.mjs";
 import {
   METADATA_FILE,
   canonicalMetadata,
@@ -120,6 +123,7 @@ export function auditEvidencePaths(root = repoRoot()) {
   for (const item of items) {
     for (const token of item.evidence ?? []) {
       if (/^https?:/.test(token)) continue;
+      if (isEphemeralEvidencePath(token)) continue;
       // Strict: a bare basename resolved by repo-wide search is fine for prose,
       // but this is a machine record — evidence must name an actual path.
       const resolved = resolveEvidencePath(root, token, {

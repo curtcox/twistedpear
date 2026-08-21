@@ -53,12 +53,7 @@ export async function runEgressScenarios() {
       }),
     },
   });
-  await aiHost.setGrants(
-    "notes",
-    "publisher",
-    ["ai:chat"],
-    ["ai:chat"],
-  );
+  await aiHost.setGrants("notes", "publisher", ["ai:chat"], ["ai:chat"]);
   const chat = await dispatch(
     aiHost,
     "ai",
@@ -116,7 +111,8 @@ export async function runEgressScenarios() {
     announceApp,
   );
   const ha33 =
-    denyCode(crossSub, "ANNOUNCE_CROSS_APP_SCOPE") === "ANNOUNCE_CROSS_APP_SCOPE";
+    denyCode(crossSub, "ANNOUNCE_CROSS_APP_SCOPE") ===
+    "ANNOUNCE_CROSS_APP_SCOPE";
 
   const fetchHost = makeHost({
     resourceBackend: {
@@ -159,7 +155,8 @@ export async function runEgressScenarios() {
     { to: "peer-a", subject: "x", body: "x" },
     app,
   );
-  const ha35 = denyCode(afterRevoke, "CAPABILITY_DENIED") === "CAPABILITY_DENIED";
+  const ha35 =
+    denyCode(afterRevoke, "CAPABILITY_DENIED") === "CAPABILITY_DENIED";
 
   const baitHost = makeHost();
   await baitHost.setGrants(

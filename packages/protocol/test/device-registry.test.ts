@@ -53,7 +53,9 @@ describe("device-class registry", () => {
   it("matches the normative JSON and pins hostApiVersion", () => {
     expect(DEVICE_REGISTRY_HOST_API).toBe(SOURCE.hostApiVersion);
     expect(DEVICE_CLASS_REGISTRY).toEqual(SOURCE.classes);
-    expect(allDeviceClassIds()).toEqual(SOURCE.classes.map((entry) => entry.id));
+    expect(allDeviceClassIds()).toEqual(
+      SOURCE.classes.map((entry) => entry.id),
+    );
   });
 
   it("requires bandwidth, ladder, consent, and a single default tier per class", () => {
@@ -63,9 +65,9 @@ describe("device-class registry", () => {
       ids.add(entry.id);
       expect(entry.consentClass).toMatch(/^(low|elevated|sensitive)$/);
       expect(entry.degradationLadder.length).toBeGreaterThan(0);
-      expect(compareSemver(entry.addedInHostApi, DEVICE_REGISTRY_HOST_API)).toBeLessThanOrEqual(
-        0,
-      );
+      expect(
+        compareSemver(entry.addedInHostApi, DEVICE_REGISTRY_HOST_API),
+      ).toBeLessThanOrEqual(0);
       const defaults = entry.tiers.filter((tier) => tier.default);
       expect(defaults, entry.id).toHaveLength(1);
       expect(defaults[0]?.capabilitySuffix).toBeNull();
@@ -74,7 +76,10 @@ describe("device-class registry", () => {
         expect(tierIds.has(tierId), `${entry.id}:${tierId}`).toBe(true);
       }
       for (const tier of entry.tiers) {
-        expect(entry.bandwidth[tier.id], `${entry.id}:${tier.id}`).toBeDefined();
+        expect(
+          entry.bandwidth[tier.id],
+          `${entry.id}:${tier.id}`,
+        ).toBeDefined();
       }
     }
   });

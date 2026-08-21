@@ -44,9 +44,14 @@ async function paintMiniapp(
         "Desktop always-on peer · Documentation identity";
       document.querySelector("#miniapp-title").textContent = title;
       const { renderWidgetTree } = await import(widgetsUrl);
-      renderWidgetTree(tree, document.querySelector("#widget-root"), undefined, {
-        readDocument: async (documentId) => documents[documentId] ?? "",
-      });
+      renderWidgetTree(
+        tree,
+        document.querySelector("#widget-root"),
+        undefined,
+        {
+          readDocument: async (documentId) => documents[documentId] ?? "",
+        },
+      );
       await new Promise((resolve) => setTimeout(resolve, 50));
       if (typeof scrollTo === "string" && scrollTo.length > 0) {
         const match = [...document.querySelectorAll("button, .widget-qr, p")]
@@ -91,7 +96,9 @@ export async function captureComposite(browser, scene) {
       tile.image === undefined
         ? null
         : `data:image/png;base64,${readFileSync(
-            tile.image.startsWith("/") ? tile.image : join(repoRoot, tile.image),
+            tile.image.startsWith("/")
+              ? tile.image
+              : join(repoRoot, tile.image),
           ).toString("base64")}`,
   }));
   const page = await browser.newPage({
@@ -164,7 +171,12 @@ async function captureCliShots(browser) {
   const scratch = mkdtempSync(join(tmpdir(), "tp-authors-cli-"));
   try {
     const initOut = runTp(["init"], scratch);
-    await captureTerminal(browser, "authors/images/03-tp-init.png", "tp init", initOut);
+    await captureTerminal(
+      browser,
+      "authors/images/03-tp-init.png",
+      "tp init",
+      initOut,
+    );
     runTp(["create", "hello", "my-app"], scratch);
     const ready = await new Promise((resolve, reject) => {
       const child = spawn(
@@ -236,11 +248,16 @@ async function captureDevStudio(browser, captureSection) {
   try {
     await host.handleUiEvent("new-project", "ds.newproject");
     const created = await waitForTree(host, "Created project", 15_000);
-    await capturePage(browser, rendererServer, "authors/images/02-new-project.png", {
-      title: "DevStudio",
-      tree: created,
-      documents: HELLO_DOCUMENTS,
-    });
+    await capturePage(
+      browser,
+      rendererServer,
+      "authors/images/02-new-project.png",
+      {
+        title: "DevStudio",
+        tree: created,
+        documents: HELLO_DOCUMENTS,
+      },
+    );
 
     await host.handleUiEvent(
       "ai-prompt",
@@ -249,30 +266,45 @@ async function captureDevStudio(browser, captureSection) {
     );
     await host.handleUiEvent("ai-run", "ds.airun");
     const proposal = await waitForTree(host, "AI proposal", 20_000);
-    await capturePage(browser, rendererServer, "authors/images/02-ai-edit.png", {
-      title: "DevStudio",
-      tree: proposal,
-      documents: HELLO_DOCUMENTS,
-      scrollTo: "Apply AI edit",
-    });
+    await capturePage(
+      browser,
+      rendererServer,
+      "authors/images/02-ai-edit.png",
+      {
+        title: "DevStudio",
+        tree: proposal,
+        documents: HELLO_DOCUMENTS,
+        scrollTo: "Apply AI edit",
+      },
+    );
 
     await host.handleUiEvent("package", "ds.package");
     const packaged = await waitForTree(host, "Packaged", 15_000);
-    await capturePage(browser, rendererServer, "authors/images/02-package-256t.png", {
-      title: "DevStudio",
-      tree: packaged,
-      documents: HELLO_DOCUMENTS,
-      scrollTo: "Publish to other users",
-    });
+    await capturePage(
+      browser,
+      rendererServer,
+      "authors/images/02-package-256t.png",
+      {
+        title: "DevStudio",
+        tree: packaged,
+        documents: HELLO_DOCUMENTS,
+        scrollTo: "Publish to other users",
+      },
+    );
 
     await host.handleUiEvent("publish", "ds.publish");
     const published = await waitForTree(host, "Published", 15_000);
-    await capturePage(browser, rendererServer, "authors/images/09-publish-result.png", {
-      title: "DevStudio",
-      tree: published,
-      documents: HELLO_DOCUMENTS,
-      scrollTo: "Published v",
-    });
+    await capturePage(
+      browser,
+      rendererServer,
+      "authors/images/09-publish-result.png",
+      {
+        title: "DevStudio",
+        tree: published,
+        documents: HELLO_DOCUMENTS,
+        scrollTo: "Published v",
+      },
+    );
 
     const previewTree = {
       root: {

@@ -1,9 +1,6 @@
 /** Host-owned outbound media share policy (Sans-IO). */
 
-import {
-  egressOfferPermits,
-  type EgressOffer,
-} from "./egress-offer.js";
+import { egressOfferPermits, type EgressOffer } from "./egress-offer.js";
 
 export type ShareOfferPhase = "active" | "expired" | "revoked";
 export type ShareTargetKind = "peer" | "group";

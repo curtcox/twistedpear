@@ -94,9 +94,7 @@ export function parseSwapUsedBytes(text) {
   const darwin = text.match(/used\s*=\s*([\d.]+)\s*([MG])/i);
   if (darwin) {
     const value = Number(darwin[1]);
-    return darwin[2].toUpperCase() === "G"
-      ? value * GiB
-      : value * 1024 * 1024;
+    return darwin[2].toUpperCase() === "G" ? value * GiB : value * 1024 * 1024;
   }
   const total = text.match(/^SwapTotal:\s+(\d+)\s+kB/m);
   const free = text.match(/^SwapFree:\s+(\d+)\s+kB/m);

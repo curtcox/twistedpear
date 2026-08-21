@@ -15,7 +15,9 @@ export function defaultTpDocForPath(relPath) {
 function registerForPath(relPath) {
   if (
     relPath === "STATUS-COMPLETE.md" ||
-    relPath === "STATUS-COMPLETE-PHASES.md"
+    relPath === "STATUS-COMPLETE-PHASES.md" ||
+    relPath === "STATUS-COMPLETE-PIPELINE.md" ||
+    relPath === "STATUS-COMPLETE-APPS.md"
   )
     return "complete";
   if (relPath === "STATUS-SOFTWARE.md") return "software";
@@ -36,6 +38,8 @@ function lifecycleForPath(relPath) {
     relPath === "README.md" ||
     relPath === "STATUS-COMPLETE.md" ||
     relPath === "STATUS-COMPLETE-PHASES.md" ||
+    relPath === "STATUS-COMPLETE-PIPELINE.md" ||
+    relPath === "STATUS-COMPLETE-APPS.md" ||
     relPath === "STATUS-SOFTWARE.md" ||
     relPath === "STATUS-SOFTWARE-OPTIONAL.md" ||
     relPath === "STATUS-HARDWARE.md" ||
@@ -53,7 +57,9 @@ function lifecycleForPath(relPath) {
 function auditedForPath(relPath, lifecycle) {
   if (
     relPath === "STATUS-COMPLETE.md" ||
-    relPath === "STATUS-COMPLETE-PHASES.md"
+    relPath === "STATUS-COMPLETE-PHASES.md" ||
+    relPath === "STATUS-COMPLETE-PIPELINE.md" ||
+    relPath === "STATUS-COMPLETE-APPS.md"
   )
     return "2026-07-19";
   if (

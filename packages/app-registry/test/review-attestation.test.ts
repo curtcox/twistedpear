@@ -80,9 +80,9 @@ describe("review attestation", () => {
       expiresAt: 200,
       packageHash: HASH.slice(0, 16),
     });
-    expect(reviewDestinationName(provider, HASH, signed.reviewerPublicKey)).toMatch(
-      /^tp\.review\./,
-    );
+    expect(
+      reviewDestinationName(provider, HASH, signed.reviewerPublicKey),
+    ).toMatch(/^tp\.review\./);
   });
 
   it("counts only trusted, unexpired, matching-hash endorsements", () => {
@@ -102,12 +102,16 @@ describe("review attestation", () => {
       reviewer,
       unsigned(publisherPublicKey, { reviewedAt: 1, expiresAt: 5 }),
     );
-    const tally = countTrustedAttestations(provider, [trusted, other, expired], {
-      trustedReviewerKeys: new Set([trusted.reviewerPublicKey]),
-      packageHash: HASH,
-      publisherPublicKey,
-      at: 50,
-    });
+    const tally = countTrustedAttestations(
+      provider,
+      [trusted, other, expired],
+      {
+        trustedReviewerKeys: new Set([trusted.reviewerPublicKey]),
+        packageHash: HASH,
+        publisherPublicKey,
+        at: 50,
+      },
+    );
     expect(tally).toEqual({
       endorsements: 1,
       concerns: 0,

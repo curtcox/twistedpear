@@ -31,7 +31,10 @@ describe("collectAppFiles ignore", () => {
       writeFileSync(join(cwd, "app.manifest.json"), "{}");
       writeFileSync(join(cwd, "bundle.js"), "export {}\n");
       mkdirSync(join(cwd, "src"));
-      writeFileSync(join(cwd, "src", "Main.elm"), "module Main exposing (main)\n");
+      writeFileSync(
+        join(cwd, "src", "Main.elm"),
+        "module Main exposing (main)\n",
+      );
       mkdirSync(join(cwd, "guida-vendor", "TwistedPear"), { recursive: true });
       writeFileSync(
         join(cwd, "guida-vendor", "TwistedPear", "Program.elm"),

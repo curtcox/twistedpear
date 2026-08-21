@@ -52,7 +52,9 @@ describe("egress offer lifecycle table", () => {
   });
 
   it("checks in a vector for every table cell", () => {
-    expect(vectors.cells).toHaveLength(enumerateCells(egressOfferMachine).length);
+    expect(vectors.cells).toHaveLength(
+      enumerateCells(egressOfferMachine).length,
+    );
     expect(vectors.cells).toHaveLength(
       egressOfferMachine.states.length * egressOfferMachine.events.length,
     );

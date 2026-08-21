@@ -116,14 +116,18 @@ function maestroEnv() {
 }
 
 function maestroE5() {
-  const result = spawnSync(maestroBin(), ["test", ".maestro/e5-benchmark.yaml"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    env: maestroEnv(),
-    stdio: ["ignore", "pipe", "pipe"],
-    maxBuffer: 8 * 1024 * 1024,
-    timeout: 10 * 60 * 1000,
-  });
+  const result = spawnSync(
+    maestroBin(),
+    ["test", ".maestro/e5-benchmark.yaml"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: maestroEnv(),
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 8 * 1024 * 1024,
+      timeout: 10 * 60 * 1000,
+    },
+  );
   if (typeof result.stdout === "string" && result.stdout.length > 0) {
     console.log(result.stdout);
   }
