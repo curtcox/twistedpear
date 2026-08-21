@@ -25,6 +25,9 @@ export default [
       "site/**",
       "archive/**",
       "**/*.gen.ts",
+      "**/*.generated.js",
+      "**/*.generated.mjs",
+      "packages/guida-twistedpear/seed/**",
       // Concat inputs for worklet/entry.mjs; two split mid-object-literal and
       // do not parse alone. Ignored in eslint.analysis.config.js for the same
       // reason — the assembled files are what get checked.

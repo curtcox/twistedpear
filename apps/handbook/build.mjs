@@ -98,6 +98,30 @@ function validateHandbookLinks(allLinks, chapterIds) {
   }
 }
 
+function seedBlocksForChapter(blocks, appletIds, chapterId) {
+  const seedBlocks = [];
+  for (const block of blocks) {
+    if (block.type === "code") {
+      writeText(join(seedsDir, block.documentId), block.content);
+      seedBlocks.push({
+        type: "code",
+        documentId: block.documentId,
+        language: block.language,
+      });
+    } else if (block.type === "applet") {
+      if (!appletIds.has(block.appletId)) {
+        fail(
+          `Chapter ${chapterId} references unknown applet ${block.appletId}`,
+        );
+      }
+      seedBlocks.push({ type: "applet", appletId: block.appletId });
+    } else {
+      seedBlocks.push(block);
+    }
+  }
+  return seedBlocks;
+}
+
 async function build() {
   await generateReferenceChapters();
   const toc = loadToc();
@@ -125,27 +149,7 @@ async function build() {
       const markdown = readFileSync(markdownPath, "utf8");
       const { blocks, links } = parseMarkdown(markdown, chapter.id);
       allLinks.push(...links.map((link) => ({ ...link, from: chapter.id })));
-
-      const seedBlocks = [];
-      for (const block of blocks) {
-        if (block.type === "code") {
-          writeText(join(seedsDir, block.documentId), block.content);
-          seedBlocks.push({
-            type: "code",
-            documentId: block.documentId,
-            language: block.language,
-          });
-        } else if (block.type === "applet") {
-          if (!appletIds.has(block.appletId)) {
-            fail(
-              `Chapter ${chapter.id} references unknown applet ${block.appletId}`,
-            );
-          }
-          seedBlocks.push({ type: "applet", appletId: block.appletId });
-        } else {
-          seedBlocks.push(block);
-        }
-      }
+      const seedBlocks = seedBlocksForChapter(blocks, appletIds, chapter.id);
 
       // Also store the authored markdown for content-by-reference readers / DevStudio.
       writeText(join(seedsDir, `chapters/${chapter.id}/source.md`), markdown);

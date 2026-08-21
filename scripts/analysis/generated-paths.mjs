@@ -34,6 +34,7 @@ export const GENERATED_PATH_PATTERN = new RegExp(
     "-part-\\d+\\.mjs$",
     "-extracted-\\d+\\.mjs$",
     "(^|/)web-hyper-fetch\\.js$",
+    "(^|/)guida-compiler/",
   ].join("|"),
 );
 

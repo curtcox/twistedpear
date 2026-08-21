@@ -1,3 +1,4 @@
+import { generateConfirmationToken } from "../../miniapp-runtime/dist/worklet.js";
 import { APP_RISK_TIER_RANK, appRiskTier } from "../../protocol/dist/index.js";
 import { CAPABILITY_DEFINITIONS } from "../../miniapp-runtime/dist/capabilities.js";
 
@@ -32,5 +33,28 @@ export function presentCapabilityReview(capabilities) {
     riskTier: appRiskTier(ordered.map((entry) => entry.id)).tier,
     restricted: ordered.filter((entry) => entry.riskClass !== "benign"),
     benign: ordered.filter((entry) => entry.riskClass === "benign"),
+  };
+}
+
+export function installReviewHostMessage(options) {
+  const {
+    randomBytes,
+    appId,
+    version,
+    publisherPublicKey,
+    trusted,
+    trustedLabel,
+    presented,
+  } = options;
+  return {
+    type: "install-review",
+    token: generateConfirmationToken(randomBytes),
+    appId,
+    version,
+    publisherPublicKey,
+    trusted,
+    trustedLabel: trustedLabel ?? null,
+    riskTier: presented.riskTier,
+    capabilities: presented.capabilities,
   };
 }

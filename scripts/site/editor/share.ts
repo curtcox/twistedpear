@@ -1,4 +1,4 @@
-export const SHARE_MAX_ENCODED = 64 * 1024;
+const SHARE_MAX_ENCODED = 64 * 1024;
 
 function toBase64Url(bytes: Uint8Array): string {
   let binary = "";

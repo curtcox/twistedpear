@@ -127,6 +127,8 @@ export interface MiniappHostOptions {
   ) => void;
   /** Negative-control hook used to prove campaign sensitivity to broker policy drift. */
   readonly enforceBrokerCapabilities?: boolean;
+  /** Broker RPC payload cap. Handbook trees exceed the 256 KiB default. */
+  readonly maxMessageBytes?: number;
 }
 
 export interface CasShareBackend {

@@ -26,6 +26,8 @@
     "apps/handbook/generated/**",
     "apps/handbook/seeds/**",
     "packages/guida-twistedpear/seed/**",
+    "conformance/guida-compiler/**",
+    "**/*.generated.d.ts",
     "apps/host-desktop/src/renderer/vendor/**",
     "packages/reticulum-ts/docs/api/**",
     "conformance/docs/.tmp-handbook-capture/**",

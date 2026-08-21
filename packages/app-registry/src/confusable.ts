@@ -31,7 +31,7 @@ const LOOKALIKES: Readonly<Record<string, string>> = {
   α: "a",
 };
 
-export function foldAppName(name: string): string {
+function foldAppName(name: string): string {
   const stripped = name.normalize("NFKD").replace(/\p{M}/gu, "");
   let out = "";
   for (const char of stripped) {

@@ -12,9 +12,21 @@ const spikeDir = dirname(fileURLToPath(import.meta.url));
 const matrixPath = join(spikeDir, "s4-support-matrix.json");
 
 /**
- * @param {"bare-worker-android-emulator" | "bare-worker-ios-simulator"} backendKey
- * @param {Record<string, unknown>} measured
+ * @param {string} backendKey
+ * @param {object} measured
  */
+function measuredNumber(value) {
+  return typeof value === "number" ? value : null;
+}
+
+function measuredReason(measured) {
+  if (typeof measured.wasmUnavailableReason === "string") {
+    return measured.wasmUnavailableReason;
+  }
+  if (typeof measured.reason === "string") return measured.reason;
+  return undefined;
+}
+
 export function updateS4SupportMatrix(backendKey, measured) {
   const matrix = JSON.parse(readFileSync(matrixPath, "utf8"));
   const existing = matrix.backends?.[backendKey];
@@ -25,23 +37,15 @@ export function updateS4SupportMatrix(backendKey, measured) {
   const wasmExecuted = measured.wasmExecuted === true;
   const busyLoopKilled = measured.busyLoopKilled === true;
   const passed = wasmExecuted && busyLoopKilled;
-  const reason =
-    typeof measured.wasmUnavailableReason === "string"
-      ? measured.wasmUnavailableReason
-      : typeof measured.reason === "string"
-        ? measured.reason
-        : undefined;
+  const reason = measuredReason(measured);
   matrix.backends[backendKey] = {
     ...existing,
     status: passed ? "pass" : "fail",
     wasmExecuted,
     busyLoopKilled,
-    busyLoopKillMs:
-      typeof measured.busyLoopKillMs === "number"
-        ? measured.busyLoopKillMs
-        : null,
-    spawnMs: typeof measured.spawnMs === "number" ? measured.spawnMs : null,
-    killMs: typeof measured.killMs === "number" ? measured.killMs : null,
+    busyLoopKillMs: measuredNumber(measured.busyLoopKillMs),
+    spawnMs: measuredNumber(measured.spawnMs),
+    killMs: measuredNumber(measured.killMs),
     measuredAt: measured.measuredAt ?? null,
     environment: measured.environment ?? existing.environment,
   };

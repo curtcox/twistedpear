@@ -359,15 +359,16 @@ function bringToForegroundIfRunning(host, record) {
   return true;
 }
 
-export function previousDeclaredCapabilities(installedStore, record) {
-  if (typeof installedStore.previousVersion === "function") {
-    const previousVersion = installedStore.previousVersion(record.appId);
-    if (previousVersion === null) return [];
-    return (
-      installedStore.get(record.appId, previousVersion)?.manifest
-        .capabilities ?? []
-    );
-  }
+function capabilitiesFromPreviousVersion(installedStore, record) {
+  const previousVersion = installedStore.previousVersion(record.appId);
+  if (previousVersion === null) return [];
+  return (
+    installedStore.get(record.appId, previousVersion)?.manifest.capabilities ??
+    []
+  );
+}
+
+function capabilitiesFromInstalledList(installedStore, record) {
   const installed =
     typeof installedStore.listInstalled === "function"
       ? installedStore.listInstalled()
@@ -381,19 +382,27 @@ export function previousDeclaredCapabilities(installedStore, record) {
   return older.at(-1)?.manifest.capabilities ?? [];
 }
 
-export async function launchWithCapabilityReview({
-  record,
-  grantStore,
-  now,
-  pushGrants,
-  host,
-  bundle,
-  startWatchdog,
-  pushRuntime,
-  devBadgeRef,
-  requestReview,
-  previousDeclared = [],
-}) {
+export function previousDeclaredCapabilities(installedStore, record) {
+  if (typeof installedStore.previousVersion === "function") {
+    return capabilitiesFromPreviousVersion(installedStore, record);
+  }
+  return capabilitiesFromInstalledList(installedStore, record);
+}
+
+export async function launchWithCapabilityReview(options) {
+  const {
+    record,
+    grantStore,
+    now,
+    pushGrants,
+    host,
+    bundle,
+    startWatchdog,
+    pushRuntime,
+    devBadgeRef,
+    requestReview,
+    previousDeclared = [],
+  } = options;
   devBadgeRef.current = false;
   const declarations = parseCapabilityDeclarations(
     record.manifest.capabilities,

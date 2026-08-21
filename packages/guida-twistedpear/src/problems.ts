@@ -33,13 +33,22 @@ function regionPoint(
   key: "start" | "end",
 ): { line: number; column: number } {
   const record = asRecord(value);
-  const point = asRecord(record?.[key]);
-  const line = Number(point?.line ?? record?.line ?? 1);
-  const column = Number(point?.column ?? record?.column ?? 1);
+  const point = asRecord(record === undefined ? undefined : record[key]);
   return {
-    line: Number.isFinite(line) ? line : 1,
-    column: Number.isFinite(column) ? column : 1,
+    line: finiteOr(
+      point === undefined ? record?.line : (point.line ?? record?.line),
+      1,
+    ),
+    column: finiteOr(
+      point === undefined ? record?.column : (point.column ?? record?.column),
+      1,
+    ),
   };
+}
+
+function finiteOr(value: unknown, fallback: number): number {
+  const n = Number(value ?? fallback);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 function pushProblem(out: GuidaProblem[], problem: GuidaProblem): void {
@@ -93,7 +102,13 @@ function walkErrors(raw: unknown, out: GuidaProblem[]): void {
     for (const entry of raw) walkErrors(entry, out);
     return;
   }
-  const record = asRecord(raw);
+  walkRecordErrors(asRecord(raw), out);
+}
+
+function walkRecordErrors(
+  record: Record<string, unknown> | undefined,
+  out: GuidaProblem[],
+): void {
   if (record === undefined) return;
   if (Array.isArray(record.errors)) {
     walkErrors(record.errors, out);
@@ -169,7 +184,7 @@ export function extractFormatted(raw: unknown): string {
 
 function describeFormatResult(raw: unknown): string {
   try {
-    return JSON.stringify(raw)?.slice(0, 300) ?? typeof raw;
+    return JSON.stringify(raw).slice(0, 300);
   } catch {
     if (raw === null) return "null";
     if (Array.isArray(raw)) return `array(${raw.length})`;

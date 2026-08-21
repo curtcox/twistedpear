@@ -1,7 +1,7 @@
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-export type UiHandler = (event: {
+type UiHandler = (event: {
   nodeId: string;
   event: string;
   value?: unknown;
@@ -19,7 +19,7 @@ export function listTwinDirs(root: string): string[] {
     .sort();
 }
 
-export function sortKeys(value: unknown): unknown {
+function sortKeys(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeys);
   if (value !== null && typeof value === "object") {
     return Object.keys(value)
@@ -36,7 +36,7 @@ export function canonical(value: unknown): string {
   return JSON.stringify(sortKeys(value));
 }
 
-export async function flush(): Promise<void> {
+async function flush(): Promise<void> {
   await new Promise<void>((resolve) => {
     setTimeout(resolve, 0);
   });
@@ -56,7 +56,7 @@ function wrapAsync<A extends unknown[], T>(
   };
 }
 
-export function makeTwinSdk(frames: unknown[]) {
+function makeTwinSdk(frames: unknown[]) {
   const inflight = { n: 0 };
   let handler: UiHandler | undefined;
   const kv = new Map<string, Uint8Array>();
@@ -240,9 +240,7 @@ export function makeTwinSdk(frames: unknown[]) {
   return record;
 }
 
-export async function waitSettled(sdk: {
-  inflight: () => number;
-}): Promise<void> {
+async function waitSettled(sdk: { inflight: () => number }): Promise<void> {
   let idle = 0;
   for (let i = 0; i < 80; i += 1) {
     await flush();

@@ -52,15 +52,14 @@ const EDITOR_HINTS = [
 
 /**
  * @param {string} text
- * @returns {{ language: string; body: string; startLine: number; endLine: number }[]}
+ * @returns {object[]}
  */
 export function extractFences(text) {
   const lines = text.split("\n");
-  /** @type {{ language: string; body: string; startLine: number; endLine: number }[]} */
   const fences = [];
   for (let index = 0; index < lines.length; index += 1) {
-    const open = lines[index].match(/^```(.*)$/);
-    if (open === null) continue;
+    if (!lines[index].startsWith("```")) continue;
+    const open = lines[index].slice(3);
     const startLine = index + 1;
     const body = [];
     index += 1;
@@ -69,7 +68,7 @@ export function extractFences(text) {
       index += 1;
     }
     fences.push({
-      language: (open[1] ?? "").trim().split(/\s+/)[0] || "text",
+      language: open.trim().split(/\s+/)[0] || "text",
       body: body.join("\n"),
       startLine,
       endLine: index + 1,
@@ -123,11 +122,15 @@ function headingsBefore(lines, fenceLineIndex) {
  * @param {number} fenceLineIndex
  * @returns {string}
  */
-function descriptionBefore(lines, fenceLineIndex) {
-  let index = fenceLineIndex - 1;
+function skipBlank(lines, index) {
   while (index >= 0 && lines[index].trim() === "") index -= 1;
+  return index;
+}
+
+function skipDecorations(lines, index) {
+  index = skipBlank(lines, index);
   while (index >= 0 && /^#{1,6} /.test(lines[index])) index -= 1;
-  while (index >= 0 && lines[index].trim() === "") index -= 1;
+  index = skipBlank(lines, index);
   while (
     index >= 0 &&
     (/^!\[/.test(lines[index]) ||
@@ -135,15 +138,17 @@ function descriptionBefore(lines, fenceLineIndex) {
       /^\*\*Screenshot/.test(lines[index]) ||
       /^\*\*Diagram/.test(lines[index]))
   ) {
-    index -= 1;
-    while (index >= 0 && lines[index].trim() === "") index -= 1;
+    index = skipBlank(lines, index - 1);
   }
-  if (index < 0) return "";
+  return index;
+}
+
+function collectDescription(lines, index) {
   const collected = [];
   while (index >= 0) {
     const line = lines[index];
     if (line.trim() === "") break;
-    if (/^#{1,6} /.test(line) || /^```/.test(line) || /^\|/.test(line)) break;
+    if (/^#{1,6} /.test(line) || line.startsWith("```") || /^\|/.test(line)) break;
     if (/^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) break;
     if (/^!\[/.test(line) || /^<!--/.test(line)) break;
     collected.push(line);
@@ -158,10 +163,16 @@ function descriptionBefore(lines, fenceLineIndex) {
     .trim();
 }
 
+function descriptionBefore(lines, fenceLineIndex) {
+  const index = skipDecorations(lines, fenceLineIndex - 1);
+  if (index < 0) return "";
+  return collectDescription(lines, index);
+}
+
 /**
  * @param {string} source
  * @param {string} snippet
- * @returns {{ startLine: number; endLine: number } | null}
+ * @returns {object | null}
  */
 export function findSnippet(source, snippet) {
   const needle = snippet.trim();
@@ -206,16 +217,7 @@ function githubBlob(repoPath, startLine, endLine) {
 
 /**
  * @param {string} [root]
- * @returns {Map<string, {
- *   slug: string;
- *   title: string;
- *   capabilities: string[];
- *   jsPath: string;
- *   elmPath: string;
- *   js: string;
- *   elm: string;
- *   docsPath: string;
- * }>}
+ * @returns {Map<string, object>}
  */
 function loadCookbookApps(root = ROOT) {
   const sections = cookbookSectionHrefs();
@@ -323,6 +325,50 @@ function searchText(row) {
 /**
  * @param {string} [root]
  */
+function catalogRowForFence(rel, text, lines, fence, apps, editors) {
+  const headings = headingsBefore(lines, fence.startLine - 1);
+  const slug = editorSlugFor(rel, apps, headings);
+  const app = slug !== null && apps.has(slug) ? apps.get(slug) : null;
+  const editorSlug = slug !== null && editors.has(slug) ? slug : null;
+  const description =
+    usefulDescription(descriptionBefore(lines, fence.startLine - 1)) ||
+    `${chapterLabel(rel, headings)} code listing.`;
+  const row = {
+    id: `${rel}:${fence.startLine}`,
+    name: sampleName(headings, fence.language, app ?? null),
+    description:
+      description.length > 280
+        ? `${description.slice(0, 277).trim()}…`
+        : description,
+    language: languageLabel(fence.language),
+    chapter: chapterLabel(rel, headings),
+    capabilities: app?.capabilities ?? [],
+    githubHref: githubForFence(rel, fence, app ?? null),
+    docsHref: docsHref(rel, headings, app ?? null),
+    rnwHref:
+      app !== null
+        ? `/react-native-web/?app=${encodeURIComponent(app.slug)}`
+        : null,
+    editorHref:
+      editorSlug !== null
+        ? `/editor/?app=${encodeURIComponent(editorSlug)}`
+        : null,
+    sourcePath: rel,
+  };
+  return { ...row, searchText: searchText(row) };
+}
+
+function uniquifyCatalogNames(rows) {
+  const seen = new Map();
+  for (const row of rows) {
+    const key = /** @type {string} */ (row.name);
+    const count = (seen.get(key) ?? 0) + 1;
+    seen.set(key, count);
+    if (count > 1) row.name = `${key} — ${count}`;
+    row.searchText = searchText(row);
+  }
+}
+
 export function buildSampleCatalog(root = ROOT) {
   const apps = loadCookbookApps(root);
   const editors = editorSlugSet();
@@ -332,43 +378,13 @@ export function buildSampleCatalog(root = ROOT) {
     const text = fs.readFileSync(path.join(root, rel), "utf8");
     const lines = text.split("\n");
     for (const fence of extractFences(text)) {
-      const headings = headingsBefore(lines, fence.startLine - 1);
-      const slug = editorSlugFor(rel, apps, headings);
-      const app = slug !== null && apps.has(slug) ? apps.get(slug) : null;
-      const editorSlug = slug !== null && editors.has(slug) ? slug : null;
-      const name = sampleName(headings, fence.language, app ?? null);
-      const description =
-        usefulDescription(descriptionBefore(lines, fence.startLine - 1)) ||
-        `${chapterLabel(rel, headings)} code listing.`;
-      const rnwHref =
-        app !== null ? `/react-native-web/?app=${encodeURIComponent(app.slug)}` : null;
-      const editorHref =
-        editorSlug !== null ? `/editor/?app=${encodeURIComponent(editorSlug)}` : null;
-      const row = {
-        id: `${rel}:${fence.startLine}`,
-        name,
-        description: description.length > 280 ? `${description.slice(0, 277).trim()}…` : description,
-        language: languageLabel(fence.language),
-        chapter: chapterLabel(rel, headings),
-        capabilities: app?.capabilities ?? [],
-        githubHref: githubForFence(rel, fence, app ?? null),
-        docsHref: docsHref(rel, headings, app ?? null),
-        rnwHref,
-        editorHref,
-        sourcePath: rel,
-      };
-      rows.push({ ...row, searchText: searchText(row) });
+      rows.push(catalogRowForFence(rel, text, lines, fence, apps, editors));
     }
   }
-  const seen = new Map();
-  for (const row of rows) {
-    const key = /** @type {string} */ (row.name);
-    const count = (seen.get(key) ?? 0) + 1;
-    seen.set(key, count);
-    if (count > 1) row.name = `${key} — ${count}`;
-    row.searchText = searchText(row);
-  }
-  rows.sort((left, right) => String(left.name).localeCompare(String(right.name)));
+  uniquifyCatalogNames(rows);
+  rows.sort((left, right) =>
+    String(left.name).localeCompare(String(right.name)),
+  );
   return rows;
 }
 

@@ -59,16 +59,36 @@ export function inspectSite(options = {}) {
   const requireDist = Boolean(options.requireDist);
   /** @type {string[]} */
   const problems = [];
-  let supplied = 0;
-  let pending = 0;
-  let placeholderLeaks = 0;
-  let distImages = 0;
-  let pages = 0;
+  inspectRequiredPublicPages(requireDist, problems);
+  inspectCatalogPages(requireDist, problems);
+  const sections = inspectAllSections(requireDist, problems);
+  if (requireDist && fs.existsSync(SITE_DIST)) {
+    problems.push(...inspectDistHtmlImages());
+  }
 
+  const links = fs.existsSync(path.join(SITE_ROOT, "src"))
+    ? findBrokenSiteLinks()
+    : { files: 0, broken: ["site/src is missing; run npm run site:stage"] };
+
+  return {
+    ok: problems.length === 0 && links.broken.length === 0,
+    problems: [...problems, ...links.broken.map((item) => `link ${item}`)],
+    pages: sections.pages,
+    supplied: sections.supplied,
+    pending: sections.pending,
+    placeholderLeaks: sections.placeholderLeaks,
+    brokenLinks: links.broken.length,
+    distChecked: requireDist && fs.existsSync(SITE_DIST),
+    distImages: sections.distImages,
+    referenced: SECTIONS.reduce((sum, section) => sum + referencedImages(section.id).length, 0),
+    markdownPages: SECTIONS.reduce((sum, section) => sum + countMarkdownPages(section.id), 0)
+  };
+}
+
+function inspectRequiredPublicPages(requireDist, problems) {
   if (requireDist && !fs.existsSync(SITE_DIST)) {
     problems.push("site/.vitepress/dist is missing; run npm run site:build");
   }
-
   const requiredPublicPages = [
     "react-native-web/index.html",
     "editor/index.html",
@@ -87,7 +107,9 @@ export function inspectSite(options = {}) {
       }
     }
   }
+}
 
+function inspectCatalogPages(requireDist, problems) {
   if (!fs.existsSync(path.join(SITE_SRC, "samples/index.md"))) {
     problems.push("samples catalog page missing; run npm run site:stage");
   }
@@ -97,150 +119,219 @@ export function inspectSite(options = {}) {
   if (requireDist && fs.existsSync(SITE_DIST) && !fs.existsSync(path.join(SITE_DIST, "samples/index.html"))) {
     problems.push("dist missing /samples/");
   }
+}
 
+function inspectAllSections(requireDist, problems) {
+  let pages = 0;
+  let supplied = 0;
+  let pending = 0;
+  let placeholderLeaks = 0;
+  let distImages = 0;
   for (const { id, label } of SECTIONS) {
     const dir = sectionDir(id);
     if (!fs.existsSync(dir)) {
       problems.push(`${id}/ is missing`);
       continue;
     }
-    const sources = fs
-      .readdirSync(dir, { withFileTypes: true })
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-      .map((entry) => entry.name);
-    pages += sources.length;
-    if (sources.length === 0) problems.push(`${id}/ contains no markdown`);
-
-    for (const name of sources) {
-      const stem = name.replace(/\.md$/, "");
-      const rendered =
-        stem === "README"
-          ? path.join(SITE_DIST, id, "index.html")
-          : path.join(SITE_DIST, id, `${stem}.html`);
-      if (requireDist && fs.existsSync(SITE_DIST) && !fs.existsSync(rendered)) {
-        problems.push(`${label}: ${name} did not render (${path.relative(ROOT, rendered)})`);
-      }
-    }
-
-    const { names } = surveySection(id);
-    for (const name of names) {
-      const srcPath = path.join(sectionImagesDir(id), name);
-      const pubPath = path.join(publicImagesDir(id), name);
-      const distPath = path.join(distImagesDir(id), name);
-      const src = readIfFile(srcPath);
-      const published = readIfFile(pubPath);
-      const dist = readIfFile(distPath);
-      const pendingName = isPendingCapture(id, name);
-
-      if (!src) {
-        if (!pendingName) {
-          problems.push(`missing capture ${id}/images/${name}`);
-        } else pending += 1;
-        if (published && !pendingName && isPlaceholderPng(published)) {
-          problems.push(`placeholder published for ${id}/images/${name}`);
-          placeholderLeaks += 1;
-        }
-        if (pendingName && !published) {
-          problems.push(`pending capture ${id}/images/${name} was not published`);
-        }
-        if (requireDist && fs.existsSync(SITE_DIST)) {
-          if (!dist) problems.push(`dist missing /${id}/images/${name}`);
-          else if (!pendingName && isPlaceholderPng(dist)) {
-            problems.push(`placeholder deployed for ${id}/images/${name}`);
-            placeholderLeaks += 1;
-          } else distImages += 1;
-        }
-        continue;
-      }
-
-      supplied += 1;
-      if (pendingName) {
-        problems.push(`PENDING_CAPTURES still lists supplied ${id}/images/${name}`);
-      }
-      if (isPlaceholderPng(src)) {
-        problems.push(`committed placeholder ${id}/images/${name}`);
-        placeholderLeaks += 1;
-      }
-      if (!published) problems.push(`not published ${id}/images/${name}`);
-      else if (isPlaceholderPng(published)) {
-        problems.push(`placeholder published for supplied ${id}/images/${name}`);
-        placeholderLeaks += 1;
-      } else if (!src.equals(published)) {
-        problems.push(`public copy differs from source ${id}/images/${name}`);
-      }
-      if (requireDist && fs.existsSync(SITE_DIST)) {
-        if (!dist) problems.push(`dist missing /${id}/images/${name}`);
-        else if (isPlaceholderPng(dist)) {
-          problems.push(`placeholder deployed for supplied ${id}/images/${name}`);
-          placeholderLeaks += 1;
-        } else if (!src.equals(dist)) {
-          problems.push(`dist copy differs from source ${id}/images/${name}`);
-        } else distImages += 1;
-      }
-    }
+    pages += inspectSectionMarkdown(id, label, requireDist, problems);
+    const counted = inspectSectionImages(id, requireDist, problems);
+    supplied += counted.supplied;
+    pending += counted.pending;
+    placeholderLeaks += counted.placeholderLeaks;
+    distImages += counted.distImages;
   }
-
-  if (requireDist && fs.existsSync(SITE_DIST)) {
-    problems.push(...inspectDistHtmlImages());
-  }
-
-  const links = fs.existsSync(path.join(SITE_ROOT, "src"))
-    ? findBrokenSiteLinks()
-    : { files: 0, broken: ["site/src is missing; run npm run site:stage"] };
-
-  const result = {
-    ok: problems.length === 0 && links.broken.length === 0,
-    problems: [...problems, ...links.broken.map((item) => `link ${item}`)],
-    pages,
-    supplied,
-    pending,
-    placeholderLeaks,
-    brokenLinks: links.broken.length,
-    distChecked: requireDist && fs.existsSync(SITE_DIST),
-    distImages,
-    referenced: SECTIONS.reduce((sum, section) => sum + referencedImages(section.id).length, 0),
-    markdownPages: SECTIONS.reduce((sum, section) => sum + countMarkdownPages(section.id), 0)
-  };
-  return result;
+  return { pages, supplied, pending, placeholderLeaks, distImages };
 }
+
+function inspectSectionMarkdown(id, label, requireDist, problems) {
+  const dir = sectionDir(id);
+  const sources = fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name);
+  if (sources.length === 0) problems.push(`${id}/ contains no markdown`);
+  for (const name of sources) {
+    const stem = name.replace(/\.md$/, "");
+    const rendered =
+      stem === "README"
+        ? path.join(SITE_DIST, id, "index.html")
+        : path.join(SITE_DIST, id, `${stem}.html`);
+    if (requireDist && fs.existsSync(SITE_DIST) && !fs.existsSync(rendered)) {
+      problems.push(`${label}: ${name} did not render (${path.relative(ROOT, rendered)})`);
+    }
+  }
+  return sources.length;
+}
+
+function inspectSectionImages(id, requireDist, problems) {
+  let supplied = 0;
+  let pending = 0;
+  let placeholderLeaks = 0;
+  let distImages = 0;
+  const { names } = surveySection(id);
+  for (const name of names) {
+    const counted = inspectOneCapture(id, name, requireDist, problems);
+    supplied += counted.supplied;
+    pending += counted.pending;
+    placeholderLeaks += counted.placeholderLeaks;
+    distImages += counted.distImages;
+  }
+  return { supplied, pending, placeholderLeaks, distImages };
+}
+
+function inspectOneCapture(id, name, requireDist, problems) {
+  const srcPath = path.join(sectionImagesDir(id), name);
+  const pubPath = path.join(publicImagesDir(id), name);
+  const distPath = path.join(distImagesDir(id), name);
+  const src = readIfFile(srcPath);
+  const published = readIfFile(pubPath);
+  const dist = readIfFile(distPath);
+  const pendingName = isPendingCapture(id, name);
+  if (!src) {
+    return inspectMissingCapture({
+      id,
+      name,
+      pendingName,
+      published,
+      dist,
+      requireDist,
+      problems,
+    });
+  }
+  return inspectSuppliedCapture({
+    id,
+    name,
+    pendingName,
+    src,
+    published,
+    dist,
+    requireDist,
+    problems,
+  });
+}
+
+function inspectMissingCapture({
+  id,
+  name,
+  pendingName,
+  published,
+  dist,
+  requireDist,
+  problems,
+}) {
+  let pending = 0;
+  let placeholderLeaks = 0;
+  let distImages = 0;
+  if (!pendingName) {
+    problems.push(`missing capture ${id}/images/${name}`);
+  } else pending += 1;
+  if (published && !pendingName && isPlaceholderPng(published)) {
+    problems.push(`placeholder published for ${id}/images/${name}`);
+    placeholderLeaks += 1;
+  }
+  if (pendingName && !published) {
+    problems.push(`pending capture ${id}/images/${name} was not published`);
+  }
+  if (requireDist && fs.existsSync(SITE_DIST)) {
+    if (!dist) problems.push(`dist missing /${id}/images/${name}`);
+    else if (!pendingName && isPlaceholderPng(dist)) {
+      problems.push(`placeholder deployed for ${id}/images/${name}`);
+      placeholderLeaks += 1;
+    } else distImages += 1;
+  }
+  return { supplied: 0, pending, placeholderLeaks, distImages };
+}
+
+function inspectSuppliedCapture({
+  id,
+  name,
+  pendingName,
+  src,
+  published,
+  dist,
+  requireDist,
+  problems,
+}) {
+  let placeholderLeaks = 0;
+  let distImages = 0;
+  if (pendingName) {
+    problems.push(`PENDING_CAPTURES still lists supplied ${id}/images/${name}`);
+  }
+  if (isPlaceholderPng(src)) {
+    problems.push(`committed placeholder ${id}/images/${name}`);
+    placeholderLeaks += 1;
+  }
+  if (!published) problems.push(`not published ${id}/images/${name}`);
+  else if (isPlaceholderPng(published)) {
+    problems.push(`placeholder published for supplied ${id}/images/${name}`);
+    placeholderLeaks += 1;
+  } else if (!src.equals(published)) {
+    problems.push(`public copy differs from source ${id}/images/${name}`);
+  }
+  if (requireDist && fs.existsSync(SITE_DIST)) {
+    if (!dist) problems.push(`dist missing /${id}/images/${name}`);
+    else if (isPlaceholderPng(dist)) {
+      problems.push(`placeholder deployed for supplied ${id}/images/${name}`);
+      placeholderLeaks += 1;
+    } else if (!src.equals(dist)) {
+      problems.push(`dist copy differs from source ${id}/images/${name}`);
+    } else distImages += 1;
+  }
+  return { supplied: 1, pending: 0, placeholderLeaks, distImages };
+}
+
 
 function inspectDistHtmlImages() {
   /** @type {string[]} */
   const problems = [];
+  for (const file of listHtmlFiles(SITE_DIST)) {
+    problems.push(...missingDistImagesIn(file));
+  }
+  return problems;
+}
+
+function listHtmlFiles(dir) {
   /** @type {string[]} */
   const files = [];
-  function walk(dir) {
-    if (!fs.existsSync(dir)) return;
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const abs = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name === "typedoc" || entry.name === "raw") continue;
-        walk(abs);
-      } else if (entry.name.endsWith(".html")) files.push(abs);
-    }
+  if (!fs.existsSync(dir)) return files;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "typedoc" || entry.name === "raw") continue;
+      files.push(...listHtmlFiles(abs));
+    } else if (entry.name.endsWith(".html")) files.push(abs);
   }
-  walk(SITE_DIST);
-  for (const file of files) {
-    const html = fs.readFileSync(file, "utf8");
-    IMG_REF.lastIndex = 0;
-    let match;
-    while ((match = IMG_REF.exec(html))) {
-      const href = match[1].split("#")[0].split("?")[0];
-      if (/^https?:/i.test(href) || href.startsWith("data:")) continue;
-      if (!/\/(guide|authors|cookbook|docs)\/images\//.test(href)) continue;
-      const stripped = href.startsWith(PAGES_BASE)
-        ? href.slice(PAGES_BASE.length)
-        : href.replace(/^\//, "");
-      const resolved = href.startsWith("/") || href.startsWith(PAGES_BASE)
-        ? path.normalize(path.join(SITE_DIST, stripped))
-        : path.normalize(path.join(path.dirname(file), href));
-      if (!resolved.startsWith(SITE_DIST)) continue;
-      if (!fs.existsSync(resolved)) {
-        problems.push(`${path.relative(SITE_DIST, file)}: missing ${href}`);
-      }
+  return files;
+}
+
+function missingDistImagesIn(file) {
+  /** @type {string[]} */
+  const problems = [];
+  const html = fs.readFileSync(file, "utf8");
+  IMG_REF.lastIndex = 0;
+  let match;
+  while ((match = IMG_REF.exec(html))) {
+    const href = match[1].split("#")[0].split("?")[0];
+    const resolved = resolveDistImage(file, href);
+    if (resolved !== null && !fs.existsSync(resolved)) {
+      problems.push(`${path.relative(SITE_DIST, file)}: missing ${href}`);
     }
   }
   return problems;
+}
+
+function resolveDistImage(file, href) {
+  if (/^https?:/i.test(href) || href.startsWith("data:")) return null;
+  if (!/\/(guide|authors|cookbook|docs)\/images\//.test(href)) return null;
+  const stripped = href.startsWith(PAGES_BASE)
+    ? href.slice(PAGES_BASE.length)
+    : href.replace(/^\//, "");
+  const resolved =
+    href.startsWith("/") || href.startsWith(PAGES_BASE)
+      ? path.normalize(path.join(SITE_DIST, stripped))
+      : path.normalize(path.join(path.dirname(file), href));
+  if (!resolved.startsWith(SITE_DIST)) return null;
+  return resolved;
 }
 
 export function writeSitePagesArtifact(result) {
@@ -297,6 +388,15 @@ function main() {
   if (!requireDist) {
     run("scripts/site/stage.mjs");
     run("scripts/site/section-images.mjs");
+    // Isolated Pages worktrees have no dist/; esbuild follows package.json
+    // exports there. Build packages before the sample and editor bundles.
+    const build = spawnSync("npm", ["run", "build"], {
+      cwd: ROOT,
+      stdio: "inherit",
+    });
+    if ((build.status ?? 1) !== 0) {
+      throw new Error("npm run build failed");
+    }
     // Cookbook and sample-catalog pages link at /react-native-web/ and /editor/;
     // those are esbuild outputs, not staged markdown, so verify has to build them.
     run("scripts/site/build-react-native-web-samples.mjs");

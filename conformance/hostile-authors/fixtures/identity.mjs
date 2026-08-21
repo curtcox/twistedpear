@@ -20,7 +20,7 @@ import {
   consentRecordFromConfirmation,
   installReviewConsentRecord,
 } from "../../../packages/miniapp-runtime/dist/index.js";
-import { dispatch, makeHost } from "./harness.mjs";
+import { dispatch, makeHost, stubAppsBackend } from "./harness.mjs";
 
 function sampleFiles() {
   return [
@@ -79,20 +79,27 @@ export async function runIdentityScenarios() {
   const provider = new NodeCryptoProvider();
   const left = new Identity(provider);
   const right = new Identity(provider);
+  return [
+    measureHomoglyph(provider, left, right),
+    measurePublisherSwap(provider, left, right),
+    await measureTrustImport(),
+    ...(await measureChainInstall()),
+  ];
+}
+
+function measureHomoglyph(provider, left, right) {
   const catalog = new CatalogStore(provider);
   const handbook = signedPackage(provider, left, "Handbook");
-  const homoglyph = signedPackage(provider, right, "Hаndbook");
+  const lookalike = signedPackage(provider, right, "Hаndbook");
   const t0 = Date.now();
   const first = ingestNamed(catalog, provider, left, handbook, t0);
-  const second = ingestNamed(catalog, provider, right, homoglyph, t0 + 1);
+  const second = ingestNamed(catalog, provider, right, lookalike, t0 + 1);
   const names = catalog.list().map((entry) => entry.name);
   const ha01 =
     first !== null &&
     second !== null &&
     names.includes("Handbook") &&
     names.includes("Hаndbook");
-  // INFORMED requires confusableWith on a consent record; chrome does not
-  // flag homoglyphs yet (P3).
   const review = installReviewConsentRecord({
     at: 30,
     token: "review-ha01",
@@ -103,7 +110,24 @@ export async function runIdentityScenarios() {
     confusableWith: catalog.confusableWith(first?.name ?? "Handbook"),
   });
   const ha01Informed = review.subject.confusableWith.includes("Hаndbook");
+  return {
+    id: "HA-01",
+    measured:
+      ha01 && !ha01Informed
+        ? "UNCONTROLLED"
+        : ha01Informed
+          ? "INFORMED"
+          : "UNCONTROLLED",
+    note: ha01Informed
+      ? "Two publisher keys both appear as Handbook / homoglyph; install-review confusableWith names the lookalike."
+      : ha01
+        ? "Two publisher keys both appear as Handbook / homoglyph; confusableWith is empty."
+        : "Catalog ingest failed for the homoglyph pair.",
+  };
+}
 
+function measurePublisherSwap(provider, left, right) {
+  const t0 = Date.now();
   const original = signedPackage(provider, left, "swap-app", "1.0.0");
   const swapCatalog = new CatalogStore(provider);
   const kept = ingestNamed(swapCatalog, provider, left, original, t0);
@@ -114,7 +138,14 @@ export async function runIdentityScenarios() {
     originalStill !== null &&
     originalStill.publisherPublicKey === kept.publisherPublicKey &&
     originalStill.version === "1.0.0";
+  return {
+    id: "HA-02",
+    measured: ha02Blocked ? "BLOCKED" : "UNCONTROLLED",
+    note: "A different publisher key is a different catalog id; the original entry is not overwritten.",
+  };
+}
 
+async function measureTrustImport() {
   const host = makeHost();
   const pasted = "ab".repeat(32);
   host.recordConsent(
@@ -133,7 +164,6 @@ export async function runIdentityScenarios() {
   const ha03 =
     trust?.kind === "trust-import" &&
     trust.subject.publisherFingerprint === pasted;
-
   const kv = {
     values: new Map(),
     async get(key) {
@@ -154,32 +184,21 @@ export async function runIdentityScenarios() {
     source: "paste",
   });
   const degree = await store.degreeOf(`${"11".repeat(32)}${"22".repeat(32)}`);
+  return {
+    id: "HA-03",
+    measured: ha03 && degree === "imported" ? "INFORMED" : "UNCONTROLLED",
+    note: "trust-import transcript names the pasted key; TrustStore source paste is imported, not direct.",
+  };
+}
 
+async function measureChainInstall() {
   const studio = {
     name: "studio",
     publisherPublicKey: "publisher",
     capabilities: ["apps:install"],
   };
   const installHost = makeHost({
-    appsBackend: {
-      package: async () => ({
-        packageHash: "ab".repeat(32),
-        size: 1,
-        t256: "A".repeat(94),
-      }),
-      publish: async () => ({
-        t256: "A".repeat(94),
-        driveKey: "cd".repeat(32),
-        version: "1.0.0",
-      }),
-      install: async () => ({
-        appId: "hello",
-        version: "1.0.0",
-        trusted: true,
-      }),
-      preview: async () => ({ launched: true }),
-      stopPreview: async () => {},
-    },
+    appsBackend: stubAppsBackend(),
   });
   await installHost.setGrants(
     studio.name,
@@ -217,32 +236,7 @@ export async function runIdentityScenarios() {
     ha04 &&
     secondReview !== undefined &&
     secondReview.token !== installRecord.token;
-
   return [
-    {
-      id: "HA-01",
-      measured:
-        ha01 && !ha01Informed
-          ? "UNCONTROLLED"
-          : ha01Informed
-            ? "INFORMED"
-            : "UNCONTROLLED",
-      note: ha01Informed
-        ? "Two publisher keys both appear as Handbook / homoglyph; install-review confusableWith names the lookalike."
-        : ha01
-          ? "Two publisher keys both appear as Handbook / homoglyph; confusableWith is empty."
-          : "Catalog ingest failed for the homoglyph pair.",
-    },
-    {
-      id: "HA-02",
-      measured: ha02Blocked ? "BLOCKED" : "UNCONTROLLED",
-      note: "A different publisher key is a different catalog id; the original entry is not overwritten.",
-    },
-    {
-      id: "HA-03",
-      measured: ha03 && degree === "imported" ? "INFORMED" : "UNCONTROLLED",
-      note: "trust-import transcript names the pasted key; TrustStore source paste is imported, not direct.",
-    },
     {
       id: "HA-04",
       measured: ha04 ? "INFORMED" : "UNCONTROLLED",

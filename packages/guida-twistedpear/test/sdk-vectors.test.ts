@@ -148,29 +148,36 @@ function toBrokerPayload(
   if (payload === undefined || payload === null) return payload;
   const args = binding?.args ?? [];
   if (args.length === 1 && args[0].name === "request") {
-    if (
-      payload !== null &&
-      typeof payload === "object" &&
-      "request" in payload
-    ) {
-      return (payload as { request: unknown }).request;
-    }
-    return payload;
+    return unwrapNamedRequest(payload);
   }
-  if (
-    payload !== null &&
-    typeof payload === "object" &&
-    !Array.isArray(payload)
-  ) {
-    const body = { ...(payload as Record<string, unknown>) };
-    for (const arg of args) {
-      if (arg.type === "bytes" && arg.name in body) {
-        body[arg.name] = asBytes(body[arg.name]);
-      }
-    }
-    return body;
+  return rewriteByteArgs(args, payload);
+}
+
+function unwrapNamedRequest(payload: unknown): unknown {
+  if (payload !== null && typeof payload === "object" && "request" in payload) {
+    return (payload as { request: unknown }).request;
   }
   return payload;
+}
+
+function rewriteByteArgs(
+  args: ReadonlyArray<{ name: string; type: string }>,
+  payload: unknown,
+): unknown {
+  if (
+    payload === null ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ) {
+    return payload;
+  }
+  const body = { ...(payload as Record<string, unknown>) };
+  for (const arg of args) {
+    if (arg.type === "bytes" && arg.name in body) {
+      body[arg.name] = asBytes(body[arg.name]);
+    }
+  }
+  return body;
 }
 
 function brokerMethod(namespace: string, method: string): string {
@@ -300,40 +307,78 @@ async function replayVector(
 
   const failures: string[] = [];
   for (const [index, step] of vector.steps.entries()) {
-    const binding = findBinding(step.call.namespace, step.call.method);
-    const method = binding?.method ?? step.call.method;
-    pendingCapability = step.call.capability;
-    const payload = wrapPayload(
-      binding,
-      step.call.payload === undefined
-        ? null
-        : expandDirectives(step.call.payload),
+    failures.push(
+      ...(await runVectorStep(
+        vector,
+        index,
+        step,
+        handler,
+        frames,
+        (response) => {
+          lastResponse = response;
+        },
+        () => lastResponse,
+        (capability) => {
+          pendingCapability = capability;
+        },
+      )),
     );
-    const raw = JSON.stringify({
-      namespace: binding?.namespace ?? step.call.namespace,
-      method,
-      payload,
-    });
-    lastResponse = undefined;
-    const repeat = step.repeat ?? 1;
-    for (let n = 0; n < repeat; n += 1) {
-      await handler({ nodeId: "call", event: "call", value: raw });
-      await flush();
-      await handler({ nodeId: "run", event: "run" });
-      const deadline = Date.now() + 3_000;
-      while (Date.now() < deadline) {
-        await flush();
-        if (lastResponse !== undefined) break;
-        await new Promise((resolve) => setTimeout(resolve, 5));
-      }
-    }
-    const where = `${vector.name} step ${index}`;
-    if (lastResponse === undefined) {
-      failures.push(`${where}: no broker response (${resultText(frames)})`);
-      continue;
-    }
-    const mismatch = mismatchDescription(lastResponse, step.expect, where);
-    if (mismatch !== null) failures.push(mismatch);
   }
   return failures;
+}
+
+async function runVectorStep(
+  vector: (typeof vectors.vectors)[number],
+  index: number,
+  step: (typeof vectors.vectors)[number]["steps"][number],
+  handler: UiHandler,
+  frames: unknown[],
+  setLastResponse: (response: {
+    ok: boolean;
+    error?: { code?: string; message?: string };
+    result?: unknown;
+  }) => void,
+  getLastResponse: () =>
+    | {
+        ok: boolean;
+        error?: { code?: string; message?: string };
+        result?: unknown;
+      }
+    | undefined,
+  setPendingCapability: (capability: string | undefined) => void,
+): Promise<string[]> {
+  const binding = findBinding(step.call.namespace, step.call.method);
+  const method = binding?.method ?? step.call.method;
+  setPendingCapability(step.call.capability);
+  const payload = wrapPayload(
+    binding,
+    step.call.payload === undefined
+      ? null
+      : expandDirectives(step.call.payload),
+  );
+  const raw = JSON.stringify({
+    namespace: binding?.namespace ?? step.call.namespace,
+    method,
+    payload,
+  });
+  setLastResponse(undefined as never);
+  const repeat = step.repeat ?? 1;
+  for (let n = 0; n < repeat; n += 1) {
+    await handler({ nodeId: "call", event: "call", value: raw });
+    await flush();
+    await handler({ nodeId: "run", event: "run" });
+    const deadline = Date.now() + 3_000;
+    while (Date.now() < deadline) {
+      await flush();
+      if (getLastResponse() !== undefined) break;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+  }
+  const where = `${vector.name} step ${index}`;
+  const lastResponse = getLastResponse();
+  if (lastResponse === undefined) {
+    return [`${where}: no broker response (${resultText(frames)})`];
+  }
+  const mismatch = mismatchDescription(lastResponse, step.expect, where);
+  return mismatch === null ? [] : [mismatch];
 }

@@ -53,8 +53,7 @@
       "nloc": 333
     },
     "apps/handbook/build.mjs::build": {
-      "ccn": 30,
-      "nloc": 202
+      "ccn": 26
     },
     "apps/handbook/content/applets/ai-chat/main.js::run": {
       "ccn": 13
@@ -79,7 +78,7 @@
     },
     "apps/handbook/src/runtime-render.js::chapterNeighbors": {
       "ccn": 128,
-      "nloc": 594
+      "nloc": 592
     },
     "apps/handbook/src/runtime.js::handleEvent": {
       "ccn": 30
@@ -272,17 +271,11 @@
       "ccn": 42,
       "nloc": 148
     },
-    "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createAppsBackendPreviewAction": {
-      "params": 6
-    },
     "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createCommonHostInfoBackend": {
       "ccn": 22
     },
     "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createMediaPipeline": {
       "ccn": 30
-    },
-    "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithCapabilityReview": {
-      "params": 10
     },
     "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview": {
       "params": 7
@@ -291,17 +284,17 @@
       "ccn": 16
     },
     "packages/worklet-core/src/web-miniapp-host.mjs::createWebWorkletMiniappHost": {
-      "ccn": 18,
-      "nloc": 136
+      "ccn": 16,
+      "nloc": 130
     },
     "packages/worklet-core/src/worklet-entry-catalog.mjs::(anonymous)": {
-      "ccn": 18
+      "ccn": 17
     },
     "packages/worklet-core/src/worklet-entry-discovery.mjs::receivedAnnounce": {
       "ccn": 11
     },
     "packages/worklet-core/src/worklet-entry-install.mjs::installFromT256": {
-      "ccn": 22
+      "ccn": 15
     },
     "scripts/checks/status.mjs::collect": {
       "ccn": 21
@@ -326,9 +319,6 @@
     },
     "scripts/site/stage.mjs::rewriteMarkdownLinks": {
       "ccn": 51
-    },
-    "scripts/site/validate-links.mjs::existsTarget": {
-      "ccn": 20
     },
     "scripts/size-ratchet.mjs::main": {
       "ccn": 50

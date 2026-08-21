@@ -1,7 +1,6 @@
 import {
-  ConfirmationRateLimiter,
+  createNodeConfirmationEffects,
   requestHostConfirmation,
-  type ConfirmationEffects,
   type HostConfirmationChannel,
 } from "../confirm.js";
 
@@ -51,28 +50,7 @@ export interface AppChannelHost {
   now(): number;
 }
 
-function nodeConfirmationEffects(): ConfirmationEffects {
-  return {
-    randomBytes(length: number): Uint8Array {
-      const bytes = new Uint8Array(length);
-      const cryptoApi = globalThis.crypto as Crypto | undefined;
-      if (typeof cryptoApi?.getRandomValues !== "function") {
-        throw new Error(
-          "crypto.getRandomValues is required for confirmation tokens",
-        );
-      }
-      cryptoApi.getRandomValues(bytes);
-      return bytes;
-    },
-    delay(ms: number): Promise<void> {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    },
-    now: () => Date.now(),
-    limiter: new ConfirmationRateLimiter(),
-  };
-}
-
-const confirmationEffects = nodeConfirmationEffects();
+const confirmationEffects = createNodeConfirmationEffects();
 
 function identityKey(peer: AppChannelPeer): string {
   return `${peer.publisherPublicKey}\n${peer.appId}`;

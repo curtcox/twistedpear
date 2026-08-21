@@ -73,32 +73,45 @@ function workspaceManifests(repoRoot) {
   return manifests;
 }
 
-function workspaceRangeMismatches(repoRoot) {
+function workspaceVersions(repoRoot) {
   const versions = new Map();
-  const manifests = workspaceManifests(repoRoot);
-  for (const file of manifests) {
+  for (const file of workspaceManifests(repoRoot)) {
     const pkg = JSON.parse(readFileSync(file, "utf8"));
     if (typeof pkg.name === "string" && typeof pkg.version === "string") {
       versions.set(pkg.name, pkg.version);
     }
   }
+  return versions;
+}
+
+function workspaceRangeMismatches(repoRoot) {
+  const versions = workspaceVersions(repoRoot);
   /** @type {string[]} */
   const mismatches = [];
-  for (const file of manifests) {
+  for (const file of workspaceManifests(repoRoot)) {
     const pkg = JSON.parse(readFileSync(file, "utf8"));
-    for (const block of [
-      pkg.dependencies,
-      pkg.devDependencies,
-      pkg.peerDependencies,
-    ]) {
-      if (!block) continue;
-      for (const [name, range] of Object.entries(block)) {
-        const version = versions.get(name);
-        if (!version || workspaceRangeSatisfied(range, version)) continue;
-        mismatches.push(
-          `${file.slice(repoRoot.length + 1)}: ${name}@${range} (workspace is ${version})`,
-        );
-      }
+    mismatches.push(
+      ...rangeMismatchesInManifest(file, pkg, versions, repoRoot),
+    );
+  }
+  return mismatches;
+}
+
+function rangeMismatchesInManifest(file, pkg, versions, repoRoot) {
+  /** @type {string[]} */
+  const mismatches = [];
+  for (const block of [
+    pkg.dependencies,
+    pkg.devDependencies,
+    pkg.peerDependencies,
+  ]) {
+    if (!block) continue;
+    for (const [name, range] of Object.entries(block)) {
+      const version = versions.get(name);
+      if (!version || workspaceRangeSatisfied(range, version)) continue;
+      mismatches.push(
+        `${file.slice(repoRoot.length + 1)}: ${name}@${range} (workspace is ${version})`,
+      );
     }
   }
   return mismatches;

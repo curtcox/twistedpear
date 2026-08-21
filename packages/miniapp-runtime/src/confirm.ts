@@ -50,10 +50,10 @@ export class ConfirmationError extends Error {
 }
 
 export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 60_000;
-export const DEFAULT_CONFIRMATION_RATE_MAX = 3;
-export const DEFAULT_CONFIRMATION_RATE_WINDOW_MS = 10_000;
+const DEFAULT_CONFIRMATION_RATE_MAX = 3;
+const DEFAULT_CONFIRMATION_RATE_WINDOW_MS = 10_000;
 
-export class ConfirmationRateLimiter {
+class ConfirmationRateLimiter {
   private readonly stamps = new Map<string, number[]>();
 
   constructor(
@@ -82,7 +82,7 @@ const CONTROL_CHARS = new RegExp(
   "g",
 );
 
-export function sanitizeConfirmationSummary(
+function sanitizeConfirmationSummary(
   summary: Readonly<Record<string, string>>,
 ): Readonly<Record<string, string>> {
   const out: Record<string, string> = {};
@@ -138,4 +138,25 @@ export async function requestHostConfirmation(
   }
 
   return result;
+}
+
+export function createNodeConfirmationEffects(): ConfirmationEffects {
+  return {
+    randomBytes(length: number): Uint8Array {
+      const bytes = new Uint8Array(length);
+      const cryptoApi = globalThis.crypto as Crypto | undefined;
+      if (typeof cryptoApi?.getRandomValues !== "function") {
+        throw new Error(
+          "crypto.getRandomValues is required for confirmation tokens",
+        );
+      }
+      cryptoApi.getRandomValues(bytes);
+      return bytes;
+    },
+    delay(ms: number): Promise<void> {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    },
+    now: () => Date.now(),
+    limiter: new ConfirmationRateLimiter(),
+  };
 }

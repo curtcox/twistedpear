@@ -1,24 +1,16 @@
 import {
   capabilityScopeLabel,
   parseCapabilityDeclarations,
-  unpackPackage,
-  verifyPackage,
 } from "../../app-registry/dist/index.js";
 import { toCatalogEntryLike, verify256t } from "../../cas-256t/dist/index.js";
 import {
   PackageResourceClient,
   fetchPackage,
 } from "../../bridge-hyper/dist/worklet.js";
-import {
-  generateConfirmationToken,
-  HOST_API_VERSION,
-  validateManifestCapabilities,
-} from "../../miniapp-runtime/dist/worklet.js";
+import { validateManifestCapabilities } from "../../miniapp-runtime/dist/worklet.js";
 import { describeCapability } from "../../miniapp-runtime/dist/capabilities.js";
-import {
-  presentCapabilityReview,
-  riskClassForCapabilityId,
-} from "./capability-review.mjs";
+import { riskClassForCapabilityId } from "./capability-review.mjs";
+import { confirmInstallReview } from "./install-review.mjs";
 
 export function createInstallFromT256(deps) {
   return async function installFromT256(t256) {
@@ -68,52 +60,29 @@ export function createInstallFromT256(deps) {
     }
 
     const { installedStore: installed } = deps.ensureCatalog();
-    const appId = unpackPackage(deps.provider, archive).manifest.name;
-    const verified = verifyPackage(deps.provider, archive, {
-      hostApiVersion: HOST_API_VERSION,
-      minVersion: installed.latestVersion(appId) ?? undefined,
+    const { appId, verified, trusted, review } = await confirmInstallReview({
+      provider: deps.provider,
+      archive,
+      minVersionFor: (id) => installed.latestVersion(id) ?? undefined,
+      trustStore: deps.ensureTrustStore(),
+      requestHostReply: deps.requestHostReply,
+      capabilitiesForReview: (verifiedManifest) => {
+        const declarations = parseCapabilityDeclarations(
+          verifiedManifest.manifest.capabilities,
+          verifiedManifest.manifest.formatVersion ?? 1,
+        );
+        validateManifestCapabilities(declarations);
+        return declarations.map((declaration) => ({
+          id: declaration.id,
+          description: describeCapability(declaration.id),
+          granted: false,
+          optional: declaration.optional,
+          scope: declaration.scope,
+          scopeLabel: capabilityScopeLabel(declaration.scope),
+          riskClass: riskClassForCapabilityId(declaration.id),
+        }));
+      },
     });
-    const declarations = parseCapabilityDeclarations(
-      verified.manifest.capabilities,
-      verified.manifest.formatVersion ?? 1,
-    );
-    validateManifestCapabilities(declarations);
-    const trusted = await deps
-      .ensureTrustStore()
-      .isTrusted(verified.manifest.publisherPublicKey);
-    const trustedEntry = trusted
-      ? (await deps.ensureTrustStore().list()).find(
-          (entry) =>
-            entry.publisherPublicKey === verified.manifest.publisherPublicKey,
-        )
-      : undefined;
-    const presented = presentCapabilityReview(
-      declarations.map((declaration) => ({
-        id: declaration.id,
-        description: describeCapability(declaration.id),
-        granted: false,
-        optional: declaration.optional,
-        scope: declaration.scope,
-        scopeLabel: capabilityScopeLabel(declaration.scope),
-        riskClass: riskClassForCapabilityId(declaration.id),
-      })),
-    );
-    const review = await deps.requestHostReply({
-      type: "install-review",
-      token: generateConfirmationToken((length) =>
-        deps.provider.randomBytes(length),
-      ),
-      appId,
-      version: verified.manifest.version,
-      publisherPublicKey: verified.manifest.publisherPublicKey,
-      trusted,
-      trustedLabel: trustedEntry?.label ?? null,
-      riskTier: presented.riskTier,
-      capabilities: presented.capabilities,
-    });
-    if (review === null || review.accept !== true) {
-      throw new Error("Install cancelled at capability review");
-    }
 
     const archivePath = `packages/${appId}/${verified.manifest.version}.tpkg`;
     await deps.runtime.store.set(archivePath, archive);

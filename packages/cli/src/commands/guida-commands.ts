@@ -48,7 +48,7 @@ const TEMPLATE_ROOT = join(
   "../../../guida-twistedpear/templates/hello",
 );
 
-export function isGuidaAppDir(appDir: string): boolean {
+function isGuidaAppDir(appDir: string): boolean {
   return existsSync(join(appDir, "elm.json"));
 }
 
@@ -104,7 +104,7 @@ export async function runApp(ctx: CommandContext): Promise<number> {
   return 1;
 }
 
-export async function runAppBuild(ctx: CommandContext): Promise<number> {
+async function runAppBuild(ctx: CommandContext): Promise<number> {
   const appDirArg = ctx.args[0];
   if (appDirArg === undefined) {
     printHelp("app");

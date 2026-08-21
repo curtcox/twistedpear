@@ -10,20 +10,18 @@ import { serializeCanonicalJson } from "./manifest.js";
 
 export const REVIEW_ATTESTATION_FORMAT = 1;
 export const REVIEW_ANNOUNCE_ASPECT = "review";
-export const REVIEW_ANNOUNCE_MAGIC = new Uint8Array([
-  0x54, 0x50, 0x52, 0x56, 0x01,
-]); // TPRV\x01
+const REVIEW_ANNOUNCE_MAGIC = new Uint8Array([0x54, 0x50, 0x52, 0x56, 0x01]); // TPRV\x01
 
 export type ReviewVerdict = "endorse" | "concern";
 export type ReviewBasis = "source-read" | "executed" | "diff-from-prior";
 
 export interface UnsignedReviewAttestation {
-  readonly formatVersion: typeof REVIEW_ATTESTATION_FORMAT;
+  readonly formatVersion: number;
   readonly appId: string;
   readonly publisherPublicKey: string;
   readonly packageHash: string;
   readonly reviewerPublicKey: string;
-  readonly verdict: ReviewVerdict;
+  readonly verdict: string;
   readonly basis: ReadonlyArray<ReviewBasis>;
   readonly capabilities: ReadonlyArray<string>;
   readonly firstSeenAt: number;
@@ -33,6 +31,7 @@ export interface UnsignedReviewAttestation {
 
 export interface ReviewAttestation extends UnsignedReviewAttestation {
   readonly signature: string;
+  readonly verdict: ReviewVerdict;
 }
 
 export interface ReviewAnnounceSummary {
@@ -97,7 +96,7 @@ export function reviewDestinationName(
 }
 
 export function signReviewAttestation(
-  provider: CryptoProvider,
+  _provider: CryptoProvider,
   identity: Identity,
   unsigned: UnsignedReviewAttestation,
 ): ReviewAttestation {
@@ -107,6 +106,7 @@ export function signReviewAttestation(
   if (unsigned.verdict !== "endorse" && unsigned.verdict !== "concern") {
     throw new Error(`Unknown verdict ${unsigned.verdict}`);
   }
+  const verdict: ReviewVerdict = unsigned.verdict;
   if (
     unsigned.basis.length === 0 ||
     unsigned.basis.some((item) => !BASIS.has(item))
@@ -120,9 +120,11 @@ export function signReviewAttestation(
   const body: UnsignedReviewAttestation = {
     ...unsigned,
     reviewerPublicKey,
+    verdict,
   };
   return {
     ...body,
+    verdict,
     signature: bytesToHex(identity.sign(signingPayload(body))),
   };
 }
@@ -234,6 +236,28 @@ export function reviewAnnounceSummary(
  * A trusted `concern` is a unilateral brake: attestationCount becomes 0 so
  * evaluateApproval reports review unmet (still overridable).
  */
+function attestationCountsTowardTally(
+  provider: CryptoProvider,
+  attestation: ReviewAttestation,
+  options: {
+    readonly trustedReviewerKeys: ReadonlySet<string>;
+    readonly packageHash: string;
+    readonly publisherPublicKey: string;
+    readonly at: number;
+  },
+  seen: ReadonlySet<string>,
+): boolean {
+  if (attestation.packageHash !== options.packageHash) return false;
+  if (attestation.expiresAt <= options.at) return false;
+  if (!options.trustedReviewerKeys.has(attestation.reviewerPublicKey)) {
+    return false;
+  }
+  if (attestation.reviewerPublicKey === options.publisherPublicKey)
+    return false;
+  if (seen.has(attestation.reviewerPublicKey)) return false;
+  return verifyReviewAttestation(provider, attestation);
+}
+
 export function countTrustedAttestations(
   provider: CryptoProvider,
   attestations: ReadonlyArray<ReviewAttestation>,
@@ -248,14 +272,9 @@ export function countTrustedAttestations(
   let concerns = 0;
   const seen = new Set<string>();
   for (const attestation of attestations) {
-    if (attestation.packageHash !== options.packageHash) continue;
-    if (attestation.expiresAt <= options.at) continue;
-    if (!options.trustedReviewerKeys.has(attestation.reviewerPublicKey)) {
+    if (!attestationCountsTowardTally(provider, attestation, options, seen)) {
       continue;
     }
-    if (attestation.reviewerPublicKey === options.publisherPublicKey) continue;
-    if (seen.has(attestation.reviewerPublicKey)) continue;
-    if (!verifyReviewAttestation(provider, attestation)) continue;
     seen.add(attestation.reviewerPublicKey);
     if (attestation.verdict === "concern") concerns += 1;
     else endorsements += 1;

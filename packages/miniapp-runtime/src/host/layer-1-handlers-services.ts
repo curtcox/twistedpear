@@ -16,7 +16,8 @@ import { MiniappHostLayer1HandlersCore } from "./layer-1-handlers-core.js";
 export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer1HandlersCore {
   protected registerServicesHandlers(): void {
     this.registerAiHandlers();
-    this.registerAppsShareHandlers();
+    this.registerAppsHandlers();
+    this.registerShareHandlers();
     this.registerAppChannelHandlers();
     this.registerPeersLinksHandlers();
   }
@@ -135,7 +136,7 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
     );
   }
 
-  private registerAppsShareHandlers(): void {
+  private registerAppsHandlers(): void {
     const appsService = () => {
       if (this.appsService === null) {
         throw new AppsServiceError(
@@ -228,7 +229,9 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
         return { ok: true };
       },
     );
+  }
 
+  private registerShareHandlers(): void {
     this.broker.register(
       "share.cas",
       "put",

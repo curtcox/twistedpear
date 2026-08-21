@@ -41,8 +41,8 @@
     "packages/sim-campaign": 4,
     "packages/widget-renderer-headless": 1,
     "packages/widget-renderer-rn": 1,
-    "packages/worklet-core": 9,
-    "scripts": 9
+    "packages/worklet-core": 10,
+    "scripts": 11
   },
   "maxInstability": {
     "*": 1,

@@ -45,6 +45,36 @@ function hashPayload(): string | null {
 }
 
 function App() {
+  const session = useEditorSession();
+  return (
+    <View style={styles.page}>
+      <EditorHeader
+        storageReason={session.storageReason}
+        status={session.status}
+        shareHref={session.shareHref}
+        shareTooLong={session.shareOverflow}
+        onShare={() => void session.onShare()}
+        onReset={() => session.setChromePrompt({ kind: "reset" })}
+        onDownload={() => void session.onDownload()}
+      />
+      <EditorPanes
+        tree={session.tree}
+        previewTree={session.previewTree}
+        hostRef={session.hostRef}
+        previewRef={session.previewRef}
+      />
+      <PeerChromePanel chrome={session.peerChrome} />
+      <ConfirmDialog
+        request={session.hostPending?.request ?? null}
+        onApprove={() => session.confirmation.respond(true)}
+        onDeny={() => session.confirmation.respond(false)}
+      />
+      <EditorChromeDialogs session={session} />
+    </View>
+  );
+}
+
+function useEditorSession() {
   const [tree, setTree] = useState<WidgetTree | null>(null);
   const [previewTree, setPreviewTree] = useState<WidgetTree | null>(null);
   const [status, setStatus] = useState("Starting…");
@@ -64,137 +94,236 @@ function App() {
   );
 
   useEffect(() => confirmation.subscribe(setHostPending), [confirmation]);
-
-  useEffect(() => {
-    let active = true;
-    const start = async () => {
-      const store = new LocalStorageStore((reason) => setStorageReason(reason));
-      storeRef.current = store;
-      const blocked = store.probe();
-      if (blocked !== null) setStorageReason(blocked);
-      const hostHolder: { current: MiniappHost | null } = { current: null };
-      const appsBackend = createEditorAppsBackend({
-        getHost: () => {
-          if (hostHolder.current === null) throw new Error("host is not ready");
-          return hostHolder.current;
-        },
-        loadWorklet: async () => guidaClient,
-        previewRef,
-        onPreviewTree: (next) => {
-          if (active) setPreviewTree(next);
-        },
-      });
-      const host = createDemoHost({
-        store,
+  useEffect(
+    () =>
+      startEditorHost({
+        confirmation: confirmation.channel,
+        guidaClient,
+        hostRef,
         peerChrome,
-        onTree: (next) => {
-          if (active) {
-            setTree(next);
-            setStatus("DevStudio is running in the browser sandbox");
-          }
-        },
-        confirmationChannel: confirmation.channel,
-        appsBackend,
-        includeDemoAi: false,
-      });
-      hostHolder.current = host;
-      hostRef.current = host;
-      await applyInitialWorkspace(host, setChromePrompt);
-      await host.setGrants(
-        DEVSTUDIO_MANIFEST.name,
-        DEVSTUDIO_PUBLISHER,
-        DEVSTUDIO_MANIFEST.capabilities,
-        GRANTED,
-      );
-      await host.launch(
-        {
-          name: DEVSTUDIO_MANIFEST.name,
-          version: DEVSTUDIO_MANIFEST.version,
-          entry: DEVSTUDIO_MANIFEST.entry,
-          capabilities: DEVSTUDIO_MANIFEST.capabilities,
-          publisherPublicKey: DEVSTUDIO_PUBLISHER,
-        },
-        encoder.encode(DEVSTUDIO_BUNDLE),
-      );
-    };
-    void start().catch((error) => active && setStatus(`Could not start: ${String(error)}`));
-    return () => {
-      active = false;
-    };
-  }, [confirmation, guidaClient, peerChrome]);
+        previewRef,
+        setChromePrompt,
+        setPreviewTree,
+        setStatus,
+        setStorageReason,
+        setTree,
+        storeRef,
+      }),
+    [confirmation, guidaClient, peerChrome],
+  );
 
-  const onShare = async () => {
-    const host = hostRef.current;
-    if (host === null) return;
-    try {
-      const encoded = await encodeWorkspace(await readAllWorkspace(host));
-      if (shareTooLong(encoded)) {
-        setShareOverflow(true);
-        setShareHref(null);
-        setStatus("Workspace is too large for a share link. Download it instead.");
-        return;
+  return {
+    chromePrompt,
+    confirmation,
+    hostPending,
+    hostRef,
+    onDownload: () => downloadWorkspace(hostRef.current, setStatus),
+    onShare: () =>
+      shareWorkspace(hostRef.current, setShareHref, setShareOverflow, setStatus),
+    peerChrome,
+    previewRef,
+    previewTree,
+    setChromePrompt,
+    setPreviewTree,
+    setStatus,
+    shareHref,
+    shareOverflow,
+    status,
+    storageReason,
+    storeRef,
+    tree,
+  };
+}
+
+function startEditorHost(opts: {
+  confirmation: ReturnType<typeof createConfirmationController>["channel"];
+  guidaClient: ReturnType<typeof createGuidaWorkerClient>;
+  hostRef: React.RefObject<MiniappHost | null>;
+  peerChrome: PagesPeerChrome;
+  previewRef: React.RefObject<PreviewSlot | null>;
+  setChromePrompt: (prompt: ChromePrompt | null) => void;
+  setPreviewTree: (tree: WidgetTree | null) => void;
+  setStatus: (status: string) => void;
+  setStorageReason: (reason: StorageFallbackReason | null) => void;
+  setTree: (tree: WidgetTree | null) => void;
+  storeRef: React.MutableRefObject<LocalStorageStore | null>;
+}) {
+  let active = true;
+  void bootEditor(opts, () => active).catch(
+    (error) => active && opts.setStatus(`Could not start: ${String(error)}`),
+  );
+  return () => {
+    active = false;
+  };
+}
+
+async function bootEditor(
+  opts: Parameters<typeof startEditorHost>[0],
+  isActive: () => boolean,
+) {
+  const store = new LocalStorageStore((reason) => opts.setStorageReason(reason));
+  opts.storeRef.current = store;
+  const blocked = store.probe();
+  if (blocked !== null) opts.setStorageReason(blocked);
+  const hostHolder: { current: MiniappHost | null } = { current: null };
+  const host = createDemoHost({
+    store,
+    peerChrome: opts.peerChrome,
+    onTree: (next) => {
+      if (isActive()) {
+        opts.setTree(next);
+        opts.setStatus("DevStudio is running in the browser sandbox");
       }
-      setShareOverflow(false);
-      const url = `${window.location.pathname}${window.location.search}#w=${encoded}`;
-      window.history.replaceState({}, "", url);
-      setShareHref(window.location.href);
-      await navigator.clipboard?.writeText(window.location.href).catch(() => undefined);
-      setStatus("Share link copied.");
-    } catch (error) {
-      setStatus(`Share failed: ${String(error)}`);
+    },
+    confirmationChannel: opts.confirmation,
+    appsBackend: createEditorAppsBackend({
+      getHost: () => {
+        if (hostHolder.current === null) throw new Error("host is not ready");
+        return hostHolder.current;
+      },
+      loadWorklet: async () => opts.guidaClient,
+      previewRef: opts.previewRef,
+      onPreviewTree: (next) => {
+        if (isActive()) opts.setPreviewTree(next);
+      },
+    }),
+    includeDemoAi: false,
+  });
+  hostHolder.current = host;
+  opts.hostRef.current = host;
+  await applyInitialWorkspace(host, opts.setChromePrompt);
+  await host.setGrants(
+    DEVSTUDIO_MANIFEST.name,
+    DEVSTUDIO_PUBLISHER,
+    DEVSTUDIO_MANIFEST.capabilities,
+    GRANTED,
+  );
+  await host.launch(
+    {
+      name: DEVSTUDIO_MANIFEST.name,
+      version: DEVSTUDIO_MANIFEST.version,
+      entry: DEVSTUDIO_MANIFEST.entry,
+      capabilities: DEVSTUDIO_MANIFEST.capabilities,
+      publisherPublicKey: DEVSTUDIO_PUBLISHER,
+    },
+    encoder.encode(DEVSTUDIO_BUNDLE),
+  );
+}
+
+async function shareWorkspace(
+  host: MiniappHost | null,
+  setShareHref: (href: string | null) => void,
+  setShareOverflow: (overflow: boolean) => void,
+  setStatus: (status: string) => void,
+) {
+  if (host === null) return;
+  try {
+    const encoded = await encodeWorkspace(await readAllWorkspace(host));
+    if (shareTooLong(encoded)) {
+      setShareOverflow(true);
+      setShareHref(null);
+      setStatus("Workspace is too large for a share link. Download it instead.");
+      return;
     }
-  };
+    setShareOverflow(false);
+    const url = `${window.location.pathname}${window.location.search}#w=${encoded}`;
+    window.history.replaceState({}, "", url);
+    setShareHref(window.location.href);
+    await navigator.clipboard?.writeText(window.location.href).catch(() => undefined);
+    setStatus("Share link copied.");
+  } catch (error) {
+    setStatus(`Share failed: ${String(error)}`);
+  }
+}
 
-  const onDownload = async () => {
-    const host = hostRef.current;
-    if (host === null) return;
-    const files = await readAllWorkspace(host);
-    const blob = new Blob([JSON.stringify(files, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "twistedpear-workspace.json";
-    link.click();
-    URL.revokeObjectURL(url);
-    setStatus("Downloaded workspace.json.");
-  };
+async function downloadWorkspace(
+  host: MiniappHost | null,
+  setStatus: (status: string) => void,
+) {
+  if (host === null) return;
+  const files = await readAllWorkspace(host);
+  const blob = new Blob([JSON.stringify(files, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "twistedpear-workspace.json";
+  link.click();
+  URL.revokeObjectURL(url);
+  setStatus("Downloaded workspace.json.");
+}
 
-  return (
-    <View style={styles.page}>
-      <EditorHeader
-        storageReason={storageReason}
-        status={status}
-        shareHref={shareHref}
-        shareTooLong={shareOverflow}
-        onShare={() => void onShare()}
-        onReset={() => setChromePrompt({ kind: "reset" })}
-        onDownload={() => void onDownload()}
+function EditorChromeDialogs(props: { session: ReturnType<typeof useEditorSession> }) {
+  const { session } = props;
+  if (session.chromePrompt?.kind === "reset") {
+    return (
+      <ConfirmDialog
+        request={null}
+        title="Reset this workspace?"
+        body="This discards stored project files, grants, and editor state in this browser."
+        confirmLabel="Reset"
+        onApprove={() =>
+          void resetWorkspace(
+            session.storeRef.current,
+            session.hostRef.current,
+            session.setChromePrompt,
+            session.setPreviewTree,
+            session.setStatus,
+          )
+        }
+        onDeny={() => session.setChromePrompt(null)}
       />
+    );
+  }
+  if (session.chromePrompt?.kind === "share") {
+    const files = session.chromePrompt.files;
+    return (
+      <ConfirmDialog
+        request={null}
+        title="Open shared workspace?"
+        body="The share link will be added as project files. It will not delete other projects, but matching paths will be replaced."
+        confirmLabel="Open"
+        onApprove={() =>
+          void acceptShare(session.hostRef.current, files, session.setChromePrompt, session.setStatus)
+        }
+        onDeny={() => session.setChromePrompt(null)}
+      />
+    );
+  }
+  return null;
+}
+
+function EditorPanes(props: {
+  tree: WidgetTree | null;
+  previewTree: WidgetTree | null;
+  hostRef: React.RefObject<MiniappHost | null>;
+  previewRef: React.RefObject<PreviewSlot | null>;
+}) {
+  return (
       <View style={styles.layout}>
         <View testID="editor-studio" style={styles.pane}>
           <Text style={styles.paneTitle}>DevStudio</Text>
-          {tree === null ? (
+          {props.tree === null ? (
             <Text style={styles.loading}>Starting DevStudio…</Text>
           ) : (
             <MiniappWidgetTree
-              tree={tree}
-              onEvent={(nodeId, event, value) => void hostRef.current?.handleUiEvent(nodeId, event, value)}
+              tree={props.tree}
+              onEvent={(nodeId, event, value) => void props.hostRef.current?.handleUiEvent(nodeId, event, value)}
               readDocument={(documentId) =>
-                hostRef.current?.workspace.read(DEVSTUDIO_APP_ID, documentId) ?? Promise.resolve("")
+                props.hostRef.current?.workspace.read(DEVSTUDIO_APP_ID, documentId) ?? Promise.resolve("")
               }
             />
           )}
         </View>
         <View testID="editor-preview" style={styles.pane}>
           <Text style={styles.paneTitle}>Preview</Text>
-          {previewTree === null ? (
+          {props.previewTree === null ? (
             <Text style={styles.loading}>Not running — press Preview in DevStudio.</Text>
           ) : (
             <MiniappWidgetTree
-              tree={previewTree}
-              onEvent={createPreviewEventHandler(previewRef)}
+              tree={props.previewTree}
+              onEvent={createPreviewEventHandler(props.previewRef)}
               readDocument={async (documentId) => {
-                const preview = previewRef.current;
+                const preview = props.previewRef.current;
                 const appId = preview?.host.snapshot().appId;
                 if (preview === undefined || appId === null || appId === undefined) return "";
                 return preview.host.workspace.read(appId, documentId);
@@ -203,33 +332,6 @@ function App() {
           )}
         </View>
       </View>
-      <PeerChromePanel chrome={peerChrome} />
-      <ConfirmDialog
-        request={hostPending?.request ?? null}
-        onApprove={() => confirmation.respond(true)}
-        onDeny={() => confirmation.respond(false)}
-      />
-      {chromePrompt?.kind === "reset" ? (
-        <ConfirmDialog
-          request={null}
-          title="Reset this workspace?"
-          body="This discards stored project files, grants, and editor state in this browser."
-          confirmLabel="Reset"
-          onApprove={() => void resetWorkspace(storeRef.current, hostRef.current, setChromePrompt, setPreviewTree, setStatus)}
-          onDeny={() => setChromePrompt(null)}
-        />
-      ) : null}
-      {chromePrompt?.kind === "share" ? (
-        <ConfirmDialog
-          request={null}
-          title="Open shared workspace?"
-          body="The share link will be added as project files. It will not delete other projects, but matching paths will be replaced."
-          confirmLabel="Open"
-          onApprove={() => void acceptShare(hostRef.current, chromePrompt.files, setChromePrompt, setStatus)}
-          onDeny={() => setChromePrompt(null)}
-        />
-      ) : null}
-    </View>
   );
 }
 

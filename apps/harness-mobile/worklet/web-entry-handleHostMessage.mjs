@@ -393,6 +393,23 @@ export async function handleHostMessageImpl(context, raw) {
     }
     return;
   }
+  if (message.type === "grant-egress-offer") {
+    try {
+      const offer = context.ensureMiniappHost().grantEgressOffer({
+        appId: message.appId,
+        capability: message.capability,
+        targetKind: message.targetKind,
+        targetId: message.targetId,
+        ttlMs: message.ttlMs ?? 60 * 60 * 1000,
+      });
+      context.log(`Granted egress offer ${offer.id} for ${offer.targetId}`);
+    } catch (error) {
+      context.log(
+        `Grant egress offer failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    return;
+  }
   if (message.type === "session-invite-accept") {
     try {
       await context.ensureMiniappHost().acceptSessionInvite(message.id);

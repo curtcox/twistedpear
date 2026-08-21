@@ -4,6 +4,7 @@
 import {
   createReadStream,
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   statSync,
@@ -116,7 +117,7 @@ async function launchCookbookApp(
     await store.set(
       `miniapp-workspace:${name}:docs/identity.md`,
       encoder.encode(
-        "Back up an identity by exporting an encrypted .tpidentity file. Keep its passphrase separately. Recovery words restore the same identity.",
+        "Back up an identity by exporting an encrypted .tpidentity file. Keep its passphrase separately.",
       ),
     );
     await store.set(
@@ -129,7 +130,7 @@ async function launchCookbookApp(
 
   const answers = {
     "ask-the-handbook":
-      "Export an encrypted .tpidentity backup and keep its passphrase separately. The two recovery-word groups restore the same identity.",
+      "Export an encrypted .tpidentity file and keep its passphrase separately.",
     "form-forge":
       '[{"label":"Trail name","type":"text"},{"label":"Party size","type":"number"},{"label":"Checked out","type":"switch"}]',
     "pocket-translator": "Buenos días",
@@ -359,6 +360,102 @@ function startStaticServer(root) {
     });
   });
 }
+
+function compositeTileSrc(tile) {
+  if (tile.image === undefined) return null;
+  const file =
+    tile.image.startsWith("/") || /^[A-Za-z]:/.test(tile.image)
+      ? tile.image
+      : join(repoRoot, tile.image);
+  return `data:image/png;base64,${readFileSync(file).toString("base64")}`;
+}
+
+export async function captureComposite(browser, scene, options = {}) {
+  const extraCss =
+    typeof options === "string" ? options : (options.extraCss ?? "");
+  const fixtureTag =
+    typeof options === "string" ? "div" : (options.fixtureTag ?? "div");
+  const output = join(repoRoot, scene.file);
+  mkdirSync(dirname(output), { recursive: true });
+  const tiles = scene.tiles.map((tile) => ({
+    ...tile,
+    src: compositeTileSrc(tile),
+  }));
+  const page = await browser.newPage({
+    viewport: { width: 1280, height: 800 },
+  });
+  try {
+    await page.setContent(`<!doctype html><meta charset="utf-8"><style>
+      *{box-sizing:border-box}body{margin:0;background:#09111a;color:#eef5ff;font:14px system-ui;padding:24px}
+      h1{margin:0 0 8px;font-size:28px}.subtitle{color:#9fb0c3;margin-bottom:18px}
+      .grid{display:grid;grid-template-columns:repeat(${scene.columns},1fr);gap:14px;height:690px}
+      .tile{min-width:0;overflow:hidden;border:1px solid #33475a;border-radius:14px;background:#101b26;display:flex;flex-direction:column}
+      .tile img{width:100%;height:calc(100% - 38px);object-fit:cover;object-position:left top}
+      .label{height:38px;padding:10px 12px;color:#cfe2f5;font-weight:700;background:#142333}
+      ${extraCss}
+    </style><h1>${scene.title}</h1><div class="subtitle">${scene.subtitle}</div><div class="grid">
+      ${tiles
+        .map(
+          (tile) =>
+            `<section class="tile">${tile.src === null ? `<${fixtureTag} class="fixture">${tile.html}</${fixtureTag}>` : `<img alt="" src="${tile.src}">`}<div class="label">${tile.label}</div></section>`,
+        )
+        .join("")}
+    </div>`);
+    await page.screenshot({ path: output, fullPage: false });
+  } finally {
+    await page.close();
+  }
+  console.log(`reader-guide composite written to ${output}`);
+}
+
+export async function paintMiniapp(
+  page,
+  rendererServer,
+  { title, tree, assets, documents, scrollTo },
+) {
+  await page.goto(rendererServer.url, { waitUntil: "load" });
+  await page.evaluate(
+    async ({ title, tree, assets, documents, widgetsUrl, scrollTo }) => {
+      document.body.classList.add("miniapp-running");
+      document.querySelector("header h1").textContent = "TwistedPear Host";
+      document.querySelector("#subtitle").textContent =
+        "Desktop always-on peer · Documentation identity";
+      document.querySelector("#miniapp-title").textContent = title;
+      const { renderWidgetTree } = await import(widgetsUrl);
+      renderWidgetTree(
+        tree,
+        document.querySelector("#widget-root"),
+        undefined,
+        {
+          ...(assets === undefined ? {} : { assets }),
+          ...(documents === undefined
+            ? {}
+            : {
+                readDocument: async (documentId) => documents[documentId] ?? "",
+              }),
+        },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      if (typeof scrollTo === "string" && scrollTo.length > 0) {
+        const match = [...document.querySelectorAll("button, .widget-qr, p")]
+          .reverse()
+          .find((node) => node.textContent?.includes(scrollTo));
+        (match ?? document.querySelector(scrollTo))?.scrollIntoView({
+          block: "center",
+        });
+      }
+    },
+    {
+      title,
+      tree,
+      assets,
+      documents,
+      scrollTo,
+      widgetsUrl: `${rendererServer.url}widgets.js`,
+    },
+  );
+}
+
 export {
   treeText,
   waitForTree,

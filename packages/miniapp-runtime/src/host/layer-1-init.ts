@@ -38,6 +38,9 @@ export function createHostBroker(
   return new MiniappBroker({
     now: () => host.now(),
     enforceCapabilities: options.enforceBrokerCapabilities ?? true,
+    ...(options.maxMessageBytes === undefined
+      ? {}
+      : { maxMessageBytes: options.maxMessageBytes }),
     audit: (entry) => {
       options.brokerAudit?.(entry);
       // A refused capability and a backend that threw are different faults

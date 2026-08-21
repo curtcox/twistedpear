@@ -12,72 +12,15 @@ import {
 } from "../handbook/ui-helpers.mjs";
 import { tmpdir } from "node:os";
 import {
+  captureComposite,
   fakeHash,
   launchCookbookApp,
+  paintMiniapp,
   repoRoot,
   rendererHtml,
   startStaticServer,
   waitForTree,
 } from "./capture-reader-guide-ui-lib.mjs";
-
-async function paintMiniapp(page, rendererServer, { title, tree, assets }) {
-  await page.goto(rendererServer.url, { waitUntil: "load" });
-  await page.evaluate(
-    async ({ title, tree, assets, widgetsUrl }) => {
-      document.body.classList.add("miniapp-running");
-      document.querySelector("header h1").textContent = "TwistedPear Host";
-      document.querySelector("#subtitle").textContent =
-        "Desktop always-on peer · Documentation identity";
-      document.querySelector("#miniapp-title").textContent = title;
-      const { renderWidgetTree } = await import(widgetsUrl);
-      renderWidgetTree(
-        tree,
-        document.querySelector("#widget-root"),
-        undefined,
-        {
-          assets,
-        },
-      );
-    },
-    {
-      title,
-      tree,
-      assets,
-      widgetsUrl: `${rendererServer.url}widgets.js`,
-    },
-  );
-}
-
-async function captureComposite(browser, scene) {
-  const output = join(repoRoot, scene.file);
-  mkdirSync(dirname(output), { recursive: true });
-  const tiles = scene.tiles.map((tile) => ({
-    ...tile,
-    src:
-      tile.image.startsWith("/") || /^[A-Za-z]:/.test(tile.image)
-        ? `data:image/png;base64,${readFileSync(tile.image).toString("base64")}`
-        : `data:image/png;base64,${readFileSync(join(repoRoot, tile.image)).toString("base64")}`,
-  }));
-  const page = await browser.newPage({
-    viewport: { width: 1280, height: 800 },
-  });
-  try {
-    await page.setContent(`<!doctype html><meta charset="utf-8"><style>
-      *{box-sizing:border-box}body{margin:0;background:#09111a;color:#eef5ff;font:14px system-ui;padding:24px}
-      h1{margin:0 0 8px;font-size:28px}.subtitle{color:#9fb0c3;margin-bottom:18px}
-      .grid{display:grid;grid-template-columns:repeat(${scene.columns},1fr);gap:14px;height:690px}
-      .tile{min-width:0;overflow:hidden;border:1px solid #33475a;border-radius:14px;background:#101b26;display:flex;flex-direction:column}
-      .tile img{width:100%;height:calc(100% - 38px);object-fit:cover;object-position:left top}
-      .label{height:38px;padding:10px 12px;color:#cfe2f5;font-weight:700;background:#142333}
-    </style><h1>${scene.title}</h1><div class="subtitle">${scene.subtitle}</div><div class="grid">
-      ${tiles.map((tile) => `<section class="tile"><img alt="" src="${tile.src}"><div class="label">${tile.label}</div></section>`).join("")}
-    </div>`);
-    await page.screenshot({ path: output, fullPage: false });
-  } finally {
-    await page.close();
-  }
-  console.log(`reader-guide composite written to ${output}`);
-}
 
 export async function runExampleAppCaptures(browser, captureSection) {
   if (captureSection !== "all" && captureSection !== "guide") return;
@@ -108,12 +51,15 @@ export async function runExampleAppCaptures(browser, captureSection) {
       configure: async (host) => {
         await host.handleUiEvent("peer-input", "chat.peer", fakeHash);
         await waitForTree(host, fakeHash);
-        try {
-          await host.handleUiEvent("send", "chat.send");
-          await waitForTree(host, "Sent hello");
-        } catch {
-          // lxmf:send now needs a host-authored egress offer; the compose state is still Chat.
-        }
+        host.grantEgressOffer({
+          appId: host.snapshot().appId ?? "chat",
+          capability: "lxmf:send",
+          targetKind: "peer",
+          targetId: fakeHash,
+          ttlMs: 60_000,
+        });
+        await host.handleUiEvent("send", "chat.send");
+        await waitForTree(host, "Sent hello");
       },
     },
     {
@@ -245,19 +191,15 @@ export async function runExampleAppCaptures(browser, captureSection) {
             : null;
         }, 15_000);
         await tap(host, "diag-run-all", "hb.runall");
-        try {
-          await waitFor(async () => {
-            const tree = host.snapshot().widgetTree;
-            return tree !== null &&
-              (treeContainsText(tree, "PASS") ||
-                treeContainsText(tree, "UNAVAILABLE") ||
-                treeContainsText(tree, "NOT-GRANTED"))
-              ? tree
-              : null;
-          }, 60_000);
-        } catch {
-          // The diagnostics landing page is still the real host surface.
-        }
+        await waitFor(async () => {
+          const tree = host.snapshot().widgetTree;
+          return tree !== null &&
+            (treeContainsText(tree, "PASS") ||
+              treeContainsText(tree, "UNAVAILABLE") ||
+              treeContainsText(tree, "NOT-GRANTED"))
+            ? tree
+            : null;
+        }, 60_000).catch(() => undefined);
       },
       async () => {},
       handbookOptions,

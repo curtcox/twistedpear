@@ -1,3 +1,4 @@
+/* global TextEncoder, TextDecoder, setInterval, clearInterval */
 /**
  * Browser-shaped `Worker` on Bare.Thread. The mini-app sandbox talks through
  * `postMessage` / `onmessage`; Bare threads only take a startup `data` payload,

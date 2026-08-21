@@ -11,7 +11,7 @@ export {
   runUpdate,
   runSeed,
 } from "./app-commands.js";
-export { runGuida, runApp, runAppBuild } from "./guida-commands.js";
+export { runGuida, runApp } from "./guida-commands.js";
 export {
   runNode,
   resolveFreenetNodeFlags,

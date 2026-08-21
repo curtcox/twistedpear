@@ -56,7 +56,7 @@ function capabilityDescriptions(): ReadonlyArray<string> {
   return cachedDescriptions;
 }
 
-export function normalizeChromeText(value: string): string {
+function normalizeChromeText(value: string): string {
   return value
     .normalize("NFKC")
     .replace(/[\u200B-\u200D\uFEFF]/g, "")

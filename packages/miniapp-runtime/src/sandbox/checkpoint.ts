@@ -6,14 +6,14 @@
  * overrun so the host can kill rather than delay its own quiesce.
  */
 
-export const MAX_CHECKPOINT_BYTES = 64 * 1024;
-export const DEFAULT_CHECKPOINT_BUDGET_MS = 50;
+const MAX_CHECKPOINT_BYTES = 64 * 1024;
+export const DEFAULT_CHECKPOINT_BUDGET_MS = 500;
 
 export type SandboxCheckpointResult =
   | { readonly ok: true; readonly blob: Uint8Array | null }
   | { readonly ok: false };
 
-export function decodeCheckpointBlob(value: unknown): SandboxCheckpointResult {
+function decodeCheckpointBlob(value: unknown): SandboxCheckpointResult {
   if (value == null) {
     return { ok: true, blob: null };
   }

@@ -1,4 +1,4 @@
-export const WORKLET_IPC_READY_MS = 90_000;
+const WORKLET_IPC_READY_MS = 90_000;
 
 export type WorkletIpcReadyGate = {
   readonly promise: Promise<void>;

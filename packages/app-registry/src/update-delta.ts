@@ -1,6 +1,6 @@
 /** Capability delta between an installed version and an update. */
 
-export interface NamedCapabilityDelta {
+interface NamedCapabilityDelta {
   readonly id: string;
   readonly riskClass: string;
 }

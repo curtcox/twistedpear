@@ -37,99 +37,142 @@ export function NativeHarnessViewPart1({
 
 function NativeHostReviewModal({ scope }: { scope: NativeHarnessScope }) {
   const { hostReview, setHostReview, sendToWorklet } = scope;
+  if (hostReview === null) return null;
+  return (
+    <View testID="host-confirmation-modal" style={styles.modalOverlay}>
+      <View style={styles.modalCard}>
+        <NativeHostReviewCopy review={hostReview} />
+        {hostReview.review.capabilities.map((capability) => (
+          <NativeHostReviewGrantRow
+            key={capability.id}
+            hostReview={hostReview}
+            capability={capability}
+            setHostReview={setHostReview}
+          />
+        ))}
+        <NativeHostReviewActions
+          hostReview={hostReview}
+          sendToWorklet={sendToWorklet}
+          setHostReview={setHostReview}
+        />
+      </View>
+    </View>
+  );
+}
+
+function NativeHostReviewCopy({
+  review: hostReview,
+}: {
+  review: NonNullable<NativeHarnessScope["hostReview"]>;
+}) {
+  const trusted =
+    hostReview.kind === "install" && hostReview.review.trusted
+      ? `Trusted publisher: ${hostReview.review.trustedLabel ?? "trusted"}`
+      : hostReview.kind === "install"
+        ? "UNTRUSTED publisher"
+        : "Capability review";
   return (
     <>
-      {hostReview !== null ? (
-        <View testID="host-confirmation-modal" style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.sectionTitle}>
-              {hostReview.kind === "install"
-                ? `Install ${hostReview.review.appId} v${hostReview.review.version}?`
-                : `Run ${hostReview.review.appId} v${hostReview.review.version}?`}
-            </Text>
-            <Text style={styles.muted}>
-              {hostReview.kind === "install"
-                ? hostReview.review.trusted
-                  ? `Trusted publisher: ${hostReview.review.trustedLabel ?? "trusted"}`
-                  : "UNTRUSTED publisher"
-                : "Capability review"}
-            </Text>
-            <Text style={styles.rowLabel}>
-              Publisher: {hostReview.review.publisherPublicKey}
-            </Text>
-            {hostReview.review.riskTier !== undefined ? (
-              <Text style={styles.muted}>
-                Risk tier: {hostReview.review.riskTier}
-              </Text>
-            ) : null}
-            {hostReview.review.capabilities.map((capability) => (
-              <View key={capability.id} style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowLabel}>
-                    {capability.id}
-                    {capability.riskClass !== undefined
-                      ? ` [${capability.riskClass}]`
-                      : ""}
-                  </Text>
-                  <Text style={styles.muted}>{capability.description}</Text>
-                </View>
-                <Switch
-                  testID={`${hostReview.kind}-grant-${capability.id.replace(/:/g, "-")}`}
-                  value={hostReview.grants.includes(capability.id)}
-                  onValueChange={(granted) => {
-                    const grants = granted
-                      ? [...hostReview.grants, capability.id]
-                      : hostReview.grants.filter((id) => id !== capability.id);
-                    setHostReview({ ...hostReview, grants });
-                  }}
-                />
-              </View>
-            ))}
-            <View style={styles.row}>
-              <ActionButton
-                testID={
-                  hostReview.kind === "install"
-                    ? "host-install-cancel"
-                    : "host-launch-cancel"
-                }
-                label="Cancel"
-                onPress={() => {
-                  sendToWorklet({
-                    type:
-                      hostReview.kind === "install"
-                        ? "install-confirm"
-                        : "launch-confirm",
-                    token: hostReview.review.token,
-                    accept: false,
-                  });
-                  setHostReview(null);
-                }}
-              />
-              <ActionButton
-                testID={
-                  hostReview.kind === "install"
-                    ? "host-install-approve"
-                    : "host-launch-run"
-                }
-                label={hostReview.kind === "install" ? "Install" : "Run"}
-                onPress={() => {
-                  sendToWorklet({
-                    type:
-                      hostReview.kind === "install"
-                        ? "install-confirm"
-                        : "launch-confirm",
-                    token: hostReview.review.token,
-                    accept: true,
-                    grants: hostReview.grants,
-                  });
-                  setHostReview(null);
-                }}
-              />
-            </View>
-          </View>
-        </View>
+      <Text style={styles.sectionTitle}>
+        {hostReview.kind === "install" ? "Install" : "Run"}{" "}
+        {hostReview.review.appId} v{hostReview.review.version}?
+      </Text>
+      <Text style={styles.muted}>{trusted}</Text>
+      <Text style={styles.rowLabel}>
+        Publisher: {hostReview.review.publisherPublicKey}
+      </Text>
+      {hostReview.review.riskTier !== undefined ? (
+        <Text style={styles.muted}>
+          Risk tier: {hostReview.review.riskTier}
+        </Text>
       ) : null}
     </>
+  );
+}
+
+function NativeHostReviewGrantRow({
+  hostReview,
+  capability,
+  setHostReview,
+}: {
+  hostReview: NonNullable<NativeHarnessScope["hostReview"]>;
+  capability: NonNullable<
+    NativeHarnessScope["hostReview"]
+  >["review"]["capabilities"][number];
+  setHostReview: NativeHarnessScope["setHostReview"];
+}) {
+  return (
+    <View style={styles.row}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.rowLabel}>
+          {capability.id}
+          {capability.riskClass !== undefined
+            ? ` [${capability.riskClass}]`
+            : ""}
+        </Text>
+        <Text style={styles.muted}>{capability.description}</Text>
+      </View>
+      <Switch
+        testID={`${hostReview.kind}-grant-${capability.id.replace(/:/g, "-")}`}
+        value={hostReview.grants.includes(capability.id)}
+        onValueChange={(granted) => {
+          const grants = granted
+            ? [...hostReview.grants, capability.id]
+            : hostReview.grants.filter((id) => id !== capability.id);
+          setHostReview({ ...hostReview, grants });
+        }}
+      />
+    </View>
+  );
+}
+
+function NativeHostReviewActions({
+  hostReview,
+  sendToWorklet,
+  setHostReview,
+}: {
+  hostReview: NonNullable<NativeHarnessScope["hostReview"]>;
+  sendToWorklet: NativeHarnessScope["sendToWorklet"];
+  setHostReview: NativeHarnessScope["setHostReview"];
+}) {
+  const confirmType =
+    hostReview.kind === "install" ? "install-confirm" : "launch-confirm";
+  return (
+    <View style={styles.row}>
+      <ActionButton
+        testID={
+          hostReview.kind === "install"
+            ? "host-install-cancel"
+            : "host-launch-cancel"
+        }
+        label="Cancel"
+        onPress={() => {
+          sendToWorklet({
+            type: confirmType,
+            token: hostReview.review.token,
+            accept: false,
+          });
+          setHostReview(null);
+        }}
+      />
+      <ActionButton
+        testID={
+          hostReview.kind === "install"
+            ? "host-install-approve"
+            : "host-launch-run"
+        }
+        label={hostReview.kind === "install" ? "Install" : "Run"}
+        onPress={() => {
+          sendToWorklet({
+            type: confirmType,
+            token: hostReview.review.token,
+            accept: true,
+            grants: hostReview.grants,
+          });
+          setHostReview(null);
+        }}
+      />
+    </View>
   );
 }
 

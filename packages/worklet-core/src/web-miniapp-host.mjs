@@ -167,6 +167,26 @@ function createHostReplyDeviceDrivers(requestHostReply) {
   );
 }
 
+function createCasInstallAction(options, provider, casStore) {
+  return async (_appId, { t256 }) => {
+    const localArchive = await casStore.get(t256);
+    if (localArchive !== null) {
+      const unpacked = unpackPackage(provider, localArchive);
+      return {
+        appId: unpacked.manifest.name,
+        version: unpacked.manifest.version,
+        trusted: true,
+      };
+    }
+    if (options.installFromT256 === undefined) {
+      throw new Error(
+        "Installing from 256t ids is not configured on this host",
+      );
+    }
+    return options.installFromT256(t256);
+  };
+}
+
 /**
  * Web core-worker mini-app host. Sandbox iframes are spawned on the main thread
  * via WebSandboxProxyBackend + host/web-sandbox-relay.ts (Phase W2/W3).
@@ -266,6 +286,7 @@ export function createWebWorkletMiniappHost(options) {
     deviceManager,
     beeBackend,
     confirmationChannel,
+    maxMessageBytes: 2 * 1024 * 1024,
     presenceBackend: createCommonPresenceBackend(options),
     hostInfoBackend: createCommonHostInfoBackend(options, "web"),
     resourceBackend: createCommonResourceBackend(kvStore),
@@ -286,25 +307,7 @@ export function createWebWorkletMiniappHost(options) {
           casStore,
         })(...args),
       publish: createAppsBackendPublishAction(options, casStore),
-      install: async (_appId, { t256 }) => {
-        const localArchive = await casStore.get(t256);
-        if (localArchive !== null) {
-          const unpacked = unpackPackage(provider, localArchive);
-          return {
-            appId: unpacked.manifest.name,
-            version: unpacked.manifest.version,
-            trusted: true,
-          };
-        }
-
-        if (options.installFromT256 === undefined) {
-          throw new Error(
-            "Installing from 256t ids is not configured on this host",
-          );
-        }
-
-        return options.installFromT256(t256);
-      },
+      install: createCasInstallAction(options, provider, casStore),
       preview: (...args) =>
         createAppsBackendPreviewAction({
           collectWorkspaceFiles,

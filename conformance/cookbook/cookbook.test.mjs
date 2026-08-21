@@ -316,7 +316,10 @@ async function waitForText(host, expected) {
     await new Promise((resolveWait) => setTimeout(resolveWait, 25));
   }
   throw new Error(
-    `mini-app did not render expected text ${JSON.stringify(expected)}; tree=${treeText(host.snapshot().widgetTree)}`,
+    `mini-app did not render expected text ${JSON.stringify(expected)}; tree=${treeText(host.snapshot().widgetTree)}; logs=${host
+      .snapshot()
+      .logs.map((entry) => entry.line)
+      .join(" | ")}`,
   );
 }
 
@@ -338,7 +341,7 @@ async function createHost(name = "", hostOptions = {}) {
   }
   const answers = {
     "ask-the-handbook":
-      "Export an encrypted identity backup and keep its passphrase separately.",
+      "Export an encrypted copy of the identity file and keep its passphrase separately.",
     "form-forge":
       '[{"label":"Name","type":"text"},{"label":"Party size","type":"number"},{"label":"Checked in","type":"switch"}]',
     "pocket-translator": "Buenos días",
@@ -426,6 +429,10 @@ async function createHost(name = "", hostOptions = {}) {
         model: "cookbook-test",
         usage: null,
       }),
+      stream: async function* () {
+        const answer = answers[name] ?? "Cookbook response";
+        yield { delta: answer, model: "cookbook-test" };
+      },
       embed: async (_appId, request) => ({
         vectors: request.inputs.map((input) => [
           input.toLowerCase().includes("identity") ? 1 : 0,

@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { chromium } from "playwright";
@@ -13,10 +13,28 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../..");
 const tmpDir = join(repoRoot, ".tmp/guida-compiler-web");
 
+function fileUnderRoot(root, requestUrl) {
+  const url = requestUrl === "/" ? "/index.html" : (requestUrl ?? "/");
+  const relative = decodeURIComponent(url.replace(/^\//u, ""));
+  const resolved = resolve(root, relative);
+  const rootResolved = resolve(root);
+  if (
+    resolved !== rootResolved &&
+    !resolved.startsWith(`${rootResolved}${sep}`)
+  ) {
+    return null;
+  }
+  return resolved;
+}
+
 function startServer(root) {
   const server = createServer((request, response) => {
-    const url = request.url === "/" ? "/index.html" : (request.url ?? "/");
-    const path = join(root, decodeURIComponent(url.replace(/^\//u, "")));
+    const path = fileUnderRoot(root, request.url);
+    if (path === null) {
+      response.writeHead(403);
+      response.end();
+      return;
+    }
     try {
       const body = readFileSync(path);
       const type = path.endsWith(".js")

@@ -2,36 +2,23 @@
  * Minimal XHR for Guida's library runner. Node has no global XMLHttpRequest;
  * the compiler uses it to fetch Elm packages into ~/.guida.
  */
-export class FetchXmlHttpRequest {
-  status = 0;
-  response: ArrayBuffer | string | null = null;
-  responseText = "";
-  responseType = "";
-  onload: (() => void) | null = null;
-  onerror: ((err?: unknown) => void) | null = null;
-  ontimeout: (() => void) | null = null;
+import { GuidaXhrBase } from "./xhr-base.js";
 
-  private method = "GET";
-  private url = "";
+export class FetchXmlHttpRequest extends GuidaXhrBase {
   private headers: Record<string, string> = {};
   private responseHeaders: Record<string, string> = {};
 
-  open(method: string, url: string): void {
-    this.method = method;
-    this.url = url;
-  }
-
-  setRequestHeader(key: string, value: string): void {
+  override setRequestHeader(key: string, value: string): void {
     this.headers[key] = value;
   }
 
-  getAllResponseHeaders(): string {
+  override getAllResponseHeaders(): string {
     return Object.entries(this.responseHeaders)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\r\n");
   }
 
-  send(body?: unknown): void {
+  override send(body?: unknown): void {
     void this.dispatch(body);
   }
 
@@ -41,9 +28,10 @@ export class FetchXmlHttpRequest {
         method: this.method,
         headers: this.headers,
         redirect: "manual",
+        signal: AbortSignal.timeout(30_000),
       };
       if (body !== undefined && body !== null) {
-        init.body = body as string | Buffer | Uint8Array;
+        init.body = body as NonNullable<RequestInit["body"]>;
       }
       const response = await fetch(this.url, init);
       this.status = response.status;

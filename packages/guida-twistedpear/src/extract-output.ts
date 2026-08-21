@@ -9,14 +9,8 @@ function findPlatformExport(
     return undefined;
   }
   seen.add(value);
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findPlatformExport(item, seen);
-      if (found !== undefined) return found;
-    }
-    return undefined;
-  }
-  for (const item of Object.values(value)) {
+  const children = Array.isArray(value) ? value : Object.values(value);
+  for (const item of children) {
     const found = findPlatformExport(item, seen);
     if (found !== undefined) return found;
   }
@@ -25,14 +19,20 @@ function findPlatformExport(
 
 export function isolateCompiledJs(source: string): string {
   if (!source.includes("<script")) return source;
-  const scripts = [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
-  const compiled = scripts
-    .map((match) => match[1] ?? "")
-    .find((body) => body.includes("_Platform_export"));
-  if (compiled === undefined) {
-    throw new Error("Guida HTML output is missing the compiled Elm script");
+  const lower = source.toLowerCase();
+  let from = 0;
+  while (from < source.length) {
+    const open = lower.indexOf("<script", from);
+    if (open === -1) break;
+    const tagEnd = source.indexOf(">", open);
+    if (tagEnd === -1) break;
+    const close = lower.indexOf("</script>", tagEnd);
+    if (close === -1) break;
+    const body = source.slice(tagEnd + 1, close);
+    if (body.includes("_Platform_export")) return body;
+    from = close + "</script>".length;
   }
-  return compiled;
+  throw new Error("Guida HTML output is missing the compiled Elm script");
 }
 
 export function extractOutput(result: unknown): string {
@@ -44,6 +44,6 @@ export function extractOutput(result: unknown): string {
     throw new Error(`guida make failed: ${text.slice(0, 800)}`);
   }
   throw new Error(
-    `unexpected guida make result: ${JSON.stringify(result)?.slice(0, 400)}`,
+    `unexpected guida make result: ${JSON.stringify(result).slice(0, 400)}`,
   );
 }

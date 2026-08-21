@@ -94,7 +94,8 @@ export function parseSwapUsedBytes(text) {
   const darwin = text.match(/used\s*=\s*([\d.]+)\s*([MG])/i);
   if (darwin) {
     const value = Number(darwin[1]);
-    return darwin[2].toUpperCase() === "G" ? value * GiB : value * 1024 * 1024;
+    const unit = darwin[2];
+    return unit === "G" || unit === "g" ? value * GiB : value * 1024 * 1024;
   }
   const total = text.match(/^SwapTotal:\s+(\d+)\s+kB/m);
   const free = text.match(/^SwapFree:\s+(\d+)\s+kB/m);
@@ -216,34 +217,31 @@ function readProcessTable() {
   return parseProcessTable(result.stdout ?? "");
 }
 
+function resolveHostOptions(options = {}) {
+  return {
+    env: options.env ?? process.env,
+    osApi: options.osApi ?? os,
+    readSwap: options.readSwap ?? readSwapUsedBytes,
+    listProcesses: options.listProcesses ?? readProcessTable,
+    pid: options.pid ?? process.pid,
+    ppid: options.ppid ?? process.ppid,
+  };
+}
+
 /**
- * @param {{
- *   env?: NodeJS.ProcessEnv;
- *   pid?: number;
- *   ppid?: number;
- *   osApi?: Pick<typeof os, "totalmem" | "freemem" | "loadavg" | "cpus">;
- *   readSwap?: () => number;
- *   listProcesses?: () => ProcessRow[];
- * }} [options]
+ * @param {object} [options]
  * @returns {HostSnapshot}
  */
 export function snapshotHost(options = {}) {
-  const env = options.env ?? process.env;
-  const osApi = options.osApi ?? os;
-  const readSwap = options.readSwap ?? readSwapUsedBytes;
-  const listProcesses = options.listProcesses ?? readProcessTable;
+  const resolved = resolveHostOptions(options);
   return {
-    ci: Boolean(env.CI),
-    totalBytes: osApi.totalmem(),
-    freeBytes: osApi.freemem(),
-    swapUsedBytes: readSwap(),
-    load1: osApi.loadavg()[0] ?? 0,
-    cpuCount: osApi.cpus()?.length || 1,
-    processes: listProcesses(),
-    selfPids: new Set(
-      [options.pid ?? process.pid, options.ppid ?? process.ppid].filter(
-        Boolean,
-      ),
-    ),
+    ci: Boolean(resolved.env.CI),
+    totalBytes: resolved.osApi.totalmem(),
+    freeBytes: resolved.osApi.freemem(),
+    swapUsedBytes: resolved.readSwap(),
+    load1: resolved.osApi.loadavg()[0] ?? 0,
+    cpuCount: resolved.osApi.cpus()?.length || 1,
+    processes: resolved.listProcesses(),
+    selfPids: new Set([resolved.pid, resolved.ppid].filter(Boolean)),
   };
 }

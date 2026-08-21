@@ -27,14 +27,8 @@ function registerForPath(relPath) {
   return "none";
 }
 
-/** @param {string} relPath */
-function lifecycleForPath(relPath) {
-  if (relPath.startsWith("archive/")) return "historical";
-  if (relPath === "RELEASE-PLAN.md") return "planned";
-  // `docs/<topic>-plan.md` is the planned half of a live/planned pair; the live half is
-  // `docs/<topic>.md`. See docs/README.md, "How to tell current from planned".
-  if (/-plan\.md$/.test(relPath)) return "planned";
-  if (
+function liveLifecyclePath(relPath) {
+  return (
     relPath === "README.md" ||
     relPath === "STATUS-COMPLETE.md" ||
     relPath === "STATUS-COMPLETE-PHASES.md" ||
@@ -47,9 +41,17 @@ function lifecycleForPath(relPath) {
     relPath === "specs/README.md" ||
     relPath.startsWith("specs/spec-") ||
     relPath.startsWith("apps/handbook/content/")
-  ) {
-    return "live";
-  }
+  );
+}
+
+/** @param {string} relPath */
+function lifecycleForPath(relPath) {
+  if (relPath.startsWith("archive/")) return "historical";
+  if (relPath === "RELEASE-PLAN.md") return "planned";
+  // `docs/<topic>-plan.md` is the planned half of a live/planned pair; the live half is
+  // `docs/<topic>.md`. See docs/README.md, "How to tell current from planned".
+  if (/-plan\.md$/.test(relPath)) return "planned";
+  if (liveLifecyclePath(relPath)) return "live";
   return "reference";
 }
 

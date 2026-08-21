@@ -16,6 +16,24 @@ export const unusedBackend = {
   },
 };
 
+export function stubAppsBackend() {
+  return {
+    package: async () => ({
+      packageHash: "ab".repeat(32),
+      size: 1,
+      t256: "A".repeat(94),
+    }),
+    publish: async () => ({
+      t256: "A".repeat(94),
+      driveKey: "cd".repeat(32),
+      version: "1.0.0",
+    }),
+    install: async () => ({ appId: "hello", version: "1.0.0", trusted: true }),
+    preview: async () => ({ launched: true }),
+    stopPreview: async () => {},
+  };
+}
+
 export function autoApprove() {
   return { confirm: async () => ({ approved: true }) };
 }

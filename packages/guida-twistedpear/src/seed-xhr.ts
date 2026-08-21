@@ -1,5 +1,6 @@
 import type { GuidaXhrLike } from "./fs-config.js";
 import { utf8 } from "./fs-config.js";
+import { GuidaXhrBase } from "./xhr-base.js";
 
 const EMPTY_UPDATES = '{"elm":[],"guida":[]}';
 const SEEDED_CATALOG =
@@ -14,29 +15,12 @@ export function createPackageRegistryXhr(
   files: Map<string, Uint8Array>,
   home: string,
 ): new () => GuidaXhrLike {
-  return class PackageRegistryXhr implements GuidaXhrLike {
-    status = 0;
-    response: ArrayBuffer | string | null = null;
-    responseText = "";
-    responseType = "";
-    onload: (() => void) | null = null;
-    onerror: ((err?: unknown) => void) | null = null;
-    ontimeout: (() => void) | null = null;
-    private method = "GET";
-    private url = "";
-
-    open(method: string, url: string): void {
-      this.method = method;
-      this.url = url;
-    }
-
-    setRequestHeader(_key: string, _value: string): void {}
-
-    getAllResponseHeaders(): string {
+  return class PackageRegistryXhr extends GuidaXhrBase {
+    override getAllResponseHeaders(): string {
       return "content-type: application/json";
     }
 
-    send(_body?: unknown): void {
+    override send(_body?: unknown): void {
       queueMicrotask(() => this.respond());
     }
 

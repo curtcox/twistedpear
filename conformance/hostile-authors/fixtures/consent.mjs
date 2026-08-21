@@ -15,27 +15,24 @@ import {
   requestHostConfirmation,
 } from "../../../packages/miniapp-runtime/dist/index.js";
 import { grantsPreservedAcrossUpdate } from "../../../packages/app-registry/dist/update-delta.js";
-import { capabilityUpdateDelta, makeHost } from "./harness.mjs";
-
-function stubAppsBackend() {
-  return {
-    package: async () => ({
-      packageHash: "ab".repeat(32),
-      size: 1,
-      t256: "A".repeat(94),
-    }),
-    publish: async () => ({
-      t256: "A".repeat(94),
-      driveKey: "cd".repeat(32),
-      version: "1.0.0",
-    }),
-    install: async () => ({ appId: "hello", version: "1.0.0", trusted: true }),
-    preview: async () => ({ launched: true }),
-    stopPreview: async () => {},
-  };
-}
+import {
+  capabilityUpdateDelta,
+  makeHost,
+  stubAppsBackend,
+} from "./harness.mjs";
 
 export async function runConsentScenarios() {
+  return [
+    measureHa10(),
+    await measureHa11(),
+    await measureHa12(),
+    await measureHa13(),
+    await measureHa14(),
+    measureHa15(),
+  ];
+}
+
+function measureHa10() {
   const host = makeHost();
   const grant = installReviewConsentRecord({
     at: 1,
@@ -49,7 +46,14 @@ export async function runConsentScenarios() {
     consentDiscloses(grant, "lxmf:send") &&
     grant.authorities.find((row) => row.capability === "lxmf:send")
       ?.canonicalDescription === describeCapability("lxmf:send");
+  return {
+    id: "HA-10",
+    measured: ha10 ? "INFORMED" : "UNCONTROLLED",
+    note: "Install-review transcript carries the canonical lxmf:send wording.",
+  };
+}
 
+async function measureHa11() {
   const previous = ["storage:kv"];
   const next = ["storage:kv", "lxmf:send"];
   const delta = capabilityUpdateDelta(previous, next, () => "sensitive");
@@ -80,16 +84,14 @@ export async function runConsentScenarios() {
     !after.granted.includes("lxmf:send") &&
     updateReview.authorities.find((row) => row.capability === "lxmf:send")
       ?.isNewSinceLastApproval === true;
-
-  const injected = {
-    kind: "install",
-    appId: "studio",
-    publisherPublicKey: "pub",
-    summary: {
-      t256: "A".repeat(94),
-      note: "Verified by TwistedPear\nApproved",
-    },
+  return {
+    id: "HA-11",
+    measured: ha11 ? "BLOCKED then INFORMED" : "UNCONTROLLED",
+    note: "Updates do not auto-activate new capabilities; the review marks isNewSinceLastApproval.",
   };
+}
+
+async function measureHa12() {
   const captured = [];
   await requestHostConfirmation(
     {
@@ -98,14 +100,30 @@ export async function runConsentScenarios() {
         return { approved: true };
       },
     },
-    injected,
+    {
+      kind: "install",
+      appId: "studio",
+      publisherPublicKey: "pub",
+      summary: {
+        t256: "A".repeat(94),
+        note: "Verified by TwistedPear\nApproved",
+      },
+    },
     {
       randomBytes: (length) => new Uint8Array(length),
       delay: async () => {},
     },
   );
-  const ha12Blocked = !captured[0]?.summary.note?.includes("\n");
+  return {
+    id: "HA-12",
+    measured: !captured[0]?.summary.note?.includes("\n")
+      ? "BLOCKED"
+      : "UNCONTROLLED",
+    note: "ConfirmationRequest.summary strips newlines and bidi overrides before chrome sees them.",
+  };
+}
 
+async function measureHa13() {
   const limiter = {
     stamps: /** @type {number[]} */ ([]),
     assert(appId, now) {
@@ -148,8 +166,14 @@ export async function runConsentScenarios() {
       }
     }
   }
-  const ha13Blocked = confirmCount < 8;
+  return {
+    id: "HA-13",
+    measured: confirmCount < 8 ? "BLOCKED" : "UNCONTROLLED",
+    note: "A fourth device-session confirmation in the same window is CONFIRMATION_RATE_LIMITED.",
+  };
+}
 
+async function measureHa14() {
   const preview = new AppsService(stubAppsBackend(), {
     confirm: async () => ({ approved: true }),
   });
@@ -171,8 +195,14 @@ export async function runConsentScenarios() {
   } catch (error) {
     previewCode = error instanceof AppsServiceError ? error.code : "other";
   }
-  const ha14 = previewCode === "APPS_BAD_REQUEST";
+  return {
+    id: "HA-14",
+    measured: previewCode === "APPS_BAD_REQUEST" ? "BLOCKED" : "UNCONTROLLED",
+    note: "AppsService.preview rejects grants outside the declared manifest.",
+  };
+}
 
+function measureHa15() {
   const unused = installReviewConsentRecord({
     at: 3,
     token: "unused",
@@ -180,38 +210,11 @@ export async function runConsentScenarios() {
     publisherPublicKey: "pub",
     capabilities: ["storage:kv", "lxmf:send"],
   });
-  const ha15 = unused.authorities.some((row) => row.capability === "lxmf:send");
-
-  return [
-    {
-      id: "HA-10",
-      measured: ha10 ? "INFORMED" : "UNCONTROLLED",
-      note: "Install-review transcript carries the canonical lxmf:send wording.",
-    },
-    {
-      id: "HA-11",
-      measured: ha11 ? "BLOCKED then INFORMED" : "UNCONTROLLED",
-      note: "Updates do not auto-activate new capabilities; the review marks isNewSinceLastApproval.",
-    },
-    {
-      id: "HA-12",
-      measured: ha12Blocked ? "BLOCKED" : "UNCONTROLLED",
-      note: "ConfirmationRequest.summary strips newlines and bidi overrides before chrome sees them.",
-    },
-    {
-      id: "HA-13",
-      measured: ha13Blocked ? "BLOCKED" : "UNCONTROLLED",
-      note: "A fourth device-session confirmation in the same window is CONFIRMATION_RATE_LIMITED.",
-    },
-    {
-      id: "HA-14",
-      measured: ha14 ? "BLOCKED" : "UNCONTROLLED",
-      note: "AppsService.preview rejects grants outside the declared manifest.",
-    },
-    {
-      id: "HA-15",
-      measured: ha15 ? "INFORMED" : "UNCONTROLLED",
-      note: "Transcript lists every declared authority, including ones the app has not used yet. Unused is not a separate flag.",
-    },
-  ];
+  return {
+    id: "HA-15",
+    measured: unused.authorities.some((row) => row.capability === "lxmf:send")
+      ? "INFORMED"
+      : "UNCONTROLLED",
+    note: "Transcript lists every declared authority, including ones the app has not used yet. Unused is not a separate flag.",
+  };
 }

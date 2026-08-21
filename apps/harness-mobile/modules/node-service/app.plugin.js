@@ -7,79 +7,79 @@ const {
 const SERVICE_CLASS = "network.twistedpear.harness.NodeForegroundService";
 const SERVICE_NAME = "TwistedPear Node Service";
 
-function getOrCreateMainApplication(manifest) {
-  let application = AndroidConfig.Manifest.getMainApplication(manifest);
-  if (application) {
-    return application;
-  }
+const SERVICE_PERMISSIONS = [
+  "android.permission.FOREGROUND_SERVICE",
+  "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+  "android.permission.POST_NOTIFICATIONS",
+  "android.permission.WAKE_LOCK",
+];
 
-  if (!Array.isArray(manifest.application)) {
-    manifest.application = [];
+function collapseApplications(manifest) {
+  const applications = manifest.application;
+  if (!Array.isArray(applications) || applications.length === 0) {
+    throw new Error("no <application> in AndroidManifest");
   }
+  const [primary, ...rest] = applications;
+  if (!Array.isArray(primary.service)) primary.service = [];
+  for (const extra of rest) {
+    for (const service of extra.service ?? []) {
+      const name = service.$?.["android:name"];
+      const already = primary.service.some(
+        (entry) => entry.$?.["android:name"] === name,
+      );
+      if (!already) primary.service.push(service);
+    }
+  }
+  manifest.application = [primary];
+  return primary;
+}
 
-  application = {
+function ensureService(application) {
+  if (!Array.isArray(application.service)) application.service = [];
+  const alreadyDeclared = application.service.some(
+    (entry) => entry.$?.["android:name"] === SERVICE_CLASS,
+  );
+  if (alreadyDeclared) return;
+  application.service.push({
     $: {
-      "android:name": ".MainApplication",
-      "android:label": "@string/app_name",
-      "android:icon": "@mipmap/ic_launcher",
-      "android:allowBackup": "true",
-      "android:theme": "@style/AppTheme",
-      "android:supportsRtl": "true",
+      "android:name": SERVICE_CLASS,
+      "android:enabled": "true",
+      "android:exported": "false",
+      "android:foregroundServiceType": "dataSync",
     },
-    service: [],
-  };
-  manifest.application.push(application);
-  return application;
+  });
+}
+
+function ensurePermissions(manifest) {
+  const usesPermission = manifest["uses-permission"] ?? [];
+  const permissions = new Set(
+    usesPermission.map((entry) => entry.$?.["android:name"]).filter(Boolean),
+  );
+  for (const permission of SERVICE_PERMISSIONS) {
+    if (!permissions.has(permission)) {
+      usesPermission.push({ $: { "android:name": permission } });
+    }
+  }
+  manifest["uses-permission"] = usesPermission;
+}
+
+function applyNodeServiceManifest(manifest) {
+  const application = collapseApplications(manifest);
+  ensureService(application);
+  ensurePermissions(manifest);
+  return manifest;
 }
 
 /** Expo config plugin for Android foreground service (M2). */
 module.exports = function withNodeService(config) {
   config = withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
-    const application = getOrCreateMainApplication(manifest);
-
+    applyNodeServiceManifest(manifest);
     AndroidConfig.Manifest.addMetaDataItemToMainApplication(
-      application,
+      manifest.application[0],
       "network.twistedpear.harness.FOREGROUND_SERVICE_ENABLED",
       "true",
     );
-
-    if (!Array.isArray(application.service)) {
-      application.service = [];
-    }
-
-    const alreadyDeclared = application.service.some(
-      (entry) => entry.$?.["android:name"] === SERVICE_CLASS,
-    );
-
-    if (!alreadyDeclared) {
-      application.service.push({
-        $: {
-          "android:name": SERVICE_CLASS,
-          "android:enabled": "true",
-          "android:exported": "false",
-          "android:foregroundServiceType": "dataSync",
-        },
-      });
-    }
-
-    const usesPermission = manifest["uses-permission"] ?? [];
-    const permissions = new Set(
-      usesPermission.map((entry) => entry.$?.["android:name"]).filter(Boolean),
-    );
-
-    for (const permission of [
-      "android.permission.FOREGROUND_SERVICE",
-      "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
-      "android.permission.POST_NOTIFICATIONS",
-      "android.permission.WAKE_LOCK",
-    ]) {
-      if (!permissions.has(permission)) {
-        usesPermission.push({ $: { "android:name": permission } });
-      }
-    }
-
-    manifest["uses-permission"] = usesPermission;
     return config;
   });
 
@@ -106,3 +106,4 @@ module.exports = function withNodeService(config) {
 
 module.exports.SERVICE_CLASS = SERVICE_CLASS;
 module.exports.SERVICE_NAME = SERVICE_NAME;
+module.exports.applyNodeServiceManifest = applyNodeServiceManifest;

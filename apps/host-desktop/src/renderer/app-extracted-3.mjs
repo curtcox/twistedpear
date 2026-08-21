@@ -290,40 +290,62 @@ export function showHostModalImpl(
     row.appendChild(document.createTextNode(String(value)));
     __scope.modalEl.appendChild(row);
   }
+  const capabilityInputs = appendCapabilityRows(__scope.modalEl, capabilities);
+  appendModalActions(__scope, {
+    capabilityInputs,
+    capabilities,
+    confirmLabel,
+    onDone,
+  });
+  __scope.modalOverlay.hidden = false;
+}
+
+function appendCapabilityRows(modalEl, capabilities) {
   /** @type {HTMLInputElement[]} */
   const capabilityInputs = [];
-  if (capabilities !== null) {
-    let sawRestricted = false;
-    let benignHeading = false;
-    for (const capability of capabilities) {
-      if (capability.riskClass !== "benign") {
-        sawRestricted = true;
-      } else if (sawRestricted && !benignHeading) {
-        const headingNote = document.createElement("p");
-        headingNote.className = "muted";
-        headingNote.textContent = "Also uses";
-        __scope.modalEl.appendChild(headingNote);
-        benignHeading = true;
-      }
-      const label = document.createElement("label");
-      label.className = "grant-row";
-      const input = document.createElement("input");
-      input.type = "checkbox";
-      input.checked = capability.granted;
-      input.dataset.capabilityId = capability.id;
-      capabilityInputs.push(input);
-      const text = document.createElement("span");
-      const expiry =
-        capability.expiresAt != null
-          ? ` · expires ${new Date(capability.expiresAt).toLocaleString()}`
-          : "";
-      const risk =
-        capability.riskClass != null ? ` [${capability.riskClass}]` : "";
-      text.textContent = `${capability.id}${capability.optional === true ? " (optional)" : ""}${risk} — ${capability.description || ""}${capability.scopeLabel ? ` · ${capability.scopeLabel}` : ""}${expiry}`;
-      label.append(input, text);
-      __scope.modalEl.appendChild(label);
+  if (capabilities === null) return capabilityInputs;
+  let sawRestricted = false;
+  let benignHeading = false;
+  for (const capability of capabilities) {
+    if (capability.riskClass !== "benign") {
+      sawRestricted = true;
+    } else if (sawRestricted && !benignHeading) {
+      const headingNote = document.createElement("p");
+      headingNote.className = "muted";
+      headingNote.textContent = "Also uses";
+      modalEl.appendChild(headingNote);
+      benignHeading = true;
     }
+    const label = document.createElement("label");
+    label.className = "grant-row";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = capability.granted;
+    input.dataset.capabilityId = capability.id;
+    capabilityInputs.push(input);
+    const text = document.createElement("span");
+    text.textContent = capabilityRowLabel(capability);
+    label.append(input, text);
+    modalEl.appendChild(label);
   }
+  return capabilityInputs;
+}
+
+function capabilityRowLabel(capability) {
+  const expiry =
+    capability.expiresAt != null
+      ? ` · expires ${new Date(capability.expiresAt).toLocaleString()}`
+      : "";
+  const risk = capability.riskClass != null ? ` [${capability.riskClass}]` : "";
+  const optional = capability.optional === true ? " (optional)" : "";
+  const scope = capability.scopeLabel ? ` · ${capability.scopeLabel}` : "";
+  return `${capability.id}${optional}${risk} — ${capability.description || ""}${scope}${expiry}`;
+}
+
+function appendModalActions(
+  __scope,
+  { capabilityInputs, capabilities, confirmLabel, onDone },
+) {
   const actions = document.createElement("div");
   actions.className = "modal-actions";
   const cancel = document.createElement("button");
@@ -355,5 +377,4 @@ export function showHostModalImpl(
   actions.append(cancel, approve);
   __scope.modalEl.appendChild(actions);
   refreshApproveState();
-  __scope.modalOverlay.hidden = false;
 }

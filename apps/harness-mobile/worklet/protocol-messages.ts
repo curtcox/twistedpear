@@ -258,6 +258,14 @@ export type HostToWorkletMessage =
       readonly classId?: "camera" | "microphone";
       readonly ttlMs?: number;
     }
+  | {
+      readonly type: "grant-egress-offer";
+      readonly appId: string;
+      readonly capability: string;
+      readonly targetKind: "peer";
+      readonly targetId: string;
+      readonly ttlMs?: number;
+    }
   | { readonly type: "session-invite-accept"; readonly id: string }
   | { readonly type: "session-invite-decline"; readonly id: string }
   | {

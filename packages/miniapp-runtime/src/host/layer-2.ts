@@ -9,6 +9,7 @@ import { findWidgetNode } from "./shared.js";
 import type {
   LaunchManifest,
   LimitOverrides,
+  MiniappHostOptions,
   MiniappHostSnapshot,
   ResourceLimitUpdate,
   ResourceLimitsSnapshot,
@@ -170,24 +171,27 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
   async suspend(reason = "host-suspended"): Promise<MiniappHostSnapshot> {
     const platform = this.options.hostPlatform ?? "node";
     for (const app of [...this.apps.values()]) {
-      const record = await this.options.grantStore.get(
-        app.manifest.name,
-        app.manifest.publisherPublicKey,
-      );
-      if (
-        shouldKeepRunningOnHostSuspend({
-          platform,
-          granted: record?.granted ?? app.grants.granted,
-        })
-      ) {
-        continue;
-      }
+      if (await this.shouldSkipSuspend(app, platform)) continue;
       this.deviceService?.closeApp(app.manifest.name);
       await this.inboundMedia?.closeApp(app.manifest.name);
       const snapshot = await app.lifecycle.suspend(reason);
       this.options.callbacks?.onLifecycle?.(snapshot);
     }
     return this.snapshot();
+  }
+
+  private async shouldSkipSuspend(
+    app: ActiveApp,
+    platform: MiniappHostOptions["hostPlatform"],
+  ): Promise<boolean> {
+    const record = await this.options.grantStore.get(
+      app.manifest.name,
+      app.manifest.publisherPublicKey,
+    );
+    return shouldKeepRunningOnHostSuspend({
+      platform: platform ?? "node",
+      granted: record?.granted ?? app.grants.granted,
+    });
   }
 
   async resume(): Promise<MiniappHostSnapshot> {

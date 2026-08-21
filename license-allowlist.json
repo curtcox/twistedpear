@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Approved dependency SPDX licenses. Every term in an AND branch must be approved; an expression passes when at least one OR branch passes. Nonstandard expressions are ratcheted separately. LGPL-3.0-only is listed because eslint-plugin-sonarjs is the cognitive-complexity survey engine. CC-BY-SA-4.0 is listed for cspell's bundled misspellings dictionary: it is a share-alike licence on a data file, and it is approved here only because that file is a development dependency that no shipped artifact contains or adapts. A CC-BY-SA dependency that reached a released binary would need a fresh decision, not this one.",
+  "description": "Approved dependency SPDX licenses. Every term in an AND branch must be approved; an expression passes when at least one OR branch passes. Nonstandard expressions are ratcheted separately. LGPL-3.0-only is listed because eslint-plugin-sonarjs is the cognitive-complexity survey engine. CC-BY-SA-4.0 is listed for cspell's bundled misspellings dictionary: it is a share-alike licence on a data file, and it is approved here only because that file is a development dependency that no shipped artifact contains or adapts. A CC-BY-SA dependency that reached a released binary would need a fresh decision, not this one. Zlib is listed because pako ships MIT AND Zlib; both branches must be approved.",
   "allowed": [
     "0BSD",
     "Apache-2.0",
@@ -18,7 +18,8 @@
     "Python-2.0",
     "Unicode-3.0",
     "Unlicense",
-    "WTFPL"
+    "WTFPL",
+    "Zlib"
   ],
   "overrides": {
     "@cspell/dict-en-common-misspellings@2.2.0": {

@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { capabilityId, formatBps } from "./device-registry-shared.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, "..");
@@ -21,18 +22,6 @@ const REGISTRY_PATH = join(
   "device-classes.json",
 );
 export const DEVICE_CLASS_PAGES_DIR = join(ROOT, "docs", "device-classes");
-
-function capabilityId(classId, suffix) {
-  return suffix === null || suffix === undefined
-    ? `device:${classId}`
-    : `device:${classId}:${suffix}`;
-}
-
-function formatBps(value) {
-  if (value >= 1_000_000) return `${value / 1_000_000} Mbps`;
-  if (value >= 1_000) return `${value / 1_000} kbps`;
-  return `${value} bps`;
-}
 
 function bandwidthRows(entry) {
   const rows = [];

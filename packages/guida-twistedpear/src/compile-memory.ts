@@ -37,7 +37,7 @@ export interface GuidaBuildResult {
   readonly compilerVersion: string;
 }
 
-export interface SeedMemoryOptions {
+interface SeedMemoryOptions {
   readonly files: ReadonlyArray<WorkspaceFile>;
   readonly vendorFiles: Readonly<Record<string, string>>;
   readonly homeFiles: Readonly<Record<string, string>>;
@@ -107,7 +107,7 @@ function compiledFromHtml(
     : undefined;
 }
 
-export function seedGuidaMemory(options: SeedMemoryOptions): {
+function seedGuidaMemory(options: SeedMemoryOptions): {
   readonly files: Map<string, Uint8Array>;
   readonly config: GuidaFsConfig;
 } {

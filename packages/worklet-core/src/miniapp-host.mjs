@@ -1,4 +1,4 @@
-/* global TextEncoder, setTimeout */
+/* global TextEncoder, setTimeout, WebAssembly */
 import {
   KvStorageBeeBackend,
   MiniappHost,
@@ -311,6 +311,7 @@ export function createWorkletMiniappHost(options) {
     grantStore,
     kvBackend: kvStore,
     confirmationChannel,
+    maxMessageBytes: 2 * 1024 * 1024,
     identityBackend:
       options.identityBackend ??
       createAppScopedIdentityBackend({

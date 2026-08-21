@@ -67,27 +67,55 @@ function meets(
 ): boolean {
   switch (requirement) {
     case "provenance":
-      if (tier === "critical") return evidence.publisherTrust === "direct";
-      return evidence.publisherTrust !== null || evidence.attestationCount >= 1;
-    case "age": {
-      const min =
-        tier === "critical"
-          ? thresholds.criticalMinObservedMs
-          : thresholds.sensitiveMinObservedMs;
-      return evidence.observedAgeMs !== null && evidence.observedAgeMs >= min;
-    }
-    case "stability": {
-      const min =
-        tier === "critical"
-          ? thresholds.criticalMinStableMs
-          : thresholds.sensitiveMinStableMs;
-      return evidence.hashAgeMs !== null && evidence.hashAgeMs >= min;
-    }
-    case "review": {
-      const min = tier === "critical" ? thresholds.criticalMinAttestations : 1;
-      return evidence.attestationCount >= min;
-    }
+      return meetsProvenance(tier, evidence);
+    case "age":
+      return meetsAge(tier, evidence, thresholds);
+    case "stability":
+      return meetsStability(tier, evidence, thresholds);
+    case "review":
+      return meetsReview(tier, evidence, thresholds);
   }
+}
+
+function meetsProvenance(
+  tier: AppRiskTier,
+  evidence: ApprovalEvidence,
+): boolean {
+  if (tier === "critical") return evidence.publisherTrust === "direct";
+  return evidence.publisherTrust !== null || evidence.attestationCount >= 1;
+}
+
+function meetsAge(
+  tier: AppRiskTier,
+  evidence: ApprovalEvidence,
+  thresholds: ApprovalThresholds,
+): boolean {
+  const min =
+    tier === "critical"
+      ? thresholds.criticalMinObservedMs
+      : thresholds.sensitiveMinObservedMs;
+  return evidence.observedAgeMs !== null && evidence.observedAgeMs >= min;
+}
+
+function meetsStability(
+  tier: AppRiskTier,
+  evidence: ApprovalEvidence,
+  thresholds: ApprovalThresholds,
+): boolean {
+  const min =
+    tier === "critical"
+      ? thresholds.criticalMinStableMs
+      : thresholds.sensitiveMinStableMs;
+  return evidence.hashAgeMs !== null && evidence.hashAgeMs >= min;
+}
+
+function meetsReview(
+  tier: AppRiskTier,
+  evidence: ApprovalEvidence,
+  thresholds: ApprovalThresholds,
+): boolean {
+  const min = tier === "critical" ? thresholds.criticalMinAttestations : 1;
+  return evidence.attestationCount >= min;
 }
 
 /**

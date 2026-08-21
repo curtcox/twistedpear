@@ -44,20 +44,21 @@ export function memoryGuidaConfig(
 
   return {
     XMLHttpRequest: options.XMLHttpRequest,
-    async writeFile(path, data) {
+    writeFile(path, data) {
       const resolved = locate(path);
       files.set(resolved, bytesOf(data));
       directories.add(parentDir(resolved));
+      return Promise.resolve();
     },
-    async readFile(path) {
+    readFile(path) {
       const resolved = locate(path);
       const found = files.get(resolved);
       if (found === undefined) {
-        throw new Error(`ENOENT: ${resolved}`);
+        return Promise.reject(new Error(`ENOENT: ${resolved}`));
       }
-      return found;
+      return Promise.resolve(found);
     },
-    async readDirectory(path) {
+    readDirectory(path) {
       const resolved = locate(path).replace(/\/$/u, "") || "/";
       const prefix = resolved === "/" ? "/" : `${resolved}/`;
       const names = new Set<string>();
@@ -73,26 +74,27 @@ export function memoryGuidaConfig(
         const name = rest.split("/")[0];
         if (name) names.add(name);
       }
-      return { files: [...names].sort() };
+      return Promise.resolve({ files: [...names].sort() });
     },
-    async createDirectory(path) {
+    createDirectory(path) {
       directories.add(locate(path).replace(/\/$/u, "") || "/");
+      return Promise.resolve();
     },
-    async details(path) {
+    details(path) {
       const resolved = locate(path);
       if (files.has(resolved)) {
-        return { type: "file", createdAt: 0 };
+        return Promise.resolve({ type: "file" as const, createdAt: 0 });
       }
       if (directories.has(resolved.replace(/\/$/u, "") || "/")) {
-        return { type: "directory", createdAt: 0 };
+        return Promise.resolve({ type: "directory" as const, createdAt: 0 });
       }
-      throw new Error(`ENOENT: ${resolved}`);
+      return Promise.reject(new Error(`ENOENT: ${resolved}`));
     },
-    async getCurrentDirectory() {
-      return cwd;
+    getCurrentDirectory() {
+      return Promise.resolve(cwd);
     },
-    async homedir() {
-      return options.homedir;
+    homedir() {
+      return Promise.resolve(options.homedir);
     },
     env: options.env ?? {},
   };

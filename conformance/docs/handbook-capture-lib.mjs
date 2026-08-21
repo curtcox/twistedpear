@@ -174,6 +174,7 @@ function createCaptureHost(store, packed, platform) {
         usage: { promptTokens: 1, completionTokens: 1 },
       }),
     },
+    maxMessageBytes: 2 * 1024 * 1024,
   });
 }
 
@@ -188,20 +189,23 @@ export async function captureHandbookWidgetTree(options = {}) {
   const packed = await packHandbook();
   const store = new MemoryStore();
   const host = createCaptureHost(store, packed, platform);
+  const capabilities = (packed.app.capabilities ?? []).map((entry) =>
+    typeof entry === "string" ? entry : entry.id,
+  );
 
   try {
     await host.setGrants(
       packed.app.name,
       packed.publisherPublicKey,
-      packed.app.capabilities ?? [],
-      packed.app.capabilities ?? [],
+      capabilities,
+      capabilities,
     );
     await host.launch(
       {
         name: packed.app.name,
         version: packed.app.version,
         entry: packed.app.entry,
-        capabilities: packed.app.capabilities ?? [],
+        capabilities,
         publisherPublicKey: packed.publisherPublicKey,
       },
       packed.bundle,

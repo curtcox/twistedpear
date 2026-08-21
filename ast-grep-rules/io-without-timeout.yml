@@ -4,10 +4,10 @@
 # where the peer may simply be gone, "waits" means the caller's state machine
 # stops advancing and nothing reports why. The type checker is perfectly happy.
 #
-# The rule looks for any mention of `signal` or `timeout` anywhere in the call,
-# which deliberately accepts `AbortSignal.timeout(n)`, a hoisted controller, and
-# a spread options object that happens to name one. False negatives are the
-# right direction here: a survey that cries wolf gets filtered out.
+# Accept a `signal` / `timeout` identifier, an AbortSignal.timeout(...) call,
+# or a property named `signal`/`timeout`. Property keys are
+# `property_identifier` nodes, so a bare `signal` pattern does not match
+# `signal: AbortSignal.timeout(n)` — that form has to be named explicitly.
 id: fetch-without-abort-signal
 language: TypeScript
 severity: hint
@@ -20,6 +20,9 @@ rule:
       any:
         - pattern: signal
         - pattern: timeout
+        - pattern: AbortSignal.timeout($MS)
+        - kind: property_identifier
+          regex: ^(signal|timeout)$
 ---
 id: fetch-without-abort-signal-tsx
 language: Tsx
@@ -33,6 +36,9 @@ rule:
       any:
         - pattern: signal
         - pattern: timeout
+        - pattern: AbortSignal.timeout($MS)
+        - kind: property_identifier
+          regex: ^(signal|timeout)$
 ---
 id: fetch-without-abort-signal-js
 language: JavaScript
@@ -46,3 +52,6 @@ rule:
       any:
         - pattern: signal
         - pattern: timeout
+        - pattern: AbortSignal.timeout($MS)
+        - kind: property_identifier
+          regex: ^(signal|timeout)$

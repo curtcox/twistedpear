@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import type { GuidaFsConfig } from "./fs-config.js";
 import { FetchXmlHttpRequest } from "./xhr.js";
 
-export type { GuidaFsConfig, GuidaXhrCtor, GuidaXhrLike } from "./fs-config.js";
+export type { GuidaFsConfig } from "./fs-config.js";
 
 /**
  * Filesystem + XHR environment for `guida`'s library `make` / `format` /
@@ -36,11 +36,11 @@ export function nodeGuidaConfig(cwd: string): GuidaFsConfig {
         createdAt: Math.trunc(info.mtimeMs),
       };
     },
-    async getCurrentDirectory() {
-      return cwd;
+    getCurrentDirectory() {
+      return Promise.resolve(cwd);
     },
-    async homedir() {
-      return homedir();
+    homedir() {
+      return Promise.resolve(homedir());
     },
     env: process.env,
   };

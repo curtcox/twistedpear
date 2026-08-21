@@ -189,14 +189,35 @@ export function egressOfferPermits(
   },
 ): boolean {
   if (!isEgressOfferLive(offer, input.at)) return false;
-  if (
-    offer.appId !== input.appId ||
-    offer.capability !== input.capability ||
-    offer.targetKind !== input.targetKind ||
-    offer.targetId !== input.targetId
-  ) {
-    return false;
-  }
+  if (!egressOfferIdentityMatches(offer, input)) return false;
+  return egressOfferConstraintsMatch(offer, input);
+}
+
+function egressOfferIdentityMatches(
+  offer: EgressOffer,
+  input: {
+    readonly appId: string;
+    readonly capability: string;
+    readonly targetKind: EgressTargetKind;
+    readonly targetId: string;
+  },
+): boolean {
+  return (
+    offer.appId === input.appId &&
+    offer.capability === input.capability &&
+    offer.targetKind === input.targetKind &&
+    offer.targetId === input.targetId
+  );
+}
+
+function egressOfferConstraintsMatch(
+  offer: EgressOffer,
+  input: {
+    readonly tierId?: string;
+    readonly maxRung?: string;
+    readonly classId?: string;
+  },
+): boolean {
   if (
     offer.constraints.tierId !== undefined &&
     offer.constraints.tierId !== input.tierId

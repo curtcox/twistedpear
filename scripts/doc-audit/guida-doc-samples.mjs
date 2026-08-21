@@ -13,8 +13,12 @@
  * Elm or links a .elm file.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
-import { repoRoot } from "./repo-root.mjs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+function repoRoot() {
+  return join(dirname(fileURLToPath(import.meta.url)), "../..");
+}
 
 const USAGE = `usage: node scripts/doc-audit/guida-doc-samples.mjs [--scope=apps|prose|all]`;
 
@@ -87,45 +91,46 @@ function auditSampleApps(root) {
   const findings = [];
   for (const relRoot of SAMPLE_ROOTS) {
     for (const dir of childDirs(join(root, relRoot))) {
-      const rel = dir.slice(root.length + 1);
-      const manifest = join(dir, "app.manifest.json");
-      const bundle = join(dir, "bundle.js");
-      if (!existsSync(manifest) || !existsSync(bundle)) continue;
-      const elmJson = join(dir, "elm.json");
-      const mainElm = join(dir, "src/Main.elm");
-      if (!existsSync(elmJson) || !existsSync(mainElm)) {
-        findings.push({
-          path: rel,
-          message: "documented sample app is missing elm.json + src/Main.elm",
-        });
-      }
-      const readmePath = existsSync(join(dir, "README.md"))
-        ? join(dir, "README.md")
-        : relRoot === "apps/examples"
-          ? join(root, "apps/examples/README.md")
-          : null;
-      const readmeRel = readmePath
-        ? readmePath.slice(root.length + 1)
-        : `${rel}/README.md`;
-      if (!readmePath || !existsSync(readmePath)) {
-        findings.push({
-          path: rel,
-          message:
-            "documented sample app has no README that can list Guida source",
-        });
-        continue;
-      }
-      const readme = readFileSync(readmePath, "utf8");
-      const hasJs = readme.includes("bundle.js");
-      const hasElm =
-        readme.includes("Main.elm") || readme.includes("src/Main.elm");
-      if (!hasJs || !hasElm) {
-        findings.push({
-          path: readmeRel,
-          message: `${rel} documenting page must link both bundle.js and Main.elm`,
-        });
-      }
+      findings.push(...auditOneSampleApp(root, relRoot, dir));
     }
+  }
+  return findings;
+}
+
+function auditOneSampleApp(root, relRoot, dir) {
+  /** @type {Finding[]} */
+  const findings = [];
+  const rel = dir.slice(root.length + 1);
+  const manifest = join(dir, "app.manifest.json");
+  const bundle = join(dir, "bundle.js");
+  if (!existsSync(manifest) || !existsSync(bundle)) return findings;
+  if (
+    !existsSync(join(dir, "elm.json")) ||
+    !existsSync(join(dir, "src/Main.elm"))
+  ) {
+    findings.push({
+      path: rel,
+      message: "documented sample app is missing elm.json + src/Main.elm",
+    });
+  }
+  const readmePath = existsSync(join(dir, "README.md"))
+    ? join(dir, "README.md")
+    : relRoot === "apps/examples"
+      ? join(root, "apps/examples/README.md")
+      : null;
+  if (readmePath === null || !existsSync(readmePath)) {
+    findings.push({
+      path: `${rel}/README.md`,
+      message: "documented sample app has no README that can list Guida source",
+    });
+    return findings;
+  }
+  const readme = readFileSync(readmePath, "utf8");
+  if (!readme.includes("bundle.js") || !readme.includes("Main.elm")) {
+    findings.push({
+      path: readmePath.slice(root.length + 1),
+      message: `${rel} documenting page must link both bundle.js and Main.elm`,
+    });
   }
   return findings;
 }

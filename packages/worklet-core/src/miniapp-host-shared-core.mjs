@@ -449,6 +449,10 @@ export function createUiLifecycleMethods({ host, pushRuntime, previewRef }) {
       await host.handleUiEvent(nodeId, event, value);
     },
 
+    grantEgressOffer(input) {
+      return host.grantEgressOffer(input);
+    },
+
     async handlePreviewUiEvent(nodeId, event, value) {
       if (previewRef.current === null) {
         throw new Error("No preview app is running");

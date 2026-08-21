@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { capabilityId } from "./device-registry-shared.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, "..");
@@ -35,12 +36,6 @@ const CAPS_OUT = join(
   "src",
   "device-capabilities.gen.ts",
 );
-
-function capabilityId(classId, suffix) {
-  return suffix === null || suffix === undefined
-    ? `device:${classId}`
-    : `device:${classId}:${suffix}`;
-}
 
 function capabilityDescription(entry, tier) {
   const tierLabel =

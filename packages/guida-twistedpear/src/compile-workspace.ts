@@ -1,28 +1,19 @@
 import {
-  compileGuidaMemory,
-  diagnoseGuidaMemory,
-  formatGuidaMemory,
+  compileWorkspaceWith,
+  diagnoseWorkspaceWith,
+  formatSourceWith,
   type GuidaBuildResult,
   type GuidaProblem,
   type WorkspaceFile,
-} from "./compile-memory.js";
+} from "./workspace-ops.js";
 import { JsModuleGuidaCompiler, loadGuidaLibrary } from "./compiler.js";
 import { memoryGuidaConfig } from "./memory-config.js";
 import { minifyGuida } from "./minify.js";
-import { GUIDA_HOME_FILES, VENDOR_FILES } from "./seed-files.generated.js";
 import { GUIDA_SHIM_SOURCE } from "./shim.js";
 import { wrapGuidaScope } from "./wrap-scope.js";
 import { FetchXmlHttpRequest } from "./xhr.js";
 
 export type { WorkspaceFile, GuidaBuildResult, GuidaProblem };
-
-function seedArgs(files: ReadonlyArray<WorkspaceFile>) {
-  return {
-    files,
-    vendorFiles: VENDOR_FILES,
-    homeFiles: GUIDA_HOME_FILES,
-  };
-}
 
 /**
  * Compile a Guida project from a file map (workspace snapshot) in memory.
@@ -31,15 +22,10 @@ function seedArgs(files: ReadonlyArray<WorkspaceFile>) {
 export async function compileGuidaWorkspace(
   files: ReadonlyArray<WorkspaceFile>,
 ): Promise<GuidaBuildResult> {
-  const guida = loadGuidaLibrary();
-  return compileGuidaMemory({
-    make: (config, path, options) => guida.make(config, path, options),
-    ...seedArgs(files),
-    assemble: async (compiled) => {
-      const wrapped = wrapGuidaScope(compiled);
-      const minified = await minifyGuida(wrapped);
-      return `${minified}\n${GUIDA_SHIM_SOURCE}`;
-    },
+  return compileWorkspaceWith(loadGuidaLibrary(), files, async (compiled) => {
+    const wrapped = wrapGuidaScope(compiled);
+    const minified = await minifyGuida(wrapped);
+    return `${minified}\n${GUIDA_SHIM_SOURCE}`;
   });
 }
 
@@ -47,24 +33,14 @@ export async function diagnoseGuidaWorkspace(
   files: ReadonlyArray<WorkspaceFile>,
   path?: string,
 ): Promise<ReadonlyArray<GuidaProblem>> {
-  const guida = loadGuidaLibrary();
-  return diagnoseGuidaMemory({
-    diagnostics: (config, args) => guida.diagnostics(config, args),
-    ...seedArgs(files),
-    ...(path === undefined ? {} : { path }),
-  });
+  return diagnoseWorkspaceWith(loadGuidaLibrary(), files, path);
 }
 
 export async function formatGuidaSource(
   content: string,
   files: ReadonlyArray<WorkspaceFile> = [],
 ): Promise<string> {
-  const guida = loadGuidaLibrary();
-  return formatGuidaMemory({
-    format: (config, source) => guida.format(config, source),
-    content,
-    ...seedArgs(files),
-  });
+  return formatSourceWith(loadGuidaLibrary(), content, files);
 }
 
 /** In-memory compiler config for diagnostics/format without touching disk. */

@@ -4,7 +4,7 @@ import type { ConfirmationRequest } from "../../../packages/miniapp-runtime/src/
 import { confirmationTitle } from "../browser-host/confirmation.ts";
 import type { StorageFallbackReason } from "../browser-host/store.ts";
 
-export function storageMessage(reason: StorageFallbackReason | null): string | null {
+function storageMessage(reason: StorageFallbackReason | null): string | null {
   if (reason === "quota") {
     return "Browser storage is full; edits stay in this tab only and will be lost on reload.";
   }

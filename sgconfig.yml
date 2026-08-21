@@ -12,3 +12,9 @@
 # See docs/audit-tooling.md for how to add a rule.
 ruleDirs:
   - ast-grep-rules
+ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.generated.js"
+  - "packages/guida-twistedpear/seed/**"
+  - "conformance/guida-compiler/**"

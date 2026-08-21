@@ -359,6 +359,14 @@ async function main() {
         treeContainsText(runtime.widgetTree, "Me:"),
       );
       send({
+        type: "grant-egress-offer",
+        appId: "chat",
+        capability: "lxmf:send",
+        targetKind: "peer",
+        targetId: "chat-peer",
+      });
+      await sleep(100);
+      send({
         type: "miniapp-ui-event",
         nodeId: "peer-input",
         event: "chat.peer",

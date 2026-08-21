@@ -1,19 +1,19 @@
 {
   "version": 1,
   "description": "SHA-256 digests of API Extractor's stable Markdown signatures. Full reports are CI artifacts. After bootstrap, changing a digest also requires changing that package version.",
-  "reports": 37,
+  "reports": 39,
   "entries": {
     "protocol.api.md": {
       "package": "packages/protocol",
-      "sha256": "58e6f6d1ffb297aa03b169c0e05745fd7e01bda557d0efec93ee12ec6130c48c"
+      "sha256": "71e7bc1d7b6fb983ce60dd6877c8ff8b7505a5a2c6116127776065157995df5b"
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "88a97ca73e26f958a7655234f3d2dc6e96458d6c47d151ed82046616ffa69804"
+      "sha256": "22a5753ac99f5ffad55f8c7a80ef9c59c154c9231e662d3b9a69a3c5cc4ac83a"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
-      "sha256": "a38fcfd6a67910de1bfc4f0682c9419855ecb0ea89cf368bd578385355792689"
+      "sha256": "18d5be209a3447779d9afe132c1763bdf177da7e5944c59d10654f2be3aa192a"
     },
     "reticulum-ts.api.md": {
       "package": "packages/reticulum-ts",
@@ -25,7 +25,7 @@
     },
     "miniapp-sdk.api.md": {
       "package": "packages/miniapp-sdk",
-      "sha256": "6e24a6371af37e4d725ec693bf430a3e6a0c5cac28ce00f6558c6d9f67e86610"
+      "sha256": "c8047c5cea7048d2dfa9468d11106358ed5fee00067fc58393108caf336c069e"
     },
     "reticulum-interfaces.api.md": {
       "package": "packages/reticulum-interfaces",
@@ -33,11 +33,11 @@
     },
     "miniapp-runtime-worklet.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "3251a8c9a893a7f71a8e5ce361bd659dadd56859288d0f01fa6daf370ebbdfd7"
+      "sha256": "da457368440962efec25d053a8385ef111a8c7eda067af0505a28e0115159e22"
     },
     "app-registry.api.md": {
       "package": "packages/app-registry",
-      "sha256": "6dc6b768ac8c30e190e9fc683511e927ce1e1a80d16a1cc0b7abd5cd9368b66a"
+      "sha256": "747db394521c622f14c4e5baf9ca08aa173b63021bacb2371182a86c0fcf7585"
     },
     "host-core-web.api.md": {
       "package": "packages/host-core",
@@ -82,6 +82,10 @@
     "sim-adversaries.api.md": {
       "package": "packages/sim-adversaries",
       "sha256": "723df17088d4e90b9d5253c0678ba36b2d21849c177eb3e54aab28d13835852c"
+    },
+    "guida-twistedpear.api.md": {
+      "package": "packages/guida-twistedpear",
+      "sha256": "0adceb9f79141f1a8e16ceee80232db0e548eb18825af6e74a4feea12250cca7"
     },
     "bridge-hyper-worklet.api.md": {
       "package": "packages/bridge-hyper",
@@ -130,6 +134,10 @@
     "effects-tripwire.api.md": {
       "package": "packages/effects",
       "sha256": "ce7a30789f7f149adca3d180d5487c1a1a8c921dfd03dee71b25bc44dab2771b"
+    },
+    "guida-twistedpear-worklet.api.md": {
+      "package": "packages/guida-twistedpear",
+      "sha256": "0328cfd264853cee84d9054ccdf143476ceaf1f6fc8e5db614c70856b3b49a3b"
     },
     "reticulum-interfaces-serial-node.api.md": {
       "package": "packages/reticulum-interfaces",

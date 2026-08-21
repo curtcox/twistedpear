@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "total": 8045,
-  "cap": 8045,
-  "packages": 19,
-  "entryPoints": 44,
+  "total": 8130,
+  "cap": 8130,
+  "packages": 20,
+  "entryPoints": 46,
   "unresolved": 0,
   "violations": 0,
   "findings": [
@@ -26,22 +26,22 @@
     {
       "name": "miniapp-runtime",
       "entryPoints": {
-        ".": 306,
+        ".": 331,
         "./worklet": 100,
         "./sandbox/web": 2,
         "./ui": 13
       },
-      "total": 421
+      "total": 446
     },
     {
       "name": "host-core",
       "entryPoints": {
-        ".": 228,
+        ".": 258,
         "./web": 91,
         "./protocol": 12,
         "./identity-backup": 13
       },
-      "total": 344
+      "total": 374
     },
     {
       "name": "effects",
@@ -129,6 +129,14 @@
         ".": 33
       },
       "total": 33
+    },
+    {
+      "name": "guida-twistedpear",
+      "entryPoints": {
+        ".": 27,
+        "./worklet": 3
+      },
+      "total": 30
     },
     {
       "name": "sim-adversaries",

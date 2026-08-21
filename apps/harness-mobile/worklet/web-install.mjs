@@ -2,7 +2,6 @@
 import {
   TrustStore,
   unpackPackage,
-  verifyPackage,
 } from "../../../packages/app-registry/dist/index.js";
 import {
   T256_ID_LENGTH,
@@ -16,12 +15,8 @@ import {
   describeCapability,
   validateManifestCapabilities,
 } from "../../../packages/miniapp-runtime/dist/capabilities.js";
-import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/confirm.js";
-import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
-import {
-  presentCapabilityReview,
-  riskClassForCapabilityId,
-} from "../../../packages/worklet-core/src/capability-review.mjs";
+import { riskClassForCapabilityId } from "../../../packages/worklet-core/src/capability-review.mjs";
+import { confirmInstallReview } from "../../../packages/worklet-core/src/install-review.mjs";
 
 /**
  * Phase W3: install from 256t (inline or Resource fetch) + publisher trust store.
@@ -214,53 +209,25 @@ export function createWebInstallService(options) {
         verified: false,
       });
 
-      const minVersion = storage.activeVersion(appId) ?? undefined;
-      const verified = verifyPackage(options.provider, archive, {
-        hostApiVersion: HOST_API_VERSION,
-        ...(minVersion === undefined ? {} : { minVersion }),
-      });
-      const declared = validateManifestCapabilities(
-        verified.manifest.capabilities,
-      );
-      const trusted = await trustStore.isTrusted(
-        verified.manifest.publisherPublicKey,
-      );
-      const trustedEntry = trusted
-        ? (await trustStore.list()).find(
-            (entry) =>
-              entry.publisherPublicKey === verified.manifest.publisherPublicKey,
-          )
-        : undefined;
-
       if (options.requestHostReply === undefined) {
         throw new Error("Install review requires host UI");
       }
-
-      const presented = presentCapabilityReview(
-        declared.map((id) => ({
-          id,
-          description: describeCapability(id),
-          granted: false,
-          riskClass: riskClassForCapabilityId(id),
-        })),
-      );
-      const review = await options.requestHostReply({
-        type: "install-review",
-        token: generateConfirmationToken((length) =>
-          options.provider.randomBytes(length),
-        ),
-        appId,
-        version: verified.manifest.version,
-        publisherPublicKey: verified.manifest.publisherPublicKey,
-        trusted,
-        trustedLabel: trustedEntry?.label ?? null,
-        riskTier: presented.riskTier,
-        capabilities: presented.capabilities,
+      const { verified, trusted, review } = await confirmInstallReview({
+        provider: options.provider,
+        archive,
+        minVersionFor: (id) => storage.activeVersion(id) ?? undefined,
+        trustStore,
+        requestHostReply: options.requestHostReply,
+        capabilitiesForReview: (pack) =>
+          validateManifestCapabilities(pack.manifest.capabilities).map(
+            (id) => ({
+              id,
+              description: describeCapability(id),
+              granted: false,
+              riskClass: riskClassForCapabilityId(id),
+            }),
+          ),
       });
-
-      if (review === null || review.accept !== true) {
-        throw new Error("Install cancelled at capability review");
-      }
 
       const installed = await storage.installArchive(archive);
       sendProgress({

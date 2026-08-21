@@ -3,7 +3,7 @@
  */
 import { DEFAULT_ANNOUNCE_RATE_TARGET } from "../../../packages/protocol/dist/index.js";
 import { decideLxmfModeration } from "../../../packages/protocol/dist/index.js";
-import { denyCode, dispatch, makeHost } from "./harness.mjs";
+import { denyCode, dispatch, makeHost, stubAppsBackend } from "./harness.mjs";
 import {
   consentDiscloses,
   installReviewConsentRecord,
@@ -16,21 +16,7 @@ export async function runVectorScenarios() {
     capabilities: ["lxmf:send", "apps:install"],
   };
   const host = makeHost({
-    appsBackend: {
-      package: async () => ({
-        packageHash: "ab".repeat(32),
-        size: 1,
-        t256: "A".repeat(94),
-      }),
-      publish: async () => ({
-        t256: "A".repeat(94),
-        driveKey: "cd".repeat(32),
-        version: "1.0.0",
-      }),
-      install: async () => ({ appId: "lure", version: "1.0.0", trusted: true }),
-      preview: async () => ({ launched: true }),
-      stopPreview: async () => {},
-    },
+    appsBackend: stubAppsBackend(),
   });
   await host.setGrants(
     app.name,

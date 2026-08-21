@@ -1,6 +1,5 @@
-import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JsModuleGuidaCompiler } from "./compiler.js";
 import { minifyGuida } from "./minify.js";
@@ -41,17 +40,7 @@ export function assembleGuidaBundle(
   );
 }
 
-export function hasVendoredSources(
-  appDir: string,
-  directories: ReadonlyArray<string>,
-): boolean {
-  return directories.some((dir) => {
-    const resolved = isAbsolute(dir) ? dir : join(appDir, dir);
-    return existsSync(join(resolved, "TwistedPear", "Program.elm"));
-  });
-}
-
-export async function ensureVendoredSources(appDir: string): Promise<void> {
+async function ensureVendoredSources(appDir: string): Promise<void> {
   const vendorDir = join(appDir, GUIDA_VENDOR_DIR);
   await cp(VENDORED_ELM, vendorDir, { recursive: true, force: true });
   const elmJsonPath = join(appDir, "elm.json");

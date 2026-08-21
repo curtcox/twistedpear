@@ -8,6 +8,9 @@ export default tseslint.config(
       "site/**",
       "archive/**",
       "**/*.gen.ts",
+      "**/*.generated.js",
+      "**/*.generated.mjs",
+      "packages/guida-twistedpear/seed/**",
     ],
   },
   {

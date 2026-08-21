@@ -1,4 +1,4 @@
-import { packageVersion, parseJson, run } from "../lib.mjs";
+import { isExcluded, packageVersion, parseJson, run } from "../lib.mjs";
 import { symbolAt } from "../anchors.mjs";
 
 /**
@@ -41,6 +41,7 @@ const tool = {
     const findings = [];
     for (const entry of files) {
       const file = entry.filePath.replace(`${process.cwd()}/`, "");
+      if (isExcluded(file)) continue;
       for (const message of entry.messages) {
         if (message.ruleId !== "sonarjs/cognitive-complexity") continue;
         const score = Number(SCORE.exec(message.message)?.[1] ?? NaN);

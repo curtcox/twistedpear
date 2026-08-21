@@ -286,20 +286,29 @@ function egressTargetFromRequest(request: BrokerRequest): string | undefined {
     return undefined;
   }
   if (request.namespace === "lxmf" && request.method === "send") {
-    const to = (payload as { to?: unknown }).to;
-    return typeof to === "string" ? to : undefined;
+    return lxmfSendTarget(payload);
   }
   if (request.namespace === "links" && request.method === "probe") {
-    const peer = (payload as { peer?: unknown }).peer;
-    if (typeof peer === "string") return peer;
-    if (
-      typeof peer === "object" &&
-      peer !== null &&
-      "id" in peer &&
-      typeof peer.id === "string"
-    ) {
-      return peer.id;
-    }
+    return linkProbeTarget(payload);
+  }
+  return undefined;
+}
+
+function lxmfSendTarget(payload: object): string | undefined {
+  const to = (payload as { to?: unknown }).to;
+  return typeof to === "string" ? to : undefined;
+}
+
+function linkProbeTarget(payload: object): string | undefined {
+  const peer = (payload as { peer?: unknown }).peer;
+  if (typeof peer === "string") return peer;
+  if (
+    typeof peer === "object" &&
+    peer !== null &&
+    "id" in peer &&
+    typeof peer.id === "string"
+  ) {
+    return peer.id;
   }
   return undefined;
 }

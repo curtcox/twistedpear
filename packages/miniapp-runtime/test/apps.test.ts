@@ -57,7 +57,7 @@ function stubBackend(calls: string[]): AppsBackend {
   };
 }
 
-describe("apps service", () => {
+describe("apps service confirmation", () => {
   it("denies every dangerous method without a confirmation channel", async () => {
     const calls: string[] = [];
     const service = new AppsService(stubBackend(calls), undefined);
@@ -170,7 +170,9 @@ describe("apps service", () => {
     });
     expect(calls).toEqual([]);
   });
+});
 
+describe("apps service validation", () => {
   it("validates manifests, 256t ids, and paths before asking the user", async () => {
     const calls: string[] = [];
     let asked = 0;

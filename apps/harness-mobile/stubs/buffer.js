@@ -78,5 +78,3 @@ export class Buffer extends Uint8Array {
     return decoder.decode(this);
   }
 }
-
-export default { Buffer };

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "modules": 1224,
-  "components": 24,
+  "modules": 1321,
+  "components": 25,
   "cycles": 4,
   "unresolvedDependencies": 0,
   "violations": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 258,
+      "modules": 275,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,
@@ -38,8 +38,28 @@
       ]
     },
     {
+      "id": "scripts",
+      "modules": 210,
+      "ca": 1,
+      "ce": 11,
+      "instability": 0.92,
+      "dependsOn": [
+        "conformance",
+        "packages/cli",
+        "packages/effects",
+        "packages/guida-twistedpear",
+        "packages/miniapp-runtime",
+        "packages/peer-discovery",
+        "packages/protocol",
+        "packages/reticulum-ts",
+        "packages/widget-renderer-headless",
+        "packages/widget-renderer-rn",
+        "packages/worklet-core"
+      ]
+    },
+    {
       "id": "packages/protocol",
-      "modules": 201,
+      "modules": 205,
       "ca": 12,
       "ce": 1,
       "instability": 0.08,
@@ -48,26 +68,20 @@
       ]
     },
     {
-      "id": "scripts",
-      "modules": 182,
-      "ca": 1,
-      "ce": 9,
-      "instability": 0.9,
+      "id": "packages/miniapp-runtime",
+      "modules": 94,
+      "ca": 12,
+      "ce": 3,
+      "instability": 0.2,
       "dependsOn": [
-        "conformance",
-        "packages/cli",
         "packages/effects",
-        "packages/miniapp-runtime",
         "packages/peer-discovery",
-        "packages/protocol",
-        "packages/reticulum-ts",
-        "packages/widget-renderer-headless",
-        "packages/widget-renderer-rn"
+        "packages/protocol"
       ]
     },
     {
       "id": "apps/harness-mobile",
-      "modules": 90,
+      "modules": 92,
       "ca": 1,
       "ce": 14,
       "instability": 0.93,
@@ -89,18 +103,6 @@
       ]
     },
     {
-      "id": "packages/miniapp-runtime",
-      "modules": 85,
-      "ca": 12,
-      "ce": 3,
-      "instability": 0.2,
-      "dependsOn": [
-        "packages/effects",
-        "packages/peer-discovery",
-        "packages/protocol"
-      ]
-    },
-    {
       "id": "packages/reticulum-ts",
       "modules": 84,
       "ca": 13,
@@ -113,7 +115,7 @@
     },
     {
       "id": "packages/host-core",
-      "modules": 49,
+      "modules": 53,
       "ca": 6,
       "ce": 8,
       "instability": 0.57,
@@ -151,6 +153,25 @@
       ]
     },
     {
+      "id": "packages/worklet-core",
+      "modules": 35,
+      "ca": 4,
+      "ce": 10,
+      "instability": 0.71,
+      "dependsOn": [
+        "packages/app-registry",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/effects",
+        "packages/guida-twistedpear",
+        "packages/host-core",
+        "packages/miniapp-runtime",
+        "packages/protocol",
+        "packages/reticulum-interfaces",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
       "id": "apps/handbook",
       "modules": 31,
       "ca": 0,
@@ -160,24 +181,6 @@
         "packages/host-core",
         "packages/miniapp-runtime",
         "packages/miniapp-sdk"
-      ]
-    },
-    {
-      "id": "packages/worklet-core",
-      "modules": 30,
-      "ca": 3,
-      "ce": 9,
-      "instability": 0.75,
-      "dependsOn": [
-        "packages/app-registry",
-        "packages/bridge-hyper",
-        "packages/cas-256t",
-        "packages/effects",
-        "packages/host-core",
-        "packages/miniapp-runtime",
-        "packages/protocol",
-        "packages/reticulum-interfaces",
-        "packages/reticulum-ts"
       ]
     },
     {
@@ -194,6 +197,14 @@
       "id": "packages/effects",
       "modules": 23,
       "ca": 10,
+      "ce": 0,
+      "instability": 0,
+      "dependsOn": []
+    },
+    {
+      "id": "packages/guida-twistedpear",
+      "modules": 21,
+      "ca": 2,
       "ce": 0,
       "instability": 0,
       "dependsOn": []
@@ -240,6 +251,17 @@
       "dependsOn": [
         "packages/effects",
         "packages/protocol",
+        "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/app-registry",
+      "modules": 13,
+      "ca": 7,
+      "ce": 2,
+      "instability": 0.22,
+      "dependsOn": [
+        "packages/cas-256t",
         "packages/reticulum-ts"
       ]
     },
@@ -296,17 +318,6 @@
       ]
     },
     {
-      "id": "packages/app-registry",
-      "modules": 7,
-      "ca": 7,
-      "ce": 2,
-      "instability": 0.22,
-      "dependsOn": [
-        "packages/cas-256t",
-        "packages/reticulum-ts"
-      ]
-    },
-    {
       "id": "packages/cas-256t",
       "modules": 4,
       "ca": 9,
@@ -318,7 +329,7 @@
     },
     {
       "id": "packages/widget-renderer-headless",
-      "modules": 3,
+      "modules": 4,
       "ca": 2,
       "ce": 1,
       "instability": 0.33,
@@ -341,7 +352,7 @@
     "fanOut": [
       {
         "key": "packages/miniapp-runtime/src/index.ts",
-        "value": 49,
+        "value": 45,
         "limit": 40
       },
       {
@@ -352,11 +363,6 @@
       {
         "key": "packages/protocol/src/index/misc.ts",
         "value": 26,
-        "limit": 15
-      },
-      {
-        "key": "packages/miniapp-runtime/src/worklet.ts",
-        "value": 19,
         "limit": 15
       },
       {
@@ -376,6 +382,11 @@
       },
       {
         "key": "apps/harness-mobile/worklet/web-entry.mjs",
+        "value": 16,
+        "limit": 15
+      },
+      {
+        "key": "packages/miniapp-runtime/src/worklet.ts",
         "value": 16,
         "limit": 15
       },

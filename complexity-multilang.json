@@ -6,10 +6,10 @@
     "kotlin",
     "swift"
   ],
-  "files": 619,
-  "functions": 7145,
-  "groups": 4334,
-  "exemptions": 91,
+  "files": 656,
+  "functions": 7617,
+  "groups": 4621,
+  "exemptions": 88,
   "violations": 0,
   "stale": 0,
   "findings": [
@@ -20,10 +20,10 @@
       "line": 122,
       "tier": "source",
       "ccn": 128,
-      "nloc": 594,
+      "nloc": 592,
       "pinned": {
         "ccn": 128,
-        "nloc": 594
+        "nloc": 592
       }
     },
     {
@@ -69,7 +69,7 @@
       "key": "scripts/site/stage.mjs::rewriteMarkdownLinks",
       "file": "scripts/site/stage.mjs",
       "name": "rewriteMarkdownLinks",
-      "line": 85,
+      "line": 90,
       "tier": "tooling",
       "ccn": 51,
       "pinned": {
@@ -212,19 +212,6 @@
       }
     },
     {
-      "key": "apps/handbook/build.mjs::build",
-      "file": "apps/handbook/build.mjs",
-      "name": "build",
-      "line": 101,
-      "tier": "tooling",
-      "ccn": 30,
-      "nloc": 202,
-      "pinned": {
-        "ccn": 30,
-        "nloc": 202
-      }
-    },
-    {
       "key": "apps/handbook/src/runtime.js::handleEvent",
       "file": "apps/handbook/src/runtime.js",
       "name": "handleEvent",
@@ -239,11 +226,22 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createMediaPipeline",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createMediaPipeline",
-      "line": 168,
+      "line": 184,
       "tier": "source",
       "ccn": 30,
       "pinned": {
         "ccn": 30
+      }
+    },
+    {
+      "key": "apps/handbook/build.mjs::build",
+      "file": "apps/handbook/build.mjs",
+      "name": "build",
+      "line": 125,
+      "tier": "tooling",
+      "ccn": 26,
+      "pinned": {
+        "ccn": 26
       }
     },
     {
@@ -272,7 +270,7 @@
       "key": "scripts/doc-audit/paths.mjs::looksLikePathToken",
       "file": "scripts/doc-audit/paths.mjs",
       "name": "looksLikePathToken",
-      "line": 28,
+      "line": 30,
       "tier": "tooling",
       "ccn": 24,
       "pinned": {
@@ -340,18 +338,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createCommonHostInfoBackend",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createCommonHostInfoBackend",
-      "line": 66,
-      "tier": "source",
-      "ccn": 22,
-      "pinned": {
-        "ccn": 22
-      }
-    },
-    {
-      "key": "packages/worklet-core/src/worklet-entry-install.mjs::installFromT256",
-      "file": "packages/worklet-core/src/worklet-entry-install.mjs",
-      "name": "installFromT256",
-      "line": 14,
+      "line": 82,
       "tier": "source",
       "ccn": 22,
       "pinned": {
@@ -407,17 +394,6 @@
       "file": "scripts/site/run-reports.mjs",
       "name": "runJob",
       "line": 158,
-      "tier": "tooling",
-      "ccn": 20,
-      "pinned": {
-        "ccn": 20
-      }
-    },
-    {
-      "key": "scripts/site/validate-links.mjs::existsTarget",
-      "file": "scripts/site/validate-links.mjs",
-      "name": "existsTarget",
-      "line": 24,
       "tier": "tooling",
       "ccn": 20,
       "pinned": {
@@ -535,30 +511,6 @@
       }
     },
     {
-      "key": "packages/worklet-core/src/web-miniapp-host.mjs::createWebWorkletMiniappHost",
-      "file": "packages/worklet-core/src/web-miniapp-host.mjs",
-      "name": "createWebWorkletMiniappHost",
-      "line": 170,
-      "tier": "source",
-      "ccn": 18,
-      "nloc": 136,
-      "pinned": {
-        "ccn": 18,
-        "nloc": 136
-      }
-    },
-    {
-      "key": "packages/worklet-core/src/worklet-entry-catalog.mjs::(anonymous)",
-      "file": "packages/worklet-core/src/worklet-entry-catalog.mjs",
-      "name": "(anonymous)",
-      "line": 52,
-      "tier": "source",
-      "ccn": 18,
-      "pinned": {
-        "ccn": 18
-      }
-    },
-    {
       "key": "apps/handbook/src/runtime.js::render",
       "file": "apps/handbook/src/runtime.js",
       "name": "render",
@@ -599,6 +551,17 @@
       "name": "main",
       "line": 301,
       "tier": "tooling",
+      "ccn": 17,
+      "pinned": {
+        "ccn": 17
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/worklet-entry-catalog.mjs::(anonymous)",
+      "file": "packages/worklet-core/src/worklet-entry-catalog.mjs",
+      "name": "(anonymous)",
+      "line": 60,
+      "tier": "source",
       "ccn": 17,
       "pinned": {
         "ccn": 17
@@ -652,11 +615,24 @@
       "key": "packages/worklet-core/src/miniapp-host.mjs::createWorkletMiniappHost",
       "file": "packages/worklet-core/src/miniapp-host.mjs",
       "name": "createWorkletMiniappHost",
-      "line": 161,
+      "line": 208,
       "tier": "source",
       "ccn": 16,
       "pinned": {
         "ccn": 16
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/web-miniapp-host.mjs::createWebWorkletMiniappHost",
+      "file": "packages/worklet-core/src/web-miniapp-host.mjs",
+      "name": "createWebWorkletMiniappHost",
+      "line": 194,
+      "tier": "source",
+      "ccn": 16,
+      "nloc": 130,
+      "pinned": {
+        "ccn": 16,
+        "nloc": 130
       }
     },
     {
@@ -697,6 +673,17 @@
       "file": "apps/host-desktop/worklet/entry-status.mjs",
       "name": "(anonymous)",
       "line": 15,
+      "tier": "source",
+      "ccn": 15,
+      "pinned": {
+        "ccn": 15
+      }
+    },
+    {
+      "key": "packages/worklet-core/src/worklet-entry-install.mjs::installFromT256",
+      "file": "packages/worklet-core/src/worklet-entry-install.mjs",
+      "name": "installFromT256",
+      "line": 16,
       "tier": "source",
       "ccn": 15,
       "pinned": {
@@ -1016,32 +1003,10 @@
       }
     },
     {
-      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createAppsBackendPreviewAction",
-      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
-      "name": "createAppsBackendPreviewAction",
-      "line": 298,
-      "tier": "source",
-      "params": 6,
-      "pinned": {
-        "params": 6
-      }
-    },
-    {
-      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithCapabilityReview",
-      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
-      "name": "launchWithCapabilityReview",
-      "line": 355,
-      "tier": "source",
-      "params": 10,
-      "pinned": {
-        "params": 10
-      }
-    },
-    {
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "launchWithoutReview",
-      "line": 442,
+      "line": 514,
       "tier": "source",
       "params": 7,
       "pinned": {

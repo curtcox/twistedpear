@@ -85,15 +85,16 @@ export function createAppsBackendDiagnosticsAction({
   };
 }
 
-export function createAppsBackendPreviewAction({
-  collectWorkspaceFiles,
-  stopPreviewHost,
-  createPreviewHost,
-  previewRef,
-  pushPreviewRuntime,
-  now,
-  grantTtlMs,
-}) {
+export function createAppsBackendPreviewAction(options) {
+  const {
+    collectWorkspaceFiles,
+    stopPreviewHost,
+    createPreviewHost,
+    previewRef,
+    pushPreviewRuntime,
+    now,
+    grantTtlMs,
+  } = options;
   return async function previewApp(appId, { projectPrefix, manifest, grants }) {
     const files = await collectWorkspaceFiles(appId, projectPrefix);
     const entryFile = files.find((file) => file.path === manifest.entry);

@@ -7,6 +7,7 @@ AFSK
 Agregore
 agua
 alikes
+AMFI
 APDU
 APPR
 APPSCOPE
@@ -23,6 +24,7 @@ callsign
 Callsign
 callsigns
 CBOR
+checkpointed
 chokepoint
 Clippy
 cmdline
@@ -39,12 +41,12 @@ deprioritize
 devstudio
 diffable
 Dioxus
-eliminable
 dockerized
 Dolev
 Dónde
 drainable
 DXOS
+eliminable
 Endo
 está
 evictable
@@ -57,17 +59,19 @@ FREENET
 Freenet's
 freesites
 frontmatter
+fsyncs
 fundable
 Geofence
 goodput
 Gren
-Guida
 guida
+Guida
 Guix
 HDLC
 headlessly
 Holepunch
 Holepunch's
+homoglyphs
 hyperbee
 Hyperbee
 Hyperbee's
@@ -83,6 +87,8 @@ IPFS
 Iroh
 jitless
 Keet
+kext
+kexts
 killability
 ktlint
 libp
@@ -94,6 +100,7 @@ lxmf
 LXMF
 LXMF's
 maat
+Macmini
 Meshtastic
 miniapp
 Miniapp
@@ -111,6 +118,8 @@ opusscript
 pipx
 podspec
 Powerbox
+preflighted
+preflights
 quiesces
 rankable
 renderable
@@ -124,9 +133,11 @@ sideload
 Sideload
 sideloading
 Spritely
+stackshot
 streamability
 subresource
 syncable
+sysdiagnose
 Tarjan
 Temurin
 twistedpear
@@ -141,8 +152,8 @@ Unpaced
 unrecoverably
 unrevivable
 unsandboxed
-unskippable
 unshuffled
+unskippable
 unwaived
 Urbit
 veilid
@@ -150,6 +161,7 @@ Veilid
 venv
 venvs
 Verif
+WEBED
 webrtc
 widenable
 worklets

@@ -39,6 +39,7 @@ export default defineConfig({
             "conformance/file-sizes/**/*.test.mjs",
             "conformance/device-evidence/**/*.test.mjs",
             "conformance/cookbook/**/*.test.mjs",
+            "conformance/android-emulator/**/*.test.mjs",
             "conformance/local-multipeer/**/*.test.mjs",
             "conformance/miniapp-identity/**/*.test.mjs",
             "conformance/reticulum-interfaces/**/*.test.ts",

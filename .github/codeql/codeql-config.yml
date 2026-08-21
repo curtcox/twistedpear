@@ -3,3 +3,5 @@ name: TwistedPear CodeQL configuration
 paths-ignore:
   - conformance/web-runtime/host-core-web.bundle.js
   - conformance/web-hyperdrive/hyper.bundle.js
+  - packages/guida-twistedpear/seed/**
+  - packages/guida-twistedpear/src/guida-lib.generated.js

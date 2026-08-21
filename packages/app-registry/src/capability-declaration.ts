@@ -6,7 +6,7 @@
 export const PACKAGE_FORMAT_MIN = 1;
 export const PACKAGE_FORMAT_MAX = 2;
 
-export const EGRESS_TARGET_KINDS = [
+const EGRESS_TARGET_KINDS = [
   "peer",
   "group",
   "namespace",
@@ -15,7 +15,7 @@ export const EGRESS_TARGET_KINDS = [
   "address",
 ] as const;
 
-export type ManifestEgressTargetKind = (typeof EGRESS_TARGET_KINDS)[number];
+type ManifestEgressTargetKind = (typeof EGRESS_TARGET_KINDS)[number];
 
 /** Capabilities that a later host policy may refuse to grant on format v1. */
 export const SCOPED_SET_CAPABILITY_IDS = [
@@ -30,7 +30,7 @@ export type ManifestCapabilityScope =
   | { readonly kind: "offer"; readonly targetKind: ManifestEgressTargetKind }
   | { readonly kind: "own-namespace" };
 
-export interface ManifestCapabilityObject {
+interface ManifestCapabilityObject {
   readonly id: string;
   readonly scope?: ManifestCapabilityScope;
   readonly optional?: boolean;
