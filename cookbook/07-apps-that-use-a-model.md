@@ -24,6 +24,10 @@ for await (const event of ai.chatStream({
 }
 ```
 
+```elm
+Ai.chat (chatRequest model) GotChat
+```
+
 Four constraints shape every app in this chapter, and they are not incidental:
 
 | Constraint                                      | Consequence for your design                                                           |
@@ -137,7 +141,7 @@ Note `finally { inFlight = false; }` in the source. A flag set in `try` and clea
 success is a flag that stays stuck forever the first time anything throws, and the button
 never re-enables.
 
-Full source: [apps/pocket-translator/bundle.js](apps/pocket-translator/bundle.js).
+Full source: [apps/pocket-translator/bundle.js](apps/pocket-translator/bundle.js) (JavaScript) and [apps/pocket-translator/src/Main.elm](apps/pocket-translator/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -205,7 +209,7 @@ And the UI shows which files were used. Both matter: an app that can tell you wh
 came from is an app whose answers you can check, and on a platform with no network to
 double-check against, that is most of the trustworthiness you are going to get.
 
-Full source: [apps/ask-the-handbook/bundle.js](apps/ask-the-handbook/bundle.js).
+Full source: [apps/ask-the-handbook/bundle.js](apps/ask-the-handbook/bundle.js) (JavaScript) and [apps/ask-the-handbook/src/Main.elm](apps/ask-the-handbook/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -283,7 +287,7 @@ structured fields appear in a review panel, and **File it** is a separate action
 proposes; the person disposes. For an app whose records someone may later act on, that step
 is not friction, it is the product.
 
-Full source: [apps/triage-notes/bundle.js](apps/triage-notes/bundle.js).
+Full source: [apps/triage-notes/bundle.js](apps/triage-notes/bundle.js) (JavaScript) and [apps/triage-notes/src/Main.elm](apps/triage-notes/src/Main.elm) (Guida).
 
 ### Make it yours
 

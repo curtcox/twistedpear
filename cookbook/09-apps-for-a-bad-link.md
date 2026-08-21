@@ -127,7 +127,7 @@ disappointing: the queue will not drain by itself. There is no background execut
 app must be open for anything to be sent. Saying so is much better than implying a background
 sync that will never happen.
 
-Full source: [apps/nine-line/bundle.js](apps/nine-line/bundle.js).
+Full source: [apps/nine-line/bundle.js](apps/nine-line/bundle.js) (JavaScript) and [apps/nine-line/src/Main.elm](apps/nine-line/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -202,7 +202,7 @@ And the footnote, again: closing the app stops the beacon. There is no backgroun
 so "leave it running" means leaving the app in the foreground with the screen on — which is a
 battery decision the user should get to make knowingly.
 
-Full source: [apps/beacon-lite/bundle.js](apps/beacon-lite/bundle.js).
+Full source: [apps/beacon-lite/bundle.js](apps/beacon-lite/bundle.js) (JavaScript) and [apps/beacon-lite/src/Main.elm](apps/beacon-lite/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -282,7 +282,7 @@ The one real compromise in this recipe is the roster format: it is a comma-joine
 which is fine for a dozen callsigns and gets expensive fast. On a link this slow, a net of
 sixty stations should file in batches, and the app does not do that.
 
-Full source: [apps/net-ledger/bundle.js](apps/net-ledger/bundle.js).
+Full source: [apps/net-ledger/bundle.js](apps/net-ledger/bundle.js) (JavaScript) and [apps/net-ledger/src/Main.elm](apps/net-ledger/src/Main.elm) (Guida).
 
 ### Make it yours
 

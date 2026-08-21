@@ -6,8 +6,9 @@ audited: 2026-07-21
 register: none
 -->
 
-Every recipe in this book has the same four parts, and every sample app has the same three
-files. Read this chapter once and the other eight will make sense without preamble.
+Every recipe in this book has the same four parts, and every cookbook sample app has the
+same shape: a README, a manifest, a published `bundle.js`, and a Guida variant. Read this
+chapter once and the other eight will make sense without preamble.
 
 ## The shape of a recipe
 
@@ -33,7 +34,9 @@ Each recipe ends with **Make it yours**: three or four concrete modifications, o
 cookbook/apps/pocket-notes/
 ├── README.md            what it is, what it shows, how to run it
 ├── app.manifest.json    name, version, entry point, declared capabilities
-└── bundle.js            the whole app — one file, one import, no bundler
+├── bundle.js            published JS artifact — one file, one import, no bundler
+├── elm.json             Guida project for the Elm source variant
+└── src/Main.elm         Guida source; same widget tree as bundle.js
 ```
 
 That is the entire package format from the author's side. A `.tpkg` adds a signature and a
@@ -42,7 +45,7 @@ manifest hash; it does not add structure. See
 [Chapter 9 of the authoring guide](../authors/09-packaging-and-publishing.md) for the
 practical one.
 
-Every sample imports from exactly one module:
+Every JavaScript sample imports from exactly one module:
 
 ```javascript
 import {
@@ -61,8 +64,19 @@ import {
 } from "@twistedpear/miniapp-sdk";
 ```
 
-No recipe imports anything else, because no recipe can. There is no bundler in the host, so
-`import` resolves the SDK and nothing else.
+Guida samples import the matching generated wrappers instead of that barrel:
+
+```elm
+import TwistedPear.Sdk.StorageKv as StorageKv
+import TwistedPear.Widget as W
+```
+
+`TwistedPear.Sdk.StorageKv` is `storage.kv`; each other SDK namespace has its own module.
+See [Building the UI in Guida](../authors/04b-building-the-ui-in-guida.md) and
+[docs/guida-ui.md](../docs/guida-ui.md).
+
+No JavaScript recipe imports anything else, because no recipe can. There is no bundler in the
+host, so `import` resolves the SDK and nothing else.
 
 > **⚠️ Works, with limits — JavaScript is still one file.** There is no JS bundler in the
 > host, so JavaScript recipes stay a single `bundle.js`. Guida projects may have many

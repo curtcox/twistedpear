@@ -29,6 +29,15 @@ whose encoding and update rules you understand.
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `freenet:contract` | Desktop/headless with an external node only. Reads contract state; every put/update asks again because publication is global and irreversible. |
 
+## Files
+
+| File                                   | Purpose                                                      |
+| -------------------------------------- | ------------------------------------------------------------ |
+| [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
+| [bundle.js](bundle.js)                 | The whole app. Single file, SDK import only, no bundler.     |
+
+There is no Guida source variant for this notebook yet.
+
 ## Run it
 
 Configure Freenet in the desktop host, then:

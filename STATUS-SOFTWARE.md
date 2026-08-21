@@ -52,8 +52,10 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID  | Status | Item | Evidence | Verify |
-| --- | ------ | ---- | -------- | ------ |
+| ID                      | Status | Item                                                                  | Evidence | Verify                                                       |
+| ----------------------- | ------ | --------------------------------------------------------------------- | -------- | ------------------------------------------------------------ |
+| GUIDA-CONTRACT-NOTEBOOK | open   | Guida source variant for the Freenet contract-notebook sample         | —        | `node scripts/doc-audit/guida-doc-samples.mjs --scope=apps`  |
+| GUIDA-DOCS-LISTINGS     | open   | Guida listings beside authoring, handbook, and SDK JavaScript samples | —        | `node scripts/doc-audit/guida-doc-samples.mjs --scope=prose` |
 
 ## Blocked backlog
 

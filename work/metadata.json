@@ -645,6 +645,13 @@
       "evidence": ["scripts/analysis/generated-freshness.mjs"],
       "notes": "The tracked bundle embeds the root package.json, so any npm script change leaves it stale, and nothing checks it — CI rebuilds it before use, which is why a stale commit is invisible until someone reads the diff. A freshness check would make the staleness a gate finding rather than a thing each author has to remember."
     },
+    "GUIDA-CONTRACT-NOTEBOOK": {
+      "type": "feature",
+      "requires": [],
+      "verify": "node scripts/doc-audit/guida-doc-samples.mjs --scope=apps",
+      "added": "2026-08-21",
+      "notes": "cookbook/examples/contract-notebook is the only documented sample app without elm.json + src/Main.elm. GUIDA-SAMPLES covered the 25 cookbook apps and 3 examples. Add the Guida twin, headed README listings, and include the pair in test:guida-parity."
+    },
     "GUIDA-DEVSTUDIO": {
       "type": "feature",
       "requires": [],
@@ -657,6 +664,13 @@
         "packages/miniapp-runtime/src/services/apps.ts"
       ],
       "notes": "Phase 5: P5.0 per-platform compiler speed, HostGuidaCompiler in host chrome, compiler image as host asset, elm language allowlist with HOST_API_VERSION bump."
+    },
+    "GUIDA-DOCS-LISTINGS": {
+      "type": "docs",
+      "requires": [],
+      "verify": "node scripts/doc-audit/guida-doc-samples.mjs --scope=prose",
+      "added": "2026-08-21",
+      "notes": "GUIDA-SAMPLES closed cookbook/example source twins and per-app README listings. Cookbook chapters now link Guida source. Remaining: every JavaScript fence in authors/, apps/handbook/content/part-3-sdk/, and docs/miniapp-sdk.md needs an elm fence or .elm link in the same heading section. Audit: node scripts/doc-audit/guida-doc-samples.mjs --scope=prose."
     },
     "GUIDA-MEASURE": {
       "type": "quality",

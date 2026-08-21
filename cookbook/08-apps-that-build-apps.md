@@ -140,7 +140,7 @@ the app reports it plainly and stays usable.
 > **⚠️ Works, with limits — one preview slot.** `apps.preview` replaces whatever was
 > previewing. You cannot compare two generated apps side by side.
 
-Full source: [apps/sticker-mill/bundle.js](apps/sticker-mill/bundle.js).
+Full source: [apps/sticker-mill/bundle.js](apps/sticker-mill/bundle.js) (JavaScript) and [apps/sticker-mill/src/Main.elm](apps/sticker-mill/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -218,7 +218,7 @@ sheet needs, which is the part it is actually good at.
 The generated app asks for `storage:kv` — genuinely needed, since a form that forgets what
 you typed is not a form — and nothing else.
 
-Full source: [apps/form-forge/bundle.js](apps/form-forge/bundle.js).
+Full source: [apps/form-forge/bundle.js](apps/form-forge/bundle.js) (JavaScript) and [apps/form-forge/src/Main.elm](apps/form-forge/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -283,7 +283,7 @@ without asking".
 
 That is the correct division. Curation is an app's job; consent is the host's.
 
-Full source: [apps/app-relay/bundle.js](apps/app-relay/bundle.js).
+Full source: [apps/app-relay/bundle.js](apps/app-relay/bundle.js) (JavaScript) and [apps/app-relay/src/Main.elm](apps/app-relay/src/Main.elm) (Guida).
 
 ### Make it yours
 

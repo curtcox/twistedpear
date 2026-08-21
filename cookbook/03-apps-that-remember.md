@@ -95,7 +95,7 @@ panel headed "Grants for Pocket notes", with `storage:kv` toggled **off** and an
 showing "Save failed — storage unavailable" in its status line with the typed text still
 visible and intact.
 
-Full source: [apps/pocket-notes/bundle.js](apps/pocket-notes/bundle.js).
+Full source: [apps/pocket-notes/bundle.js](apps/pocket-notes/bundle.js) (JavaScript) and [apps/pocket-notes/src/Main.elm](apps/pocket-notes/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -158,7 +158,7 @@ The date arithmetic is deliberately UTC-only and library-free. There is no bundl
 adding a date library means pasting one in; at this size, `toISOString().slice(0, 10)` is
 better than the dependency.
 
-Full source: [apps/streak-tracker/bundle.js](apps/streak-tracker/bundle.js).
+Full source: [apps/streak-tracker/bundle.js](apps/streak-tracker/bundle.js) (JavaScript) and [apps/streak-tracker/src/Main.elm](apps/streak-tracker/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -226,7 +226,7 @@ means there is no partial-write state to recover from if the app is killed mid-o
 > entries' worth of bytes, not one. An append-only design sidesteps this; an
 > update-in-place design does not.
 
-Full source: [apps/field-log/bundle.js](apps/field-log/bundle.js).
+Full source: [apps/field-log/bundle.js](apps/field-log/bundle.js) (JavaScript) and [apps/field-log/src/Main.elm](apps/field-log/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -289,7 +289,7 @@ off by a cent is a bill-splitting app that starts an argument.
 > hardware and may stop an app that is merely slow. Assume you can be killed at any point
 > between two `put` calls. See [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H11).
 
-Full source: [apps/split-the-bill/bundle.js](apps/split-the-bill/bundle.js).
+Full source: [apps/split-the-bill/bundle.js](apps/split-the-bill/bundle.js) (JavaScript) and [apps/split-the-bill/src/Main.elm](apps/split-the-bill/src/Main.elm) (Guida).
 
 ### Make it yours
 

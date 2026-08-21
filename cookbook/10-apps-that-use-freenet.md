@@ -39,6 +39,10 @@ if (record !== null) {
 }
 ```
 
+```elm
+Freenet.get keyHex GotRecord
+```
+
 The mini-app sees only a key and state bytes. The host owns the configured node
 URL and optional auth token. `get` is limited to keys this app published (via
 `put`/`update`) or a host-authored allowlist; an arbitrary key is denied.
@@ -53,6 +57,11 @@ const { keyHex } = await freenet.put({
 });
 
 await freenet.update({ keyHex, codeHashHex, stateHex: nextStateHex });
+```
+
+```elm
+Freenet.put options GotPut
+Freenet.update options GotUpdate
 ```
 
 The important behavior is outside the snippet. Both calls pause at host chrome

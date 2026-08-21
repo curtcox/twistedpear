@@ -35,6 +35,10 @@ Every app gets its **own** destination, derived from the host identity and the a
 const me = await identity.destinationHash();
 ```
 
+```elm
+Identity.destinationHash GotMe
+```
+
 This is not the user's address, and messages you send do not come from the user. Two
 consequences worth stating plainly: your app cannot impersonate the person running it, and
 your app cannot receive their mail. Both are deliberate. See
@@ -123,7 +127,7 @@ The measurement is honest about what it is measuring, too. The elapsed time incl
 long the _other_ app sat closed, because nothing was delivered while it was. This is not a
 network latency measurement, and the footnote on screen says so.
 
-Full source: [apps/signal-check/bundle.js](apps/signal-check/bundle.js).
+Full source: [apps/signal-check/bundle.js](apps/signal-check/bundle.js) (JavaScript) and [apps/signal-check/src/Main.elm](apps/signal-check/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -177,7 +181,7 @@ The UI never claims more than it knows. A roster entry is either "answered" or "
 there is deliberately no "offline", "failed", or "unreachable" state, because the app has no
 way to distinguish those from "busy" or "will answer in an hour".
 
-Full source: [apps/roll-call/bundle.js](apps/roll-call/bundle.js).
+Full source: [apps/roll-call/bundle.js](apps/roll-call/bundle.js) (JavaScript) and [apps/roll-call/src/Main.elm](apps/roll-call/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -236,7 +240,7 @@ Two attacks this recipe does not stop, deliberately left in so you can fix them:
 Both fixes are the same shape: sign more, and sign the thing you actually care about. The
 comment at the top of the file says as much.
 
-Full source: [apps/dead-drop/bundle.js](apps/dead-drop/bundle.js).
+Full source: [apps/dead-drop/bundle.js](apps/dead-drop/bundle.js) (JavaScript) and [apps/dead-drop/src/Main.elm](apps/dead-drop/src/Main.elm) (Guida).
 
 > **⏳ Not yet available — key rotation and revocation.** There is no way to rotate or revoke
 > an app identity in v1. A signature you accept today, you accept forever, and a compromised

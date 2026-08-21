@@ -126,7 +126,7 @@ The QR code is the intended transport for the identifier itself.
 > scans with `BarcodeDetector` after camera permission. Pasting remains the fallback, so
 > design it as a first-class path rather than assuming every camera is available.
 
-Full source: [apps/photo-drop/bundle.js](apps/photo-drop/bundle.js).
+Full source: [apps/photo-drop/bundle.js](apps/photo-drop/bundle.js) (JavaScript) and [apps/photo-drop/src/Main.elm](apps/photo-drop/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -192,7 +192,7 @@ if (text.length > 256 * 1024) {
 > per app. `code-editor` changes use bounded, conflict-checked deltas; the remaining per-file
 > limit is a host safety quota.
 
-Full source: [apps/zine-reader/bundle.js](apps/zine-reader/bundle.js).
+Full source: [apps/zine-reader/bundle.js](apps/zine-reader/bundle.js) (JavaScript) and [apps/zine-reader/src/Main.elm](apps/zine-reader/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -262,7 +262,7 @@ thing will let the user type happily until the write fails.
 The file count is shown permanently in the status line — a limit the user can see is a limit
 they can plan around.
 
-Full source: [apps/recipe-box/bundle.js](apps/recipe-box/bundle.js).
+Full source: [apps/recipe-box/bundle.js](apps/recipe-box/bundle.js) (JavaScript) and [apps/recipe-box/src/Main.elm](apps/recipe-box/src/Main.elm) (Guida).
 
 ### Make it yours
 

@@ -124,7 +124,7 @@ Note the `else { return; }`. Every recipe here does this. An event you do not re
 should cost you a comparison and nothing else — not a re-render, and definitely not a broker
 call.
 
-Full source: [apps/unit-converter/bundle.js](apps/unit-converter/bundle.js).
+Full source: [apps/unit-converter/bundle.js](apps/unit-converter/bundle.js) (JavaScript) and [apps/unit-converter/src/Main.elm](apps/unit-converter/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -177,7 +177,24 @@ is a time bomb with a fuse whose length depends on how much the user enjoys your
 Cap the data structure, not the render. If you cap it at render time you still pay to keep
 the array in memory, and you will forget the cap the next time you add a second list.
 
-Full source: [apps/dice-table/bundle.js](apps/dice-table/bundle.js).
+### Guida
+
+```elm
+historyLimit : Int
+historyLimit =
+    12
+
+
+record : String -> String -> Model -> Model
+record label result model =
+    { model
+        | history =
+            List.take historyLimit
+                ({ label = label, result = result } :: model.history)
+    }
+```
+
+Full source: [apps/dice-table/bundle.js](apps/dice-table/bundle.js) (JavaScript) and [apps/dice-table/src/Main.elm](apps/dice-table/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -222,6 +239,21 @@ async function tick() {
 }
 ```
 
+### Guida
+
+The Guida variant keeps the same four-count phases. There is still no background timer:
+stopping the app stops the pacer.
+
+```elm
+phases : List Phase
+phases =
+    [ Phase "Breathe in" 4 "inhale"
+    , Phase "Hold" 4 "hold"
+    , Phase "Breathe out" 4 "exhale"
+    , Phase "Hold" 4 "hold"
+    ]
+```
+
 Four renders per second against a ceiling of sixty broker messages per second per app leaves
 a factor of fifteen of headroom — deliberately, because `ui.render` is not the only thing
 that sends messages, and because the limit is a host default the user can lower.
@@ -241,7 +273,7 @@ not a notification.
 > keep a timer, or raise a notification while it is not in the foreground. This is a v1
 > design decision, not a gap. See [LIMITATIONS.md §7](../LIMITATIONS.md).
 
-Full source: [apps/breath-pacer/bundle.js](apps/breath-pacer/bundle.js).
+Full source: [apps/breath-pacer/bundle.js](apps/breath-pacer/bundle.js) (JavaScript) and [apps/breath-pacer/src/Main.elm](apps/breath-pacer/src/Main.elm) (Guida).
 
 ### Make it yours
 

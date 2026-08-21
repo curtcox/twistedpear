@@ -211,7 +211,7 @@ as the single thing the UI reads from — one code path, not two.
 The status message is the honest one. "Published" would be a lie; only hosts in reach right
 now, running this app, listening at this instant, heard anything.
 
-Full source: [apps/neighborhood-board/bundle.js](apps/neighborhood-board/bundle.js).
+Full source: [apps/neighborhood-board/bundle.js](apps/neighborhood-board/bundle.js) (JavaScript) and [apps/neighborhood-board/src/Main.elm](apps/neighborhood-board/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -281,7 +281,7 @@ Every host ages things out on its own clock, which means two neighbours will dis
 what is still available — and the app's honest response is to expire aggressively rather
 than to imply currency it cannot deliver.
 
-Full source: [apps/swap-shelf/bundle.js](apps/swap-shelf/bundle.js).
+Full source: [apps/swap-shelf/bundle.js](apps/swap-shelf/bundle.js) (JavaScript) and [apps/swap-shelf/src/Main.elm](apps/swap-shelf/src/Main.elm) (Guida).
 
 ### Make it yours
 
@@ -318,6 +318,12 @@ Everything on the screen is read, not assumed.
 snapshot = await presence.snapshot();
 info = await host.info();
 diagnostics = await peers.diagnostics();
+```
+
+```elm
+Presence.snapshot GotSnapshot
+Host.info GotInfo
+Peers.diagnostics GotDiag
 ```
 
 An app that assumes it has a TCP interface is wrong on a phone in a field. An app that
@@ -375,6 +381,8 @@ Degrade rather than die.
 > `links.peers()` and `links.watch()`. Exact remote bandwidth is never exposed: Line Check
 > combines host-observed quality with the peer's coarse, TTL-bounded readiness bucket.
 
+Full source: [apps/link-weather/bundle.js](apps/link-weather/bundle.js) (JavaScript) and [apps/link-weather/src/Main.elm](apps/link-weather/src/Main.elm) (Guida).
+
 ## Line check
 
 ### Two-sided realtime truth
@@ -385,14 +393,12 @@ Line Check labels low-confidence declared paths as “probably,” spends airtim
 user chooses **Measure now**, and reads a host-owned share policy that the app cannot widen.
 On a LoRa path, “events only” is a successful and honest result.
 
-Full source: [apps/line-check/bundle.js](apps/line-check/bundle.js).
+Full source: [apps/line-check/bundle.js](apps/line-check/bundle.js) (JavaScript) and [apps/line-check/src/Main.elm](apps/line-check/src/Main.elm) (Guida).
 
 > **Peer mechanisms are rendezvous, not necessarily data planes.** A QR-created connection
 > may use WebRTC; an ntfy-created connection may use a Reticulum gateway. The connected-peer
 > row deliberately shows both `rendezvous` and `dataPlane` rather than calling them the same
 > thing.
-
-Full source: [apps/link-weather/bundle.js](apps/link-weather/bundle.js).
 
 ### Make it yours
 
