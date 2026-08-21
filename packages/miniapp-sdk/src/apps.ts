@@ -31,6 +31,25 @@ export interface CompileResult {
   readonly bytes?: number;
   readonly compiler?: string;
   readonly reason?: string;
+  readonly problems?: ReadonlyArray<CompilerProblem>;
+}
+
+export interface CompilerProblem {
+  readonly path: string;
+  readonly title: string;
+  readonly startLine: number;
+  readonly startColumn: number;
+  readonly endLine: number;
+  readonly endColumn: number;
+  readonly message: string;
+}
+
+export interface FormatResult {
+  readonly formatted: string;
+}
+
+export interface DiagnosticsResult {
+  readonly problems: ReadonlyArray<CompilerProblem>;
 }
 
 export async function compile(projectPrefix: string): Promise<CompileResult> {
@@ -40,6 +59,27 @@ export async function compile(projectPrefix: string): Promise<CompileResult> {
     { projectPrefix },
     "apps:package",
   )) as CompileResult;
+}
+
+export async function format(content: string): Promise<FormatResult> {
+  return (await callHost(
+    "apps",
+    "format",
+    { content },
+    "apps:package",
+  )) as FormatResult;
+}
+
+export async function diagnostics(
+  projectPrefix: string,
+  path?: string,
+): Promise<DiagnosticsResult> {
+  return (await callHost(
+    "apps",
+    "diagnostics",
+    path === undefined ? { projectPrefix } : { projectPrefix, path },
+    "apps:package",
+  )) as DiagnosticsResult;
 }
 
 export async function packageProject(

@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { extractOutput, isolateCompiledJs } from "./extract-output.js";
 import { utf8, type GuidaFsConfig } from "./fs-config.js";
 import { nodeGuidaConfig } from "./node-config.js";
+import { extractFormatted } from "./problems.js";
 
 const require = createRequire(import.meta.url);
 
@@ -17,9 +18,7 @@ export interface GuidaCompiler {
     options?: MakeOptions,
   ): Promise<{ output: string; diagnostics?: unknown }>;
   format(content: string): Promise<string>;
-  diagnostics(
-    args: { content: string } | { path: string },
-  ): Promise<unknown>;
+  diagnostics(args: { content: string } | { path: string }): Promise<unknown>;
 }
 
 export type GuidaLibrary = {
@@ -69,12 +68,7 @@ export class JsModuleGuidaCompiler implements GuidaCompiler {
 
   async format(content: string): Promise<string> {
     const guida = loadGuidaLibrary();
-    const result = await guida.format(this.config, content);
-    if (typeof result === "string") return result;
-    if (result !== null && typeof result === "object" && "content" in result) {
-      return String((result as { content: unknown }).content);
-    }
-    throw new Error("unexpected guida format result");
+    return extractFormatted(await guida.format(this.config, content));
   }
 
   diagnostics(args: { content: string } | { path: string }): Promise<unknown> {

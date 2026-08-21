@@ -5,7 +5,7 @@
 -}
 
 module TwistedPear.Sdk.Apps exposing
-    ( compile, packageProject, publish, install, preview, stopPreview )
+    ( compile, format, diagnostics, packageProject, publish, install, preview, stopPreview )
 
 {-| Generated SDK wrappers. Effects complete as a continuation message; there is no Task. -}
 
@@ -19,6 +19,16 @@ import TwistedPear.Sdk.Error exposing (Error)
 compile : String -> (Result Error D.Value -> msg) -> Effect msg
 compile projectPrefix toMsg =
     Core.typed "apps" "compile" (E.object [ ( "projectPrefix", E.string projectPrefix ) ]) Core.json toMsg
+
+
+format : String -> (Result Error D.Value -> msg) -> Effect msg
+format content toMsg =
+    Core.typed "apps" "format" (E.object [ ( "content", E.string content ) ]) Core.json toMsg
+
+
+diagnostics : String -> String -> (Result Error D.Value -> msg) -> Effect msg
+diagnostics projectPrefix path toMsg =
+    Core.typed "apps" "diagnostics" (E.object [ ( "projectPrefix", E.string projectPrefix ), ( "path", E.string path ) ]) Core.json toMsg
 
 
 packageProject : String -> D.Value -> (Result Error D.Value -> msg) -> Effect msg

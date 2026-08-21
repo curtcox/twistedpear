@@ -64,9 +64,9 @@ import {
 No recipe imports anything else, because no recipe can. There is no bundler in the host, so
 `import` resolves the SDK and nothing else.
 
-> **⚠️ Works, with limits — single-file bundles.** Multi-file projects are not supported by
-> the in-host toolchain. If your app outgrows one file, you are building it outside the host
-> with your own bundler and packing the result. See
+> **⚠️ Works, with limits — JavaScript is still one file.** There is no JS bundler in the
+> host, so JavaScript recipes stay a single `bundle.js`. Guida projects may have many
+> `.elm` files; DevStudio compiles them on the device. See
 > [LIMITATIONS.md §7](../LIMITATIONS.md).
 
 ## Running a recipe

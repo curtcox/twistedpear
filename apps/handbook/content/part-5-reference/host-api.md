@@ -7,7 +7,7 @@ audited: 2026-07-21
 register: none
 -->
 
-Current `HOST_API_VERSION`: **`0.15.0`**.
+Current `HOST_API_VERSION`: **`0.16.0`**.
 Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 
 ## Changelog
@@ -27,6 +27,7 @@ Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 - **`0.13.0`** — Brokered app-to-app channels: apps:channel, destination-named confirmation on both sides, no shared storage.
 - **`0.14.0`** — runtime:background (Android foreground-service execution) and runtime:wake (rationed periodic wake).
 - **`0.15.0`** — code-editor language elm, and apps.compile for on-device Guida builds behind apps:package confirmation.
+- **`0.16.0`** — apps.format and apps.diagnostics for on-device Guida editing (no confirmation); DevStudio multi-file projects.
 
 ## host.info()
 

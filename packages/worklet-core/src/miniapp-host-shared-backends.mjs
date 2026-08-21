@@ -255,30 +255,80 @@ export function createAppsBackendCompileAction({
     if (!files.some((file) => file.path === "elm.json")) {
       return { compiled: false, reason: "not a Guida project" };
     }
-    let compileGuidaWorkspace;
-    try {
-      ({ compileGuidaWorkspace } = await import(
-        "../../guida-twistedpear/dist/worklet.js"
-      ));
-    } catch {
+    const worklet = await loadGuidaWorklet();
+    if (worklet === null) {
       return {
         compiled: false,
         reason: "Guida compiler is not available on this host",
       };
     }
-    const result = await compileGuidaWorkspace(
-      files.map((file) => ({ path: file.path, content: file.content })),
+    const snapshot = files.map((file) => ({
+      path: file.path,
+      content: file.content,
+    }));
+    try {
+      const result = await worklet.compileGuidaWorkspace(snapshot);
+      await writeWorkspaceFile(
+        appId,
+        `${projectPrefix}/bundle.js`,
+        result.bundle,
+      );
+      return {
+        compiled: true,
+        bytes: result.minifiedBytes,
+        compiler: result.compilerVersion,
+      };
+    } catch (error) {
+      const problems = await worklet
+        .diagnoseGuidaWorkspace(snapshot, "src/Main.elm")
+        .catch(() => []);
+      return {
+        compiled: false,
+        reason: error instanceof Error ? error.message : String(error),
+        problems,
+      };
+    }
+  };
+}
+
+async function loadGuidaWorklet() {
+  try {
+    return await import("../../guida-twistedpear/dist/worklet.js");
+  } catch {
+    return null;
+  }
+}
+
+export function createAppsBackendFormatAction() {
+  return async function formatApp(_appId, { content }) {
+    const worklet = await loadGuidaWorklet();
+    if (worklet === null) {
+      throw new Error("Guida compiler is not available on this host");
+    }
+    const formatted = await worklet.formatGuidaSource(content);
+    return { formatted };
+  };
+}
+
+export function createAppsBackendDiagnosticsAction({ collectWorkspaceFiles }) {
+  return async function diagnoseApp(appId, { projectPrefix, path }) {
+    const files = await collectWorkspaceFiles(appId, projectPrefix);
+    if (!files.some((file) => file.path === "elm.json")) {
+      return { problems: [] };
+    }
+    const worklet = await loadGuidaWorklet();
+    if (worklet === null) {
+      throw new Error("Guida compiler is not available on this host");
+    }
+    const snapshot = files.map((file) => ({
+      path: file.path,
+      content: file.content,
+    }));
+    const problems = await worklet.diagnoseGuidaWorkspace(
+      snapshot,
+      path ?? "src/Main.elm",
     );
-    await writeWorkspaceFile(
-      appId,
-      `${projectPrefix}/bundle.js`,
-      result.bundle,
-    );
-    return {
-      compiled: true,
-      bytes: result.minifiedBytes,
-      compiler: result.compilerVersion,
-    };
+    return { problems };
   };
 }
 

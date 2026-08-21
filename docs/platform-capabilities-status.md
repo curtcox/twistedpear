@@ -19,7 +19,7 @@ completed evidence stays in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md).
 | Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()`                                                                                                                                  |
 
 Current closed set: **26 core + 30 device = 56** capability ids. Current
-`HOST_API_VERSION` is **0.15.0**.
+`HOST_API_VERSION` is **0.16.0**.
 
 ## Peer implementation types
 

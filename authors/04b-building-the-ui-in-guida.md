@@ -12,8 +12,8 @@ The Elm Architecture to the same `bundle.js` the host already runs. Read this al
 events are the same.
 
 The live implementation, toolchain commands, and the `Effect` vs `Task` restriction are in
-[docs/guida-ui.md](../docs/guida-ui.md). Remaining sample ports and on-device compiling are
-in [docs/guida-ui-plan.md](../docs/guida-ui-plan.md).
+[docs/guida-ui.md](../docs/guida-ui.md). DevStudio compiles Guida projects on the device
+and can add, format, and check `.elm` files.
 
 ## Hello
 

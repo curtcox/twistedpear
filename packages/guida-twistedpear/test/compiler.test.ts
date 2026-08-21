@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { compileGuidaWorkspace } from "../src/compile-workspace.js";
+import {
+  compileGuidaWorkspace,
+  diagnoseGuidaWorkspace,
+  formatGuidaSource,
+} from "../src/compile-workspace.js";
 import { utf8 } from "../src/fs-config.js";
 import { memoryGuidaConfig } from "../src/memory-config.js";
 import { createPackageRegistryXhr } from "../src/seed-xhr.js";
@@ -17,36 +21,60 @@ const helloElmJson = readFileSync(
   "utf8",
 );
 
-describe.skipIf(
-  await import("guida")
-    .then(() => false)
-    .catch(() => true),
-)("Guida workspace compiler", () => {
-  it("compiles a file map offline from seeded packages", async () => {
-    const started = performance.now();
-    const result = await compileGuidaWorkspace([
-      { path: "elm.json", content: helloElmJson },
-      { path: "src/Main.elm", content: helloMain },
-    ]);
-    const compileMs = performance.now() - started;
-    expect(result.bundle).toContain("sdk.ui.render");
-    expect(result.minifiedBytes).toBeGreaterThan(1000);
-    expect(compileMs).toBeLessThan(60_000);
-  }, 120_000);
+describe.skipIf(await import("guida").then(() => false).catch(() => true))(
+  "Guida workspace compiler",
+  () => {
+    it("compiles a file map offline from seeded packages", async () => {
+      const started = performance.now();
+      const result = await compileGuidaWorkspace([
+        { path: "elm.json", content: helloElmJson },
+        { path: "src/Main.elm", content: helloMain },
+      ]);
+      const compileMs = performance.now() - started;
+      expect(result.bundle).toContain("sdk.ui.render");
+      expect(result.minifiedBytes).toBeGreaterThan(1000);
+      expect(compileMs).toBeLessThan(60_000);
+    }, 120_000);
 
-  it("memory config round-trips files", async () => {
-    const files = new Map<string, Uint8Array>([
-      ["/app/hello.txt", new TextEncoder().encode("hi")],
-    ]);
-    const config = memoryGuidaConfig(files, {
-      cwd: "/app",
-      homedir: "/home",
-      XMLHttpRequest: createPackageRegistryXhr(files, "/home"),
+    it("formats source and reports a type error from diagnostics", async () => {
+      const messy = "module Main exposing (main)\n\nmain=\n    1";
+      const formatted = await formatGuidaSource(messy, [
+        { path: "elm.json", content: helloElmJson },
+      ]);
+      expect(formatted).toContain("module Main exposing (main)");
+      expect(formatted).toMatch(/main\s*=/);
+
+      const broken = helloMain.replace("Int", "String");
+      const problems = await diagnoseGuidaWorkspace(
+        [
+          { path: "elm.json", content: helloElmJson },
+          { path: "src/Main.elm", content: broken },
+        ],
+        "src/Main.elm",
+      );
+      expect(problems.length).toBeGreaterThan(0);
+      expect(problems[0]?.path).toMatch(/Main\.elm/);
+      expect(problems[0]?.message.length).toBeGreaterThan(0);
+    }, 120_000);
+
+    it("memory config round-trips files", async () => {
+      const files = new Map<string, Uint8Array>([
+        ["/app/hello.txt", new TextEncoder().encode("hi")],
+      ]);
+      const config = memoryGuidaConfig(files, {
+        cwd: "/app",
+        homedir: "/home",
+        XMLHttpRequest: createPackageRegistryXhr(files, "/home"),
+      });
+      expect(utf8(await config.readFile("hello.txt"))).toBe("hi");
+      await config.writeFile("src/Main.elm", "module Main exposing (main)");
+      expect(utf8(await config.readFile("/app/src/Main.elm"))).toContain(
+        "Main",
+      );
+      const listed = await config.readDirectory("/app");
+      expect(listed.files).toEqual(
+        expect.arrayContaining(["hello.txt", "src"]),
+      );
     });
-    expect(utf8(await config.readFile("hello.txt"))).toBe("hi");
-    await config.writeFile("src/Main.elm", "module Main exposing (main)");
-    expect(utf8(await config.readFile("/app/src/Main.elm"))).toContain("Main");
-    const listed = await config.readDirectory("/app");
-    expect(listed.files).toEqual(expect.arrayContaining(["hello.txt", "src"]));
-  });
-});
+  },
+);

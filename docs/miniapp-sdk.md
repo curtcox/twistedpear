@@ -60,6 +60,8 @@ The `peers` namespace and `peer:connect` require host API `0.8.0`.
 The `links` namespace and realtime-media extensions require host API `0.12.0`.
 `apps:channel` requires host API `0.13.0`.
 `runtime:background` and `runtime:wake` / `host.requestWake` require host API `0.14.0`.
+`apps.compile` requires host API `0.15.0`. `apps.format` and `apps.diagnostics`
+require host API `0.16.0`.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, preview, and channel-open call raises a host-chrome confirmation dialog the
@@ -111,6 +113,11 @@ the pair before messages copy through the broker.
   63 `{ id, text }` documents and return ids ranked by cosine score. This is a bounded
   request, not a persistent vector database. Both calls use the separate `ai:embed` grant,
   the embedding-model allowlist, and the same one-in-flight AI slot as chat.
+- `apps.compile(projectPrefix)` — compile a Guida workspace project in host chrome
+  (user confirmation; writes `bundle.js`).
+- `apps.format(content)` / `apps.diagnostics(projectPrefix, path?)` — format Elm
+  source or return structured compiler problems. Same `apps:package` grant, no
+  confirmation.
 - `apps.packageProject(projectPrefix, manifest)` — pack + sign a workspace
   project via the host (user confirmation); returns `{ packageHash, size, t256 }`.
 - `apps.publish(t256)` / `apps.install(t256)` — publish or install by

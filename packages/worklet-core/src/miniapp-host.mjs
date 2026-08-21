@@ -15,6 +15,8 @@ import { CasStore } from "../../cas-256t/dist/index.js";
 import { GrantStore } from "../../miniapp-runtime/dist/capabilities.js";
 import {
   createAppsBackendCompileAction,
+  createAppsBackendDiagnosticsAction,
+  createAppsBackendFormatAction,
   createAppsBackendPackageAction,
   createAppsBackendPreviewAction,
   createAppsBackendPublishAction,
@@ -364,6 +366,9 @@ export function createWorkletMiniappHost(options) {
           collectWorkspaceFiles,
           writeWorkspaceFile,
         })(...args),
+      format: (...args) => createAppsBackendFormatAction()(...args),
+      diagnostics: (...args) =>
+        createAppsBackendDiagnosticsAction({ collectWorkspaceFiles })(...args),
       package: (...args) =>
         createAppsBackendPackageAction({
           requirePublisherIdentity,

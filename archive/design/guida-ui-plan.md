@@ -1,22 +1,23 @@
 # Guida as a supported mini-app UI language — plan
 
 <!-- tp-doc
-lifecycle: planned
+lifecycle: historical
 audited: 2026-08-20
-register: software
-counterpart: docs/guida-ui.md
+register: none
 -->
+
+> **Status of this plan (archived 2026-08-20):** Fully executed, including P5.3 DevStudio multi-file editing, `apps.format`, and `apps.diagnostics`. Current behaviour is in [docs/guida-ui.md](../../docs/guida-ui.md). The sections below are retained as the original design rationale.
 
 **This document describes intended remaining work, not current behaviour.** The compile
 target, vendored package, generated bindings, shim, CLI, cookbook/example twins, SPEC-SDK
 vector replay, hello size/latency budgets, DevStudio `apps.compile` path, P5.0
 compiler-speed measurements, and packing the compiler into shipping worklets
-ship today — see [guida-ui.md](guida-ui.md). Remaining work is DevStudio
-multi-file editor polish (P5.3).
+ship today — see [guida-ui.md](../../docs/guida-ui.md). P5.3 DevStudio multi-file
+editor polish (format, diagnostics, add-file) also shipped.
 Where the live document disagrees with this plan, it wins. The JavaScript authoring path in
-[the mini-app runtime](miniapp-runtime.md), [the SDK](miniapp-sdk.md), and
-[the App Authoring Guide](../authors/README.md) is unchanged;
-[SPEC-WIDGET](../specs/spec-widget/spec.md) and [SPEC-SDK](../specs/spec-sdk/spec.md) are
+[the mini-app runtime](../../docs/miniapp-runtime.md), [the SDK](../../docs/miniapp-sdk.md), and
+[the App Authoring Guide](../../authors/README.md) is unchanged;
+[SPEC-WIDGET](../../specs/spec-widget/spec.md) and [SPEC-SDK](../../specs/spec-sdk/spec.md) are
 the normative contracts.
 
 **Goal.** [Guida](https://guida-lang.org/) is a first-class mini-app authoring language:
@@ -36,11 +37,11 @@ Elm predecessor.
 
 ## Why this fits
 
-- [SPEC-WIDGET](../specs/spec-widget/spec.md) is already **language-neutral by
+- [SPEC-WIDGET](../../specs/spec-widget/spec.md) is already **language-neutral by
   requirement** — a JSON Schema with a headless renderer as its conformance oracle.
-- [SPEC-SDK](../specs/spec-sdk/spec.md) already names **"future non-JS SDK bindings
+- [SPEC-SDK](../../specs/spec-sdk/spec.md) already names **"future non-JS SDK bindings
   generated from the call schema"** as its implementation direction, and already ships
-  [`vectors/calls.json`](../specs/spec-sdk/vectors/calls.json) — 32 vectors / 50 steps of
+  [`vectors/calls.json`](../../specs/spec-sdk/vectors/calls.json) — 32 vectors / 50 steps of
   `(grants, call, args) → (result | error)` — as the oracle such a binding must satisfy.
   This plan is that work, with Guida as its first consumer.
 - The UI contract is already The Elm Architecture with the names filed off: the app holds
@@ -50,12 +51,12 @@ Elm predecessor.
 - The sandbox executes a bundle with no DOM and no host globals — exactly the
   `Platform.worker` shape, and `guida make` cannot emit anything else without ports.
 - A Guida app's entire host surface is its `port` declarations, of which this design has
-  two. That is worth real money to [app approval risk](app-approval-risk.md) and the
-  [hostile-author](hostile-author-plan.md) work.
+  two. That is worth real money to [app approval risk](../../docs/app-approval-risk.md) and the
+  [hostile-author](../../docs/hostile-author-plan.md) work.
 - **The compiler is a JavaScript program with a documented API.** `guida` installs from
   npm with no platform binary, and exposes `make` / `format` / `diagnostics` over an
   injectable filesystem. One artifact serves the CLI build, CI, and on-device authoring in
-  [DevStudio](devstudio.md) — including iOS, where WebAssembly is unavailable. The Elm
+  [DevStudio](../../docs/devstudio.md) — including iOS, where WebAssembly is unavailable. The Elm
   version of this plan needed a Haskell-to-WASM compiler port for that, as a separate
   track that could not reach iOS at all.
 
@@ -84,7 +85,7 @@ Main.elm ──guida make --optimize──> guida-out.js ──scope wrapper + m
 
 - `TwistedPear.Widget` / `TwistedPear.Style` — builders for the closed vocabulary,
   **generated** from
-  [`specs/spec-widget/schema/widget.schema.json`](../specs/spec-widget/schema/widget.schema.json)
+  [`specs/spec-widget/schema/widget.schema.json`](../../specs/spec-widget/schema/widget.schema.json)
   by a new `npm run generate:guida-widget`, so the Guida types cannot drift from the schema
   the broker validates against. Same discipline as `device-capabilities.gen.ts`.
 - `TwistedPear.Program` — `Program.app { init, update, view, subscriptions }` wrapping
@@ -116,7 +117,7 @@ compiled Guida program, pumps `tpOut` into `sdk.ui.render` and broker calls, and
 `sdk.ui.onEvent` and broker replies back through `tpIn` with request-id correlation. It
 is the only JavaScript in a Guida app, it is generated rather than authored, and because it
 calls `sdk.*` by literal name the capability-usage scan in
-[`conformance/cookbook/cookbook.test.mjs`](../conformance/cookbook/cookbook.test.mjs)
+[`conformance/cookbook/cookbook.test.mjs`](../../conformance/cookbook/cookbook.test.mjs)
 keeps working unchanged.
 
 **3. `tp app build`.** `guida make --optimize` → scope wrapper → Elm-aware minification →
@@ -131,8 +132,8 @@ Guida emits Elm 0.19.1's output shape byte-for-byte in structure, including the 
 
 | Backend                                                                                                                                 | Bundle evaluated as                           | Guida output |
 | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------ |
-| [Bare worker](../packages/miniapp-runtime/src/sandbox/worker.ts), [Node worker](../packages/miniapp-runtime/src/sandbox/node-worker.ts) | `new AsyncFunction('sdk', src)(sdk)` — sloppy | works        |
-| [Web host](../packages/miniapp-runtime/src/sandbox/browser-worker-bootstrap.ts)                                                         | ES module via `import(blobUrl)`               | **throws**   |
+| [Bare worker](../../packages/miniapp-runtime/src/sandbox/worker.ts), [Node worker](../../packages/miniapp-runtime/src/sandbox/node-worker.ts) | `new AsyncFunction('sdk', src)(sdk)` — sloppy | works        |
+| [Web host](../../packages/miniapp-runtime/src/sandbox/browser-worker-bootstrap.ts)                                                         | ES module via `import(blobUrl)`               | **throws**   |
 
 Verified locally against `guida@1.0.0-beta.2` output: it succeeds on the first path and
 fails on the second with `Cannot read properties of undefined (reading 'Elm')`. The build
@@ -172,7 +173,7 @@ widget frame.
 
 **This changes the headline risk.** The shipped samples are 780 B – 2.6 KiB packaged;
 `bridge-hyper` warns above 32 KiB and blocks automatic bulk fetch above 64 KiB on
-RNode-only links ([LIMITATIONS.md](../LIMITATIONS.md) §6). A minified hello world plus the
+RNode-only links ([LIMITATIONS.md](../../LIMITATIONS.md) §6). A minified hello world plus the
 shim lands near 10 KB of bundle — several times a JavaScript sample, but comfortably
 inside both RNode thresholds, where the Elm plan's "low tens of KB" estimate was not. Dead
 code elimination is doing the work; an app that pulls in `Dict`, `Set`, or larger chunks of
@@ -181,9 +182,9 @@ code elimination is doing the work; an app that pulls in `Dict`, `Set`, or large
 What remains for Phase 0, in-repo: run the hello app against `NodeWorkerSandboxBackend`
 through the real host and record `.tpkg` size, spawn latency, first-render latency, and
 steady-state render latency beside the JavaScript twin, using
-[`conformance/budgets`](../conformance/budgets/) and `npm run test:miniapp-benchmark`.
+[`conformance/budgets`](../../conformance/budgets/) and `npm run test:miniapp-benchmark`.
 Per D3 size does not gate the work, but it must be **measured, published per sample, and
-written into [LIMITATIONS.md](../LIMITATIONS.md) §6 and the authoring docs** before Guida
+written into [LIMITATIONS.md](../../LIMITATIONS.md) §6 and the authoring docs** before Guida
 is presented as a peer of JavaScript. Measure `elm-optimize-level-2` while here, and
 whether compressing bundle bytes inside the `.tpkg` is worth a format revision — the
 archive is currently uncompressed concatenation, so the gzip column above is not what
@@ -195,7 +196,7 @@ Generated `TwistedPear.Widget` / `Style`, `TwistedPear.Program`, the shim, the s
 wrapper. No SDK access beyond `ui.render` / `ui.onEvent`.
 
 **Exit criterion — the parity test the whole plan rests on:** one app implemented twice,
-recorded through [`scripts/record-widget-streams.mjs`](../scripts/record-widget-streams.mjs)
+recorded through [`scripts/record-widget-streams.mjs`](../../scripts/record-widget-streams.mjs)
 against the same scripted event sequence, must produce **canonically identical widget
 frames and diff streams**. Canonical, not byte-identical: JSON key order is not part of
 the contract. This reuses the existing widget-parity oracle rather than inventing one, and
@@ -207,10 +208,10 @@ apps tractable rather than a permanent drift tax.
 **Prerequisite, and valuable on its own: a machine-readable SDK call descriptor.** No
 such artifact exists today — the canonical list of namespaces, methods, argument shapes,
 and required capabilities is spread across the injected `sdk` object literal in
-[`sandbox/worker.ts`](../packages/miniapp-runtime/src/sandbox/worker.ts), the registered
-broker services, [`packages/miniapp-sdk`](../packages/miniapp-sdk/), and the
+[`sandbox/worker.ts`](../../packages/miniapp-runtime/src/sandbox/worker.ts), the registered
+broker services, [`packages/miniapp-sdk`](../../packages/miniapp-sdk/), and the
 `API_CAPABILITIES` map in the cookbook test. Deriving one descriptor and generating those
-consumers from it is [SPEC-SDK](../specs/spec-sdk/spec.md)'s own stated next step; do it
+consumers from it is [SPEC-SDK](../../specs/spec-sdk/spec.md)'s own stated next step; do it
 here, and generate the Guida bindings from it.
 
 Ports carry `{ id, namespace, method, payload }`; replies carry
@@ -222,11 +223,11 @@ plainly rather than papering over it. Guida 1.x is where such a restriction coul
 eventually be lifted, but nothing in this plan assumes it will be.
 
 **Exit criterion:** a Guida harness app replays
-[`specs/spec-sdk/vectors/calls.json`](../specs/spec-sdk/vectors/calls.json) and produces
+[`specs/spec-sdk/vectors/calls.json`](../../specs/spec-sdk/vectors/calls.json) and produces
 results identical to the reference binding after the vectors' existing normalization —
 all 13 taxonomy codes, every namespace, and the quota-exhaustion cases. Broker denials
 decode to typed errors, and an app survives a partial capability grant as
-[chapter 5](../authors/05-capabilities.md) requires.
+[chapter 5](../../authors/05-capabilities.md) requires.
 
 ### Phase 3 — toolchain and packaging
 
@@ -236,7 +237,7 @@ decode to typed errors, and an app survives a partial capability grant as
   `elm.json`. Add `.tpignore` or an explicit manifest `include`.
 - Pin the compiler. `guida` is an ordinary npm dependency: pure JavaScript, no `install`
   or `postinstall` hook, no downloaded platform binary — so unlike the Elm compiler it does
-  **not** collide with [`install-scripts-allowlist.json`](../install-scripts-allowlist.json)
+  **not** collide with [`install-scripts-allowlist.json`](../../install-scripts-allowlist.json)
   and needs no exemption there. Pin the exact version, add a `tool-versions.json` entry,
   and keep the `tools:doctor` recipe pattern so a missing compiler **skips** the Guida
   gates locally rather than failing them.
@@ -247,19 +248,19 @@ decode to typed errors, and an app survives a partial capability grant as
   its version, and the 256t id of the source tree, so a third party can rebuild the bundle
   and compare hashes. This converts "trust this minified blob" into "verify it came from
   this source" and is the strongest single argument for Guida in an
-  [approval-risk](app-approval-risk.md) frame. Output is expected to be deterministic for
+  [approval-risk](../../docs/app-approval-risk.md) frame. Output is expected to be deterministic for
   a fixed compiler and dependency set; **CI must prove that** by rebuilding and diffing.
 
 ### Phase 4 — every documented sample in both languages
 
-The 25 [cookbook](../cookbook/README.md) apps and the three
-[reference examples](../apps/examples/README.md) each gain a Guida variant. Handbook and
+The 25 [cookbook](../../cookbook/README.md) apps and the three
+[reference examples](../../apps/examples/README.md) each gain a Guida variant. Handbook and
 DevStudio are platform apps rather than samples and stay out of scope.
 
 - **Layout.** Each sample directory holds both sources; the JS bundle remains the
   packaged, published artifact. The Guida variant is a _validated source variant_, not a
   second published app — two packages sharing an app name and publisher key would collide
-  on app identity ([package format](package-format.md) §1), and nothing about the sample's
+  on app identity ([package format](../../docs/package-format.md) §1), and nothing about the sample's
   distribution should change because a second implementation exists.
 - **Docs.** Every sample page presents both listings. Recommend headed `### JavaScript` /
   `### Guida` subsections, which render correctly in-repo on GitHub, upgraded to tabs by a
@@ -271,11 +272,11 @@ DevStudio are platform apps rather than samples and stay out of scope.
 - Per-sample size deltas land in the cookbook app-index table, so the cost of choosing
   Guida is visible per app rather than only for hello world.
 - An authoring-guide chapter on building the UI in Guida, alongside — not replacing —
-  [chapter 4](../authors/04-building-the-ui.md).
+  [chapter 4](../../authors/04-building-the-ui.md).
 
 ### Phase 5 — on-device compiling in DevStudio
 
-[DevStudio](devstudio.md) today builds only single-file JavaScript projects because it has
+[DevStudio](../../docs/devstudio.md) today builds only single-file JavaScript projects because it has
 no bundler and no compiler. Guida is the compiler, and it is a JavaScript module the host
 can embed.
 
@@ -291,10 +292,10 @@ compiler prose.
 
 **Where it runs.** It is JavaScript, so it runs wherever the host runs JavaScript. The
 constraint that shaped the Elm version of this plan was WebAssembly availability:
-[`conformance/ios-sim/measured-wasm-worker.json`](../conformance/ios-sim/measured-wasm-worker.json)
+[`conformance/ios-sim/measured-wasm-worker.json`](../../conformance/ios-sim/measured-wasm-worker.json)
 records the shipping iOS BareKit as V8 jitless with WebAssembly disabled, so `instantiate`
 does not exist on the worklet isolate, while
-[`conformance/android-emulator/measured-worker.json`](../conformance/android-emulator/measured-worker.json)
+[`conformance/android-emulator/measured-worker.json`](../../conformance/android-emulator/measured-worker.json)
 records `wasmExecuted: true`. That constraint no longer applies, and **iOS is in scope**.
 
 **What is unmeasured is speed, not availability.** The compiler is ~810 KB minified
@@ -304,7 +305,7 @@ cost is unknown. Sequencing:
 - **P5.0 — measure on device.** Cold parse time, hello-world compile time, and peak memory
   for the compiler module on desktop, web, the Android worklet, the iOS worklet, and the
   iOS React Native side. Both iOS numbers are needed separately because
-  [`conformance/ios-sim/README.md`](../conformance/ios-sim/README.md) explicitly warns that
+  [`conformance/ios-sim/README.md`](../../conformance/ios-sim/README.md) explicitly warns that
   Hermes results are not BareKit evidence. Exit criterion: numbers, plus a per-platform
   verdict on whether interactive compiling is usable. A platform that fails the bar falls
   back to **delegating the build to a paired peer** over LXMF, which needs no new transport
@@ -315,15 +316,15 @@ cost is unknown. Sequencing:
   implementation and a native-CLI implementation, so desktop can prefer a locally installed
   `guida` when present. The compiler runs in **host chrome, not in a sandbox**: it is host
   tooling being offered to a mini-app, so it goes behind the existing
-  [host confirmation channel](miniapp-runtime.md) like `apps:package`, with its own
+  [host confirmation channel](../../docs/miniapp-runtime.md) like `apps:package`, with its own
   capability rather than widening `workspace`.
 - **P5.2 — the compiler image is a host asset.** **Executed 2026-08-20.** Packed
   into the desktop and mobile worklets with seeded `elm/core` and `elm/json`;
   never a mini-app payload and never distributed over Reticulum. See
-  [guida-ui.md](guida-ui.md).
+  [guida-ui.md](../../docs/guida-ui.md).
 - **P5.3 — DevStudio Guida projects.** Multi-file projects (DevStudio is single-file
   today), `elm` added to the `code-editor` language allowlist — a
-  [SPEC-WIDGET](../specs/spec-widget/spec.md) schema change and a `HOST_API_VERSION` bump —
+  [SPEC-WIDGET](../../specs/spec-widget/spec.md) schema change and a `HOST_API_VERSION` bump —
   compile errors surfaced from `diagnostics`, `format` wired to the editor, and preview
   through the existing slot.
 
@@ -363,7 +364,7 @@ than assuming it. `npm run test:doc-audit` covers the new docs; work rows go in 
 
 - **The official Elm compiler.** Rejected: it installs through an npm package whose
   postinstall downloads a platform binary, colliding with
-  [`install-scripts-allowlist.json`](../install-scripts-allowlist.json), and it has no
+  [`install-scripts-allowlist.json`](../../install-scripts-allowlist.json), and it has no
   on-device story short of a Haskell-to-WASM port — which iOS could not run at all. Guida
   compiles the same sources with neither problem. Elm remains the upstream this language
   is compatible with, which is the recovery path in the risk table.

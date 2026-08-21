@@ -311,6 +311,22 @@ const cases: ReadonlyArray<SurfaceCase> = [
     payload: { projectPrefix: "src/" },
   },
   {
+    label: "apps.format",
+    call: () => apps.format("module Main exposing (main)"),
+    namespace: "apps",
+    method: "format",
+    capability: "apps:package",
+    payload: { content: "module Main exposing (main)" },
+  },
+  {
+    label: "apps.diagnostics",
+    call: () => apps.diagnostics("hello", "src/Main.elm"),
+    namespace: "apps",
+    method: "diagnostics",
+    capability: "apps:package",
+    payload: { projectPrefix: "hello", path: "src/Main.elm" },
+  },
+  {
     label: "apps.packageProject",
     call: () => apps.packageProject("src/", MANIFEST),
     namespace: "apps",

@@ -61,11 +61,30 @@ export interface AppsInstallResult {
  * Injected so miniapp-runtime never imports app-registry or bridge-hyper.
  * All user consent happens in AppsService BEFORE these methods run.
  */
+export interface CompilerProblem {
+  readonly path: string;
+  readonly title: string;
+  readonly startLine: number;
+  readonly startColumn: number;
+  readonly endLine: number;
+  readonly endColumn: number;
+  readonly message: string;
+}
+
 export interface AppsCompileResult {
   readonly compiled: boolean;
   readonly bytes?: number;
   readonly compiler?: string;
   readonly reason?: string;
+  readonly problems?: ReadonlyArray<CompilerProblem>;
+}
+
+export interface AppsFormatResult {
+  readonly formatted: string;
+}
+
+export interface AppsDiagnosticsResult {
+  readonly problems: ReadonlyArray<CompilerProblem>;
 }
 
 export interface AppsBackend {
@@ -73,6 +92,14 @@ export interface AppsBackend {
     appId: string,
     request: { projectPrefix: string },
   ): Promise<AppsCompileResult>;
+  format?(
+    appId: string,
+    request: { content: string },
+  ): Promise<AppsFormatResult>;
+  diagnostics?(
+    appId: string,
+    request: { projectPrefix: string; path?: string },
+  ): Promise<AppsDiagnosticsResult>;
   package(
     appId: string,
     request: { projectPrefix: string; manifest: AppManifestDraft },
@@ -103,6 +130,11 @@ export class AppsServiceError extends Error {
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
 const NAME_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+
+function stripProjectPrefix(projectPrefix: string, path: string): string {
+  const prefix = `${projectPrefix}/`;
+  return path.startsWith(prefix) ? path.slice(prefix.length) : path;
+}
 
 function validateT256(value: unknown): string {
   if (typeof value !== "string" || !T256_PATTERN.test(value)) {
@@ -212,6 +244,49 @@ export class AppsService {
       confirmationEffects,
     );
     return this.backend.compile(context.appId, { projectPrefix });
+  }
+
+  async format(
+    context: { appId: string },
+    request: { content: unknown },
+  ): Promise<AppsFormatResult> {
+    if (typeof request.content !== "string") {
+      throw new AppsServiceError(
+        "APPS_BAD_REQUEST",
+        "format requires source content",
+      );
+    }
+    if (this.backend.format === undefined) {
+      throw new AppsServiceError(
+        "APPS_UNCONFIGURED",
+        "Guida formatting is not configured on this host",
+      );
+    }
+    return this.backend.format(context.appId, { content: request.content });
+  }
+
+  async diagnostics(
+    context: { appId: string },
+    request: { projectPrefix: unknown; path?: unknown },
+  ): Promise<AppsDiagnosticsResult> {
+    const projectPrefix = validateWorkspacePath(String(request.projectPrefix));
+    const path =
+      typeof request.path !== "string" || request.path === ""
+        ? undefined
+        : stripProjectPrefix(
+            projectPrefix,
+            validateWorkspacePath(request.path),
+          );
+    if (this.backend.diagnostics === undefined) {
+      throw new AppsServiceError(
+        "APPS_UNCONFIGURED",
+        "Guida diagnostics are not configured on this host",
+      );
+    }
+    return this.backend.diagnostics(context.appId, {
+      projectPrefix,
+      ...(path === undefined ? {} : { path }),
+    });
   }
 
   async publish(

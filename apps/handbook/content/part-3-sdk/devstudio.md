@@ -12,8 +12,8 @@ Handbook.
 
 ## Development loop
 
-1. **New project** — DevStudio seeds `hello-app/app.json` + `bundle.js` in the
-   app workspace.
+1. **New project** — DevStudio seeds `hello-app/app.json` + `bundle.js`, or a Guida
+   project (`elm.json` + `src/*.elm`). You can add more files from the editor.
 2. **Edit** — the `code-editor` widget is content-by-reference: the tree carries
    a `documentId`; edits flow back as events and persist with `workspace.write`.
 3. **AI assist** — with `ai:chat` granted, describe a change; the host holds the

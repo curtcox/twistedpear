@@ -226,6 +226,22 @@ run namespace method payload toMsg =
                 Err _ ->
                     Effect.call namespace method payload toMsg
 
+        ( "apps", "format" ) ->
+            case D.decodeValue (D.map (\decoded0 -> Apps.format decoded0 (mapResult identity toMsg)) (D.field "content" D.string)) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
+        ( "apps", "diagnostics" ) ->
+            case D.decodeValue (D.map2 (\decoded0 decoded1 -> Apps.diagnostics decoded0 decoded1 (mapResult identity toMsg)) (D.field "projectPrefix" D.string) (D.field "path" D.string)) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
         ( "apps", "packageProject" ) ->
             case D.decodeValue (D.map2 (\decoded0 decoded1 -> Apps.packageProject decoded0 decoded1 (mapResult identity toMsg)) (D.field "projectPrefix" D.string) (D.field "manifest" D.value)) payload of
                 Ok effect ->

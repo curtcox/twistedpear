@@ -13,5 +13,5 @@
     "storage:kv"
   ],
   "icon": null,
-  "minHostApi": "0.7.0"
+  "minHostApi": "0.16.0"
 }

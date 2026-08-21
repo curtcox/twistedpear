@@ -17,6 +17,8 @@
   "ai.search": "ai:embed",
   "ai.chatStream": "ai:chat",
   "apps.compile": "apps:package",
+  "apps.format": "apps:package",
+  "apps.diagnostics": "apps:package",
   "apps.packageProject": "apps:package",
   "apps.publish": "apps:publish",
   "apps.install": "apps:install",

@@ -37,7 +37,9 @@ Every one of those is optional. Without `ai:chat` the editor still works. Withou
 
 ## New project
 
-**New project → hello** seeds two files into your workspace:
+**New project → hello** seeds two files into your workspace. **New Guida project**
+seeds `elm.json` plus `src/Main.elm`; you can add further `.elm` modules, Format the
+open file, and Check for compiler problems before Preview.
 
 ```
 hello-app/app.json

@@ -89,6 +89,8 @@ let importInput = "";
 const HANDBOOK_HANDOFF_KIND = "tp.devstudio.workspace.v1";
 let statusLine = "Create a project to get started.";
 let previewRunning = false;
+let newFilePath = "";
+let problems = [];
 
 async function refreshProjects() {
   const all = await workspace.list();
@@ -140,6 +142,12 @@ async function render() {
     for (const file of files) {
       children.push(widgetButton(`open-${file.path}`, `${openFile === file.path ? "▶ " : ""}${file.path} (${file.size} B)`, "ds.openfile"));
     }
+    children.push({
+      id: "new-file-path",
+      type: "text-input",
+      props: { value: newFilePath, placeholder: "src/Greeting.elm", event: "ds.newfilepath" }
+    });
+    children.push(widgetButton("add-file", "Add file", "ds.addfile"));
   }
 
   if (openFile !== null) {
@@ -149,6 +157,9 @@ async function render() {
       type: "code-editor",
       props: { documentId: openFile, language: editorLanguage(openFile), event: "ds.edit" }
     });
+    if (openFile.endsWith(".elm")) {
+      children.push(widgetButton("format", "Format", "ds.format"));
+    }
     children.push({
       id: "ai-prompt",
       type: "text-input",
@@ -174,6 +185,24 @@ async function render() {
     children.push({ id: "sep3", type: "divider" });
     children.push({ id: "run-title", type: "text", props: { value: "Run" }, style: { fontWeight: "bold" } });
     children.push(widgetButton("preview", "Preview app", "ds.preview"));
+    if (isGuidaProject()) {
+      children.push(widgetButton("check", "Check Guida", "ds.check"));
+    }
+    if (problems.length > 0) {
+      children.push({
+        id: "problems-title",
+        type: "text",
+        props: { value: `${problems.length} compiler problem${problems.length === 1 ? "" : "s"}` },
+        style: { fontWeight: "bold" }
+      });
+      for (const [index, problem] of problems.slice(0, 8).entries()) {
+        children.push({
+          id: `problem-${index}`,
+          type: "text",
+          props: { value: formatProblem(problem) }
+        });
+      }
+    }
     if (previewRunning) {
       children.push(widgetButton("stop-preview", "Stop preview", "ds.stoppreview"));
     }
@@ -242,14 +271,42 @@ function editorLanguage(path) {
   return "text";
 }
 
+function isGuidaProject() {
+  return files.some((file) => file.path.endsWith("elm.json"));
+}
+
+function formatProblem(problem) {
+  const where = problem.path
+    ? `${problem.path}:${problem.startLine}:${problem.startColumn}`
+    : "project";
+  return `${where} ${problem.title} — ${problem.message}`;
+}
+
+function elmModuleName(relativePath) {
+  const withoutSrc = relativePath.replace(/^src\//, "").replace(/\.elm$/, "");
+  return withoutSrc.split("/").filter(Boolean).join(".");
+}
+
+function newFileTemplate(relativePath) {
+  if (relativePath.endsWith(".elm")) {
+    const name = elmModuleName(relativePath) || "Main";
+    return `module ${name} exposing (..)\n\n`;
+  }
+  if (relativePath.endsWith(".json")) return "{}\n";
+  return "";
+}
+
 async function maybeCompileGuida() {
-  const listed = await workspace.list(`${project}/`);
-  if (!listed.some((file) => file.path.endsWith("elm.json"))) return;
+  if (!isGuidaProject()) return;
   try {
     const result = await apps.compile(project);
     if (result.compiled) {
+      problems = [];
       await refreshFiles();
+      return;
     }
+    problems = Array.isArray(result.problems) ? result.problems : [];
+    throw new Error(result.reason ?? "Guida compile failed");
   } catch (error) {
     if (!String(error.message).includes("not configured")) throw error;
   }
@@ -294,7 +351,8 @@ async function handleEvent({ nodeId, event, value }) {
     project = name;
     await refreshFiles();
     openFile = `${name}/src/Main.elm`;
-    await setStatus(`Created Guida project ${name}. Compile on Preview.`);
+    problems = [];
+    await setStatus(`Created Guida project ${name}. Add files, Format, or Check before Preview.`);
     return;
   }
 
@@ -304,6 +362,7 @@ async function handleEvent({ nodeId, event, value }) {
     aiProposal = null;
     lastPackage = null;
     lastPublish = null;
+    problems = [];
     await refreshFiles();
     await setStatus(`Opened project ${project}.`);
     return;
@@ -313,6 +372,71 @@ async function handleEvent({ nodeId, event, value }) {
     openFile = nodeId.slice("open-".length);
     aiProposal = null;
     await setStatus(`Editing ${openFile}.`);
+    return;
+  }
+
+  if (event === "ds.newfilepath" && typeof value === "string") {
+    newFilePath = value;
+    return;
+  }
+
+  if (event === "ds.addfile") {
+    const relative = newFilePath.trim().replace(/^\/+/, "");
+    if (project === null || relative.length === 0) {
+      await setStatus("Enter a path like src/Greeting.elm first.");
+      return;
+    }
+    if (relative.includes("..")) {
+      await setStatus("File path cannot contain ..");
+      return;
+    }
+    const path = `${project}/${relative}`;
+    await workspace.write(path, newFileTemplate(relative));
+    newFilePath = "";
+    openFile = path;
+    aiProposal = null;
+    await refreshFiles();
+    await setStatus(`Created ${path}.`);
+    return;
+  }
+
+  if (event === "ds.format") {
+    if (openFile === null || !openFile.endsWith(".elm")) {
+      await setStatus("Open a .elm file to format.");
+      return;
+    }
+    try {
+      const current = await workspace.read(openFile);
+      const result = await apps.format(current);
+      await workspace.write(openFile, result.formatted);
+      await refreshFiles();
+      await setStatus(`Formatted ${openFile}.`);
+    } catch (error) {
+      await setStatus(`Format failed: ${error.message}`);
+    }
+    return;
+  }
+
+  if (event === "ds.check") {
+    if (project === null || !isGuidaProject()) {
+      await setStatus("Open a Guida project first.");
+      return;
+    }
+    try {
+      const relative =
+        openFile !== null && openFile.endsWith(".elm")
+          ? openFile.slice(`${project}/`.length)
+          : "src/Main.elm";
+      const result = await apps.diagnostics(project, relative);
+      problems = Array.isArray(result.problems) ? result.problems : [];
+      await setStatus(
+        problems.length === 0
+          ? "No compiler problems."
+          : `${problems.length} compiler problem${problems.length === 1 ? "" : "s"}.`,
+      );
+    } catch (error) {
+      await setStatus(`Check failed: ${error.message}`);
+    }
     return;
   }
 

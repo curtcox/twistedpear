@@ -4,11 +4,11 @@
 lifecycle: live
 audited: 2026-08-20
 register: software
-counterpart: docs/guida-ui-plan.md
 -->
 
-**This document describes the implementation as it exists now.** Intended remaining
-work is in [guida-ui-plan.md](guida-ui-plan.md). Where they disagree, this file wins.
+**This document describes the implementation as it exists now.** The executed design
+plan lives under
+[archive/design/guida-ui-plan.md](../archive/design/guida-ui-plan.md).
 
 [Guida](https://guida-lang.org/) is a supported mini-app authoring language. An author
 writes model, update, and view in Guida, runs `tp app build`, and gets a `bundle.js` the
@@ -74,7 +74,12 @@ On-device compiling uses the same JavaScript compiler module
 (`JsModuleGuidaCompiler` on Node, a `node:fs`-free worklet entry elsewhere) with
 an injectable filesystem, including an in-memory workspace for DevStudio.
 `apps.compile` (capability `apps:package`) runs in host chrome, never inside the
-sandbox. `code-editor` accepts `elm`.
+sandbox, and asks for confirmation because it writes `bundle.js`. `apps.format` and
+`apps.diagnostics` use the same grant with no confirmation, so the editor can format
+and surface structured compiler problems (path, title, region, message) while typing.
+`code-editor` accepts `elm`. DevStudio seeds a Guida project as `elm.json` plus
+`src/*.elm`, lists every workspace file, and can add further modules; Preview and
+Package still compile through the existing slot.
 
 Interactive compiling is **usable on Node, Chromium, and shipping Bare
 worklets** (hello-world ~2 s / ~4 s / ~1.3 s, parse under 20 ms, heap under
@@ -106,4 +111,6 @@ npm test -- packages/guida-twistedpear/test
 npm test -- packages/cli/test/guida-init.test.ts packages/cli/test/pack-files.test.ts
 npm run test:guida-parity
 npm run test:guida-compiler
+npm test -- packages/miniapp-runtime/test/apps.test.ts
+npm test -- packages/miniapp-sdk/test/broker-surface.test.ts
 ```

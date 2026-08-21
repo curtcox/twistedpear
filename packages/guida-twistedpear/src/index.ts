@@ -23,5 +23,8 @@ export { compileGuidaMemory } from "./compile-memory.js";
 export {
   compileGuidaWorkspace,
   compilerForMemoryWorkspace,
+  diagnoseGuidaWorkspace,
+  formatGuidaSource,
   type WorkspaceFile,
 } from "./compile-workspace.js";
+export type { GuidaProblem } from "./problems.js";

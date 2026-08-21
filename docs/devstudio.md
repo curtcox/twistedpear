@@ -31,7 +31,7 @@ still works, without `apps:publish` it is a local-only IDE, and so on.
 
 ## The development loop
 
-1. **New hello project** seeds `hello-app/app.json` + `hello-app/bundle.js`. **New Guida project** seeds `elm.json` + `src/Main.elm`; Preview/Package run `apps.compile` in host chrome.
+1. **New hello project** seeds `hello-app/app.json` + `hello-app/bundle.js`. **New Guida project** seeds `elm.json` + `src/*.elm`. Add file, Format, and Check run against the workspace; Preview/Package run `apps.compile` in host chrome.
 2. **Edit** in the `code-editor` widget. The widget is content-by-reference:
    the tree carries only a `documentId`; the host resolves file content from
    the workspace and edits flow back as events which DevStudio persists with
@@ -73,7 +73,7 @@ force-quits. See [conformance/devstudio-loop](../conformance/devstudio-loop/READ
 
 ## v1 limitations
 
-- Projects may be a single-file JavaScript bundle or a multi-file Guida project (`elm.json` + `src/*.elm`). Guida compiles in host chrome via `apps.compile`.
+- Projects may be a single-file JavaScript bundle or a multi-file Guida project (`elm.json` + `src/*.elm`). Guida compiles in host chrome via `apps.compile`. Format and Check use `apps.format` / `apps.diagnostics` without a confirmation prompt.
 - DevStudio consumes `ai.chatStream` incrementally and shows the growing whole-file proposal.
   Apply remains disabled until the final event, so partial output cannot overwrite a file.
 - One preview slot; previewing again replaces the previous preview.

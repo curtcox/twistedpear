@@ -23,6 +23,14 @@ function stubBackend(calls: string[]): AppsBackend {
       calls.push("compile");
       return { compiled: true, bytes: 12, compiler: "1.0.0-beta.2" };
     },
+    format: async () => {
+      calls.push("format");
+      return { formatted: "module Main exposing (main)\n" };
+    },
+    diagnostics: async () => {
+      calls.push("diagnostics");
+      return { problems: [] };
+    },
     package: async () => {
       calls.push("package");
       return { packageHash: "ab".repeat(32), size: 100, t256: "A".repeat(94) };
@@ -76,9 +84,13 @@ describe("apps service", () => {
     ).rejects.toBeInstanceOf(ConfirmationError);
     expect(calls).toEqual([]);
 
-    // stopPreview is not dangerous and needs no confirmation
+    await service.format(context, { content: "module Main exposing (main)" });
+    await service.diagnostics(context, {
+      projectPrefix: "hello",
+      path: "src/Main.elm",
+    });
     await service.stopPreview(context);
-    expect(calls).toEqual(["stopPreview"]);
+    expect(calls).toEqual(["format", "diagnostics", "stopPreview"]);
   });
 
   it("asks once per dangerous call and passes identity from context", async () => {
@@ -98,6 +110,13 @@ describe("apps service", () => {
     await service.compile(contextFor("devstudio-compile"), {
       projectPrefix: "hello",
     });
+    await service.format(contextFor("devstudio-format"), {
+      content: "module Main exposing (main)",
+    });
+    await service.diagnostics(contextFor("devstudio-diagnostics"), {
+      projectPrefix: "hello",
+      path: "hello/src/Main.elm",
+    });
     await service.publish(contextFor("devstudio-publish"), {
       t256: "A".repeat(94),
     });
@@ -110,7 +129,15 @@ describe("apps service", () => {
       grants: [],
     });
 
-    expect(calls).toEqual(["package", "compile", "publish", "install", "preview"]);
+    expect(calls).toEqual([
+      "package",
+      "compile",
+      "format",
+      "diagnostics",
+      "publish",
+      "install",
+      "preview",
+    ]);
     expect(confirmations.map((entry) => entry.kind)).toEqual([
       "package",
       "package",
@@ -223,5 +250,35 @@ describe("apps service", () => {
         projectPrefix: "hello",
       }),
     ).rejects.toMatchObject({ code: "APPS_UNCONFIGURED" });
+    await expect(
+      service.format(contextFor("devstudio-unconfigured"), { content: "x" }),
+    ).rejects.toMatchObject({ code: "APPS_UNCONFIGURED" });
+    await expect(
+      service.diagnostics(contextFor("devstudio-unconfigured"), {
+        projectPrefix: "hello",
+      }),
+    ).rejects.toMatchObject({ code: "APPS_UNCONFIGURED" });
+  });
+
+  it("strips the project prefix from diagnostic paths and rejects non-string format", async () => {
+    let seen: { projectPrefix: string; path?: string } | undefined;
+    const service = new AppsService(
+      {
+        ...stubBackend([]),
+        diagnostics: async (_appId, request) => {
+          seen = request;
+          return { problems: [] };
+        },
+      },
+      undefined,
+    );
+    await service.diagnostics(contextFor("devstudio-path"), {
+      projectPrefix: "hello",
+      path: "hello/src/Main.elm",
+    });
+    expect(seen).toEqual({ projectPrefix: "hello", path: "src/Main.elm" });
+    await expect(
+      service.format(contextFor("devstudio-path"), { content: 1 }),
+    ).rejects.toMatchObject({ code: "APPS_BAD_REQUEST" });
   });
 });

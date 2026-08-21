@@ -312,6 +312,29 @@
       "spreadArgs": true
     },
     {
+      "id": "apps.format",
+      "namespace": "apps",
+      "method": "format",
+      "capability": "apps:package",
+      "sdkPath": ["apps", "format"],
+      "args": [{ "name": "content", "type": "string" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "apps.diagnostics",
+      "namespace": "apps",
+      "method": "diagnostics",
+      "capability": "apps:package",
+      "sdkPath": ["apps", "diagnostics"],
+      "args": [
+        { "name": "projectPrefix", "type": "string" },
+        { "name": "path", "type": "string" }
+      ],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
       "id": "apps.packageProject",
       "namespace": "apps",
       "method": "packageProject",

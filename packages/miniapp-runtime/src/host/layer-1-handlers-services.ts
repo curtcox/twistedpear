@@ -160,6 +160,25 @@ export abstract class MiniappHostLayer1HandlersServices extends MiniappHostLayer
 
     this.broker.register(
       "apps",
+      "format",
+      "apps:package",
+      async (request, context) =>
+        appsService().format(context, request.payload as { content: unknown }),
+    );
+
+    this.broker.register(
+      "apps",
+      "diagnostics",
+      "apps:package",
+      async (request, context) =>
+        appsService().diagnostics(
+          context,
+          request.payload as { projectPrefix: unknown; path?: unknown },
+        ),
+    );
+
+    this.broker.register(
+      "apps",
       "package",
       "apps:package",
       async (request, context) =>

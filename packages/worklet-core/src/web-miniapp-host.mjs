@@ -14,6 +14,8 @@ import {
 import { WebCodecsMediaCodecDriver } from "../../effects/dist/media-codec.js";
 import {
   createAppsBackendCompileAction,
+  createAppsBackendDiagnosticsAction,
+  createAppsBackendFormatAction,
   createAppsBackendPackageAction,
   createAppsBackendPreviewAction,
   createAppsBackendPublishAction,
@@ -273,6 +275,9 @@ export function createWebWorkletMiniappHost(options) {
           collectWorkspaceFiles,
           writeWorkspaceFile,
         })(...args),
+      format: (...args) => createAppsBackendFormatAction()(...args),
+      diagnostics: (...args) =>
+        createAppsBackendDiagnosticsAction({ collectWorkspaceFiles })(...args),
       package: (...args) =>
         createAppsBackendPackageAction({
           requirePublisherIdentity,

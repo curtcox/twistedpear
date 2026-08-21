@@ -3,6 +3,7 @@ import {
   CAPABILITY_DEFINITIONS,
   DEVICE_CAPABILITY_DEFINITIONS,
   DeviceManager,
+  HOST_API_CHANGELOG,
   HOST_API_VERSION,
   assertCapabilityAllowed,
   assertDeviceCapabilityAllowed,
@@ -201,7 +202,22 @@ describe("DeviceManager Phase 1", () => {
 
 describe("host API version", () => {
   it("includes elm code-editor language and apps.compile in 0.15.0", () => {
-    expect(HOST_API_VERSION).toBe("0.15.0");
+    expect(
+      HOST_API_CHANGELOG.some(
+        (entry) =>
+          entry.version === "0.15.0" && entry.note.includes("apps.compile"),
+      ),
+    ).toBe(true);
+  });
+
+  it("includes format and diagnostics in 0.16.0", () => {
+    expect(HOST_API_VERSION).toBe("0.16.0");
+    expect(
+      HOST_API_CHANGELOG.some(
+        (entry) =>
+          entry.version === "0.16.0" && entry.note.includes("apps.format"),
+      ),
+    ).toBe(true);
   });
 });
 

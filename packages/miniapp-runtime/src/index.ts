@@ -226,9 +226,12 @@ export type {
   AppManifestDraft,
   AppsBackend,
   AppsCompileResult,
+  AppsDiagnosticsResult,
+  AppsFormatResult,
   AppsInstallResult,
   AppsPackageResult,
   AppsPublishResult,
+  CompilerProblem,
 } from "./services/apps.js";
 export type { CasShareBackend } from "./host.js";
 export {
