@@ -11,7 +11,7 @@
     "dist": "npm run build && electron-builder"
   },
   "dependencies": {
-    "@twistedpear/host-core": "0.1.4",
+    "@twistedpear/host-core": "0.1.5",
     "@twistedpear/reticulum-interfaces": "0.2.0",
     "qrcode-generator": "^2.0.4"
   },
