@@ -57,6 +57,39 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
         value: String(n.props?.value ?? ""),
         placeholder: String(n.props?.placeholder ?? ""),
         ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...(n.props?.multiline === true ? { multiline: true } : {}),
+        ...(n.props?.secure === true ? { secure: true } : {}),
+        ...(typeof n.props?.keyboard === "string"
+          ? { keyboard: n.props.keyboard }
+          : {}),
+      },
+    }),
+    select: (n) => ({
+      ...base,
+      component: "Select",
+      props: {
+        value: String(n.props?.value ?? ""),
+        options: Array.isArray(n.props?.options) ? n.props.options : [],
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+      },
+    }),
+    slider: (n) => ({
+      ...base,
+      component: "Slider",
+      props: {
+        value: typeof n.props?.value === "number" ? n.props.value : 0,
+        min: typeof n.props?.min === "number" ? n.props.min : 0,
+        max: typeof n.props?.max === "number" ? n.props.max : 100,
+        ...(typeof n.props?.step === "number" ? { step: n.props.step } : {}),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+      },
+    }),
+    date: (n) => ({
+      ...base,
+      component: "Date",
+      props: {
+        value: String(n.props?.value ?? ""),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
       },
     }),
     switch: (n) => ({

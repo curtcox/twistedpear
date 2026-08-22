@@ -118,6 +118,7 @@ function parsePayload(value: unknown): string {
 export class AppChannelService {
   private readonly consents = new Map<string, AppChannelPeer>();
   private readonly inboxes = new Map<string, AppChannelMessage[]>();
+  private readonly watchers = new Map<string, Set<(message: AppChannelMessage) => void>>();
   private nextMessageId = 0;
 
   constructor(
@@ -169,7 +170,25 @@ export class AppChannelService {
       sentAt: this.host.now(),
     });
     this.inboxes.set(inboxKey, inbox);
+    const delivered = inbox[inbox.length - 1]!;
+    for (const handler of this.watchers.get(inboxKey) ?? []) {
+      handler(delivered);
+    }
     return { id };
+  }
+
+  watch(
+    peer: AppChannelPeer,
+    handler: (message: AppChannelMessage) => void,
+  ): () => void {
+    const key = identityKey(peer);
+    const bucket = this.watchers.get(key) ?? new Set();
+    bucket.add(handler);
+    this.watchers.set(key, bucket);
+    return () => {
+      bucket.delete(handler);
+      if (bucket.size === 0) this.watchers.delete(key);
+    };
   }
 
   receive(caller: AppChannelPeer): ReadonlyArray<AppChannelMessage> {
@@ -211,6 +230,7 @@ export class AppChannelService {
   dropApp(peer: AppChannelPeer): void {
     const key = identityKey(peer);
     this.inboxes.delete(key);
+    this.watchers.delete(key);
     for (const consent of [...this.consents.keys()]) {
       if (consent.startsWith(`${key}\0`) || consent.endsWith(`\0${key}`)) {
         this.consents.delete(consent);

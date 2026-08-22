@@ -21,6 +21,7 @@
             "button",
             "camera-preview",
             "code-editor",
+            "date",
             "divider",
             "image",
             "list",
@@ -29,6 +30,8 @@
             "qr-code",
             "remote-video",
             "scroll",
+            "select",
+            "slider",
             "spacer",
             "switch",
             "text",
@@ -135,6 +138,22 @@
               "required": [
                 "props"
               ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "date"
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "event": true,
+                    "value": true
+                  },
+                  "additionalProperties": false
+                }
+              }
             },
             {
               "type": "object",
@@ -275,6 +294,42 @@
               "type": "object",
               "properties": {
                 "type": {
+                  "const": "select"
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "event": true,
+                    "options": true,
+                    "value": true
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "slider"
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "event": true,
+                    "max": true,
+                    "min": true,
+                    "step": true,
+                    "value": true
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
                   "const": "spacer"
                 },
                 "props": {
@@ -327,7 +382,10 @@
                   "type": "object",
                   "properties": {
                     "event": true,
+                    "keyboard": true,
+                    "multiline": true,
                     "placeholder": true,
+                    "secure": true,
                     "value": true
                   },
                   "additionalProperties": false

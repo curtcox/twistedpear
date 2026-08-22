@@ -17,6 +17,7 @@ import type {
 import { MiniappHostLayer1 } from "./layer-1.js";
 import type { ActiveApp } from "./shared.js";
 import { pickFallbackForeground } from "./running-apps.js";
+import { DiagnosticsRing } from "../diagnostics.js";
 
 function applyNullableLimit(
   overrides: LimitOverrides,
@@ -107,6 +108,9 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     const memoryBytes =
       this.limitOverrides.get(manifest.name)?.memoryBytes ?? null;
 
+    const diagnostics = new DiagnosticsRing(() => this.now());
+    const appHolder: { current: ActiveApp | null } = { current: null };
+
     const lifecycle = new MiniappLifecycle(
       this.options.backend,
       {
@@ -123,6 +127,18 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
       {
         now: () => this.now(),
         delay: (ms) => this.delay(ms),
+        onAppError: (report) => {
+          const app = appHolder.current;
+          if (app !== undefined && app !== null) app.lastAppError = report;
+          this.options.callbacks?.onAppError?.({
+            ...report,
+            appId: manifest.name,
+          });
+        },
+        onAppLog: (level, message) => {
+          const entry = diagnostics.push(manifest.name, level, message);
+          this.options.callbacks?.onDiagnostics?.(entry);
+        },
       },
     );
 
@@ -138,13 +154,18 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
       lifecycle,
       launchedMemoryBytes: memoryBytes,
       widgetTree: null,
+      lastAppError: null,
       logs: [],
+      diagnostics,
+      pushUnsub: null,
     };
+    appHolder.current = app;
     const key = this.instanceKey(manifest.name, manifest.publisherPublicKey);
     this.apps.set(key, app);
     this.foregroundKey = key;
 
     const launched = await lifecycle.launch();
+    app.pushUnsub = this.attachPushWatches(app);
     this.logActive(manifest.name, `launched v${manifest.version}`);
     this.options.callbacks?.onLifecycle?.(launched);
     return this.snapshot();
@@ -267,6 +288,39 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     );
   }
 
+  diagnostics(appId?: string): import("../diagnostics.js").DiagnosticsRingSnapshot {
+    const app =
+      appId === undefined ? this.foregroundApp() : (this.appById(appId) ?? null);
+    if (app === null) {
+      return { entries: [], dropped: 0 };
+    }
+    return app.diagnostics.snapshot();
+  }
+
+  lastAppError(appId?: string): import("../diagnostics.js").AppErrorReport | null {
+    const app =
+      appId === undefined ? this.foregroundApp() : (this.appById(appId) ?? null);
+    return app?.lastAppError ?? null;
+  }
+
+  async crashApp(appId: string, reason = "injected"): Promise<MiniappHostSnapshot> {
+    const app = this.appById(appId);
+    if (app === undefined) {
+      throw new Error(`Mini-app is not running: ${appId}`);
+    }
+    const snapshot = await app.lifecycle.crash(reason);
+    await this.cleanupCrashed(app, snapshot);
+    return this.snapshot();
+  }
+
+  async postSandbox(appId: string, message: unknown): Promise<void> {
+    const app = this.appById(appId);
+    if (app === undefined) {
+      throw new Error(`Mini-app is not running: ${appId}`);
+    }
+    await app.lifecycle.postSandbox(message);
+  }
+
   async dispatchRaw(
     request: BrokerRequest,
     manifest: LaunchManifest,
@@ -316,6 +370,28 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     }
   }
 
+  private attachPushWatches(app: ActiveApp): () => void {
+    const appId = app.manifest.name;
+    const peer = {
+      appId,
+      publisherPublicKey: app.manifest.publisherPublicKey,
+    };
+    const unsubLxmf = this.lxmfService.watch(appId, (message) => {
+      void this.postSandbox(appId, { type: "lxmf-message", message });
+    });
+    const unsubAnnounce = this.announceService.watch(appId, (event) => {
+      void this.postSandbox(appId, { type: "announce-event", event });
+    });
+    const unsubChannel = this.channelService.watch(peer, (message) => {
+      void this.postSandbox(appId, { type: "channel-message", message });
+    });
+    return () => {
+      unsubLxmf();
+      unsubAnnounce();
+      unsubChannel();
+    };
+  }
+
   private async stopInstance(
     app: ActiveApp,
     reason: string,
@@ -326,6 +402,8 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     this.deviceService?.closeApp(appId);
     await this.inboundMedia?.closeApp(appId);
     await this.cancelAiStreams(appId);
+    app.pushUnsub?.();
+    app.pushUnsub = null;
     this.channelService.dropInbox({
       appId,
       publisherPublicKey: app.manifest.publisherPublicKey,
@@ -352,6 +430,8 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     await this.peerService?.closeRuntime(snapshot.appId, app.runtimeId);
     this.deviceService?.closeApp(snapshot.appId);
     await this.inboundMedia?.closeApp(snapshot.appId);
+    app.pushUnsub?.();
+    app.pushUnsub = null;
     this.channelService.dropInbox({
       appId: snapshot.appId,
       publisherPublicKey: app.manifest.publisherPublicKey,

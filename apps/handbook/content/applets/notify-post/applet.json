@@ -1,0 +1,14 @@
+{
+  "id": "notify-post",
+  "group": "runtime",
+  "title": "Post a host notification",
+  "capabilities": ["notify:post"],
+  "surfaces": ["notify.post"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

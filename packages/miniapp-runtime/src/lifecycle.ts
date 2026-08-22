@@ -7,6 +7,7 @@ import {
   DEFAULT_CHECKPOINT_BUDGET_MS,
   type SandboxCheckpointResult,
 } from "./sandbox/checkpoint.js";
+import type { AppErrorReport, DiagnosticsLevel } from "./diagnostics.js";
 
 export type MiniappLifecycleState =
   "installed" | "launching" | "running" | "suspended" | "stopped" | "crashed";
@@ -30,6 +31,8 @@ export interface LifecycleOptions {
   readonly delay: (ms: number) => Promise<void>;
   /** Hard budget for the will-suspend checkpoint ack. Overrun kills the app. */
   readonly checkpointBudgetMs?: number;
+  readonly onAppError?: (report: AppErrorReport) => void;
+  readonly onAppLog?: (level: DiagnosticsLevel, message: string) => void;
 }
 
 export class MiniappLifecycle {
@@ -39,6 +42,8 @@ export class MiniappLifecycle {
   private updatedAt: number;
   private storedCheckpoint: Uint8Array | null = null;
   private sandboxError: string | null = null;
+  private sandboxAppError: AppErrorReport | null = null;
+  private pendingPushes: unknown[] = [];
 
   constructor(
     private readonly backend: SandboxBackend,
@@ -69,9 +74,17 @@ export class MiniappLifecycle {
     this.transition("launching", null);
     this.storedCheckpoint = null;
     this.sandboxError = null;
+    this.sandboxAppError = null;
+    this.pendingPushes = [];
     this.instance = await this.backend.spawn({
       ...this.spawnOptions,
       brokerEndpoint: this.spawnOptions.brokerEndpoint,
+      onAppError: (report) => {
+        this.sandboxError = report.message;
+        this.sandboxAppError = report;
+        this.options.onAppError?.(report);
+      },
+      onAppLog: (level, message) => this.options.onAppLog?.(level, message),
     });
     this.transition("running", null);
     return this.snapshot();
@@ -86,10 +99,19 @@ export class MiniappLifecycle {
     return this.sandboxError;
   }
 
+  lastAppError(): AppErrorReport | null {
+    this.captureSandboxError();
+    return this.sandboxAppError;
+  }
+
   private captureSandboxError(): void {
     const error = this.instance?.lastError?.() ?? null;
     if (error !== null && error.length > 0) {
       this.sandboxError = error;
+    }
+    const report = this.instance?.lastAppError?.() ?? null;
+    if (report !== null) {
+      this.sandboxAppError = report;
     }
   }
 
@@ -129,6 +151,7 @@ export class MiniappLifecycle {
           : Array.from(this.storedCheckpoint),
     });
     this.transition("running", null);
+    await this.flushPendingPushes();
     return this.snapshot();
   }
 
@@ -153,6 +176,34 @@ export class MiniappLifecycle {
     }
 
     await this.instance.postMessage({ type: "ui-event", ...event });
+  }
+
+  async postSandbox(message: unknown): Promise<void> {
+    if (this.instance === null) {
+      throw new Error("No sandbox instance is running");
+    }
+    if (this.state === "suspended") {
+      this.pendingPushes.push(message);
+      return;
+    }
+    await this.instance.postMessage(message);
+  }
+
+  private async flushPendingPushes(): Promise<void> {
+    if (this.instance === null) return;
+    const queued = this.pendingPushes.splice(0);
+    for (const message of queued) {
+      await this.instance.postMessage(message);
+    }
+  }
+
+  async crash(reason = "injected"): Promise<MiniappLifecycleSnapshot> {
+    if (this.instance !== null) {
+      await this.instance.kill(reason);
+      this.instance = null;
+    }
+    this.transition("crashed", reason);
+    return this.snapshot();
   }
 
   async watchdogPing(): Promise<MiniappLifecycleSnapshot> {

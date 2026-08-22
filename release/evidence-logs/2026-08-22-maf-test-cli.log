@@ -1,0 +1,18 @@
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+✔ harness loop (0.426584ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 52.995542
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  19:23:41
+   Duration  1.85s (transform 1.14s, setup 0ms, import 1.68s, tests 91ms, environment 0ms)
+

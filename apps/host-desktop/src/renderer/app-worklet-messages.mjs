@@ -1,5 +1,6 @@
 import { renderWidgetTree } from "./widgets.js";
 import { handleDeviceBridgeRequest } from "./device-bridge.js";
+import { renderDiagnosticsPanel } from "./diagnostics-panel.mjs";
 import {
   handleMediaCodecRequest,
   handleMediaOpusPlayRequest,
@@ -37,6 +38,9 @@ export function handleWorkletMessage(scope, message) {
     showHostModal,
     pendingWorkspaceReads,
     renderLimits,
+    lifecycleChip,
+    appError,
+    appDiagnostics,
     renderTrustList,
     renderOwnIdentity,
     identityResult,
@@ -237,6 +241,16 @@ export function handleWorkletMessage(scope, message) {
           readDocument: readWorkspaceDocument,
           deviceSessions: lastDeviceState?.sessions ?? [],
         },
+      );
+      renderDiagnosticsPanel(
+        {
+          lifecycleChip,
+          appError,
+          appDiagnostics,
+          notifyEnabled: scope.notifyEnabled,
+          notifyHistory: scope.notifyHistory,
+        },
+        message.runtime,
       );
     }
   }

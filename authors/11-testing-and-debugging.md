@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-21
 register: none
 -->
 
@@ -13,7 +13,8 @@ cannot see. This chapter is about closing that gap.
 
 | Loop                       | Cost     | Catches                                            |
 | -------------------------- | -------- | -------------------------------------------------- |
-| Preview slot               | Seconds  | Logic, layout, capability denials                  |
+| `tp test` harness          | Seconds  | Logic, layout, capability denials, quota failures  |
+| Preview slot               | Seconds  | The same, in the host's sandboxed preview slot     |
 | Dev side-load              | Seconds  | The same, in a real host with real host chrome     |
 | Install from a package     | A minute | Manifest errors, signing, the actual grant screen  |
 | Install on a second device | Minutes  | Announce, resolution, seeding, real link behaviour |
@@ -146,9 +147,12 @@ really do rather than what the documentation says.
 
 ## The debugging tool you do not have
 
-There is no debugger, no breakpoint, and no devtools attached to the sandbox. You have
-`console` output surfaced by the host, and you have your own state rendered into a `text`
-widget.
+There is no debugger, no breakpoint, and no devtools attached to the sandbox. The host
+injects a `console` shim and surfaces `log` / `info` / `warn` / `error` lines in the
+desktop Runtime controls diagnostics pane and on `tp dev`. You also have your own state
+rendered into a `text` widget. `tp test <app-dir>` runs the app's `*.test.js` files
+against a real `MiniappHost` (`@twistedpear/miniapp-test`). `tp dev --link lan|ble|lora`
+throttles the side-load path to those profiles.
 
 That sounds worse than it is, given how small a single-file mini-app has to be. But it is a
 reason to keep your app small and your state explicit.

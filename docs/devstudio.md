@@ -73,7 +73,11 @@ force-quits. See [conformance/devstudio-loop](../conformance/devstudio-loop/READ
 
 ## v1 limitations
 
-- Projects may be a single-file JavaScript bundle or a multi-file Guida project (`elm.json` + `src/*.elm`). Guida compiles in host chrome via `apps.compile`. Format and Check use `apps.format` / `apps.diagnostics` without a confirmation prompt.
+- Projects may be a single-file JavaScript bundle, a multi-file JavaScript project
+  (relative imports linked by `tp app build`, no `node_modules`), or a multi-file
+  Guida project (`elm.json` + `src/*.elm`). Guida compiles in host chrome via
+  `apps.compile`. Format and Check use `apps.format` / `apps.diagnostics` without a
+  confirmation prompt.
 - DevStudio consumes `ai.chatStream` incrementally and shows the growing whole-file proposal.
   Apply remains disabled until the final event, so partial output cannot overwrite a file.
 - One preview slot; previewing again replaces the previous preview.

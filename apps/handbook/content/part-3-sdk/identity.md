@@ -32,6 +32,11 @@ Identity.sign payloadBytes GotSignature
 `destinationHash` is stable for a given install. `sign` accepts raw bytes and returns
 a signature verifiable against the app destination.
 
+Brokered `crypto.randomBytes`, `crypto.hash`, `crypto.hmac`, and
+`crypto.timingSafeEqual` take no capability — they expose no user data. Apps must
+use that namespace rather than ambient `globalThis.crypto`, which is not
+guaranteed inside every sandbox.
+
 ## Outcomes
 
 - `pass` — hash and signing path work on this host.

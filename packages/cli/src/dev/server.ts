@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { bytesToHex } from "@twistedpear/reticulum-ts";
 import { prepareBundleSource } from "@twistedpear/miniapp-runtime";
+import type { LinkProfile } from "@twistedpear/miniapp-test";
 
 export interface DevServerOptions {
   readonly appDir: string;
@@ -17,6 +18,9 @@ export interface DevServerOptions {
     readonly publisherPublicKey: string;
     readonly minHostApi: string;
   };
+  readonly link?: LinkProfile;
+  readonly onClientMessage?: (payload: unknown) => void;
+  readonly log?: (line: string) => void;
 }
 
 export interface DevServerHandle {
@@ -30,13 +34,83 @@ function readBundle(appDir: string, entry: string): Uint8Array {
 }
 
 function pushBundle(socket: Socket, options: DevServerOptions): void {
+  if (options.link?.peerOffline === true) {
+    return;
+  }
   const bundle = readBundle(options.appDir, options.manifest.entry);
   const payload = {
     type: "dev-bundle",
-    manifest: options.manifest,
+    manifest: {
+      ...options.manifest,
+      ...(options.link === undefined ? {} : { link: options.link }),
+    },
     bundleHex: bytesToHex(bundle),
   };
-  socket.write(`${JSON.stringify(payload)}\n`);
+  const line = `${JSON.stringify(payload)}\n`;
+  if (options.link !== undefined && options.link.loss > 0) {
+    if (Math.random() < options.link.loss) return;
+  }
+  const serializeMs =
+    options.link === undefined
+      ? 0
+      : (Buffer.byteLength(line) * 8 * 1000) / options.link.bitrate;
+  const delay = (options.link?.latencyMs ?? 0) + serializeMs;
+  if (delay > 0) {
+    setTimeout(() => {
+      if (!socket.destroyed) socket.write(line);
+    }, delay);
+    return;
+  }
+  socket.write(line);
+}
+
+function formatClientLine(payload: {
+  readonly type?: string;
+  readonly level?: string;
+  readonly message?: string;
+  readonly phase?: string;
+}): string | null {
+  if (payload.type === "app-log") {
+    return `[app] ${payload.level ?? "log"}: ${payload.message ?? ""}`;
+  }
+  if (payload.type === "app-error") {
+    return `[app-error] ${payload.phase ?? "bundle"}: ${payload.message ?? ""}`;
+  }
+  return null;
+}
+
+function attachClientReader(
+  socket: Socket,
+  options: DevServerOptions,
+): void {
+  let inbound = "";
+  const log = options.log ?? ((line: string) => console.log(line));
+  socket.on("data", (chunk) => {
+    inbound += typeof chunk === "string" ? chunk : chunk.toString("utf8");
+    let newline = inbound.indexOf("\n");
+    while (newline >= 0) {
+      const line = inbound.slice(0, newline);
+      inbound = inbound.slice(newline + 1);
+      if (line.length > 0) {
+        try {
+          const payload: unknown = JSON.parse(line);
+          options.onClientMessage?.(payload);
+          const formatted = formatClientLine(
+            payload as {
+              type?: string;
+              level?: string;
+              message?: string;
+              phase?: string;
+            },
+          );
+          if (formatted !== null) log(formatted);
+        } catch {
+          // Host chrome may send non-JSON; ignore.
+        }
+      }
+      newline = inbound.indexOf("\n");
+    }
+  });
 }
 
 export async function startDevServer(
@@ -45,6 +119,7 @@ export async function startDevServer(
   let activeSocket: Socket | null = null;
   const server: Server = createServer((socket) => {
     activeSocket = socket;
+    attachClientReader(socket, options);
     pushBundle(socket, options);
   });
 

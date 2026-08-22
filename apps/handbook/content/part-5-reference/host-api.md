@@ -7,7 +7,7 @@ audited: 2026-07-21
 register: none
 -->
 
-Current `HOST_API_VERSION`: **`0.16.0`**.
+Current `HOST_API_VERSION`: **`0.20.0`**.
 Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 
 ## Changelog
@@ -28,6 +28,10 @@ Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 - **`0.14.0`** — runtime:background (Android foreground-service execution) and runtime:wake (rationed periodic wake).
 - **`0.15.0`** — code-editor language elm, and apps.compile for on-device Guida builds behind apps:package confirmation.
 - **`0.16.0`** — apps.format and apps.diagnostics for on-device Guida editing (no confirmation); DevStudio multi-file projects.
+- **`0.17.0`** — lxmf.onMessage, announce.onEvent, and apps.channel.onMessage push delivery; receive() remains a destructive drain.
+- **`0.18.0`** — notify:post — host-rendered, app-attributed notifications with per-host rate ceiling.
+- **`0.19.0`** — Brokered crypto.randomBytes, crypto.hash, crypto.hmac, and crypto.timingSafeEqual (no capability; no seal/open).
+- **`0.20.0`** — Widget vocabulary: text-input multiline/secure/keyboard, plus select, slider, and date.
 
 ## host.info()
 

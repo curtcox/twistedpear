@@ -139,4 +139,41 @@ describe("widget tree golden render model", () => {
       ],
     });
   });
+
+  it("matches controls fixture", () => {
+    const tree = validateWidgetTree({
+      root: {
+        id: "root",
+        type: "view",
+        children: [
+          {
+            id: "name",
+            type: "text-input",
+            props: {
+              value: "",
+              placeholder: "Name",
+              event: "name",
+              keyboard: "default",
+            },
+          },
+          {
+            id: "size",
+            type: "select",
+            props: { value: "m", options: ["s", "m", "l"], event: "size" },
+          },
+          {
+            id: "level",
+            type: "slider",
+            props: { value: 50, min: 0, max: 100, event: "level" },
+          },
+          {
+            id: "when",
+            type: "date",
+            props: { value: "2026-08-21", event: "when" },
+          },
+        ],
+      },
+    });
+    expect(describeWidgetTree(tree)).toEqual(loadFixture("controls"));
+  });
 });

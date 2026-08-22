@@ -1,3 +1,4 @@
+import type { AppErrorReport, DiagnosticsLevel } from "../diagnostics.js";
 import type { SandboxCheckpointResult } from "./checkpoint.js";
 
 export interface SandboxLimits {
@@ -12,6 +13,9 @@ export interface SandboxSpawnOptions {
   readonly bundle: Uint8Array;
   readonly brokerEndpoint: unknown;
   readonly limits?: SandboxLimits;
+  /** Host-owned; must not travel the broker request path. */
+  readonly onAppError?: (report: AppErrorReport) => void;
+  readonly onAppLog?: (level: DiagnosticsLevel, message: string) => void;
 }
 
 export interface SandboxInstance {
@@ -20,6 +24,7 @@ export interface SandboxInstance {
   ping(timeoutMs: number): Promise<boolean>;
   isAlive(): boolean;
   lastError?(): string | null;
+  lastAppError?(): AppErrorReport | null;
   kill(reason: string): Promise<void>;
   /**
    * Ask the worker for its stored checkpoint within `budgetMs`. Optional so

@@ -15,6 +15,8 @@ Phase 4 hostile fixtures target the sandbox and broker chokepoint:
 - message flood: broker throttle then kill policy
 - UI abuse: depth bomb, node bomb, oversized tree, unknown component, unknown prop/style,
   and forged events
+- handler errors: synchronous throw, rejected promise, and throw after `await` — each
+  leaves the app `running` with a structured `app-error` naming the event
 
 The current checked-in tests cover watchdog kill, escape probes, broker throttling,
 widget rejection (unknown component, depth bomb, node bomb, bad props), and 100

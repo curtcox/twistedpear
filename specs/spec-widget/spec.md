@@ -27,7 +27,8 @@ The closed component set the schema must cover (as implemented in
 [MiniappWidgetTree.tsx](../../packages/widget-renderer-rn/src/MiniappWidgetTree.tsx)
 and validated by the host broker): `view`, `text`, `image`, `button`, `text-input`,
 `switch`, `scroll`, `list`, `progress`, `divider`, `spacer`, `code-editor`,
-`qr-code`. `code-editor` is content-by-reference — it carries a workspace
+`qr-code`, `select`, `slider`, `date`. `text-input` also accepts `multiline`,
+`secure`, and `keyboard` (`default` / `numeric` / `email` / `url`). `code-editor` is content-by-reference — it carries a workspace
 `documentId`, never file text ([docs/miniapp-sdk.md](../../docs/miniapp-sdk.md)).
 
 Tree well-formedness (enforced by

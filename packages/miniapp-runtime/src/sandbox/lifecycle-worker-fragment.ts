@@ -1,6 +1,7 @@
 /**
  * Worker-side checkpoint helpers spliced into sandbox bootstraps.
  * `post` is `parentPort.postMessage` or `self.postMessage`.
+ * Resume errors call `reportAppError` when the app-error fragment is present.
  */
 export function lifecycleWorkerFragment(post: string): string {
   return `let checkpointBlob = null;
@@ -24,7 +25,9 @@ function handleLifecycleMessage(message) {
   }
   if (message.state === "running" && resumeHandler !== null) {
     const delivered = message.checkpoint == null ? checkpointBlob : new Uint8Array(message.checkpoint);
-    void Promise.resolve(resumeHandler(delivered));
+    void Promise.resolve(resumeHandler(delivered)).catch(function (error) {
+      if (typeof reportAppError === "function") reportAppError("lifecycle", error);
+    });
   }
   return true;
 }

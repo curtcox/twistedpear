@@ -43,12 +43,75 @@ function renderNode(node, onEvent, options = {}) {
       return element;
     }
     case "text-input": {
-      const element = document.createElement("input");
+      const element = document.createElement(
+        node.props?.multiline === true ? "textarea" : "input",
+      );
       element.className = "widget-input";
+      if (element instanceof HTMLInputElement) {
+        element.type = node.props?.secure === true ? "password" : "text";
+        if (node.props?.keyboard === "numeric") element.inputMode = "numeric";
+        if (node.props?.keyboard === "email") element.type = "email";
+        if (node.props?.keyboard === "url") element.type = "url";
+      }
       element.value = String(node.props?.value ?? "");
-      element.placeholder = String(node.props?.placeholder ?? "");
+      if ("placeholder" in element) {
+        element.placeholder = String(node.props?.placeholder ?? "");
+      }
       applyStyle(element, style);
       element.addEventListener("input", () => {
+        const event = node.props?.event;
+        if (typeof event === "string") {
+          onEvent?.(node.id, event, element.value);
+        }
+      });
+      return element;
+    }
+    case "select": {
+      const element = document.createElement("select");
+      element.className = "widget-input";
+      const options = Array.isArray(node.props?.options)
+        ? node.props.options
+        : [];
+      for (const option of options) {
+        const item = document.createElement("option");
+        item.value = String(option);
+        item.textContent = String(option);
+        element.appendChild(item);
+      }
+      element.value = String(node.props?.value ?? "");
+      applyStyle(element, style);
+      element.addEventListener("change", () => {
+        const event = node.props?.event;
+        if (typeof event === "string") {
+          onEvent?.(node.id, event, element.value);
+        }
+      });
+      return element;
+    }
+    case "slider": {
+      const element = document.createElement("input");
+      element.type = "range";
+      element.min = String(node.props?.min ?? 0);
+      element.max = String(node.props?.max ?? 100);
+      if (typeof node.props?.step === "number") {
+        element.step = String(node.props.step);
+      }
+      element.value = String(node.props?.value ?? 0);
+      applyStyle(element, style);
+      element.addEventListener("input", () => {
+        const event = node.props?.event;
+        if (typeof event === "string") {
+          onEvent?.(node.id, event, Number(element.value));
+        }
+      });
+      return element;
+    }
+    case "date": {
+      const element = document.createElement("input");
+      element.type = "date";
+      element.value = String(node.props?.value ?? "");
+      applyStyle(element, style);
+      element.addEventListener("change", () => {
         const event = node.props?.event;
         if (typeof event === "string") {
           onEvent?.(node.id, event, element.value);

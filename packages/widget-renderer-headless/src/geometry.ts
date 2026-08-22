@@ -79,6 +79,9 @@ const MAX_WIDTHS: Partial<Record<WidgetNode["type"], number>> = {
 
 const FIXED_HEIGHTS: Partial<Record<WidgetNode["type"], number>> = {
   "text-input": INTRINSIC.textInputHeight,
+  select: INTRINSIC.textInputHeight,
+  slider: INTRINSIC.switchHeight,
+  date: INTRINSIC.textInputHeight,
   switch: INTRINSIC.switchHeight,
   progress: INTRINSIC.progressHeight,
   divider: INTRINSIC.dividerHeight,

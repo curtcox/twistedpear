@@ -2,12 +2,12 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-21
+audited: 2026-08-21
 register: none
 -->
 
 Phase 4 introduces a host-rendered, brokered mini-app runtime. The current host API
-anchor is `HOST_API_VERSION = 0.16.0`; package `minHostApi` checks and capability
+anchor is `HOST_API_VERSION = 0.20.0`; package `minHostApi` checks and capability
 validation use that value.
 
 ## Isolation ADR
@@ -78,6 +78,16 @@ running mini-apps. Opening it raises a host confirmation that names the other ap
 sides must grant the pair. Payloads copy through the host. Shared storage is not included.
 Host API `0.14.0` adds `runtime:background` (Android foreground-service execution, rationed
 to two apps) and `runtime:wake` / `host.requestWake` (per-host periodic wake budget).
+Host API `0.17.0` adds push delivery: `lxmf.onMessage`, `announce.onEvent`, and
+`apps.channel.onMessage`. Pushes are at-least-once; `receive()` remains a destructive
+drain. A suspended sandbox queues deliveries until resume.
+Host API `0.18.0` adds `notify:post` — host-rendered, app-attributed notifications
+with a per-host burst of 3 and a 10 s refill. Enable/disable and history live on
+`MiniappHost`; tapping delivers `event` through `ui.onEvent`.
+Host API `0.19.0` adds brokered `crypto.randomBytes` / `hash` / `hmac` /
+`timingSafeEqual` with no capability (no seal/open).
+Host API `0.20.0` adds `text-input` `multiline` / `secure` / `keyboard` plus
+`select`, `slider`, and `date` widgets.
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are
@@ -153,6 +163,15 @@ by the sandbox backend where supported. Host suspend collects a `host.setCheckpo
 
 Force-quit is always available: `stop("user-forced")` terminates the worker outright
 (busy-loop-proof) and is surfaced as a Force quit button in the desktop host.
+
+Handler throws in `ui.onEvent` report a structured `app-error` (`phase`, `message`,
+optional `stack` / `event` / `nodeId`) and leave the app `running` unless `phase` is
+`bundle`. Desktop Runtime controls badge the text as app-authored.
+
+A host-owned diagnostics ring (200 entries × 4 KiB, drop-oldest) captures sandbox
+`console` output off the broker path, so logging does not consume the 60/s budget.
+The ring is not readable from the app. Desktop Runtime controls and `tp dev` stream
+the same entries.
 
 ## UI
 

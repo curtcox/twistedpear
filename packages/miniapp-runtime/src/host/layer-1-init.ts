@@ -7,11 +7,13 @@ import {
   AppChannelService,
   AppIdentityService,
   AppsService,
+  CryptoService,
   DeviceBrokerService,
   FreenetBrokerService,
   HostInfoService,
   LinkQualityService,
   NamespacedLxmfService,
+  NotifyService,
   PeerBrokerService,
   PeerRouteLinkObservatory,
   PresenceService,
@@ -22,6 +24,7 @@ import {
   type AnnounceBackend,
   type IdentityBackend,
   type LinkObservatoryBackend,
+  type LxmfBackend,
 } from "../services/index.js";
 import { resolveChannelPeer } from "./running-apps.js";
 import type { ActiveApp, MiniappHostOptions } from "./shared.js";
@@ -205,7 +208,7 @@ function createInboundMedia(
 
 export interface HostLayer1Services {
   readonly identityService: AppIdentityService;
-  readonly lxmfService: NamespacedLxmfService;
+  readonly lxmfService: LxmfBackend;
   readonly announceService: AnnounceBackend;
   readonly resourceService: ResourceService | null;
   readonly presenceService: PresenceService | null;
@@ -219,6 +222,8 @@ export interface HostLayer1Services {
   readonly deviceService: DeviceBrokerService | null;
   readonly inboundMedia: InboundMediaRouter | null;
   readonly channelService: AppChannelService;
+  readonly notifyService: NotifyService;
+  readonly cryptoService: CryptoService;
   readonly workspace: WorkspaceService;
 }
 
@@ -252,6 +257,8 @@ export function createHostLayer1Services(
       },
       options.confirmationChannel,
     ),
+    notifyService: new NotifyService(now),
+    cryptoService: new CryptoService(options.cryptoEntropy),
     workspace: new WorkspaceService(options.kvBackend, options.workspaceLimits),
   };
 }

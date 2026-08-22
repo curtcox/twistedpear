@@ -63,8 +63,8 @@ export function printHelp(command: string): void {
       "tp create <hello|chat-min> [app-dir]  Scaffold a mini-app template",
     guida:
       "tp guida init [app-dir]  Scaffold a Guida mini-app (Main.elm + elm.json)",
-    app: "tp app build <app-dir> [--out <file>] [--no-minify]  Compile a Guida project to bundle.js",
-    dev: "tp dev <app-dir> [--host 127.0.0.1:34987]  Build and side-load to a dev-mode host",
+    app: "tp app build <app-dir> [--out <file>] [--no-minify]  Compile a Guida or multi-file JS project to bundle.js",
+    dev: "tp dev <app-dir> [--host 127.0.0.1:34987] [--link lan|ble|lora] [--loss <pct>] [--peer-offline]  Build and side-load to a dev-mode host",
     pack: "tp pack <app-dir> [--out <file.tpkg>]  Build unsigned package archive",
     sign: "tp sign <file.tpkg>  Re-sign an existing package archive",
     publish:
@@ -75,6 +75,11 @@ export function printHelp(command: string): void {
     node: "tp node [--data-dir <path>] [--relay-mode <off|bridge|transport-node>] [--enable <kind>] [--disable <kind>] [--direction <tx|rx|both>] [--ntfy-server <url>] [--ntfy-topic <topic>] [--ntfy-secret <secret>] [--rnode-port <path>] [--i2p-peer <destination>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint [port]] [--test-agent host:port[:label]] [--freenet [ws-url]] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-binary <path>] [--freenet-binary-sha256 <hex>] [--freenet-interface] [--freenet-rendezvous <64hex>] [--freenet-direction <0|1>]  Run desktop-class host node",
     trust:
       "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers",
+    test: "tp test <app-dir>  Run the app's harness tests against a real MiniappHost",
+    inspect:
+      "tp inspect <file.tpkg|256t>  Resolve, verify hashes and signature, print capabilities and install time",
+    doctor:
+      "tp doctor <app-dir>  Declared vs used capabilities, size ceilings, accessibility, widgets",
   };
 
   console.log(help[command] ?? `tp ${command}`);

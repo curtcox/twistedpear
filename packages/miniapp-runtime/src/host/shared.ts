@@ -33,6 +33,12 @@ import { type FreenetContractBackend } from "../services/freenet.js";
 import type { DeviceManager } from "../device-manager.js";
 import type { HostPlatformId } from "../services/host-info.js";
 import { type InboundMediaBackend } from "../media-stream.js";
+import type {
+  AppErrorReport,
+  DiagnosticsLogEntry,
+  DiagnosticsRing,
+  DiagnosticsRingSnapshot,
+} from "../diagnostics.js";
 export interface LaunchManifest {
   readonly name: string;
   readonly version: string;
@@ -54,6 +60,8 @@ export interface MiniappHostSnapshot {
   readonly state: string;
   readonly widgetTree: WidgetTree | null;
   readonly logs: ReadonlyArray<MiniappHostLogEntry>;
+  readonly lastAppError: AppErrorReport | null;
+  readonly diagnostics: DiagnosticsRingSnapshot;
 }
 
 export interface MiniappHostCallbacks {
@@ -70,6 +78,9 @@ export interface MiniappHostCallbacks {
   readonly onLifecycle?: (
     snapshot: ReturnType<MiniappLifecycle["snapshot"]>,
   ) => void;
+  readonly onAppError?: (report: AppErrorReport & { readonly appId: string }) => void;
+  readonly onDiagnostics?: (entry: DiagnosticsLogEntry) => void;
+  readonly onNotification?: (notification: import("../services/notify.js").HostNotification) => void;
 }
 
 export interface MiniappHostOptions {
@@ -119,6 +130,8 @@ export interface MiniappHostOptions {
   readonly inboundMediaBackend?: InboundMediaBackend;
   /** Deterministic clock used by simulation and replay adapters. */
   readonly now?: () => number;
+  /** Injected entropy for brokered crypto.randomBytes (Sans-IO adapter). */
+  readonly cryptoEntropy?: { randomBytes(n: number): Uint8Array };
   /** Host process platform; gates whether runtime:background actually runs. */
   readonly hostPlatform?: HostPlatformId;
   /** Independent audit sink used by production-backed simulation projections. */
@@ -165,7 +178,10 @@ export interface ActiveApp {
   readonly lifecycle: MiniappLifecycle;
   readonly launchedMemoryBytes: number | null;
   widgetTree: WidgetTree | null;
+  lastAppError: AppErrorReport | null;
   readonly logs: MiniappHostLogEntry[];
+  readonly diagnostics: DiagnosticsRing;
+  pushUnsub: (() => void) | null;
 }
 
 export interface AiStreamSession {

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-08-21
 register: none
 -->
 
@@ -107,7 +107,9 @@ tp dev my-app
 
 This validates your manifest's capabilities, builds the app, and serves it to a host running
 in developer mode. Point the host's developer-mode setting at the printed URL and it
-side-loads; edit and it reloads.
+side-loads; edit and it reloads. `tp test my-app` runs the same host headlessly against
+the app's `*.test.js` files. `tp dev --link lora` throttles that path to a LoRa-like
+profile.
 
 ![A host in developer mode with a side-loaded app badged DEV](/authors/images/03-dev-sideload.png)
 

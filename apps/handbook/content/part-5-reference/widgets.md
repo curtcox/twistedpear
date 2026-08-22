@@ -18,6 +18,7 @@ duplicate ids, or oversized trees are rejected.
 - **`button`** — props: `event`, `label`
 - **`camera-preview`** — props: `aspectRatio`, `session`
 - **`code-editor`** — props: `documentId`, `event`, `language`, `readOnly`
+- **`date`** — props: `event`, `value`
 - **`divider`** — props: none
 - **`image`** — props: `alt`, `asset`
 - **`list`** — props: `event`, `items`
@@ -26,10 +27,12 @@ duplicate ids, or oversized trees are rejected.
 - **`qr-code`** — props: `caption`, `size`, `value`
 - **`remote-video`** — props: `peer`, `session`
 - **`scroll`** — props: `event`, `scrollOffset`
+- **`select`** — props: `event`, `options`, `value`
+- **`slider`** — props: `event`, `max`, `min`, `step`, `value`
 - **`spacer`** — props: `size`
 - **`switch`** — props: `event`, `value`
 - **`text`** — props: `value`
-- **`text-input`** — props: `event`, `placeholder`, `value`
+- **`text-input`** — props: `event`, `keyboard`, `multiline`, `placeholder`, `secure`, `value`
 - **`view`** — props: `accessibilityLabel`
 - **`waveform`** — props: `session`
 

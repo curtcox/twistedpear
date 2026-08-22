@@ -211,6 +211,15 @@ export function createPreviewRuntimePusher(send, previewRef) {
         version: snapshot.version,
         state: snapshot.state,
         widgetTree: snapshot.widgetTree,
+        lastAppError: snapshot.lastAppError,
+        diagnostics: snapshot.diagnostics,
+        notifications: host.notifications(),
+        notifyEnabled:
+          snapshot.appId === null
+            ? true
+            : typeof host.notifyEnabled === "function"
+              ? host.notifyEnabled(snapshot.appId)
+              : true,
         devBadge: true,
       },
     });
@@ -233,6 +242,15 @@ export function createMainRuntimePusher(
         version: snapshot.version,
         state: snapshot.state,
         widgetTree: snapshot.widgetTree,
+        lastAppError: snapshot.lastAppError,
+        diagnostics: snapshot.diagnostics,
+        notifications: host.notifications(),
+        notifyEnabled:
+          snapshot.appId === null
+            ? true
+            : typeof host.notifyEnabled === "function"
+              ? host.notifyEnabled(snapshot.appId)
+              : true,
         devBadge: devBadgeRef.current,
         running: host.running().map((item) => ({
           appId: item.appId,
@@ -276,6 +294,8 @@ export function createPreviewHostFactory({
             appId: `preview:${entry.appId}`,
             line: entry.line,
           }),
+        onAppError: () => pushPreviewRuntime(),
+        onDiagnostics: () => pushPreviewRuntime(),
         onLifecycle: () => pushPreviewRuntime(),
       },
     });

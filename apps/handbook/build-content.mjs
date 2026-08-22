@@ -60,6 +60,8 @@ export const SDK_NAMESPACES = [
   "freenet",
   "relay",
   "device",
+  "notify",
+  "crypto",
 ];
 export const MIN_CHAPTER_WORDS = {
   "part-1-concepts": 80,

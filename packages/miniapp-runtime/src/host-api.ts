@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.16.0";
+export const HOST_API_VERSION = "0.20.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -67,7 +67,23 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "code-editor language elm, and apps.compile for on-device Guida builds behind apps:package confirmation.",
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.16.0",
     note: "apps.format and apps.diagnostics for on-device Guida editing (no confirmation); DevStudio multi-file projects.",
+  },
+  {
+    version: "0.17.0",
+    note: "lxmf.onMessage, announce.onEvent, and apps.channel.onMessage push delivery; receive() remains a destructive drain.",
+  },
+  {
+    version: "0.18.0",
+    note: "notify:post — host-rendered, app-attributed notifications with per-host rate ceiling.",
+  },
+  {
+    version: "0.19.0",
+    note: "Brokered crypto.randomBytes, crypto.hash, crypto.hmac, and crypto.timingSafeEqual (no capability; no seal/open).",
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "Widget vocabulary: text-input multiline/secure/keyboard, plus select, slider, and date.",
   },
 ];

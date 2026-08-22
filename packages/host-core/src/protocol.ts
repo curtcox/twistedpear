@@ -54,6 +54,20 @@ export interface MiniappRuntimeView {
   readonly widgetTree: unknown | null;
   readonly devBadge?: boolean;
   readonly running?: ReadonlyArray<MiniappRunningView>;
+  readonly lastAppError?: {
+    readonly phase: string;
+    readonly message: string;
+    readonly event?: string;
+    readonly nodeId?: string;
+  } | null;
+  readonly diagnostics?: {
+    readonly entries: ReadonlyArray<{
+      readonly level: string;
+      readonly message: string;
+      readonly at: number;
+    }>;
+    readonly dropped: number;
+  };
 }
 
 interface MiniappRunningView {

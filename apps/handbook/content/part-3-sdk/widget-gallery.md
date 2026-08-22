@@ -8,7 +8,8 @@ register: none
 
 The widget protocol is the cross-platform UI seam. Allowed components:
 `view`, `text`, `image`, `button`, `text-input`, `switch`, `scroll`, `list`,
-`progress`, `divider`, `spacer`, `code-editor`, `qr-code`.
+`progress`, `divider`, `spacer`, `code-editor`, `qr-code`, `select`, `slider`,
+`date`. `text-input` also accepts `multiline`, `secure`, and `keyboard`.
 
 Hosts on Android, iOS, desktop, and web render the same declarative tree —
 mini-apps do not ship native UI code.
@@ -22,7 +23,7 @@ duplicate ids, and oversized trees.
 ## Component roles
 
 - **Layout** — `view`, `scroll`, `spacer`, `divider`
-- **Input** — `button`, `text-input`, `switch`
+- **Input** — `button`, `text-input`, `switch`, `select`, `slider`, `date`
 - **Display** — `text`, `image`, `progress`, `list`, `qr-code`
 - **Docs** — `code-editor` for samples and applet sources
 

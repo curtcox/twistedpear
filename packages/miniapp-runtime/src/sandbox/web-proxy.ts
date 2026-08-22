@@ -223,8 +223,12 @@ class ProxySandboxInstance implements SandboxInstance {
       return;
     }
 
-    const typed = message as { type?: string };
-    if (typed.type === "sandbox-exit" || typed.type === "app-error") {
+    const typed = message as { type?: string; phase?: string };
+    if (typed.type === "sandbox-exit") {
+      this.alive = false;
+      return;
+    }
+    if (typed.type === "app-error" && typed.phase === "bundle") {
       this.alive = false;
     }
   }

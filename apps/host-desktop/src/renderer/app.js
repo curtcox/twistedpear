@@ -59,6 +59,9 @@ const limitRate = document.querySelector("#limit-rate");
 const limitKv = document.querySelector("#limit-kv");
 const limitMemory = document.querySelector("#limit-memory");
 const limitsNote = document.querySelector("#limits-note");
+const lifecycleChip = document.querySelector("#lifecycle-chip");
+const appError = document.querySelector("#app-error");
+const appDiagnostics = document.querySelector("#app-diagnostics");
 const limitsApply = document.querySelector("#limits-apply");
 const forceQuit = document.querySelector("#force-quit");
 
@@ -464,6 +467,9 @@ const shellScope = {
   renderInstalled,
   renderGrants,
   renderLimits,
+  lifecycleChip,
+  appError,
+  appDiagnostics,
   renderTrustList,
   renderOwnIdentity,
   renderModerationState,

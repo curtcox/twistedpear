@@ -52,24 +52,8 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID                    | Status | Item                                                             | Evidence | Verify                                                                         |
-| --------------------- | ------ | ---------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------ |
-| MAF-ERROR-VISIBILITY  | open   | Errors thrown in ui.onEvent handlers are silently dropped        | —        | `npx vitest run packages/miniapp-runtime/test/sandbox-error-reporting.test.ts` |
-| MAF-LOG-RING          | open   | Per-app diagnostics ring for sandbox console output              | —        | `npx vitest run packages/miniapp-runtime/test/diagnostics-ring.test.ts`        |
-| MAF-LOG-CHROME        | open   | Surface the diagnostics ring in desktop chrome and tp dev        | —        | `npx vitest run apps/host-desktop/test/diagnostics-panel.test.ts`              |
-| MAF-TEST-HARNESS      | open   | Publish an author-facing headless mini-app test harness          | —        | `npx vitest run packages/miniapp-test/test/harness.test.ts`                    |
-| MAF-TEST-CLI          | open   | tp test runs an app project against the harness                  | —        | `npx vitest run packages/cli/test/test-command.test.ts`                        |
-| MAF-AMBIENT-SURFACE   | open   | Specify and pin the ambient JS global surface inside the sandbox | —        | `npx vitest run packages/miniapp-runtime/test/ambient-globals.test.ts`         |
-| MAF-DOC-DRIFT         | open   | Correct two documented SDK surfaces that do not exist            | —        | `npx vitest run conformance/doc-audit/sdk-surface-claims.test.mjs`             |
-| MAF-PUSH-DELIVERY     | open   | Push delivery for lxmf, announce, and app-channel messages       | —        | `npx vitest run packages/miniapp-runtime/test/push-delivery.test.ts`           |
-| MAF-NOTIFY            | open   | notify:post, host-rendered app-attributed user notifications     | —        | `npx vitest run packages/miniapp-runtime/test/notify-service.test.ts`          |
-| MAF-CRYPTO            | open   | crypto namespace: randomBytes, hash, hmac, timingSafeEqual       | —        | `npx vitest run packages/miniapp-runtime/test/crypto-service.test.ts`          |
-| MAF-CLI-INSPECT       | open   | tp inspect resolves and verifies a package before install        | —        | `npx vitest run packages/cli/test/inspect-command.test.ts`                     |
-| MAF-CLI-DOCTOR        | open   | tp doctor lints an app project against platform budgets          | —        | `npx vitest run packages/cli/test/doctor-command.test.ts`                      |
-| MAF-WIDGET-TEXT-INPUT | open   | text-input gains multiline, secure, and keyboard-type props      | —        | `npx vitest run packages/miniapp-runtime/test/ui-schema-text-input.test.ts`    |
-| MAF-WIDGET-CONTROLS   | open   | select, slider, and date widgets                                 | —        | `npx vitest run packages/miniapp-runtime/test/ui-schema-controls.test.ts`      |
-| MAF-LINK-SIM          | open   | tp dev injects link conditions for authoring                     | —        | `npx vitest run packages/cli/test/link-profiles.test.ts`                       |
-| MAF-MULTI-FILE-JS     | open   | Multi-file JavaScript mini-app projects                          | —        | `npx vitest run packages/cli/test/multifile-build.test.ts`                     |
+| ID  | Status | Item | Evidence | Verify |
+| --- | ------ | ---- | -------- | ------ |
 
 ## Blocked backlog
 

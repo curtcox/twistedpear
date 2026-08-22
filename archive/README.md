@@ -41,6 +41,7 @@ For the live/planned split that governs everything outside this tree, see
 | [design/observability-plan.md](design/observability-plan.md) | 2026-08-05 | Executed. Current behaviour in [docs/observability.md](../docs/observability.md) |
 | [design/guida-ui-plan.md](design/guida-ui-plan.md) | 2026-08-20 | Executed. Current behaviour in [docs/guida-ui.md](../docs/guida-ui.md) |
 | [design/web-editor-plan.md](design/web-editor-plan.md) | 2026-08-21 | Executed. Current behaviour in [docs/devstudio.md](../docs/devstudio.md#browser-editor-documentation-site) |
+| [design/miniapp-facilities-plan.md](design/miniapp-facilities-plan.md) | 2026-08-21 | Executed. Current behaviour in [docs/miniapp-runtime.md](../docs/miniapp-runtime.md), [docs/miniapp-sdk.md](../docs/miniapp-sdk.md), and the CLI. No `docs/miniapp-facilities.md` counterpart. |
 | [meta/file-sizes-plan.md](meta/file-sizes-plan.md) | 2026-08-02 | Executed. Current thresholds and empty ratchet are recorded in [docs/file-sizes.md](../docs/file-sizes.md) |
 
 Live release evidence remains under [release/evidence/](../release/evidence/) until

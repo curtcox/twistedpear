@@ -8,9 +8,9 @@ import {
 import { FreenetBrokerServiceError } from "../services/freenet.js";
 import { RelayBrokerServiceError } from "../services/relay.js";
 import type { StreamSink } from "../media-stream.js";
-import { MiniappHostLayer1HandlersServices } from "./layer-1-handlers-services.js";
+import { MiniappHostLayer1HandlersFacilities } from "./layer-1-handlers-facilities.js";
 
-export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1HandlersServices {
+export abstract class MiniappHostLayer1HandlersDevice extends MiniappHostLayer1HandlersFacilities {
   protected registerDeviceHandlers(): void {
     this.registerRelayHandlers();
     this.registerFreenetHandlers();

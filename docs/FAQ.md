@@ -228,8 +228,9 @@ The widget model and SDK surface are [miniapp-sdk.md](miniapp-sdk.md) and
 
 Two paths, both covered end to end. In-platform: DevStudio, which authors, previews, packs,
 and publishes on the device itself — [authors/02](../authors/02-hello-world-in-devstudio.md)
-and [devstudio.md](devstudio.md). From a terminal: `tp create`, `tp dev`, `tp pack`,
-`tp sign`, `tp publish` — [authors/03](../authors/03-hello-world-with-the-cli.md).
+and [devstudio.md](devstudio.md). From a terminal: `tp create`, `tp test`, `tp doctor`,
+`tp inspect`, `tp dev`, `tp pack`, `tp sign`, `tp publish` —
+[authors/03](../authors/03-hello-world-with-the-cli.md).
 
 ### What can an app ask for, and what happens if the user says no?
 

@@ -4,6 +4,8 @@ import { reviveJsonWireValue } from "./json-wire.js";
 import { dispatchWorkerBrokerMessage } from "./broker-dispatch.js";
 import { SandboxPing } from "./ping.js";
 import { createCheckpointCollector } from "./checkpoint.js";
+import { handleSandboxAppMessage, sandboxLogHandlers } from "./app-messages.js";
+import type { AppErrorReport } from "../diagnostics.js";
 import type {
   SandboxBackend,
   SandboxInstance,
@@ -121,6 +123,8 @@ export class WebSandboxBackend implements SandboxBackend {
     const checkpoints = createCheckpointCollector();
     let killed = false;
     let alive = true;
+    let lastError: string | null = null;
+    let lastAppError: AppErrorReport | null = null;
 
     const spawnState: SpawnPortState = {
       hostPort,
@@ -136,6 +140,12 @@ export class WebSandboxBackend implements SandboxBackend {
       },
       setAlive(next: boolean) {
         alive = next;
+      },
+      setLastError(message: string) {
+        lastError = message;
+      },
+      setLastAppError(report: AppErrorReport) {
+        lastAppError = report;
       },
       setExit(_reason: string, _detail: string | null) {},
     };
@@ -178,6 +188,8 @@ export class WebSandboxBackend implements SandboxBackend {
       handleHostPortMessage,
       isKilled: () => killed,
       isAlive: () => alive && !killed,
+      lastError: () => lastError,
+      lastAppError: () => lastAppError,
       markKilled: () => {
         killed = true;
         alive = false;
@@ -198,6 +210,8 @@ interface SpawnPortState {
   readonly killed: boolean;
   readonly alive: boolean;
   setAlive(next: boolean): void;
+  setLastError(message: string): void;
+  setLastAppError(report: AppErrorReport): void;
   setExit(reason: string, detail: string | null): void;
 }
 
@@ -226,14 +240,23 @@ function handleSandboxHostPortMessage(
     return;
   }
 
-  if (message.type === "app-error") {
-    const detail =
-      typeof message.message === "string" ? message.message : "app-error";
-    state.setExit("app-error", detail);
-    state.backend.lastSpawnDiagnostics = {
-      reason: "app-error",
-      detail,
-    };
+  if (
+    handleSandboxAppMessage(message, {
+      ...sandboxLogHandlers(state.options),
+      setLastError: (text) => state.setLastError(text),
+      setLastAppError: (report) => state.setLastAppError(report),
+      setAlive: (next) => state.setAlive(next),
+    })
+  ) {
+    if (message.type === "app-error") {
+      const detail =
+        typeof message.message === "string" ? message.message : "app-error";
+      state.setExit("app-error", detail);
+      state.backend.lastSpawnDiagnostics = {
+        reason: "app-error",
+        detail,
+      };
+    }
     return;
   }
 
@@ -265,6 +288,8 @@ function createSandboxInstance(input: {
   handleHostPortMessage: (event: MessageEvent) => void;
   isKilled: () => boolean;
   isAlive: () => boolean;
+  lastError: () => string | null;
+  lastAppError: () => AppErrorReport | null;
   markKilled: () => void;
 }): SandboxInstance {
   const {
@@ -277,11 +302,15 @@ function createSandboxInstance(input: {
     handleHostPortMessage,
     isKilled,
     isAlive,
+    lastError,
+    lastAppError,
     markKilled,
   } = input;
   return {
     id: appId,
     isAlive,
+    lastError,
+    lastAppError,
     postMessage(message: unknown): Promise<void> {
       if (isKilled()) {
         return Promise.resolve();

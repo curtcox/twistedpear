@@ -29,6 +29,7 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`apps:channel`** — Send and receive messages with another running mini-app named when you grant this.
 - **`runtime:background`** — Run while you use other apps on Android. At most two apps share this with the mesh service; it costs battery. On iOS the grant does not run anything while you are elsewhere.
 - **`runtime:wake`** — Ask to be woken periodically for a few seconds of work. Wake-ups are rationed per host, not per app.
+- **`notify:post`** — Show notifications on this device. The host draws them and badges the text as coming from this app. Notifications are rationed per host, not per app.
 - **`share:cas`** — Store and retrieve bounded content-addressed data shared by 256t id.
 - **`peer:connect`** — Ask trusted host chrome to find, confirm, and connect an app-scoped peer.
 - **`link:observe`** — See which peers are reachable and how good the connection to each is.

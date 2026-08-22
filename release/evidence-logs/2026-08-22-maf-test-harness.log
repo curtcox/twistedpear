@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /Users/curt/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  19:23:13
+   Duration  1.48s (transform 652ms, setup 0ms, import 906ms, tests 494ms, environment 0ms)
+

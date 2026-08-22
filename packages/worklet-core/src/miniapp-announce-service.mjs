@@ -26,6 +26,7 @@ export function createMiniappAnnounceService(options) {
   const buckets = new Map();
   const destinations = new Map();
   const handlers = new Set();
+  const watchers = new Map();
 
   function ownNamespace(appId) {
     return `miniapp-announce:${appId}`;
@@ -96,6 +97,10 @@ export function createMiniappAnnounceService(options) {
         receivedAt: Date.now(),
       });
       buckets.set(aspect, bucket.slice(-256));
+      const event = bucket[bucket.length - 1];
+      for (const handler of watchers.get(aspect) ?? []) {
+        handler(event);
+      }
     },
 
     async subscribe(appId, namespace) {
@@ -112,11 +117,26 @@ export function createMiniappAnnounceService(options) {
               receivedAt: Date.now(),
             });
             buckets.set(aspect, bucket.slice(-256));
+            const event = bucket[bucket.length - 1];
+            for (const handler of watchers.get(aspect) ?? []) {
+              handler(event);
+            }
           },
         });
         handlers.add(aspect);
       }
       return [...(buckets.get(aspect) ?? [])];
+    },
+
+    watch(appId, handler, namespace) {
+      const aspect = aspectFor(appId, namespace);
+      const bucket = watchers.get(aspect) ?? new Set();
+      bucket.add(handler);
+      watchers.set(aspect, bucket);
+      return () => {
+        bucket.delete(handler);
+        if (bucket.size === 0) watchers.delete(aspect);
+      };
     },
   };
 }

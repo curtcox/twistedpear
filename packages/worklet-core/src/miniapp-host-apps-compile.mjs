@@ -3,6 +3,8 @@
  * can inject a worker client without this module ever importing the compiler.
  */
 
+import { linkJsModules, needsJsLink } from "./js-link.mjs";
+
 export function createAppsBackendCompileAction({
   collectWorkspaceFiles,
   writeWorkspaceFile,
@@ -10,9 +12,61 @@ export function createAppsBackendCompileAction({
 }) {
   return async function compileApp(appId, { projectPrefix }) {
     const files = await collectWorkspaceFiles(appId, projectPrefix);
-    if (!files.some((file) => file.path === "elm.json")) {
-      return { compiled: false, reason: "not a Guida project" };
+    if (files.some((file) => file.path === "elm.json")) {
+      return compileGuidaProject({
+        files,
+        appId,
+        projectPrefix,
+        writeWorkspaceFile,
+        loadWorklet,
+      });
     }
+    return compileJsProject({ files, appId, projectPrefix, writeWorkspaceFile });
+  };
+}
+
+async function compileJsProject({
+  files,
+  appId,
+  projectPrefix,
+  writeWorkspaceFile,
+}) {
+  const decoder = new TextDecoder();
+  const map = new Map();
+  let manifest = null;
+  for (const file of files) {
+    const text = decoder.decode(file.content);
+    map.set(file.path, text);
+    if (file.path === "app.json" || file.path === "app.manifest.json") {
+      try {
+        manifest = JSON.parse(text);
+      } catch {
+        manifest = null;
+      }
+    }
+  }
+  const entry =
+    typeof manifest?.entry === "string" ? manifest.entry : "src/main.js";
+  const source = map.get(entry);
+  if (source === undefined || !needsJsLink(source)) {
+    return { compiled: false, reason: "not a Guida or multi-file JavaScript project" };
+  }
+  const bundle = linkJsModules(map, entry);
+  await writeWorkspaceFile(appId, `${projectPrefix}/bundle.js`, bundle);
+  return {
+    compiled: true,
+    bytes: bundle.length,
+    compiler: "js-link",
+  };
+}
+
+async function compileGuidaProject({
+  files,
+  appId,
+  projectPrefix,
+  writeWorkspaceFile,
+  loadWorklet,
+}) {
     const worklet = await loadWorklet();
     if (worklet === null) {
       return {
@@ -46,7 +100,6 @@ export function createAppsBackendCompileAction({
         problems,
       };
     }
-  };
 }
 
 export function createAppsBackendFormatAction({ loadWorklet }) {

@@ -11,8 +11,8 @@ import {
   createVectorHost,
   executeStep,
   normalizeValue,
-  registerApp,
 } from "../conformance/sdk-interop/vector-hosts.mjs";
+import { configureVectorHost } from "../conformance/sdk-interop/vectors.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outputPath = join(
@@ -180,13 +180,10 @@ const INPUTS = [
       {
         call: call("announce", "publish", "announce:publish", {
           appData: { $textBytes: "post-1" },
-          namespace: "board",
         }),
       },
       {
-        call: call("announce", "subscribe", "announce:subscribe", {
-          namespace: "board",
-        }),
+        call: call("announce", "subscribe", "announce:subscribe"),
       },
     ],
   },
@@ -482,6 +479,43 @@ const INPUTS = [
       },
     ],
   },
+  {
+    name: "crypto: hash hmac randomBytes and timingSafeEqual",
+    steps: [
+      {
+        call: call("crypto", "hash", undefined, {
+          alg: "sha256",
+          bytes: { $textBytes: "payload" },
+        }),
+      },
+      {
+        call: call("crypto", "hmac", undefined, {
+          alg: "sha256",
+          key: { $textBytes: "key" },
+          bytes: { $textBytes: "payload" },
+        }),
+      },
+      { call: call("crypto", "randomBytes", undefined, { n: 4 }), match: "none" },
+      {
+        call: call("crypto", "timingSafeEqual", undefined, {
+          a: { $textBytes: "abcd" },
+          b: { $textBytes: "abcd" },
+        }),
+      },
+    ],
+  },
+  {
+    name: "crypto: unknown algorithm is rejected",
+    steps: [
+      {
+        call: call("crypto", "hash", undefined, {
+          alg: "md5",
+          bytes: { $textBytes: "payload" },
+        }),
+        expectCode: "CRYPTO_BAD_REQUEST",
+      },
+    ],
+  },
 ];
 
 const TAXONOMY = [
@@ -508,12 +542,7 @@ for (const input of INPUTS) {
   const vectorApp = input.app ?? A;
   const { host, ready, close } = createVectorHost(hostKey, "reference");
   await ready;
-  if (vectorApp.register) await registerApp(host, vectorApp);
-  if (input.setup?.maxMessagesPerSecond !== undefined) {
-    host.setResourceLimits(vectorApp.name, {
-      maxMessagesPerSecond: input.setup.maxMessagesPerSecond,
-    });
-  }
+  await configureVectorHost(host, vectorApp, input);
 
   const steps = [];
   for (const step of input.steps) {

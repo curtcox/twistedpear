@@ -71,6 +71,8 @@ export interface BrokerAuditEntry {
   };
 }
 
+/** App `console` output is a host-owned ring in `diagnostics.ts`, not a broker method. */
+
 interface RateBucket {
   windowStartedAt: number;
   count: number;

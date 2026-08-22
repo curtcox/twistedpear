@@ -39,6 +39,7 @@ export type MiniappCapability =
   | "apps:channel"
   | "runtime:background"
   | "runtime:wake"
+  | "notify:post"
   | "share:cas"
   | "peer:connect"
   | "link:observe"
@@ -139,6 +140,11 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinitionBase> = [
     id: "runtime:wake",
     description:
       "Ask to be woken periodically for a few seconds of work. Wake-ups are rationed per host, not per app.",
+  },
+  {
+    id: "notify:post",
+    description:
+      "Show notifications on this device. The host draws them and badges the text as coming from this app. Notifications are rationed per host, not per app.",
   },
   {
     id: "share:cas",

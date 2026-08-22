@@ -8,6 +8,8 @@ export interface AnnounceEvent {
   readonly receivedAt: number;
 }
 
+export type AnnounceWatchHandler = (event: AnnounceEvent) => void;
+
 export interface AnnounceBackend {
   publish(
     appId: string,
@@ -18,6 +20,11 @@ export interface AnnounceBackend {
     appId: string,
     namespace?: string,
   ): Promise<ReadonlyArray<AnnounceEvent>>;
+  watch(
+    appId: string,
+    handler: AnnounceWatchHandler,
+    namespace?: string,
+  ): () => void;
 }
 
 const ANNOUNCE_NAMESPACE_PREFIX = "miniapp-announce:";
@@ -69,6 +76,7 @@ export function boundAnnounceAppData(appData?: Uint8Array): Uint8Array {
 
 export class AnnounceService implements AnnounceBackend {
   private readonly events = new Map<string, AnnounceEvent[]>();
+  private readonly watchers = new Map<string, Set<AnnounceWatchHandler>>();
 
   publish(
     appId: string,
@@ -84,6 +92,10 @@ export class AnnounceService implements AnnounceBackend {
       receivedAt: Date.now(),
     });
     this.events.set(key, bucket);
+    const event = bucket[bucket.length - 1]!;
+    for (const handler of this.watchers.get(key) ?? []) {
+      handler(event);
+    }
     return Promise.resolve();
   }
 
@@ -93,5 +105,20 @@ export class AnnounceService implements AnnounceBackend {
   ): Promise<ReadonlyArray<AnnounceEvent>> {
     const key = resolveAnnounceNamespace(appId, namespace);
     return Promise.resolve([...(this.events.get(key) ?? [])]);
+  }
+
+  watch(
+    appId: string,
+    handler: AnnounceWatchHandler,
+    namespace?: string,
+  ): () => void {
+    const key = resolveAnnounceNamespace(appId, namespace);
+    const bucket = this.watchers.get(key) ?? new Set();
+    bucket.add(handler);
+    this.watchers.set(key, bucket);
+    return () => {
+      bucket.delete(handler);
+      if (bucket.size === 0) this.watchers.delete(key);
+    };
   }
 }

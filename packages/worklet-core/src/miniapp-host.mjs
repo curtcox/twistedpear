@@ -262,6 +262,7 @@ export function createWorkletMiniappHost(options) {
   /** @type {ReturnType<typeof createWorkspaceFileCollector>} */
   let collectWorkspaceFiles;
   let writeWorkspaceFile;
+  let streamDevLine = options.streamDevLine;
 
   /** @type {import("../../miniapp-runtime/dist/worklet.js").DeviceManager} */
   const deviceManager =
@@ -421,6 +422,26 @@ export function createWorkletMiniappHost(options) {
           appId: entry.appId,
           line: entry.line,
         }),
+      onAppError: (report) => {
+        streamDevLine?.({
+          type: "app-error",
+          appId: report.appId,
+          phase: report.phase,
+          message: report.message,
+          event: report.event,
+          nodeId: report.nodeId,
+        });
+        pushRuntime?.();
+      },
+      onDiagnostics: (entry) => {
+        streamDevLine?.({
+          type: "app-log",
+          appId: entry.appId,
+          level: entry.level,
+          message: entry.message,
+        });
+        pushRuntime?.();
+      },
       onLifecycle: () => {
         options.onMiniappStateChange(host.running().length > 0);
         pushRuntime();
@@ -487,6 +508,10 @@ export function createWorkletMiniappHost(options) {
     setDeveloperMode(enabled) {
       developerMode = enabled;
       options.onDeveloperModeChange(enabled);
+    },
+
+    setDevLineSink(next) {
+      streamDevLine = next;
     },
 
     async launch(installedStore, runtime, appId, launchOptions = {}) {
@@ -593,6 +618,15 @@ export function createWorkletMiniappHost(options) {
       const limits = host.getResourceLimits(appId);
       options.send({ type: "limits", limits });
       return limits;
+    },
+
+    setNotifyEnabled(appId, enabled) {
+      host.setNotifyEnabled(appId, enabled);
+      pushRuntime();
+    },
+
+    tapNotification(id) {
+      return host.tapNotification(id);
     },
 
     devSideLoad: createDevSideLoadMethod({

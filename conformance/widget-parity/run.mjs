@@ -111,6 +111,46 @@ assertEqual(
   "chat-panel golden fixture",
 );
 
+const controlsTree = validateWidgetTree({
+  root: {
+    id: "root",
+    type: "view",
+    children: [
+      {
+        id: "name",
+        type: "text-input",
+        props: {
+          value: "",
+          placeholder: "Name",
+          event: "name",
+          keyboard: "default",
+        },
+      },
+      {
+        id: "size",
+        type: "select",
+        props: { value: "m", options: ["s", "m", "l"], event: "size" },
+      },
+      {
+        id: "level",
+        type: "slider",
+        props: { value: 50, min: 0, max: 100, event: "level" },
+      },
+      {
+        id: "when",
+        type: "date",
+        props: { value: "2026-08-21", event: "when" },
+      },
+    ],
+  },
+});
+
+assertEqual(
+  describeWidgetTree(controlsTree),
+  loadFixture("controls"),
+  "controls golden fixture",
+);
+
 const domTypes = [
   "view",
   "text",
@@ -123,6 +163,9 @@ const domTypes = [
   "progress",
   "list",
   "image",
+  "select",
+  "slider",
+  "date",
 ];
 for (const type of domTypes) {
   validateWidgetTree({
@@ -142,9 +185,15 @@ for (const type of domTypes) {
                   ? { value: 0 }
                   : type === "list"
                     ? { items: [] }
-                    : type === "image"
-                      ? { asset: "a.png" }
-                      : undefined,
+            : type === "image"
+              ? { asset: "a.png" }
+              : type === "select"
+                ? { options: ["a"], event: "x" }
+                : type === "slider"
+                  ? { value: 0, event: "x" }
+                  : type === "date"
+                    ? { value: "2026-08-21", event: "x" }
+                    : undefined,
     },
   });
 }

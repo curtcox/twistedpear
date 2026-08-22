@@ -20,12 +20,17 @@ export interface LxmfInboxMessage {
   readonly receivedAt: number;
 }
 
+export type LxmfWatchHandler = (message: LxmfInboxMessage) => void;
+
 export interface LxmfBackend {
   send(appId: string, request: LxmfSendRequest): Promise<LxmfDelivery>;
   receive(appId: string): Promise<ReadonlyArray<LxmfInboxMessage>>;
+  watch(appId: string, handler: LxmfWatchHandler): () => void;
 }
 
 export class NamespacedLxmfService implements LxmfBackend {
+  private readonly watchers = new Map<string, Set<LxmfWatchHandler>>();
+
   constructor(private readonly kv: MiniappKvStoreBackend) {}
 
   async send(appId: string, request: LxmfSendRequest): Promise<LxmfDelivery> {
@@ -51,8 +56,26 @@ export class NamespacedLxmfService implements LxmfBackend {
       receivedAt: Date.now(),
     });
     await this.kv.set(inboxKey, this.encode(inbox));
+    this.emit(request.to, inbox[inbox.length - 1]!);
 
     return { id, status: "queued" };
+  }
+
+  watch(appId: string, handler: LxmfWatchHandler): () => void {
+    const bucket = this.watchers.get(appId) ?? new Set();
+    bucket.add(handler);
+    this.watchers.set(appId, bucket);
+    return () => {
+      bucket.delete(handler);
+      if (bucket.size === 0) this.watchers.delete(appId);
+    };
+  }
+
+  private emit(appId: string, message: LxmfInboxMessage | undefined): void {
+    if (message === undefined) return;
+    for (const handler of this.watchers.get(appId) ?? []) {
+      handler(message);
+    }
   }
 
   async receive(appId: string): Promise<ReadonlyArray<LxmfInboxMessage>> {

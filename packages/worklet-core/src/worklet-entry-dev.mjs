@@ -28,6 +28,10 @@ export function createEnsureDevChannel(deps) {
           await deps.ensureMiniappHost().devSideLoad(manifest, bundleBytes);
         },
       });
+      const host = deps.ensureMiniappHost();
+      if (typeof host.setDevLineSink === "function") {
+        host.setDevLineSink((payload) => devChannel.send(payload));
+      }
     }
     return devChannel;
   };

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-18
+audited: 2026-08-21
 register: none
 -->
 
@@ -18,8 +18,8 @@ completed evidence stays in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md).
 | Peer implementation types    | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts)                                                                                                           |
 | Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()`                                                                                                                                  |
 
-Current closed set: **26 core + 30 device = 56** capability ids. Current
-`HOST_API_VERSION` is **0.16.0**.
+Current closed set: **27 core + 30 device = 57** capability ids. Current
+`HOST_API_VERSION` is **0.20.0**.
 
 ## Peer implementation types
 
@@ -107,6 +107,7 @@ Cross-cutting wiring gaps (affect many rows below):
 | `apps:channel`       | done · conf · soft    | done · unit · soft    | done · unit · soft    | done · conf · soft    | done · conf · soft    |
 | `runtime:background` | n/a · n/a · n/a       | done · unit · soft    | n/a · n/a · n/a       | n/a · n/a · n/a       | n/a · n/a · n/a       |
 | `runtime:wake`       | done · unit · soft    | done · unit · soft    | done · unit · soft    | n/a · n/a · n/a       | done · unit · soft    |
+| `notify:post`        | done · unit · soft    | done · unit · soft    | done · unit · soft    | done · unit · soft    | done · unit · soft    |
 | `share:cas`          | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · conf · soft    |
 | `peer:connect`       | done · conf · soft    | done · conf · emu     | done · conf · emu     | done · conf · soft    | done · unit · soft    |
 | `link:observe`       | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft    |
@@ -136,6 +137,10 @@ Cross-cutting wiring gaps (affect many rows below):
   service, rationed to two apps, with the battery cost on the grant screen. iOS,
   desktop, web, and node record the grant as inert. **`runtime:wake`** is a
   per-host wake budget (`host.requestWake`); web has none.
+- **`notify:post`** is host-rendered and app-attributed, rationed per host
+  (burst of 3, then a 10 s refill). Enable/disable and history live on
+  `MiniappHost`; tapping delivers `event` through `ui.onEvent`. Covered by
+  `notify-service.test.ts` and the hostile-apps flood case.
 - **`peer:connect`**: trusted chrome + adapters are wired on desktop/native/web; the ntfy
   rendezvous path is verified against a disposable self-hosted server
   (`npm run test:ntfy-service`) and the remaining physical/browser trials are in

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-20
+audited: 2026-08-21
 register: none
 -->
 
@@ -38,6 +38,7 @@ approval evidence bar ([app approval risk](app-approval-risk.md)); it is not a r
 | `apps:channel`              | elevated  | Send and receive messages with another running mini-app named when you grant this.                                                                                                   |
 | `runtime:background`        | elevated  | Run while you use other apps on Android. At most two apps share this with the mesh service; it costs battery. On iOS the grant does not run anything while you are elsewhere.        |
 | `runtime:wake`              | elevated  | Ask to be woken periodically for a few seconds of work. Wake-ups are rationed per host, not per app.                                                                                 |
+| `notify:post`               | elevated  | Show notifications on this device. The host draws them and badges the text as coming from this app. Notifications are rationed per host, not per app.                                |
 | `share:cas`                 | elevated  | Store and retrieve bounded content-addressed data shared by 256t id.                                                                                                                 |
 | `peer:connect`              | elevated  | Ask trusted host chrome to find, confirm, and connect an app-scoped peer.                                                                                                            |
 | `link:observe`              | benign    | See which peers are reachable and how good the connection to each is.                                                                                                                |
@@ -61,7 +62,10 @@ The `links` namespace and realtime-media extensions require host API `0.12.0`.
 `apps:channel` requires host API `0.13.0`.
 `runtime:background` and `runtime:wake` / `host.requestWake` require host API `0.14.0`.
 `apps.compile` requires host API `0.15.0`. `apps.format` and `apps.diagnostics`
-require host API `0.16.0`.
+require host API `0.16.0`. `lxmf.onMessage` / `announce.onEvent` /
+`apps.channel.onMessage` require `0.17.0`. `notify:post` requires `0.18.0`.
+Brokered `crypto.*` requires `0.19.0`. The second widget wave (`select`, `slider`,
+`date`, and extra `text-input` props) requires `0.20.0`.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, preview, and channel-open call raises a host-chrome confirmation dialog the
@@ -75,9 +79,13 @@ the pair before messages copy through the broker.
 - `identity.destinationHash()` — app-scoped destination derived from host identity + appId.
 - `identity.sign(payload)` — brokered signing; private keys never cross the boundary.
 - `lxmf.send({ to, subject, body })` — send via host LXMF router.
-- `lxmf.receive()` — inbox namespaced to the app destination.
+- `lxmf.receive()` — inbox namespaced to the app destination (destructive drain).
+- `lxmf.onMessage(handler)` — at-least-once push of the same inbox; does not replace `receive()`.
 - `announce.publish(appData, namespace?)` — publish in the calling app's namespace. The host rejects any other namespace.
-- `announce.subscribe(namespace?)` — subscribe to announces in the calling app's namespace. The host rejects any other namespace.
+- `announce.subscribe(namespace?)` — poll announces in the calling app's namespace.
+- `announce.onEvent(handler)` — push of new announces in that namespace.
+- `notify.post({ title, body, event, tag? })` — host-rendered, app-attributed notification (requires `notify:post`).
+- `crypto.randomBytes(n)`, `crypto.hash(alg, bytes)`, `crypto.hmac(alg, key, bytes)`, `crypto.timingSafeEqual(a, b)` — brokered primitives, no capability. No seal/open.
 - `storage.kv.get/set/delete(key, value?)` — local per-app KV with byte quota.
 - `storage.bee.open/get/put/del/list` — local-only Hyperbee CRUD.
 - `resource.fetch({ resourceId, budgetBytes? })` — host-budgeted Resource fetch.
@@ -129,7 +137,8 @@ the pair before messages copy through the broker.
   channel to a running mini-app named in host chrome. Both apps must grant the
   pair. Shared storage is not included.
 - `apps.channel.send({ appId, publisherPublicKey? }, payload)` /
-  `apps.channel.receive()` / `apps.channel.close({ appId })` /
+  `apps.channel.receive()` / `apps.channel.onMessage(handler)` /
+  `apps.channel.close({ appId })` /
   `apps.channel.peers()` — copy a UTF-8 payload (16 KiB cap) through the host
   after both sides have granted; `receive` drains the caller's inbox.
 - `share.put(content)` / `share.get(t256)` — bounded content-addressed sharing.

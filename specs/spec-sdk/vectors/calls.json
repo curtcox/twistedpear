@@ -417,8 +417,7 @@
             "payload": {
               "appData": {
                 "$textBytes": "post-1"
-              },
-              "namespace": "vector-app"
+              }
             }
           },
           "expect": {
@@ -432,10 +431,7 @@
           "call": {
             "namespace": "announce",
             "method": "subscribe",
-            "capability": "announce:subscribe",
-            "payload": {
-              "namespace": "vector-app"
-            }
+            "capability": "announce:subscribe"
           },
           "expect": {
             "ok": true,
@@ -659,8 +655,14 @@
       "name": "capability: unknown capability in declared set",
       "app": {
         "name": "rogue-app",
-        "declared": ["identity", "network:raw"],
-        "granted": ["identity", "network:raw"],
+        "declared": [
+          "identity",
+          "network:raw"
+        ],
+        "granted": [
+          "identity",
+          "network:raw"
+        ],
         "register": false
       },
       "steps": [
@@ -681,8 +683,13 @@
       "name": "capability: granted but not declared",
       "app": {
         "name": "undeclared-app",
-        "declared": ["identity"],
-        "granted": ["identity", "storage:kv"],
+        "declared": [
+          "identity"
+        ],
+        "granted": [
+          "identity",
+          "storage:kv"
+        ],
         "register": false
       },
       "steps": [
@@ -706,8 +713,13 @@
       "name": "capability: declared but not granted",
       "app": {
         "name": "ungranted-app",
-        "declared": ["identity", "storage:kv"],
-        "granted": ["identity"],
+        "declared": [
+          "identity",
+          "storage:kv"
+        ],
+        "granted": [
+          "identity"
+        ],
         "register": true
       },
       "steps": [
@@ -765,7 +777,9 @@
           "ai:chat",
           "apps:package"
         ],
-        "granted": ["identity"],
+        "granted": [
+          "identity"
+        ],
         "register": true
       },
       "steps": [
@@ -1088,6 +1102,101 @@
                 "outputTokens": 2
               }
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "crypto: hash hmac randomBytes and timingSafeEqual",
+      "steps": [
+        {
+          "call": {
+            "namespace": "crypto",
+            "method": "hash",
+            "payload": {
+              "alg": "sha256",
+              "bytes": {
+                "$textBytes": "payload"
+              }
+            }
+          },
+          "expect": {
+            "ok": true,
+            "result": {
+              "$bytes": "239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5"
+            }
+          }
+        },
+        {
+          "call": {
+            "namespace": "crypto",
+            "method": "hmac",
+            "payload": {
+              "alg": "sha256",
+              "key": {
+                "$textBytes": "key"
+              },
+              "bytes": {
+                "$textBytes": "payload"
+              }
+            }
+          },
+          "expect": {
+            "ok": true,
+            "result": {
+              "$bytes": "5d98b45c90a207fa998ce639fea6f02ecc8cc3f36fef81d694fb856b4d0a28ca"
+            }
+          }
+        },
+        {
+          "call": {
+            "namespace": "crypto",
+            "method": "randomBytes",
+            "payload": {
+              "n": 4
+            }
+          },
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "call": {
+            "namespace": "crypto",
+            "method": "timingSafeEqual",
+            "payload": {
+              "a": {
+                "$textBytes": "abcd"
+              },
+              "b": {
+                "$textBytes": "abcd"
+              }
+            }
+          },
+          "expect": {
+            "ok": true,
+            "result": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "crypto: unknown algorithm is rejected",
+      "steps": [
+        {
+          "call": {
+            "namespace": "crypto",
+            "method": "hash",
+            "payload": {
+              "alg": "md5",
+              "bytes": {
+                "$textBytes": "payload"
+              }
+            }
+          },
+          "expect": {
+            "ok": false,
+            "code": "CRYPTO_BAD_REQUEST"
           }
         }
       ]

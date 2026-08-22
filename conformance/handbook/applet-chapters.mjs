@@ -25,6 +25,7 @@ export const APPLET_CHAPTER = {
   "apps-update": "sdk-apps-update",
   "ai-chat": "sdk-ai-chat",
   "widget-gallery": "sdk-widget-gallery",
+  "notify-post": "sdk-capabilities",
   "device-inventory": "device-gated-probes",
   "ble-peer": "device-gated-probes",
   "rnode-serial": "device-gated-probes",

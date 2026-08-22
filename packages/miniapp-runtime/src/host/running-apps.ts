@@ -28,6 +28,8 @@ export function emptyHostSnapshot(): MiniappHostSnapshot {
     state: "stopped",
     widgetTree: null,
     logs: [],
+    lastAppError: null,
+    diagnostics: { entries: [], dropped: 0 },
   };
 }
 
@@ -40,6 +42,8 @@ export function snapshotFromApp(app: ActiveApp): MiniappHostSnapshot {
     state: lifecycle.state,
     widgetTree: app.widgetTree,
     logs: [...app.logs],
+    lastAppError: app.lastAppError,
+    diagnostics: app.diagnostics.snapshot(),
   };
 }
 

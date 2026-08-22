@@ -16,6 +16,9 @@
       "path": "../miniapp-runtime"
     },
     {
+      "path": "../miniapp-test"
+    },
+    {
       "path": "../app-registry"
     },
     {

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-20
+audited: 2026-08-21
 register: none
 -->
 
@@ -12,7 +12,7 @@ register: none
 
 The language-neutral semantics of every brokered SDK call: namespaces (`identity`,
 `lxmf`, `announce`, `storage`, `resource`, `presence`, `host`, `apps`, `share`,
-`workspace`, `ai`, `ui`), argument/result shapes, error taxonomy, quotas and budgets.
+`workspace`, `ai`, `ui`, `notify`, `crypto`), argument/result shapes, error taxonomy, quotas and budgets.
 Web analog: DOM/Web APIs. Every call crosses the host broker; keys, sockets, and
 filesystems never reach app code.
 
@@ -47,7 +47,7 @@ own.
 
 ## Normative artifacts (current locations)
 
-- Vector suite: [vectors/calls.json](vectors/calls.json) — 32 vectors / 50
+- Vector suite: [vectors/calls.json](vectors/calls.json) — 34 vectors / 55
   steps of `(granted capabilities, call, args) → (result | error code)`,
   covering every namespace with at least one success and one error, all 13
   taxonomy codes, and a quota-exhaustion case per budgeted namespace
@@ -70,6 +70,26 @@ own.
 - [packages/miniapp-sdk](../../packages/miniapp-sdk/) (JS SDK surface)
 - [packages/miniapp-runtime](../../packages/miniapp-runtime/) broker (host side)
 - Future non-JS SDK bindings generated from the call schema
+
+## Appendix: ambient sandbox globals
+
+SPEC-SDK owns brokered calls. The JavaScript global surface inside a sandbox is a
+host property, not an SDK namespace. The probe in
+`packages/miniapp-runtime/test/ambient-globals.test.ts` pins it per backend.
+
+**Guaranteed** (present on the Node worker backend used by desktop CI): `Array`,
+`Object`, `Map`, `Set`, `Promise`, `Uint8Array`, `TextEncoder`, `TextDecoder`,
+`JSON`, `Math`, `Date`, `console` (host-injected shim), `setTimeout`,
+`queueMicrotask`.
+
+**Forbidden** (must not leak into the sandbox): `process`, `require`, `module`,
+`fetch`, `XMLHttpRequest`.
+
+**Per-backend divergence:** `crypto` / `Intl` / `structuredClone` / `Worker` /
+`Buffer` may exist on one backend and not another. Apps that need hashing or
+random bytes must use the brokered `crypto` namespace rather than ambient
+`globalThis.crypto`. A fixture diff fails CI when a backend's recorded surface
+changes.
 
 ## To finish this spec
 

@@ -23,3 +23,23 @@ export async function subscribe(
     "announce:subscribe",
   )) as ReadonlyArray<AnnounceEvent>;
 }
+
+export function onEvent(
+  handler: (event: AnnounceEvent) => void | Promise<void>,
+): void {
+  const injected = (
+    globalThis as {
+      sdk?: {
+        announce?: {
+          onEvent?: (
+            next: (event: AnnounceEvent) => void | Promise<void>,
+          ) => void;
+        };
+      };
+    }
+  ).sdk;
+  if (injected?.announce?.onEvent === undefined) {
+    throw new Error("announce.onEvent is only available inside a host sandbox");
+  }
+  injected.announce.onEvent(handler);
+}

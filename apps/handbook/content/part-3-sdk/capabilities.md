@@ -84,3 +84,9 @@ channel to an app that is not running and expects `CHANNEL_PEER_NOT_RUNNING`
 before any confirmation.
 
 {{applet:apps-channel-isolation}}
+
+`notify:post` shows a host-drawn notification. The app supplies title and body
+only; the host badges the text as coming from this app. Notifications are
+rationed per host, not per app.
+
+{{applet:notify-post}}

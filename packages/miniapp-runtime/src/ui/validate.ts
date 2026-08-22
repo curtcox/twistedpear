@@ -5,6 +5,7 @@ import {
   MAX_DEVICE_SESSION_PROP_LENGTH,
   MAX_QR_CODE_VALUE_LENGTH,
   PREVIEW_SURFACE_TYPES,
+  TEXT_INPUT_KEYBOARDS,
   WIDGET_PROP_KEYS,
   WIDGET_STYLE_KEYS,
   WIDGET_TYPES,
@@ -96,6 +97,33 @@ function validateQrCode(node: WidgetNode): void {
   }
 }
 
+function validateTextInput(node: WidgetNode): void {
+  if (node.type !== "text-input") return;
+  const keyboard = node.props?.keyboard;
+  if (
+    keyboard !== undefined &&
+    (typeof keyboard !== "string" || !TEXT_INPUT_KEYBOARDS.has(keyboard))
+  ) {
+    invalidWidget(`Unsupported text-input keyboard: ${String(keyboard)}`);
+  }
+}
+
+function validateSelect(node: WidgetNode): void {
+  if (node.type !== "select") return;
+  const options = node.props?.options;
+  if (!Array.isArray(options)) {
+    invalidWidget("select requires an options array");
+  }
+}
+
+function validateSlider(node: WidgetNode): void {
+  if (node.type !== "slider") return;
+  const value = node.props?.value;
+  if (value !== undefined && typeof value !== "number") {
+    invalidWidget("slider value must be a number");
+  }
+}
+
 function validatePreviewSurface(node: WidgetNode): void {
   if (!PREVIEW_SURFACE_TYPES.has(node.type)) return;
 
@@ -130,6 +158,9 @@ function validateNode(node: WidgetNode, ids: Set<string>): void {
   validateAllowedProps(node);
   validateCodeEditor(node);
   validateQrCode(node);
+  validateTextInput(node);
+  validateSelect(node);
+  validateSlider(node);
   validatePreviewSurface(node);
   validateStyles(node);
 }

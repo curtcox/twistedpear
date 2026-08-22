@@ -14,6 +14,8 @@ import {
   WidgetValidationError,
 } from "../../packages/miniapp-runtime/dist/index.js";
 import { runCapabilityProbes } from "./capability-probes.mjs";
+import { runHandlerErrorCases } from "./handler-errors.mjs";
+import { runNotifyHostileCases } from "./notify-flood.mjs";
 
 class MemoryStore {
   values = new Map();
@@ -406,8 +408,10 @@ while (true) {
 async function run() {
   await main();
   await runCapabilityProbes();
+  await runHandlerErrorCases();
+  await runNotifyHostileCases();
   console.log(
-    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, launch/stop cycles, and capability probes passed",
+    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, launch/stop cycles, capability probes, handler errors, and notify flood passed",
   );
 }
 

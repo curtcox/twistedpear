@@ -1,17 +1,18 @@
 # Mini-app facilities — delivery plan
 
 <!-- tp-doc
-lifecycle: planned
+lifecycle: historical
 audited: 2026-08-21
-register: software
+register: none
 -->
 
-**This document describes work that is not built. It is never a description of current
-behaviour.** What ships today is spread across three documents and this plan does not
-restate them: the [capability × peer-type matrix](platform-capabilities-status.md) and
-[Device I/O](device-io.md) are `live` and authoritative for status; the
-[Mini-app runtime](miniapp-runtime.md), [Mini-app SDK](miniapp-sdk.md), and
-[DevStudio](devstudio.md) are `reference` and authoritative for shape. Where any of them
+> **Status of this plan (archived 2026-08-21):** Executed. Current behaviour lives in [docs/miniapp-runtime.md](../../docs/miniapp-runtime.md), [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md), [docs/devstudio.md](../../docs/devstudio.md), and the CLI. There is no `docs/miniapp-facilities.md` counterpart.
+
+**This document is the original delivery plan, not current behaviour.** What ships today is spread across three documents and this plan does not
+restate them: the [capability × peer-type matrix](../../docs/platform-capabilities-status.md) and
+[Device I/O](../../docs/device-io.md) are `live` and authoritative for status; the
+[Mini-app runtime](../../docs/miniapp-runtime.md), [Mini-app SDK](../../docs/miniapp-sdk.md), and
+[DevStudio](../../docs/devstudio.md) are `reference` and authoritative for shape. Where any of them
 disagrees with this plan, they win.
 
 There is deliberately no `docs/miniapp-facilities.md` counterpart. This plan spans the
@@ -26,8 +27,8 @@ it appears below. Everything in this plan is independent of all three answers.
 
 | Open question                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Blocks                                                                                                                                |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Q1 — device raw-tier carriage.** `device.read()` on a `frames` / `pcm` / `samples` session already returns real bytes: `materializeFrame` in [layer-2-samples.ts](../packages/miniapp-runtime/src/device-manager/layer-2-samples.ts) attaches a `DeviceSidecarDelivery`. But delivery rides **in band on the broker response**, while [device-sidecar.ts](../packages/miniapp-runtime/src/device-sidecar.ts) reports `transport: "transferable"`. Is in-band polled carriage the shipping design, or is the out-of-band sidecar unbuilt behind that label? | Declaring the raw variants in the SDK's `DeviceSample`; any display path for app-held bytes; a file/media picker.                     |
-| **Q2 — is mini-app LXMF loopback deliberate?** `NamespacedLxmfService` in [services/lxmf.ts](../packages/miniapp-runtime/src/services/lxmf.ts) is the only `LxmfBackend` in the repository, and its `send` writes straight into the recipient's local KV inbox key. [conformance/examples/run.mjs](../conformance/examples/run.mjs) sends `to: manifest.name` — the chat sample messages itself.                                                                                                                                                             | Correcting the `lxmf:*` rows in the capability matrix; the missing `LIMITATIONS.md` entry that the parallel announce gap already has. |
+| **Q1 — device raw-tier carriage.** `device.read()` on a `frames` / `pcm` / `samples` session already returns real bytes: `materializeFrame` in [layer-2-samples.ts](../../packages/miniapp-runtime/src/device-manager/layer-2-samples.ts) attaches a `DeviceSidecarDelivery`. But delivery rides **in band on the broker response**, while [device-sidecar.ts](../../packages/miniapp-runtime/src/device-sidecar.ts) reports `transport: "transferable"`. Is in-band polled carriage the shipping design, or is the out-of-band sidecar unbuilt behind that label? | Declaring the raw variants in the SDK's `DeviceSample`; any display path for app-held bytes; a file/media picker.                     |
+| **Q2 — is mini-app LXMF loopback deliberate?** `NamespacedLxmfService` in [services/lxmf.ts](../../packages/miniapp-runtime/src/services/lxmf.ts) is the only `LxmfBackend` in the repository, and its `send` writes straight into the recipient's local KV inbox key. [conformance/examples/run.mjs](../../conformance/examples/run.mjs) sends `to: manifest.name` — the chat sample messages itself.                                                                                                                                                             | Correcting the `lxmf:*` rows in the capability matrix; the missing `LIMITATIONS.md` entry that the parallel announce gap already has. |
 | **Q3 — bridge shape.** One host delivery destination fanned out per app, or per-app LXMF destinations? `lxmfBackend` is typed as a KV store, not a backend seam, so there is nowhere to plug either one in today.                                                                                                                                                                                                                                                                                                                                            | Carrying mini-app LXMF over Reticulum at all.                                                                                         |
 
 ## Sequencing
@@ -44,9 +45,9 @@ it appears below. Everything in this plan is independent of all three answers.
 
 **Problem.** Both bootstraps dispatch UI events as `void Promise.resolve(uiEventHandler(...))`
 with no `.catch` — `createBareBootstrapSource` in
-[worker.ts](../packages/miniapp-runtime/src/sandbox/worker.ts) and
+[worker.ts](../../packages/miniapp-runtime/src/sandbox/worker.ts) and
 `createBrowserWorkerBootstrapSource` in
-[browser-worker-bootstrap.ts](../packages/miniapp-runtime/src/sandbox/browser-worker-bootstrap.ts).
+[browser-worker-bootstrap.ts](../../packages/miniapp-runtime/src/sandbox/browser-worker-bootstrap.ts).
 Every cookbook sample puts its entire logic inside that handler, so a throw is either
 swallowed or becomes an unhandled rejection that terminates the worker. The `app-error`
 message carries `String(error)` and nothing else — no stack, no phase — and no desktop
@@ -64,14 +65,14 @@ it as chrome assurance — the same rule the device plan applies to app-supplied
 strings. A caught handler error must not silently mask a genuinely wedged app: the watchdog
 path stays unchanged.
 
-**Verification.** New [hostile-apps](../conformance/hostile-apps) cases — a handler that
+**Verification.** New [hostile-apps](../../conformance/hostile-apps) cases — a handler that
 throws synchronously, one that rejects, one that throws after an `await`. Each asserts the
 app stays `running` and the host received a structured error naming the event.
 
 ## B — Per-app diagnostics channel
 
 **Problem.** `packages/miniapp-runtime/src` contains no reference to `console` at all.
-Nothing bridges sandbox output anywhere. [Chapter 11](../authors/11-testing-and-debugging.md)
+Nothing bridges sandbox output anywhere. [Chapter 11](../../authors/11-testing-and-debugging.md)
 tells authors they have "console output surfaced by the host"; they do not.
 
 **Deliverable.**
@@ -79,7 +80,7 @@ tells authors they have "console output surfaced by the host"; they do not.
 - A `console` shim injected by all three bootstraps, forwarding to a bounded per-app ring
   (default 200 entries, 4 KiB each, drop-oldest, with a retained drop count).
 - A host-side diagnostics surface alongside `BrokerAuditEntry` in
-  [broker.ts](../packages/miniapp-runtime/src/broker.ts), exposing the ring per app.
+  [broker.ts](../../packages/miniapp-runtime/src/broker.ts), exposing the ring per app.
 - A log pane in the desktop Runtime controls panel, and a `tp dev` stream of the same ring.
 
 **Constraints.** The ring must not travel the broker request path: log lines cannot consume
@@ -93,11 +94,11 @@ does not trip the broker rate limiter.
 
 ## C — Author test harness
 
-**Problem.** [cookbook.test.mjs](../conformance/cookbook/cookbook.test.mjs) already stands up
+**Problem.** [cookbook.test.mjs](../../conformance/cookbook/cookbook.test.mjs) already stands up
 a real `MiniappHost` with `NodeWorkerSandboxBackend`, `GrantStore`, and
 `KvStorageBeeBackend`, and drives packaged apps headlessly — but it imports across the
 repository from `dist/`, so no third-party author can use it. The four-loop table in
-[Chapter 11](../authors/11-testing-and-debugging.md) has no automated loop at all.
+[Chapter 11](../../authors/11-testing-and-debugging.md) has no automated loop at all.
 
 **Deliverable.** A `packages/miniapp-test` workspace published as
 `@twistedpear/miniapp-test`:
@@ -107,14 +108,14 @@ repository from `dist/`, so no third-party author can use it. The four-loop tabl
 - Fault injection: `revoke(capability)`, `setQuota()`, `setRateLimit()`,
   `suspend()` / `resume()` (exercising `setCheckpoint` / `onResume`), `crash()`.
 - Assertions expressed over the golden render model — reuse `describeWidgetTree` so harness
-  output and [conformance/fixtures/widget-trees](../conformance/fixtures/widget-trees) stay
+  output and [conformance/fixtures/widget-trees](../../conformance/fixtures/widget-trees) stay
   one vocabulary rather than two.
 - `tp test <app-dir>` running an app's own test files against the harness.
 
 **Constraints.** The harness constructs the **same** `MiniappHost` a shipping host does. It
 is a rehearsal, not a mock — the property that makes the dev-preview slot trustworthy. The
 new CLI command lands in a new file under `packages/cli/src/commands/`:
-[app-commands.ts](../packages/cli/src/commands/app-commands.ts) is at 398 lines against a
+[app-commands.ts](../../packages/cli/src/commands/app-commands.ts) is at 398 lines against a
 400-line warn threshold.
 
 **Verification.** Port two cookbook samples' behaviour to harness tests and run them in CI.
@@ -123,7 +124,7 @@ suites already produce.
 
 ## D — The ambient sandbox surface
 
-**Problem.** [SPEC-SDK](../specs/spec-sdk/spec.md) scopes itself to brokered calls and says
+**Problem.** [SPEC-SDK](../../specs/spec-sdk/spec.md) scopes itself to brokered calls and says
 nothing about which JavaScript globals exist inside a sandbox. Apps already depend on
 unspecified ones — the `pocket-notes` sample uses `TextEncoder` and `TextDecoder`. The three
 backends (Node worker, Bare worker, browser worker) need not agree on `crypto`, `Intl`,
@@ -136,9 +137,9 @@ backends (Node worker, Bare worker, browser worker) need not agree on `crypto`, 
 - An appendix to SPEC-SDK naming the guaranteed set, the forbidden set, and every known
   per-backend divergence.
 - Two documentation corrections in the same change: the `console` claim in
-  [Chapter 11](../authors/11-testing-and-debugging.md) (true only once B lands), and the
+  [Chapter 11](../../authors/11-testing-and-debugging.md) (true only once B lands), and the
   `device.subscribe` / `device.configure` entries in the Session API table of
-  [device-io.md](device-io.md), neither of which the SDK exports.
+  [device-io.md](../../docs/device-io.md), neither of which the SDK exports.
 
 **Verification.** The fixture diff fails CI whenever a backend's global surface changes,
 which is the point: today such a change is invisible.
@@ -146,7 +147,7 @@ which is the point: today such a change is invisible.
 ## E — Event delivery
 
 **Problem.** `lxmf.receive()`, `announce.subscribe()`, and `apps.channel.receive()` all
-drain arrays. [Chapter 12](../authors/12-limits-and-budgets.md) therefore has to recommend
+drain arrays. [Chapter 12](../../authors/12-limits-and-budgets.md) therefore has to recommend
 polling on a human timescale against a 60/s broker budget — the platform's most-recommended
 anti-pattern. The broker already pushes `ui-event` into the sandbox, so the mechanism exists.
 
@@ -175,7 +176,7 @@ app cannot tell its user that anything happened unless the user is already looki
 **The owner already exists.** `NamespacedLxmfService` persists per-app inboxes into the KV
 store under `miniapp-lxmf-inbox:<appId>`, and is constructed for every host by
 `createHostLayer1Services` in
-[layer-1-init.ts](../packages/miniapp-runtime/src/host/layer-1-init.ts). Durable,
+[layer-1-init.ts](../../packages/miniapp-runtime/src/host/layer-1-init.ts). Durable,
 host-owned, app-addressed state survives suspend, stop, and restart today.
 
 **Deliverable.**
@@ -198,7 +199,7 @@ small burst allowance.
 **Problem.** `identity` exposes only `destinationHash` and `sign`. An app cannot hash, take
 random bytes, or compare in constant time. The under-one-minute LoRa install ceiling is
 about 9 KiB for code, icon, and assets combined
-([Chapter 12](../authors/12-limits-and-budgets.md)), so bundling a crypto library is not a
+([Chapter 12](../../authors/12-limits-and-budgets.md)), so bundling a crypto library is not a
 real option. Whether `crypto` exists in a given sandbox is exactly the unspecified surface
 D pins down, which is why G follows D.
 
@@ -220,14 +221,14 @@ coverage pattern.
 `tp inspect <256t>` — resolve, verify the SHA-512, the SHA-256, and the manifest signature,
 then print name, version, publisher fingerprint, declared capabilities with risk class, the
 file list with sizes, and estimated install time at LAN, BLE, and LoRa rates. The rate table
-already exists in [Chapter 12](../authors/12-limits-and-budgets.md).
+already exists in [Chapter 12](../../authors/12-limits-and-budgets.md).
 
 `tp doctor <app-dir>` — declared-but-unused and used-but-undeclared capabilities, total size
 against the three link ceilings, missing `accessibilityLabel`, `minHostApi` against the SDK
 calls actually made, and unknown widget props.
 
 **Note.** Most of `doctor` already exists inside
-[cookbook.test.mjs](../conformance/cookbook/cookbook.test.mjs), which type-checks every
+[cookbook.test.mjs](../../conformance/cookbook/cookbook.test.mjs), which type-checks every
 sample and cross-references `specs/spec-sdk/schema/api-capabilities.json`. Extract it;
 do not write it twice.
 
@@ -237,15 +238,15 @@ a new file, for the same size-threshold reason as C.
 ## I — Widget vocabulary, second wave
 
 **Problem.** `text-input` carries only `value`, `placeholder`, and `event` in
-[ui/schema.ts](../packages/miniapp-runtime/src/ui/schema.ts) — no multiline, secure entry, or
+[ui/schema.ts](../../packages/miniapp-runtime/src/ui/schema.ts) — no multiline, secure entry, or
 keyboard type. There is no slider, no select, no date input, and no app-drawn modal. These
 are small individually and are most of what makes a mini-app feel unfinished.
 
-**Deliverable, one change per widget:** a [SPEC-WIDGET](../specs/spec-widget/spec.md)
+**Deliverable, one change per widget:** a [SPEC-WIDGET](../../specs/spec-widget/spec.md)
 vocabulary entry, the schema prop set, a golden fixture under
-[conformance/fixtures/widget-trees](../conformance/fixtures/widget-trees), and renderer
-support in [widget-renderer-rn](../packages/widget-renderer-rn), the desktop renderer, and
-the [headless geometry model](../packages/widget-renderer-headless).
+[conformance/fixtures/widget-trees](../../conformance/fixtures/widget-trees), and renderer
+support in [widget-renderer-rn](../../packages/widget-renderer-rn), the desktop renderer, and
+the [headless geometry model](../../packages/widget-renderer-headless).
 
 **Order.** `text-input` props first — a pure prop addition with no new node type — then
 `select`, `slider`, `date`.
@@ -254,7 +255,7 @@ the [headless geometry model](../packages/widget-renderer-headless).
 must keep doing so; a widget that degrades by ignoring an unknown prop is how vocabulary
 drift starts.
 
-**Verification.** The [widget-parity](../conformance/widget-parity) and `ui-golden` suites,
+**Verification.** The [widget-parity](../../conformance/widget-parity) and `ui-golden` suites,
 which are what stop the three renderers diverging.
 
 ## J — Multi-file JavaScript projects
@@ -278,12 +279,12 @@ to the cookbook conformance sweep.
 
 **Enables.** An author-facing standard library of render helpers, which is the smaller
 alternative to the React reconciler already carried in
-[STATUS-SOFTWARE-OPTIONAL.md](../STATUS-SOFTWARE-OPTIONAL.md). Decide which of the two you
+[STATUS-SOFTWARE-OPTIONAL.md](../../STATUS-SOFTWARE-OPTIONAL.md). Decide which of the two you
 want before building either.
 
 ## K — Link-condition simulation
 
-**Problem.** [Chapter 11](../authors/11-testing-and-debugging.md) is emphatic that the
+**Problem.** [Chapter 11](../../authors/11-testing-and-debugging.md) is emphatic that the
 interesting failures are not on the author's desk, and then offers no tool for reaching
 them. The deterministic simulator under `conformance/sim-*` targets abuse resistance, not
 authoring.
@@ -321,11 +322,11 @@ that depend on knowing whether today's loopback is deliberate.
 **Tracked elsewhere, deliberately untouched:** the React reconciler renderer, Hyperbee
 replication, transport-backed mini-app announces, shared mini-app storage, publisher key
 rotation, revocation lists, and delta updates
-([STATUS-SOFTWARE-OPTIONAL.md](../STATUS-SOFTWARE-OPTIONAL.md), `docs/package-format.md`),
+([STATUS-SOFTWARE-OPTIONAL.md](../../STATUS-SOFTWARE-OPTIONAL.md), `docs/package-format.md`),
 and Android background execution and scheduled wake (the mobile lifecycle ledger).
 
 **Waiting on another plan:** per-app data export and import. Its shape depends on whether a
-user is a machine, which [linked devices](linked-devices-plan.md) settles. Building it
+user is a machine, which [linked devices](../../docs/linked-devices-plan.md) settles. Building it
 against today's one-identity-per-installation model would produce the wrong artifact.
 
 ## Recording the work

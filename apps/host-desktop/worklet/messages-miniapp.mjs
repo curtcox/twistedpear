@@ -135,6 +135,22 @@ export function createMiniappMessageHandlers(deps) {
     return;
   };
 
+  const handleSetNotifyEnabled = async (message) => {
+    ensureMiniappHost().setNotifyEnabled(message.appId, message.enabled);
+    return;
+  };
+
+  const handleTapNotification = async (message) => {
+    try {
+      await ensureMiniappHost().tapNotification(message.id);
+    } catch (error) {
+      log(
+        `Tap notification failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    return;
+  };
+
   const handleWorkspaceRead = async (message) => {
     try {
       const content = await ensureMiniappHost().readWorkspaceFile(
@@ -260,6 +276,8 @@ export function createMiniappMessageHandlers(deps) {
       "stop-preview-miniapp": handleStopPreviewMiniapp,
       "set-limits": handleSetLimits,
       "get-limits": handleGetLimits,
+      "set-notify-enabled": handleSetNotifyEnabled,
+      "tap-notification": handleTapNotification,
       "workspace-read": handleWorkspaceRead,
       "set-ai-config": handleSetAiConfig,
       "suspend-miniapp": handleSuspendMiniapp,

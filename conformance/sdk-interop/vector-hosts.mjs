@@ -121,6 +121,11 @@ export function createVectorHost(hostKey, bindingKind) {
       : { announceService: substrate.announceService }),
     kvQuotaBytes: KV_QUOTA_BYTES,
     casBackend: casBackend(),
+    cryptoEntropy: {
+      randomBytes(n) {
+        return new Uint8Array(n).fill(7);
+      },
+    },
   };
 
   if (hostKey.startsWith("apps-")) {

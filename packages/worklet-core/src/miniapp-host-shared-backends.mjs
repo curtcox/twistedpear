@@ -54,9 +54,10 @@ export function createDevSideLoadMethod({
 
     const declared = validateManifestCapabilities(manifest.capabilities ?? []);
     devBadgeRef.current = true;
+    const appId = manifest.name;
     await host.launch(
       {
-        name: manifest.name,
+        name: appId,
         version: manifest.version,
         entry: manifest.entry ?? "bundle.js",
         capabilities: declared,
@@ -64,6 +65,19 @@ export function createDevSideLoadMethod({
       },
       bundleBytes,
     );
+    const link = manifest.link;
+    if (link !== undefined && link !== null && typeof link === "object") {
+      const bitrate = Number(link.bitrate);
+      if (Number.isFinite(bitrate) && bitrate > 0) {
+        const messages = Math.max(1, Math.floor(bitrate / 8 / 256));
+        host.setResourceLimits(appId, {
+          maxMessagesPerSecond: Math.min(128, messages),
+        });
+      }
+      if (link.peerOffline === true) {
+        host.setResourceLimits(appId, { maxMessagesPerSecond: 1 });
+      }
+    }
     pushRuntime();
   };
 }

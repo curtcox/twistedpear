@@ -168,6 +168,29 @@ export const channel = {
   receive(): Promise<ReadonlyArray<ChannelMessage>> {
     return channelCall("receive");
   },
+  onMessage(
+    handler: (message: ChannelMessage) => void | Promise<void>,
+  ): void {
+    const injected = (
+      globalThis as {
+        sdk?: {
+          apps?: {
+            channel?: {
+              onMessage?: (
+                next: (message: ChannelMessage) => void | Promise<void>,
+              ) => void;
+            };
+          };
+        };
+      }
+    ).sdk;
+    if (injected?.apps?.channel?.onMessage === undefined) {
+      throw new Error(
+        "apps.channel.onMessage is only available inside a host sandbox",
+      );
+    }
+    injected.apps.channel.onMessage(handler);
+  },
   close(destination: ChannelDestination): Promise<{ closed: true }> {
     return channelCall("close", destination);
   },

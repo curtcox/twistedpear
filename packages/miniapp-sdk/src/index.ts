@@ -17,3 +17,5 @@ export * as links from "./links.js";
 export * as relay from "./relay.js";
 export * as freenet from "./freenet.js";
 export * as device from "./device.js";
+export * as notify from "./notify.js";
+export * as crypto from "./crypto.js";

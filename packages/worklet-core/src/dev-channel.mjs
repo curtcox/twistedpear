@@ -127,6 +127,12 @@ export function createDevChannelClient(options) {
   return {
     connect,
     disconnect,
+    send(payload) {
+      if (socket === null || socket.destroyed) {
+        return;
+      }
+      socket.write(`${JSON.stringify(payload)}\n`);
+    },
     isConnected() {
       return socket !== null && !socket.destroyed;
     },

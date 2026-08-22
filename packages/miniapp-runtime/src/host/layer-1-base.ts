@@ -70,6 +70,8 @@ export abstract class MiniappHostLayer1Base {
   protected readonly deviceService: HostLayer1Services["deviceService"];
   protected readonly inboundMedia: HostLayer1Services["inboundMedia"];
   protected readonly channelService: HostLayer1Services["channelService"];
+  protected readonly notifyService: HostLayer1Services["notifyService"];
+  protected readonly cryptoService: HostLayer1Services["cryptoService"];
   readonly workspace: HostLayer1Services["workspace"];
 
   protected readonly apps = new Map<string, ActiveApp>();
@@ -112,6 +114,8 @@ export abstract class MiniappHostLayer1Base {
     this.deviceService = services.deviceService;
     this.inboundMedia = services.inboundMedia;
     this.channelService = services.channelService;
+    this.notifyService = services.notifyService;
+    this.cryptoService = services.cryptoService;
     this.workspace = services.workspace;
     this.registerHandlers();
   }
@@ -354,11 +358,13 @@ export abstract class MiniappHostLayer1Base {
   protected registerHandlers(): void {
     this.registerCoreHandlers();
     this.registerServicesHandlers();
+    this.registerFacilitiesHandlers();
     this.registerDeviceHandlers();
   }
 
   protected abstract registerCoreHandlers(): void;
   protected abstract registerServicesHandlers(): void;
+  protected abstract registerFacilitiesHandlers(): void;
   protected abstract registerDeviceHandlers(): void;
 
   protected aiStreamId(payload: unknown): string {

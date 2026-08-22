@@ -36,6 +36,7 @@ Open an SDK chapter and tap **Run applet** for a single probe.
 - CAS share — `share:cas`
 - Package + preview — `apps:package`, `apps:preview`
 - App-to-app channel isolation — `apps:channel`
+- Host notification — `notify:post`
 - Publish + install — `apps:publish`, `apps:install`
 - OTA update — republish with bumped semver
 - AI chat / embedding configuration — `ai:chat`, `ai:embed`

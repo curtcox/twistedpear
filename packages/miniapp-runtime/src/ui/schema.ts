@@ -12,6 +12,9 @@ export type WidgetType =
   | "spacer"
   | "code-editor"
   | "qr-code"
+  | "select"
+  | "slider"
+  | "date"
   | "camera-preview"
   | "audio-meter"
   | "waveform"
@@ -60,6 +63,9 @@ export const WIDGET_TYPES: ReadonlySet<string> = new Set([
   "spacer",
   "code-editor",
   "qr-code",
+  "select",
+  "slider",
+  "date",
   "camera-preview",
   "audio-meter",
   "waveform",
@@ -91,17 +97,18 @@ export const WIDGET_PROP_KEYS: ReadonlyMap<
   ["text", new Set(["value"])],
   ["image", new Set(["asset", "alt"])],
   ["button", new Set(["label", "event"])],
-  ["text-input", new Set(["value", "placeholder", "event"])],
+  ["text-input", new Set(["value", "placeholder", "event", "multiline", "secure", "keyboard"])],
   ["switch", new Set(["value", "event"])],
   ["scroll", new Set(["event", "scrollOffset"])],
   ["list", new Set(["items", "event"])],
   ["progress", new Set(["value", "max"])],
   ["divider", new Set()],
   ["spacer", new Set(["size"])],
-  // Content-by-reference: the editor carries a workspace documentId, never file
-  // text, so large sources cannot blow the widget-tree byte budget.
   ["code-editor", new Set(["documentId", "language", "readOnly", "event"])],
   ["qr-code", new Set(["value", "size", "caption"])],
+  ["select", new Set(["value", "options", "event"])],
+  ["slider", new Set(["value", "min", "max", "step", "event"])],
+  ["date", new Set(["value", "event"])],
   // Preview surfaces: host draws live device output; apps lay out a region but
   // cannot read pixels/samples back through the widget tree.
   ["camera-preview", new Set(["session", "aspectRatio"])],
@@ -116,6 +123,12 @@ export const CODE_EDITOR_LANGUAGES: ReadonlySet<string> = new Set([
   "json",
   "text",
   "elm",
+]);
+export const TEXT_INPUT_KEYBOARDS: ReadonlySet<string> = new Set([
+  "default",
+  "numeric",
+  "email",
+  "url",
 ]);
 export const MAX_QR_CODE_VALUE_LENGTH = 512;
 export const MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH = 256;

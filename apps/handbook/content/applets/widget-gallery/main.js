@@ -40,7 +40,27 @@ export async function run(sdk, report) {
                   value: "",
                   placeholder: "type",
                   event: "hb.gallery.input",
+                  keyboard: "default",
                 },
+              },
+              {
+                id: "g-select",
+                type: "select",
+                props: {
+                  value: "a",
+                  options: ["a", "b"],
+                  event: "hb.gallery.select",
+                },
+              },
+              {
+                id: "g-slider",
+                type: "slider",
+                props: { value: 4, min: 0, max: 10, step: 1, event: "hb.gallery.slide" },
+              },
+              {
+                id: "g-date",
+                type: "date",
+                props: { value: "2026-08-21", event: "hb.gallery.date" },
               },
               {
                 id: "g-switch",

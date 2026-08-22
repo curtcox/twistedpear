@@ -1,6 +1,6 @@
 export { AnnounceService, type AnnounceBackend } from "./announce.js";
 export { AppIdentityService, type IdentityBackend } from "./identity.js";
-export { NamespacedLxmfService } from "./lxmf.js";
+export { NamespacedLxmfService, type LxmfBackend } from "./lxmf.js";
 export { PresenceService } from "./presence.js";
 export {
   LinkQualityService,
@@ -17,3 +17,6 @@ export { RelayBrokerService } from "./relay.js";
 export { FreenetBrokerService } from "./freenet.js";
 export { DeviceBrokerService } from "./device.js";
 export { AppChannelService } from "./app-channel.js";
+export { NotifyService, NotifyServiceError } from "./notify.js";
+export type { HostNotification, NotifyPostRequest } from "./notify.js";
+export { CryptoService, CryptoServiceError } from "./crypto.js";

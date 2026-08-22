@@ -54,6 +54,18 @@ export type {
   ResourceLimitsSnapshot,
 } from "./host.js";
 export {
+  DiagnosticsRing,
+  DIAGNOSTICS_ENTRY_MAX_BYTES,
+  DIAGNOSTICS_RING_CAPACITY,
+} from "./diagnostics.js";
+export type {
+  AppErrorPhase,
+  AppErrorReport,
+  DiagnosticsLevel,
+  DiagnosticsLogEntry,
+  DiagnosticsRingSnapshot,
+} from "./diagnostics.js";
+export {
   ConfirmationError,
   DEFAULT_CONFIRMATION_TIMEOUT_MS,
   generateConfirmationToken,

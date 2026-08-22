@@ -1,0 +1,43 @@
+{
+  "component": "View",
+  "id": "root",
+  "children": [
+    {
+      "component": "TextInput",
+      "id": "name",
+      "props": {
+        "value": "",
+        "placeholder": "Name",
+        "event": "name",
+        "keyboard": "default"
+      }
+    },
+    {
+      "component": "Select",
+      "id": "size",
+      "props": {
+        "value": "m",
+        "options": ["s", "m", "l"],
+        "event": "size"
+      }
+    },
+    {
+      "component": "Slider",
+      "id": "level",
+      "props": {
+        "value": 50,
+        "min": 0,
+        "max": 100,
+        "event": "level"
+      }
+    },
+    {
+      "component": "Date",
+      "id": "when",
+      "props": {
+        "value": "2026-08-21",
+        "event": "when"
+      }
+    }
+  ]
+}

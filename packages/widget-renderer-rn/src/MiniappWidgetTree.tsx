@@ -188,6 +188,43 @@ function fireWidgetEvent(
   if (typeof event === "string") onEvent?.(node.id, event, value);
 }
 
+function keyboardTypeFor(
+  keyboard: unknown,
+): "default" | "numeric" | "email-address" | "url" {
+  if (keyboard === "numeric") return "numeric";
+  if (keyboard === "email") return "email-address";
+  if (keyboard === "url") return "url";
+  return "default";
+}
+
+function SelectWidget({
+  node,
+  style,
+  onEvent,
+}: {
+  readonly node: WidgetNode;
+  readonly style?: ReturnType<typeof widgetStyle>;
+  readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
+}) {
+  const options = Array.isArray(node.props?.options) ? node.props.options : [];
+  return (
+    <View testID={node.id} style={style}>
+      {options.map((option, index) => {
+        const label =
+          typeof option === "string" ? option : JSON.stringify(option);
+        return (
+          <Pressable
+            key={`${node.id}-${index}`}
+            onPress={() => fireWidgetEvent(onEvent, node, label)}
+          >
+            <Text>{label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function WidgetNodeView({
   node,
   onEvent,
@@ -234,6 +271,33 @@ function WidgetNodeView({
         style={[styles.input, style]}
         defaultValue={String(n.props?.value ?? "")}
         placeholder={String(n.props?.placeholder ?? "")}
+        multiline={n.props?.multiline === true}
+        secureTextEntry={n.props?.secure === true}
+        keyboardType={keyboardTypeFor(n.props?.keyboard)}
+        onChangeText={(value) => fireWidgetEvent(onEvent, n, value)}
+      />
+    ),
+    select: (n) => {
+      const selectProps = onEvent === undefined ? {} : { onEvent };
+      return <SelectWidget node={n} style={style} {...selectProps} />;
+    },
+    slider: (n) => (
+      <TextInput
+        testID={n.id}
+        style={[styles.input, style]}
+        defaultValue={String(n.props?.value ?? 0)}
+        keyboardType="numeric"
+        onChangeText={(value) =>
+          fireWidgetEvent(onEvent, n, Number(value))
+        }
+      />
+    ),
+    date: (n) => (
+      <TextInput
+        testID={n.id}
+        style={[styles.input, style]}
+        defaultValue={String(n.props?.value ?? "")}
+        placeholder="YYYY-MM-DD"
         onChangeText={(value) => fireWidgetEvent(onEvent, n, value)}
       />
     ),

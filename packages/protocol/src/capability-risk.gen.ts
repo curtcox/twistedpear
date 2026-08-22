@@ -168,6 +168,14 @@ export const CAPABILITY_RISK_REGISTRY: ReadonlyArray<CapabilityRiskEntry> = [
     "standing": true
   },
   {
+    "id": "notify:post",
+    "riskClass": "elevated",
+    "namesDestination": false,
+    "irreversibleOrThirdParty": false,
+    "readsSensorSecretOrForeignData": false,
+    "standing": true
+  },
+  {
     "id": "share:cas",
     "riskClass": "elevated",
     "namesDestination": false,

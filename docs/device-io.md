@@ -88,10 +88,8 @@ device.diagnostics(): Promise<ReadonlyArray<DeviceDiagnostic>>;
 
 device.open(request: DeviceOpenRequest): Promise<DeviceSession>;
 device.close(session: DeviceSession): Promise<void>;
-device.configure(session: DeviceSession, patch: DeviceOptionsPatch): Promise<void>;
 
 device.read(session: DeviceSession): Promise<DeviceSample>;
-device.subscribe(session: DeviceSession): AsyncIterable<DeviceSample>;
 device.stream(session: DeviceSession, to: PeerHandle,
               constraints?: StreamConstraints): Promise<StreamHandle>;
 

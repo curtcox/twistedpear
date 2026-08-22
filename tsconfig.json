@@ -32,6 +32,9 @@
       "path": "./packages/miniapp-sdk"
     },
     {
+      "path": "./packages/miniapp-test"
+    },
+    {
       "path": "./packages/bridge-hyper"
     },
     {

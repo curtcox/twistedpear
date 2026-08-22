@@ -40,7 +40,9 @@ import {
   writePublishMetadata,
   writeTemplate,
 } from "./helpers.js";
+import { parseDevLinkFlags, resolveDevLinkProfile } from "./dev-link-flags.js";
 import { maybeBuildGuidaApp } from "./guida-commands.js";
+import { maybeLinkJsProject } from "./js-bundle.js";
 
 export function runCreate(ctx: CommandContext): Promise<number> {
   const templateName = ctx.args[0];
@@ -76,6 +78,7 @@ export async function runDev(ctx: CommandContext): Promise<number> {
   const publisherPublicKey = existsSync(identityPath)
     ? bytesToHex(loadIdentity(provider, identityPath, ctx).getPublicKey())
     : "dev";
+  const link = resolveDevLinkProfile(parseDevLinkFlags(ctx.args));
 
   const server = await startDevServer({
     appDir: resolvedAppDir,
@@ -89,9 +92,15 @@ export async function runDev(ctx: CommandContext): Promise<number> {
       publisherPublicKey,
       minHostApi: app.minHostApi ?? HOST_API_VERSION,
     },
+    ...(link === undefined ? {} : { link }),
   });
 
   console.log(`Dev side-load ready for ${app.name} (${app.version})`);
+  if (link !== undefined) {
+    console.log(
+      `Link profile ${link.name} bitrate=${link.bitrate} latency=${link.latencyMs}ms loss=${link.loss}${link.peerOffline ? " peer-offline" : ""}`,
+    );
+  }
   console.log(`Connect harness developer mode to ${server.url}`);
   console.log("Press Ctrl+C to stop.");
 
@@ -114,6 +123,7 @@ export async function runPack(ctx: CommandContext): Promise<number> {
   const resolvedAppDir = resolveFromCwd(ctx.cwd, appDir);
   await maybeBuildGuidaApp(resolvedAppDir);
   const app = readAppManifest(resolvedAppDir);
+  const packedEntry = maybeLinkJsProject(resolvedAppDir, app.entry);
   validateManifestCapabilities(app.capabilities ?? []);
   const provider = new NodeCryptoProvider();
   const config = loadConfig(ctx.cwd);
@@ -136,7 +146,7 @@ export async function runPack(ctx: CommandContext): Promise<number> {
     {
       name: app.name,
       version: app.version,
-      entry: app.entry,
+      entry: packedEntry,
       capabilities: app.capabilities ?? [],
       icon: app.icon ?? null,
       minHostApi: app.minHostApi ?? HOST_API_VERSION,
@@ -156,6 +166,8 @@ export async function runPack(ctx: CommandContext): Promise<number> {
 
   const out = parseFlag(ctx.args, "--out") ?? `${app.name}-${app.version}.tpkg`;
   writeBytes(resolveFromCwd(ctx.cwd, out), packed.archiveBytes);
+  const { putLocalCas } = await import("./inspect-resolve.js");
+  await putLocalCas(ctx.cwd, packed.archiveBytes);
   console.log(`Wrote ${out} (${packed.packageHash})`);
   return Promise.resolve(0);
 }

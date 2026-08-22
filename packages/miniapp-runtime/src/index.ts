@@ -31,6 +31,19 @@ export type {
   BrokerRequest,
   BrokerResponse,
 } from "./broker.js";
+export {
+  DiagnosticsRing,
+  DIAGNOSTICS_ENTRY_MAX_BYTES,
+  DIAGNOSTICS_RING_CAPACITY,
+  isDiagnosticsLevel,
+} from "./diagnostics.js";
+export type {
+  AppErrorPhase,
+  AppErrorReport,
+  DiagnosticsLevel,
+  DiagnosticsLogEntry,
+  DiagnosticsRingSnapshot,
+} from "./diagnostics.js";
 export { MiniappLifecycle } from "./lifecycle.js";
 export type {
   MiniappLifecycleSnapshot,
@@ -164,6 +177,10 @@ export type {
   LxmfInboxMessage,
   LxmfSendRequest,
 } from "./services/lxmf.js";
+export { NotifyService, NotifyServiceError } from "./services/notify.js";
+export type { HostNotification, NotifyPostRequest } from "./services/notify.js";
+export { CryptoService, CryptoServiceError } from "./services/crypto.js";
+export { AppChannelService } from "./services/app-channel.js";
 export { PresenceService } from "./services/presence.js";
 export type { PresenceBackend, PresenceSnapshot } from "./services/presence.js";
 export { HostInfoService, defaultHostInfo } from "./services/host-info.js";
@@ -395,6 +412,7 @@ export {
   MAX_QR_CODE_VALUE_LENGTH,
   PREVIEW_SURFACE_TYPES,
   STYLE_VALUE_SCHEMAS,
+  TEXT_INPUT_KEYBOARDS,
   visitWidget,
   WIDGET_PROP_KEYS,
   WIDGET_STYLE_KEYS,

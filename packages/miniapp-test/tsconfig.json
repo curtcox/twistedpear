@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.package.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "target": "ES2023",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../miniapp-runtime"
+    }
+  ]
+}
