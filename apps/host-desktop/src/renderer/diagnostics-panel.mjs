@@ -5,7 +5,8 @@
  */
 
 export function formatLifecycleChip(state) {
-  const label = typeof state === "string" && state.length > 0 ? state : "stopped";
+  const label =
+    typeof state === "string" && state.length > 0 ? state : "stopped";
   return { state: label, label };
 }
 
@@ -38,7 +39,9 @@ export function formatDiagnosticsLines(snapshot) {
 }
 
 export function formatNotifications(runtime) {
-  const items = Array.isArray(runtime?.notifications) ? runtime.notifications : [];
+  const items = Array.isArray(runtime?.notifications)
+    ? runtime.notifications
+    : [];
   const enabled = runtime?.notifyEnabled !== false;
   return {
     badge: "app-authored",

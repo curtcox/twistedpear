@@ -97,7 +97,17 @@ export const WIDGET_PROP_KEYS: ReadonlyMap<
   ["text", new Set(["value"])],
   ["image", new Set(["asset", "alt"])],
   ["button", new Set(["label", "event"])],
-  ["text-input", new Set(["value", "placeholder", "event", "multiline", "secure", "keyboard"])],
+  [
+    "text-input",
+    new Set([
+      "value",
+      "placeholder",
+      "event",
+      "multiline",
+      "secure",
+      "keyboard",
+    ]),
+  ],
   ["switch", new Set(["value", "event"])],
   ["scroll", new Set(["event", "scrollOffset"])],
   ["list", new Set(["items", "event"])],

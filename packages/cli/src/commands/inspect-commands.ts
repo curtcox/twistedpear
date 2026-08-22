@@ -1,9 +1,6 @@
 import { resolveFromCwd } from "../config.js";
 import { type CommandContext, printHelp } from "./helpers.js";
-import {
-  encode256t,
-  verify256t,
-} from "@twistedpear/cas-256t";
+import { encode256t, verify256t } from "@twistedpear/cas-256t";
 import { verifyPackage } from "@twistedpear/app-registry";
 import { NodeCryptoProvider } from "@twistedpear/reticulum-ts";
 import {
@@ -44,7 +41,8 @@ export function inspectArchive(archiveBytes: Uint8Array): string {
     return `  ${idValue} (${risk})`;
   });
   const files = unpacked.manifest.files.map(
-    (file) => `  ${file.path}  ${file.size} B  sha256=${file.sha256.slice(0, 16)}…`,
+    (file) =>
+      `  ${file.path}  ${file.size} B  sha256=${file.sha256.slice(0, 16)}…`,
   );
   return [
     `256t: ${id}`,

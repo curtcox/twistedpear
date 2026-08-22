@@ -185,15 +185,15 @@ for (const type of domTypes) {
                   ? { value: 0 }
                   : type === "list"
                     ? { items: [] }
-            : type === "image"
-              ? { asset: "a.png" }
-              : type === "select"
-                ? { options: ["a"], event: "x" }
-                : type === "slider"
-                  ? { value: 0, event: "x" }
-                  : type === "date"
-                    ? { value: "2026-08-21", event: "x" }
-                    : undefined,
+                    : type === "image"
+                      ? { asset: "a.png" }
+                      : type === "select"
+                        ? { options: ["a"], event: "x" }
+                        : type === "slider"
+                          ? { value: 0, event: "x" }
+                          : type === "date"
+                            ? { value: "2026-08-21", event: "x" }
+                            : undefined,
     },
   });
 }

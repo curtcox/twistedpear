@@ -8,9 +8,9 @@ import {
 
 describe("link profiles", () => {
   it("parses tp dev flags", () => {
-    expect(parseDevLinkFlags(["app", "--link", "lora", "--loss", "20"])).toEqual(
-      { link: "lora", loss: 0.2, peerOffline: false },
-    );
+    expect(
+      parseDevLinkFlags(["app", "--link", "lora", "--loss", "20"]),
+    ).toEqual({ link: "lora", loss: 0.2, peerOffline: false });
     expect(parseDevLinkFlags(["app", "--peer-offline"]).peerOffline).toBe(true);
   });
 

@@ -9,7 +9,13 @@ export interface LinkProfile {
 }
 
 export const LINK_PROFILES: Readonly<Record<LinkProfileName, LinkProfile>> = {
-  lan: { name: "lan", bitrate: 8_000_000, latencyMs: 5, loss: 0, peerOffline: false },
+  lan: {
+    name: "lan",
+    bitrate: 8_000_000,
+    latencyMs: 5,
+    loss: 0,
+    peerOffline: false,
+  },
   ble: {
     name: "ble",
     bitrate: 24_000,

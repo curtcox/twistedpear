@@ -287,9 +287,7 @@ function WidgetNodeView({
         style={[styles.input, style]}
         defaultValue={String(n.props?.value ?? 0)}
         keyboardType="numeric"
-        onChangeText={(value) =>
-          fireWidgetEvent(onEvent, n, Number(value))
-        }
+        onChangeText={(value) => fireWidgetEvent(onEvent, n, Number(value))}
       />
     ),
     date: (n) => (

@@ -37,11 +37,15 @@ export interface DoctorReport {
   readonly findings: ReadonlyArray<DoctorFinding>;
 }
 
-function walkFiles(dir: string, prefix = ""): Array<{ path: string; size: number }> {
+function walkFiles(
+  dir: string,
+  prefix = "",
+): Array<{ path: string; size: number }> {
   const out: Array<{ path: string; size: number }> = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === "node_modules" || entry.name === "dist") continue;
-    const relative = prefix.length === 0 ? entry.name : `${prefix}/${entry.name}`;
+    const relative =
+      prefix.length === 0 ? entry.name : `${prefix}/${entry.name}`;
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       out.push(...walkFiles(full, relative));
@@ -64,7 +68,10 @@ function usedCapabilities(source: string): Set<string> {
 }
 
 function collectAccessibilityGaps(node: WidgetNode, gaps: string[]): void {
-  if (node.type === "view" && typeof node.props?.accessibilityLabel !== "string") {
+  if (
+    node.type === "view" &&
+    typeof node.props?.accessibilityLabel !== "string"
+  ) {
     gaps.push(node.id);
   }
   for (const child of node.children ?? []) {

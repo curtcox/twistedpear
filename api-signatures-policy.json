@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SHA-256 digests of API Extractor's stable Markdown signatures. Full reports are CI artifacts. After bootstrap, changing a digest also requires changing that package version.",
-  "reports": 39,
+  "reports": 40,
   "entries": {
     "protocol.api.md": {
       "package": "packages/protocol",
@@ -9,7 +9,7 @@
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "b2c9919bf396282ea052991688c76b8f8299f9510582312ff45ee0cffd42da27"
+      "sha256": "8558472319cdeb13593c5b4864fe9fb511a2f68aa45bc26a0a925f45bc552d62"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
@@ -25,7 +25,7 @@
     },
     "miniapp-sdk.api.md": {
       "package": "packages/miniapp-sdk",
-      "sha256": "c8047c5cea7048d2dfa9468d11106358ed5fee00067fc58393108caf336c069e"
+      "sha256": "13b7841005454e2f191542a2cb10644eb73add152458fa311732e67cc2888f95"
     },
     "reticulum-interfaces.api.md": {
       "package": "packages/reticulum-interfaces",
@@ -33,7 +33,7 @@
     },
     "miniapp-runtime-worklet.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "da457368440962efec25d053a8385ef111a8c7eda067af0505a28e0115159e22"
+      "sha256": "83a2e14e77568a7ca0469f4114f79e911ad66503accd17bb38ca7e0ca39eac97"
     },
     "app-registry.api.md": {
       "package": "packages/app-registry",
@@ -85,11 +85,15 @@
     },
     "guida-twistedpear.api.md": {
       "package": "packages/guida-twistedpear",
-      "sha256": "0adceb9f79141f1a8e16ceee80232db0e548eb18825af6e74a4feea12250cca7"
+      "sha256": "fa41c6d78e136ba28058743523d366ce1c1d30a27fc8156688b1c8b7b68021d7"
     },
     "bridge-hyper-worklet.api.md": {
       "package": "packages/bridge-hyper",
       "sha256": "b1b27d52de7981b86fa4d5a6020310ebd8c75b7f4c20bb8e5327a7180934a43c"
+    },
+    "miniapp-test.api.md": {
+      "package": "packages/miniapp-test",
+      "sha256": "4ed116fd7fc0a3788b74ce16549e63299c756d8d2eb1a7fc5582095a3fdd7991"
     },
     "bridge-hyper-web.api.md": {
       "package": "packages/bridge-hyper",
@@ -101,11 +105,11 @@
     },
     "miniapp-runtime-ui.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "420bbf7dbbcd294d5df60263f2108a792b3684316e571a74656d5299a547b967"
+      "sha256": "b52bebdb75ad0a5761e2d993d068a5280a09014d83755e95c29f642e8c5eeab1"
     },
     "host-core-protocol.api.md": {
       "package": "packages/host-core",
-      "sha256": "afcde20a80fb65a587360e41d7affb8a8297624b45e68152030bfe8faf068014"
+      "sha256": "0e378f59f08ca42d50a7f912cbb54601b7961ab6ca8f882ed978201b71f56126"
     },
     "reticulum-interfaces-policy.api.md": {
       "package": "packages/reticulum-interfaces",

@@ -19,14 +19,14 @@ export class MiniappHost extends MiniappHostLayer2 {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  override async launch(
-    manifest: LaunchManifest,
-    bundle: Uint8Array,
-  ) {
-    this.lastLaunches.set(appInstanceKey(manifest.name, manifest.publisherPublicKey), {
-      manifest,
-      bundle: bundle.slice(),
-    });
+  override async launch(manifest: LaunchManifest, bundle: Uint8Array) {
+    this.lastLaunches.set(
+      appInstanceKey(manifest.name, manifest.publisherPublicKey),
+      {
+        manifest,
+        bundle: bundle.slice(),
+      },
+    );
     return super.launch(manifest, bundle);
   }
 
@@ -70,10 +70,7 @@ export class MiniappHost extends MiniappHostLayer2 {
     if (app.lifecycle.snapshot().state === "suspended") {
       await this.resume();
     }
-    this.switchForeground(
-      notification.appId,
-      notification.publisherPublicKey,
-    );
+    this.switchForeground(notification.appId, notification.publisherPublicKey);
     await app.lifecycle.deliverUiEvent({
       nodeId: "notify",
       event: notification.event,

@@ -19,7 +19,8 @@ export interface HostNotification {
 
 export class NotifyServiceError extends Error {
   constructor(
-    readonly code: "NOTIFY_DISABLED" | "NOTIFY_RATE_LIMITED" | "NOTIFY_BAD_REQUEST",
+    readonly code:
+      "NOTIFY_DISABLED" | "NOTIFY_RATE_LIMITED" | "NOTIFY_BAD_REQUEST",
     message: string,
   ) {
     super(message);

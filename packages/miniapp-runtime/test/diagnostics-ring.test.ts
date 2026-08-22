@@ -99,17 +99,16 @@ for (let i = 0; i < ${flood}; i++) console.log("flood-" + i);
         },
         bundle,
       );
-      await waitUntil(
-        () => host.diagnostics("log-app").dropped >= 40,
-        4_000,
-      );
-      const before = audit.filter((entry) => entry.outcome === "allowed").length;
+      await waitUntil(() => host.diagnostics("log-app").dropped >= 40, 4_000);
+      const before = audit.filter(
+        (entry) => entry.outcome === "allowed",
+      ).length;
       await host.handleUiEvent("go", "ping");
       const after = audit.filter((entry) => entry.outcome === "allowed").length;
       expect(after).toBe(before + 1);
-      expect(
-        audit.some((entry) => entry.error?.code === "RATE_LIMITED"),
-      ).toBe(false);
+      expect(audit.some((entry) => entry.error?.code === "RATE_LIMITED")).toBe(
+        false,
+      );
       const ring = host.diagnostics("log-app");
       expect(ring.entries).toHaveLength(DIAGNOSTICS_RING_CAPACITY);
       expect(ring.dropped).toBeGreaterThanOrEqual(40);

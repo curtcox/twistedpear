@@ -129,7 +129,7 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
         delay: (ms) => this.delay(ms),
         onAppError: (report) => {
           const app = appHolder.current;
-          if (app !== undefined && app !== null) app.lastAppError = report;
+          if (app !== null) app.lastAppError = report;
           this.options.callbacks?.onAppError?.({
             ...report,
             appId: manifest.name,
@@ -288,22 +288,33 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
     );
   }
 
-  diagnostics(appId?: string): import("../diagnostics.js").DiagnosticsRingSnapshot {
+  diagnostics(
+    appId?: string,
+  ): import("../diagnostics.js").DiagnosticsRingSnapshot {
     const app =
-      appId === undefined ? this.foregroundApp() : (this.appById(appId) ?? null);
+      appId === undefined
+        ? this.foregroundApp()
+        : (this.appById(appId) ?? null);
     if (app === null) {
       return { entries: [], dropped: 0 };
     }
     return app.diagnostics.snapshot();
   }
 
-  lastAppError(appId?: string): import("../diagnostics.js").AppErrorReport | null {
+  lastAppError(
+    appId?: string,
+  ): import("../diagnostics.js").AppErrorReport | null {
     const app =
-      appId === undefined ? this.foregroundApp() : (this.appById(appId) ?? null);
+      appId === undefined
+        ? this.foregroundApp()
+        : (this.appById(appId) ?? null);
     return app?.lastAppError ?? null;
   }
 
-  async crashApp(appId: string, reason = "injected"): Promise<MiniappHostSnapshot> {
+  async crashApp(
+    appId: string,
+    reason = "injected",
+  ): Promise<MiniappHostSnapshot> {
     const app = this.appById(appId);
     if (app === undefined) {
       throw new Error(`Mini-app is not running: ${appId}`);

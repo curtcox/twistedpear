@@ -10,6 +10,10 @@ export {
   applyLinkProfile,
   resolveLinkProfile,
 } from "./link-profiles.js";
-export type { LinkProfile, LinkProfileName, LinkAwareHandle } from "./link-profiles.js";
+export type {
+  LinkProfile,
+  LinkProfileName,
+  LinkAwareHandle,
+} from "./link-profiles.js";
 export { doctorApp, LINK_CEILINGS } from "./doctor.js";
 export type { DoctorFinding, DoctorReport } from "./doctor.js";

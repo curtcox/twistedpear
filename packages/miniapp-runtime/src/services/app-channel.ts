@@ -118,7 +118,10 @@ function parsePayload(value: unknown): string {
 export class AppChannelService {
   private readonly consents = new Map<string, AppChannelPeer>();
   private readonly inboxes = new Map<string, AppChannelMessage[]>();
-  private readonly watchers = new Map<string, Set<(message: AppChannelMessage) => void>>();
+  private readonly watchers = new Map<
+    string,
+    Set<(message: AppChannelMessage) => void>
+  >();
   private nextMessageId = 0;
 
   constructor(

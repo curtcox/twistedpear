@@ -9,7 +9,7 @@ import {
 } from "./helpers.js";
 import { writeLinkedBundle } from "./js-bundle.js";
 
-export async function runJsAppBuild(ctx: CommandContext): Promise<number> {
+export function runJsAppBuild(ctx: CommandContext): number {
   const appDirArg = ctx.args[0];
   if (appDirArg === undefined) {
     printHelp("app");

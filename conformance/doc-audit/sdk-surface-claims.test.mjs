@@ -19,7 +19,8 @@ describe("documented SDK surface", () => {
       "utf8",
     );
     const documented = readFileSync(join(root, "docs/device-io.md"), "utf8");
-    const sessionSection = documented.split("## Session API")[1]?.split("##")[0] ?? "";
+    const sessionSection =
+      documented.split("## Session API")[1]?.split("##")[0] ?? "";
     expect(sessionSection).not.toMatch(/device\.subscribe/);
     expect(sessionSection).not.toMatch(/device\.configure/);
     const exports = new Set(exportedFunctions(deviceSource));

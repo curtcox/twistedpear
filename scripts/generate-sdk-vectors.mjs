@@ -495,7 +495,10 @@ const INPUTS = [
           bytes: { $textBytes: "payload" },
         }),
       },
-      { call: call("crypto", "randomBytes", undefined, { n: 4 }), match: "none" },
+      {
+        call: call("crypto", "randomBytes", undefined, { n: 4 }),
+        match: "none",
+      },
       {
         call: call("crypto", "timingSafeEqual", undefined, {
           a: { $textBytes: "abcd" },

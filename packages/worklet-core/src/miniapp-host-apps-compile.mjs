@@ -3,6 +3,8 @@
  * can inject a worker client without this module ever importing the compiler.
  */
 
+/* global TextDecoder */
+
 import { linkJsModules, needsJsLink } from "./js-link.mjs";
 
 export function createAppsBackendCompileAction({
@@ -21,7 +23,12 @@ export function createAppsBackendCompileAction({
         loadWorklet,
       });
     }
-    return compileJsProject({ files, appId, projectPrefix, writeWorkspaceFile });
+    return compileJsProject({
+      files,
+      appId,
+      projectPrefix,
+      writeWorkspaceFile,
+    });
   };
 }
 
@@ -49,7 +56,10 @@ async function compileJsProject({
     typeof manifest?.entry === "string" ? manifest.entry : "src/main.js";
   const source = map.get(entry);
   if (source === undefined || !needsJsLink(source)) {
-    return { compiled: false, reason: "not a Guida or multi-file JavaScript project" };
+    return {
+      compiled: false,
+      reason: "not a Guida or multi-file JavaScript project",
+    };
   }
   const bundle = linkJsModules(map, entry);
   await writeWorkspaceFile(appId, `${projectPrefix}/bundle.js`, bundle);
@@ -67,39 +77,39 @@ async function compileGuidaProject({
   writeWorkspaceFile,
   loadWorklet,
 }) {
-    const worklet = await loadWorklet();
-    if (worklet === null) {
-      return {
-        compiled: false,
-        reason: "Guida compiler is not available on this host",
-      };
-    }
-    const snapshot = files.map((file) => ({
-      path: file.path,
-      content: file.content,
-    }));
-    try {
-      const result = await worklet.compileGuidaWorkspace(snapshot);
-      await writeWorkspaceFile(
-        appId,
-        `${projectPrefix}/bundle.js`,
-        result.bundle,
-      );
-      return {
-        compiled: true,
-        bytes: result.minifiedBytes,
-        compiler: result.compilerVersion,
-      };
-    } catch (error) {
-      const problems = await worklet
-        .diagnoseGuidaWorkspace(snapshot, "src/Main.elm")
-        .catch(() => []);
-      return {
-        compiled: false,
-        reason: error instanceof Error ? error.message : String(error),
-        problems,
-      };
-    }
+  const worklet = await loadWorklet();
+  if (worklet === null) {
+    return {
+      compiled: false,
+      reason: "Guida compiler is not available on this host",
+    };
+  }
+  const snapshot = files.map((file) => ({
+    path: file.path,
+    content: file.content,
+  }));
+  try {
+    const result = await worklet.compileGuidaWorkspace(snapshot);
+    await writeWorkspaceFile(
+      appId,
+      `${projectPrefix}/bundle.js`,
+      result.bundle,
+    );
+    return {
+      compiled: true,
+      bytes: result.minifiedBytes,
+      compiler: result.compilerVersion,
+    };
+  } catch (error) {
+    const problems = await worklet
+      .diagnoseGuidaWorkspace(snapshot, "src/Main.elm")
+      .catch(() => []);
+    return {
+      compiled: false,
+      reason: error instanceof Error ? error.message : String(error),
+      problems,
+    };
+  }
 }
 
 export function createAppsBackendFormatAction({ loadWorklet }) {

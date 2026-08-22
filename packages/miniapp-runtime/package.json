@@ -1,6 +1,6 @@
 {
   "name": "@twistedpear/miniapp-runtime",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -24,6 +24,7 @@
     }
   },
   "dependencies": {
+    "@noble/hashes": "^2.2.0",
     "@twistedpear/effects": "*",
     "@twistedpear/peer-discovery": "*",
     "@twistedpear/protocol": "*",

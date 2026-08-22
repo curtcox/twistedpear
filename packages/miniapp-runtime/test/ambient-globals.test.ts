@@ -78,7 +78,13 @@ const GUARANTEED = new Set([
   "queueMicrotask",
 ]);
 
-const FORBIDDEN = new Set(["process", "require", "module", "fetch", "XMLHttpRequest"]);
+const FORBIDDEN = new Set([
+  "process",
+  "require",
+  "module",
+  "fetch",
+  "XMLHttpRequest",
+]);
 
 async function probeNodeWorker(): Promise<Record<string, boolean>> {
   const store = new MemoryStore();
@@ -108,7 +114,9 @@ await sdk.ui.render({
   const deadline = Date.now() + 3_000;
   while (Date.now() < deadline) {
     const snapshot = host.diagnostics("probe");
-    const line = snapshot.entries.find((entry) => entry.message.startsWith("{"));
+    const line = snapshot.entries.find((entry) =>
+      entry.message.startsWith("{"),
+    );
     if (line !== undefined) {
       await host.stopAll();
       return JSON.parse(line.message) as Record<string, boolean>;

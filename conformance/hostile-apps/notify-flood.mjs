@@ -40,9 +40,12 @@ export async function runNotifyHostileCases() {
     capabilities: ["notify:post"],
     publisherPublicKey: "publisher",
   };
-  await host.setGrants("hostile-notify", "publisher", ["notify:post"], [
-    "notify:post",
-  ]);
+  await host.setGrants(
+    "hostile-notify",
+    "publisher",
+    ["notify:post"],
+    ["notify:post"],
+  );
   await host.launch(
     manifest,
     new TextEncoder().encode(

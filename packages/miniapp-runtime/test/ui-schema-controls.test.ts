@@ -37,7 +37,11 @@ describe("select slider date widgets", () => {
   it("rejects unknown control props", () => {
     expect(() =>
       validateWidgetTree({
-        root: { id: "s", type: "select", props: { options: [], theme: "dark" } },
+        root: {
+          id: "s",
+          type: "select",
+          props: { options: [], theme: "dark" },
+        },
       }),
     ).toThrow(/Unsupported/);
     expect(() =>

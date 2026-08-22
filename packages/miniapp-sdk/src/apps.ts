@@ -168,9 +168,7 @@ export const channel = {
   receive(): Promise<ReadonlyArray<ChannelMessage>> {
     return channelCall("receive");
   },
-  onMessage(
-    handler: (message: ChannelMessage) => void | Promise<void>,
-  ): void {
+  onMessage(handler: (message: ChannelMessage) => void | Promise<void>): void {
     const injected = (
       globalThis as {
         sdk?: {

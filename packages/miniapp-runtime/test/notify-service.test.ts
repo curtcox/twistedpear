@@ -49,9 +49,12 @@ describe("notify service", () => {
       grantStore: new GrantStore(store),
       kvBackend: store,
     });
-    await host.setGrants("notify-app", "publisher", ["notify:post"], [
-      "notify:post",
-    ]);
+    await host.setGrants(
+      "notify-app",
+      "publisher",
+      ["notify:post"],
+      ["notify:post"],
+    );
     await host.launch(
       manifest,
       new TextEncoder().encode(`
@@ -87,9 +90,12 @@ await sdk.ui.render({
       kvBackend: store,
       now: () => now,
     });
-    await host.setGrants("notify-app", "publisher", ["notify:post"], [
-      "notify:post",
-    ]);
+    await host.setGrants(
+      "notify-app",
+      "publisher",
+      ["notify:post"],
+      ["notify:post"],
+    );
     await host.launch(
       manifest,
       new TextEncoder().encode(`

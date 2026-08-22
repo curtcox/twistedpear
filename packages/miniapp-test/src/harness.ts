@@ -19,20 +19,24 @@ import { applyLinkProfile, type LinkProfile } from "./link-profiles.js";
 export class MemoryKvStore implements GrantKeyValueStore {
   readonly values = new Map<string, Uint8Array>();
 
-  async get(key: string): Promise<Uint8Array | null> {
-    return this.values.get(key) ?? null;
+  get(key: string): Promise<Uint8Array | null> {
+    return Promise.resolve(this.values.get(key) ?? null);
   }
 
-  async set(key: string, value: Uint8Array): Promise<void> {
+  set(key: string, value: Uint8Array): Promise<void> {
     this.values.set(key, value);
+    return Promise.resolve();
   }
 
-  async delete(key: string): Promise<void> {
+  delete(key: string): Promise<void> {
     this.values.delete(key);
+    return Promise.resolve();
   }
 
-  async list(prefix: string): Promise<ReadonlyArray<string>> {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
+  list(prefix: string): Promise<ReadonlyArray<string>> {
+    return Promise.resolve(
+      [...this.values.keys()].filter((key) => key.startsWith(prefix)),
+    );
   }
 }
 
@@ -119,10 +123,7 @@ export async function mountAppFromDir(
   return mountApp({ ...overrides, manifest, bundle });
 }
 
-function createHandle(
-  host: MiniappHost,
-  manifest: LaunchManifest,
-): AppHandle {
+function createHandle(host: MiniappHost, manifest: LaunchManifest): AppHandle {
   return {
     host,
     tree() {

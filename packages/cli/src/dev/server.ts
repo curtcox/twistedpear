@@ -79,10 +79,7 @@ function formatClientLine(payload: {
   return null;
 }
 
-function attachClientReader(
-  socket: Socket,
-  options: DevServerOptions,
-): void {
+function attachClientReader(socket: Socket, options: DevServerOptions): void {
   let inbound = "";
   const log = options.log ?? ((line: string) => console.log(line));
   socket.on("data", (chunk) => {

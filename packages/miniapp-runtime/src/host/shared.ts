@@ -78,9 +78,13 @@ export interface MiniappHostCallbacks {
   readonly onLifecycle?: (
     snapshot: ReturnType<MiniappLifecycle["snapshot"]>,
   ) => void;
-  readonly onAppError?: (report: AppErrorReport & { readonly appId: string }) => void;
+  readonly onAppError?: (
+    report: AppErrorReport & { readonly appId: string },
+  ) => void;
   readonly onDiagnostics?: (entry: DiagnosticsLogEntry) => void;
-  readonly onNotification?: (notification: import("../services/notify.js").HostNotification) => void;
+  readonly onNotification?: (
+    notification: import("../services/notify.js").HostNotification,
+  ) => void;
 }
 
 export interface MiniappHostOptions {

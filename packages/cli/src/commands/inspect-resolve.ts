@@ -1,4 +1,10 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import {
   CasStore,
@@ -18,24 +24,30 @@ class DirKvStore implements CasKeyValueStore {
     return join(this.root, encodeURIComponent(key));
   }
 
-  async get(key: string): Promise<Uint8Array | null> {
+  get(key: string): Promise<Uint8Array | null> {
     const path = this.pathFor(key);
-    return existsSync(path) ? new Uint8Array(readFileSync(path)) : null;
+    return Promise.resolve(
+      existsSync(path) ? new Uint8Array(readFileSync(path)) : null,
+    );
   }
 
-  async set(key: string, value: Uint8Array): Promise<void> {
+  set(key: string, value: Uint8Array): Promise<void> {
     writeFileSync(this.pathFor(key), value);
+    return Promise.resolve();
   }
 
-  async delete(key: string): Promise<void> {
+  delete(_key: string): Promise<void> {
     // Inspect cache is write-mostly; delete is unused.
+    return Promise.resolve();
   }
 
-  async list(prefix: string): Promise<ReadonlyArray<string>> {
-    if (!existsSync(this.root)) return [];
-    return readdirSync(this.root)
-      .map((name) => decodeURIComponent(name))
-      .filter((key) => key.startsWith(prefix));
+  list(prefix: string): Promise<ReadonlyArray<string>> {
+    if (!existsSync(this.root)) return Promise.resolve([]);
+    return Promise.resolve(
+      readdirSync(this.root)
+        .map((name) => decodeURIComponent(name))
+        .filter((key) => key.startsWith(prefix)),
+    );
   }
 }
 
@@ -59,10 +71,18 @@ export async function putLocalCas(
 }
 
 function looksLike256t(value: string): boolean {
-  return value.length === T256_ID_LENGTH && !value.includes("/") && !value.includes("\\");
+  return (
+    value.length === T256_ID_LENGTH &&
+    !value.includes("/") &&
+    !value.includes("\\")
+  );
 }
 
-function scanTpkg(cwd: string, id: string, sha512: (data: Uint8Array) => Uint8Array): Uint8Array | null {
+function scanTpkg(
+  cwd: string,
+  id: string,
+  sha512: (data: Uint8Array) => Uint8Array,
+): Uint8Array | null {
   if (!existsSync(cwd)) return null;
   for (const name of readdirSync(cwd)) {
     if (!name.endsWith(".tpkg")) continue;

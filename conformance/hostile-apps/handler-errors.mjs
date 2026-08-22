@@ -81,9 +81,7 @@ async function assertHandlerError(body, expectedMessage) {
     }
     const error = host.lastAppError();
     if (error?.phase !== "ui-event" || error.event !== "boom") {
-      throw new Error(
-        `expected ui-event/boom, got ${JSON.stringify(error)}`,
-      );
+      throw new Error(`expected ui-event/boom, got ${JSON.stringify(error)}`);
     }
   } finally {
     await host.stop();

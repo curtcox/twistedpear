@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "total": 8130,
+  "total": 8173,
   "cap": 8130,
-  "packages": 20,
-  "entryPoints": 46,
+  "packages": 21,
+  "entryPoints": 47,
   "unresolved": 0,
-  "violations": 0,
+  "violations": 7,
   "findings": [
     {
       "name": "protocol",
@@ -26,12 +26,12 @@
     {
       "name": "miniapp-runtime",
       "entryPoints": {
-        ".": 331,
-        "./worklet": 100,
+        ".": 348,
+        "./worklet": 108,
         "./sandbox/web": 2,
         "./ui": 13
       },
-      "total": 446
+      "total": 471
     },
     {
       "name": "host-core",
@@ -148,9 +148,16 @@
     {
       "name": "miniapp-sdk",
       "entryPoints": {
-        ".": 20
+        ".": 22
       },
-      "total": 20
+      "total": 22
+    },
+    {
+      "name": "miniapp-test",
+      "entryPoints": {
+        ".": 16
+      },
+      "total": 16
     },
     {
       "name": "widget-renderer-headless",

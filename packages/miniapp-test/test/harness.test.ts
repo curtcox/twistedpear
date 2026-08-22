@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -8,8 +7,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 function treeText(node: ReturnType<typeof describeWidgetTree> | null): string {
   if (node === null) return "";
-  const value =
-    typeof node.props?.value === "string" ? node.props.value : "";
+  const value = typeof node.props?.value === "string" ? node.props.value : "";
   const children = (node.children ?? []).map(treeText).join(" ");
   return `${value} ${children}`.trim();
 }

@@ -14,8 +14,7 @@ export function parseDevLinkFlags(args: ReadonlyArray<string>): DevLinkFlags {
     throw new Error(`Unknown --link profile: ${link}`);
   }
   const lossRaw = parseFlag(args, "--loss");
-  const loss =
-    lossRaw === null ? undefined : Number(lossRaw) / 100;
+  const loss = lossRaw === null ? undefined : Number(lossRaw) / 100;
   if (loss !== undefined && (!Number.isFinite(loss) || loss < 0 || loss > 1)) {
     throw new Error("--loss must be a percentage between 0 and 100");
   }
@@ -29,7 +28,11 @@ export function parseDevLinkFlags(args: ReadonlyArray<string>): DevLinkFlags {
 export function resolveDevLinkProfile(
   flags: DevLinkFlags,
 ): LinkProfile | undefined {
-  if (flags.link === undefined && !flags.peerOffline && flags.loss === undefined) {
+  if (
+    flags.link === undefined &&
+    !flags.peerOffline &&
+    flags.loss === undefined
+  ) {
     return undefined;
   }
   const base = LINK_PROFILES[flags.link ?? "lan"];
@@ -39,4 +42,3 @@ export function resolveDevLinkProfile(
     peerOffline: flags.peerOffline,
   };
 }
-

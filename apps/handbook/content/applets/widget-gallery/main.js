@@ -55,7 +55,13 @@ export async function run(sdk, report) {
               {
                 id: "g-slider",
                 type: "slider",
-                props: { value: 4, min: 0, max: 10, step: 1, event: "hb.gallery.slide" },
+                props: {
+                  value: 4,
+                  min: 0,
+                  max: 10,
+                  step: 1,
+                  event: "hb.gallery.slide",
+                },
               },
               {
                 id: "g-date",

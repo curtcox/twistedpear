@@ -104,7 +104,9 @@ describe("sandbox error reporting", () => {
     );
     try {
       await host.handleUiEvent("go", "boom");
-      await waitUntil(() => host.lastAppError()?.message.includes("reject-boom") === true);
+      await waitUntil(
+        () => host.lastAppError()?.message.includes("reject-boom") === true,
+      );
       expect(host.snapshot().state).toBe("running");
       expect(host.lastAppError()?.phase).toBe("ui-event");
       expect(host.lastAppError()?.event).toBe("boom");
@@ -119,7 +121,9 @@ describe("sandbox error reporting", () => {
     );
     try {
       await host.handleUiEvent("go", "boom");
-      await waitUntil(() => host.lastAppError()?.message.includes("async-boom") === true);
+      await waitUntil(
+        () => host.lastAppError()?.message.includes("async-boom") === true,
+      );
       expect(host.snapshot().state).toBe("running");
       expect(host.lastAppError()?.phase).toBe("ui-event");
       expect(host.lastAppError()?.event).toBe("boom");

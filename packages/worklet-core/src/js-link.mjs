@@ -91,9 +91,9 @@ function wrapModule(relative, source, id) {
         })
         .join("\n"),
     );
-  const exportedFns = [...source.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)/gm)].map(
-    (match) => match[1],
-  );
+  const exportedFns = [
+    ...source.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)/gm),
+  ].map((match) => match[1]);
   const exportedConsts = [...source.matchAll(/^export\s+const\s+(\w+)/gm)].map(
     (match) => match[1],
   );

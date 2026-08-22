@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { dirname, join, posix } from "node:path";
+import { join, posix } from "node:path";
 
 const IMPORT_RE =
   /(?:import\s+(?:type\s+)?(?:[\s\S]*?)\s+from\s+|export\s+[\s\S]*?\s+from\s+)["'](\.[^"']+)["']/g;
@@ -8,7 +8,11 @@ function resolveRelative(fromFile: string, spec: string): string {
   const combined = posix.normalize(posix.join(posix.dirname(fromFile), spec));
   const candidates = [combined];
   if (!combined.endsWith(".js") && !combined.endsWith(".mjs")) {
-    candidates.push(`${combined}.js`, `${combined}.mjs`, join(combined, "index.js"));
+    candidates.push(
+      `${combined}.js`,
+      `${combined}.mjs`,
+      join(combined, "index.js"),
+    );
   }
   return candidates[0] ?? combined;
 }
@@ -48,10 +52,7 @@ function collectImports(
   return imports;
 }
 
-function topoSort(
-  entry: string,
-  graph: Map<string, string[]>,
-): string[] {
+function topoSort(entry: string, graph: Map<string, string[]>): string[] {
   const ordered: string[] = [];
   const visiting = new Set<string>();
   const visited = new Set<string>();
@@ -95,9 +96,9 @@ function wrapModule(relative: string, source: string, id: number): string {
   const exportedFns = [
     ...source.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)/gm),
   ].map((match) => match[1]);
-  const exportedConsts = [
-    ...source.matchAll(/^export\s+const\s+(\w+)/gm),
-  ].map((match) => match[1]);
+  const exportedConsts = [...source.matchAll(/^export\s+const\s+(\w+)/gm)].map(
+    (match) => match[1],
+  );
   const assignments = [...exportedFns, ...exportedConsts]
     .map((name) => `__m${id}.${name} = ${name};`)
     .join("\n");
@@ -203,7 +204,10 @@ export function linkJsProject(appDir: string, entry: string): string {
   while (queue.length > 0) {
     const file = queue.pop();
     if (file === undefined || files.has(file)) continue;
-    const source = readFileSync(join(appDir, file), "utf8").replace(/\r\n/g, "\n");
+    const source = readFileSync(join(appDir, file), "utf8").replace(
+      /\r\n/g,
+      "\n",
+    );
     files.set(file, source);
     IMPORT_RE.lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -220,7 +224,11 @@ export function linkJsProject(appDir: string, entry: string): string {
   return linkJsModules(files, entry);
 }
 
-export function writeLinkedBundle(appDir: string, entry: string, outFile: string): string {
+export function writeLinkedBundle(
+  appDir: string,
+  entry: string,
+  outFile: string,
+): string {
   const bundle = linkJsProject(appDir, entry);
   writeFileSync(join(appDir, outFile), bundle);
   return bundle;
