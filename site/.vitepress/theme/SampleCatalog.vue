@@ -136,6 +136,8 @@ function dashIfEmpty(value) {
   padding: 0.55rem 0.7rem;
   text-align: left;
   vertical-align: top;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .sample-catalog thead th {
   background: var(--vp-c-bg-soft);
@@ -145,11 +147,24 @@ function dashIfEmpty(value) {
 }
 .sample-catalog tbody th {
   font-weight: 600;
-  min-width: 12rem;
+  min-width: 10rem;
+  max-width: 16rem;
 }
 .sample-catalog td:nth-child(2) {
-  min-width: 18rem;
-  max-width: 28rem;
+  min-width: 16rem;
+  max-width: 22rem;
+}
+.sample-catalog td:nth-child(4) {
+  max-width: 14rem;
+}
+.sample-catalog td:nth-child(5) {
+  max-width: 14rem;
+}
+.sample-catalog td:nth-child(6),
+.sample-catalog td:nth-child(7),
+.sample-catalog td:nth-child(8),
+.sample-catalog td:nth-child(9) {
+  white-space: nowrap;
 }
 .sample-catalog__na {
   color: var(--vp-c-text-3);
