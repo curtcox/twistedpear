@@ -24,12 +24,15 @@ import TwistedPear.Sdk.Host as Host
 import TwistedPear.Sdk.Workspace as Workspace
 import TwistedPear.Sdk.Ai as Ai
 import TwistedPear.Sdk.Apps as Apps
+import TwistedPear.Sdk.AppsChannel as AppsChannel
+import TwistedPear.Sdk.Notify as Notify
 import TwistedPear.Sdk.ShareCas as ShareCas
 import TwistedPear.Sdk.Peers as Peers
 import TwistedPear.Sdk.Links as Links
 import TwistedPear.Sdk.Relay as Relay
 import TwistedPear.Sdk.Freenet as Freenet
 import TwistedPear.Sdk.Device as Device
+import TwistedPear.Sdk.Crypto as Crypto
 
 
 run : String -> String -> D.Value -> (Result Error D.Value -> msg) -> Effect msg
@@ -277,6 +280,44 @@ run namespace method payload toMsg =
         ( "apps", "stopPreview" ) ->
             Apps.stopPreview (mapResult (\_ -> E.null) toMsg)
 
+        ( "apps.channel", "open" ) ->
+            case D.decodeValue (D.map (\decoded0 -> AppsChannel.open decoded0 (mapResult identity toMsg)) (D.field "destination" D.value)) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
+        ( "apps.channel", "send" ) ->
+            case D.decodeValue (D.map2 (\decoded0 decoded1 -> AppsChannel.send decoded0 decoded1 (mapResult identity toMsg)) (D.field "destination" D.value) (D.field "payload" D.string)) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
+        ( "apps.channel", "receive" ) ->
+            AppsChannel.receive (mapResult identity toMsg)
+
+        ( "apps.channel", "close" ) ->
+            case D.decodeValue (D.map (\decoded0 -> AppsChannel.close decoded0 (mapResult identity toMsg)) (D.field "destination" D.value)) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
+        ( "apps.channel", "peers" ) ->
+            AppsChannel.peers (mapResult identity toMsg)
+
+        ( "notify", "post" ) ->
+            case D.decodeValue (D.map (\decoded0 -> Notify.post decoded0 (mapResult identity toMsg)) (D.field "request" D.value)) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
         ( "share.cas", "put" ) ->
             case D.decodeValue (D.map (\decoded0 -> ShareCas.put decoded0 (mapResult identity toMsg)) (D.field "content" D.string)) payload of
                 Ok effect ->
@@ -404,6 +445,38 @@ run namespace method payload toMsg =
 
         ( "device", "read" ) ->
             case D.decodeValue (D.map (\decoded0 -> Device.read decoded0 (mapResult identity toMsg)) (D.field "session" D.value)) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
+        ( "crypto", "randomBytes" ) ->
+            case D.decodeValue (D.map (\decoded0 -> Crypto.randomBytes decoded0 (mapResult Core.encodeBytes toMsg)) (D.field "n" D.int)) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
+        ( "crypto", "hash" ) ->
+            case D.decodeValue (D.map2 (\decoded0 decoded1 -> Crypto.hash decoded0 decoded1 (mapResult Core.encodeBytes toMsg)) (D.field "alg" D.string) (D.field "bytes" (D.list D.int))) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
+        ( "crypto", "hmac" ) ->
+            case D.decodeValue (D.map3 (\decoded0 decoded1 decoded2 -> Crypto.hmac decoded0 decoded1 decoded2 (mapResult Core.encodeBytes toMsg)) (D.field "alg" D.string) (D.field "key" (D.list D.int)) (D.field "bytes" (D.list D.int))) payload of
+                Ok effect ->
+                    effect
+
+                Err _ ->
+                    Effect.call namespace method payload toMsg
+
+        ( "crypto", "timingSafeEqual" ) ->
+            case D.decodeValue (D.map2 (\decoded0 decoded1 -> Crypto.timingSafeEqual decoded0 decoded1 (mapResult identity toMsg)) (D.field "a" (D.list D.int)) (D.field "b" (D.list D.int))) payload of
                 Ok effect ->
                     effect
 

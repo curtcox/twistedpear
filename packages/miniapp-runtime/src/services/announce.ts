@@ -48,14 +48,15 @@ function announceNamespaceFor(appId: string): string {
 /**
  * Own-namespace policy: omitted (default prefix), the app id, the default
  * prefix, or a sub-topic under that prefix. Anything else is a cross-app escape.
+ * An omitted argument arrives as `null` over a JSON broker payload.
  */
 export function resolveAnnounceNamespace(
   appId: string,
-  namespace?: string,
+  namespace?: string | null,
 ): string {
   const own = announceNamespaceFor(appId);
-  if (namespace === undefined || namespace === own || namespace === appId)
-    return own;
+  if (namespace === undefined || namespace === null) return own;
+  if (namespace === own || namespace === appId) return own;
   if (namespace.startsWith(`${own}/`)) return namespace;
   throw new AnnounceServiceError(
     "ANNOUNCE_CROSS_APP_SCOPE",
@@ -63,7 +64,7 @@ export function resolveAnnounceNamespace(
   );
 }
 
-export function boundAnnounceAppData(appData?: Uint8Array): Uint8Array {
+export function boundAnnounceAppData(appData?: Uint8Array | null): Uint8Array {
   const bytes = appData ?? new Uint8Array();
   if (bytes.length > MAX_ANNOUNCE_APP_DATA_BYTES) {
     throw new AnnounceServiceError(

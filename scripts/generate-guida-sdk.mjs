@@ -261,7 +261,7 @@ function updatePackageElmJson(moduleNames) {
     "TwistedPear.Sdk.Dispatch",
     ...generated,
   ];
-  writeFileSync(elmJsonPath, `${JSON.stringify(elmJson, null, 4)}\n`);
+  writeFileSync(elmJsonPath, `${JSON.stringify(elmJson, null, 2)}\n`);
 }
 
 function argDecoder(arg) {
