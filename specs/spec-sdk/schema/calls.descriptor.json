@@ -43,6 +43,16 @@
       "result": "json"
     },
     {
+      "id": "lxmf.onMessage",
+      "namespace": "lxmf",
+      "method": "onMessage",
+      "capability": "lxmf:receive",
+      "sdkPath": ["lxmf", "onMessage"],
+      "args": [],
+      "result": "void",
+      "skipBinding": true
+    },
+    {
       "id": "announce.publish",
       "namespace": "announce",
       "method": "publish",
@@ -64,6 +74,16 @@
       "args": [{ "name": "namespace", "type": "string" }],
       "result": "json",
       "spreadArgs": true
+    },
+    {
+      "id": "announce.onEvent",
+      "namespace": "announce",
+      "method": "onEvent",
+      "capability": "announce:subscribe",
+      "sdkPath": ["announce", "onEvent"],
+      "args": [],
+      "result": "void",
+      "skipBinding": true
     },
     {
       "id": "storage.kv.get",
@@ -391,6 +411,82 @@
       "result": "void"
     },
     {
+      "id": "apps.channel.open",
+      "namespace": "apps.channel",
+      "method": "open",
+      "capability": "apps:channel",
+      "sdkPath": ["apps", "channel", "open"],
+      "scanPrefix": "apps.channel.",
+      "args": [{ "name": "destination", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "apps.channel.send",
+      "namespace": "apps.channel",
+      "method": "send",
+      "capability": "apps:channel",
+      "sdkPath": ["apps", "channel", "send"],
+      "scanPrefix": "apps.channel.",
+      "args": [
+        { "name": "destination", "type": "json" },
+        { "name": "payload", "type": "string" }
+      ],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "apps.channel.receive",
+      "namespace": "apps.channel",
+      "method": "receive",
+      "capability": "apps:channel",
+      "sdkPath": ["apps", "channel", "receive"],
+      "scanPrefix": "apps.channel.",
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "apps.channel.close",
+      "namespace": "apps.channel",
+      "method": "close",
+      "capability": "apps:channel",
+      "sdkPath": ["apps", "channel", "close"],
+      "scanPrefix": "apps.channel.",
+      "args": [{ "name": "destination", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "apps.channel.peers",
+      "namespace": "apps.channel",
+      "method": "peers",
+      "capability": "apps:channel",
+      "sdkPath": ["apps", "channel", "peers"],
+      "scanPrefix": "apps.channel.",
+      "args": [],
+      "result": "json"
+    },
+    {
+      "id": "apps.channel.onMessage",
+      "namespace": "apps.channel",
+      "method": "onMessage",
+      "capability": "apps:channel",
+      "sdkPath": ["apps", "channel", "onMessage"],
+      "scanPrefix": "apps.channel.",
+      "args": [],
+      "result": "void",
+      "skipBinding": true
+    },
+    {
+      "id": "notify.post",
+      "namespace": "notify",
+      "method": "post",
+      "capability": "notify:post",
+      "sdkPath": ["notify", "post"],
+      "args": [{ "name": "request", "type": "json" }],
+      "result": "json"
+    },
+    {
       "id": "share.put",
       "namespace": "share.cas",
       "method": "put",
@@ -610,6 +706,56 @@
       "capability": null,
       "sdkPath": ["device", "read"],
       "args": [{ "name": "session", "type": "json" }],
+      "result": "json",
+      "spreadArgs": true
+    },
+    {
+      "id": "crypto.randomBytes",
+      "namespace": "crypto",
+      "method": "randomBytes",
+      "capability": null,
+      "sdkPath": ["crypto", "randomBytes"],
+      "args": [{ "name": "n", "type": "int" }],
+      "result": "bytes",
+      "spreadArgs": true
+    },
+    {
+      "id": "crypto.hash",
+      "namespace": "crypto",
+      "method": "hash",
+      "capability": null,
+      "sdkPath": ["crypto", "hash"],
+      "args": [
+        { "name": "alg", "type": "string" },
+        { "name": "bytes", "type": "bytes" }
+      ],
+      "result": "bytes",
+      "spreadArgs": true
+    },
+    {
+      "id": "crypto.hmac",
+      "namespace": "crypto",
+      "method": "hmac",
+      "capability": null,
+      "sdkPath": ["crypto", "hmac"],
+      "args": [
+        { "name": "alg", "type": "string" },
+        { "name": "key", "type": "bytes" },
+        { "name": "bytes", "type": "bytes" }
+      ],
+      "result": "bytes",
+      "spreadArgs": true
+    },
+    {
+      "id": "crypto.timingSafeEqual",
+      "namespace": "crypto",
+      "method": "timingSafeEqual",
+      "capability": null,
+      "sdkPath": ["crypto", "timingSafeEqual"],
+      "args": [
+        { "name": "a", "type": "bytes" },
+        { "name": "b", "type": "bytes" }
+      ],
       "result": "json",
       "spreadArgs": true
     }

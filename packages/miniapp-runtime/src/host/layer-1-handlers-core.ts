@@ -233,7 +233,8 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       "announce:publish",
       async (request, context) => {
         const payload = request.payload as
-          { appData?: Uint8Array; namespace?: string } | undefined;
+          | { appData?: Uint8Array | null; namespace?: string | null }
+          | undefined;
         await this.announceService.publish(
           context.appId,
           boundAnnounceAppData(payload?.appData),
@@ -249,7 +250,8 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
       async (request, context) => {
         const namespace = resolveAnnounceNamespace(
           context.appId,
-          (request.payload as { namespace?: string } | undefined)?.namespace,
+          (request.payload as { namespace?: string | null } | undefined)
+            ?.namespace,
         );
         return this.announceService.subscribe(context.appId, namespace);
       },

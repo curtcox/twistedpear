@@ -130,7 +130,7 @@ export interface MiniappHostOptions {
   readonly inboundMediaBackend?: InboundMediaBackend;
   /** Deterministic clock used by simulation and replay adapters. */
   readonly now?: () => number;
-  /** Injected entropy for brokered crypto.randomBytes (Sans-IO adapter). */
+  /** Injected entropy for the brokered random-bytes call (Sans-IO adapter). */
   readonly cryptoEntropy?: { randomBytes(n: number): Uint8Array };
   /** Host process platform; gates whether runtime:background actually runs. */
   readonly hostPlatform?: HostPlatformId;

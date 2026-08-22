@@ -5,7 +5,7 @@
 -}
 
 module TwistedPear.Widget exposing
-    ( Widget, encodeRoot, events, map, audioMeter, button, cameraPreview, codeEditor, divider, image, list, mapPreview, progress, qrCode, remoteVideo, scroll, spacer, switch, text, textInput, view, waveform )
+    ( Widget, encodeRoot, events, map, audioMeter, button, cameraPreview, codeEditor, date, divider, image, list, mapPreview, progress, qrCode, remoteVideo, scroll, select, slider, spacer, switch, text, textInput, view, waveform )
 
 {-| SPEC-WIDGET node builders. Node ids are the first argument; event names are independent. -}
 
@@ -132,6 +132,20 @@ codeEditor id styles config =
         (Dict.singleton config.event (D.map config.onEvent D.string))
 
 
+date : String -> List S.Style -> List ( String, E.Value ) -> Widget msg
+date id styles props =
+    leaf "date"
+        id
+        styles
+        (if List.isEmpty props then
+            Nothing
+
+         else
+            Just (E.object props)
+        )
+        Dict.empty
+
+
 divider : String -> Widget msg
 divider id =
     leaf "divider" id [] Nothing Dict.empty
@@ -209,6 +223,34 @@ remoteVideo id styles props =
 scroll : String -> List S.Style -> List (Widget msg) -> Widget msg
 scroll id styles children =
     parent "scroll" id styles Nothing children Dict.empty
+
+
+select : String -> List S.Style -> List ( String, E.Value ) -> Widget msg
+select id styles props =
+    leaf "select"
+        id
+        styles
+        (if List.isEmpty props then
+            Nothing
+
+         else
+            Just (E.object props)
+        )
+        Dict.empty
+
+
+slider : String -> List S.Style -> List ( String, E.Value ) -> Widget msg
+slider id styles props =
+    leaf "slider"
+        id
+        styles
+        (if List.isEmpty props then
+            Nothing
+
+         else
+            Just (E.object props)
+        )
+        Dict.empty
 
 
 spacer : String -> Float -> Widget msg

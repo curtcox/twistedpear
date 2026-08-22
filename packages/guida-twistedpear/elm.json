@@ -23,12 +23,15 @@
     "TwistedPear.Sdk.Workspace",
     "TwistedPear.Sdk.Ai",
     "TwistedPear.Sdk.Apps",
+    "TwistedPear.Sdk.AppsChannel",
+    "TwistedPear.Sdk.Notify",
     "TwistedPear.Sdk.ShareCas",
     "TwistedPear.Sdk.Peers",
     "TwistedPear.Sdk.Links",
     "TwistedPear.Sdk.Relay",
     "TwistedPear.Sdk.Freenet",
-    "TwistedPear.Sdk.Device"
+    "TwistedPear.Sdk.Device",
+    "TwistedPear.Sdk.Crypto"
   ],
   "elm-version": "0.19.0 <= v < 0.20.0",
   "dependencies": {
