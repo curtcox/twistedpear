@@ -202,7 +202,8 @@ export function createPreviewRuntimePusher(send, previewRef) {
       return;
     }
 
-    const snapshot = previewRef.current.host.snapshot();
+    const previewHost = previewRef.current.host;
+    const snapshot = previewHost.snapshot();
     send({
       type: "miniapp-runtime",
       slot: "preview",
@@ -213,12 +214,12 @@ export function createPreviewRuntimePusher(send, previewRef) {
         widgetTree: snapshot.widgetTree,
         lastAppError: snapshot.lastAppError,
         diagnostics: snapshot.diagnostics,
-        notifications: host.notifications(),
+        notifications: previewHost.notifications(),
         notifyEnabled:
           snapshot.appId === null
             ? true
-            : typeof host.notifyEnabled === "function"
-              ? host.notifyEnabled(snapshot.appId)
+            : typeof previewHost.notifyEnabled === "function"
+              ? previewHost.notifyEnabled(snapshot.appId)
               : true,
         devBadge: true,
       },
