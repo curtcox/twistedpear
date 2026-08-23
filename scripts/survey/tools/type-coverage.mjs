@@ -29,6 +29,11 @@ const tool = {
         "node_modules/type-coverage/bin/type-coverage",
         "-p",
         project,
+        // Consumer projects should not be charged for private implementation
+        // members from the runtime's generated declaration files. The
+        // project's own source files remain part of the measurement.
+        "--ignore-files",
+        "packages/miniapp-runtime/dist/**/*.d.ts",
         "--json-output",
       ]);
       let parsed;

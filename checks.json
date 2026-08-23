@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-23T22:43:05.478Z",
-  "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
-  "digest": "56f55e4cd2a6277c88649ba6cb769177daa873f8e3861188ab9af39e061618a1",
-  "treeDigest": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
+  "generatedAt": "2026-08-23T23:11:05.804Z",
+  "commit": "57501bc294ac21c3422f6fd8f585798d74219814",
+  "digest": "1ced9929d638944d26ba0ce2a7c91a369f80b9e3914c3101652496cc0649eae9",
+  "treeDigest": "1d431d2df40d5900feb11a7c84c458fa9393cb22f4227ea7a24cdb27f6ba0e23",
   "gates": {
     "accessibility": {
       "title": "Accessibility ratchet",
@@ -200,9 +200,9 @@
       "title": "Harness-mobile typecheck",
       "command": "npm run harness-mobile:typecheck",
       "ok": true,
-      "at": "2026-08-23T22:42:51.351Z",
-      "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
-      "measuredOn": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
+      "at": "2026-08-23T23:10:13.241Z",
+      "commit": "57501bc294ac21c3422f6fd8f585798d74219814",
+      "measuredOn": "1d431d2df40d5900feb11a7c84c458fa9393cb22f4227ea7a24cdb27f6ba0e23",
       "tier": "pr"
     },
     "install-scripts": {
@@ -258,9 +258,9 @@
       "title": "TypeScript and Sans-IO lint",
       "command": "npm run lint",
       "ok": true,
-      "at": "2026-08-23T22:42:50.776Z",
-      "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
-      "measuredOn": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
+      "at": "2026-08-23T23:10:12.667Z",
+      "commit": "57501bc294ac21c3422f6fd8f585798d74219814",
+      "measuredOn": "1d431d2df40d5900feb11a7c84c458fa9393cb22f4227ea7a24cdb27f6ba0e23",
       "tier": "pr"
     },
     "lint-all": {
@@ -447,19 +447,18 @@
       "title": "TypeScript strictness parity",
       "command": "npm run tsconfig:check",
       "ok": true,
-      "at": "2026-08-23T22:42:51.511Z",
-      "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
-      "measuredOn": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
+      "at": "2026-08-23T23:10:13.400Z",
+      "commit": "57501bc294ac21c3422f6fd8f585798d74219814",
+      "measuredOn": "1d431d2df40d5900feb11a7c84c458fa9393cb22f4227ea7a24cdb27f6ba0e23",
       "tier": "pr"
     },
     "type-coverage": {
       "title": "Non-any type coverage ratchet",
       "command": "npm run type-coverage:check",
-      "ok": false,
-      "at": "2026-08-23T21:51:03.236Z",
-      "commit": "5d1e7e62fb768975b7de625219f2c83bbfeb4516",
-      "detail": "failed in CI — Typed expressions: 88.6323% · Any expressions: 123448 · Projects measured: 22 · Projects failed: 0",
-      "since": "2026-08-22",
+      "ok": true,
+      "at": "2026-08-23T23:11:02.945Z",
+      "commit": "57501bc294ac21c3422f6fd8f585798d74219814",
+      "measuredOn": "1d431d2df40d5900feb11a7c84c458fa9393cb22f4227ea7a24cdb27f6ba0e23",
       "tier": "pr"
     },
     "typed-lint": {

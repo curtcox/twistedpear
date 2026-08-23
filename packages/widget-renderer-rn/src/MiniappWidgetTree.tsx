@@ -206,7 +206,9 @@ function SelectWidget({
   readonly style?: ReturnType<typeof widgetStyle>;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
 }) {
-  const options = Array.isArray(node.props?.options) ? node.props.options : [];
+  const options: ReadonlyArray<unknown> = Array.isArray(node.props?.options)
+    ? node.props.options
+    : [];
   return (
     <View testID={node.id} style={style}>
       {options.map((option, index) => {
@@ -349,18 +351,19 @@ function ListWidget({
     ...(onEvent === undefined ? {} : { onEvent }),
     ...(readDocument === undefined ? {} : { readDocument }),
   };
+  const items: ReadonlyArray<unknown> = Array.isArray(node.props?.items)
+    ? node.props.items
+    : [];
   return (
     <View testID={node.id} style={style}>
       {node.children?.map((child) => (
         <WidgetNodeView key={child.id} node={child} {...childProps} />
       ))}
-      {(Array.isArray(node.props?.items) ? node.props.items : []).map(
-        (item, index) => (
-          <Text key={`${node.id}-${index}`} style={styles.muted}>
-            {typeof item === "string" ? item : JSON.stringify(item)}
-          </Text>
-        ),
-      )}
+      {items.map((item, index) => (
+        <Text key={`${node.id}-${index}`} style={styles.muted}>
+          {typeof item === "string" ? item : JSON.stringify(item)}
+        </Text>
+      ))}
     </View>
   );
 }
