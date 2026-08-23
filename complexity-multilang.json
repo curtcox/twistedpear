@@ -7,10 +7,10 @@
     "swift"
   ],
   "files": 663,
-  "functions": 7667,
-  "groups": 4656,
-  "exemptions": 88,
-  "violations": 5,
+  "functions": 7767,
+  "groups": 4728,
+  "exemptions": 87,
+  "violations": 0,
   "stale": 0,
   "findings": [
     {
@@ -24,32 +24,6 @@
       "pinned": {
         "ccn": 128,
         "nloc": 592
-      }
-    },
-    {
-      "key": "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage",
-      "file": "apps/host-desktop/src/renderer/app-worklet-messages.mjs",
-      "name": "handleWorkletMessage",
-      "line": 12,
-      "tier": "source",
-      "ccn": 85,
-      "nloc": 281,
-      "pinned": {
-        "ccn": 85,
-        "nloc": 268
-      }
-    },
-    {
-      "key": "apps/host-desktop/src/renderer/widgets.js::renderNode",
-      "file": "apps/host-desktop/src/renderer/widgets.js",
-      "name": "renderNode",
-      "line": 13,
-      "tier": "source",
-      "ccn": 73,
-      "nloc": 202,
-      "pinned": {
-        "ccn": 47,
-        "nloc": 139
       }
     },
     {
@@ -76,6 +50,19 @@
       "pinned": {
         "ccn": 57,
         "nloc": 288
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage",
+      "file": "apps/host-desktop/src/renderer/app-worklet-messages.mjs",
+      "name": "handleWorkletMessage",
+      "line": 12,
+      "tier": "source",
+      "ccn": 56,
+      "nloc": 217,
+      "pinned": {
+        "ccn": 85,
+        "nloc": 268
       }
     },
     {
@@ -226,7 +213,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createMediaPipeline",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createMediaPipeline",
-      "line": 198,
+      "line": 200,
       "tier": "source",
       "ccn": 30,
       "pinned": {
@@ -338,7 +325,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createCommonHostInfoBackend",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createCommonHostInfoBackend",
-      "line": 96,
+      "line": 98,
       "tier": "source",
       "ccn": 22,
       "pinned": {
@@ -746,15 +733,6 @@
       }
     },
     {
-      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::devSideLoad",
-      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
-      "name": "devSideLoad",
-      "line": 50,
-      "tier": "source",
-      "ccn": 14,
-      "pinned": null
-    },
-    {
       "key": "apps/handbook/content/applets/ai-chat/main.js::run",
       "file": "apps/handbook/content/applets/ai-chat/main.js",
       "name": "run",
@@ -946,15 +924,6 @@
       }
     },
     {
-      "key": "apps/host-desktop/src/renderer/diagnostics-panel.mjs::renderDiagnosticsPanel",
-      "file": "apps/host-desktop/src/renderer/diagnostics-panel.mjs",
-      "name": "renderDiagnosticsPanel",
-      "line": 58,
-      "tier": "source",
-      "ccn": 11,
-      "pinned": null
-    },
-    {
       "key": "packages/worklet-core/src/worklet-entry-discovery.mjs::receivedAnnounce",
       "file": "packages/worklet-core/src/worklet-entry-discovery.mjs",
       "name": "receivedAnnounce",
@@ -1024,7 +993,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "launchWithoutReview",
-      "line": 528,
+      "line": 530,
       "tier": "source",
       "params": 7,
       "pinned": {

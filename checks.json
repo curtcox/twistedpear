@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-23T00:33:33.988Z",
-  "commit": "7f3a11b53e100003da928c2683d40aa01d2246c2",
-  "digest": "cc481801b0449a8128f2a0a94fa1f8d9c1a98a10b38cdc701e9e146c33496c65",
-  "treeDigest": "cc481801b0449a8128f2a0a94fa1f8d9c1a98a10b38cdc701e9e146c33496c65",
+  "generatedAt": "2026-08-23T01:22:27.404Z",
+  "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
+  "digest": "a7327cefb638be193e063b08b31c1743b292a77abfcd82a0d39e7e1d650e874d",
+  "treeDigest": "593c7a2f55e9696a2724adc9217d3e4c32282457af742bb2d578cf21e05c207f",
   "gates": {
     "accessibility": {
       "title": "Accessibility ratchet",
@@ -105,41 +105,37 @@
     "cognitive-complexity": {
       "title": "Cognitive complexity ratchet",
       "command": "npm run cognitive-complexity:check",
-      "ok": false,
-      "at": "2026-08-23T00:27:22.716Z",
-      "commit": "2a290b9b62b881eea253a0065c8488fdd15ef186",
-      "detail": "failed in CI — Functions scored: 7073 · Max score: 168 · Median score: 2 · Over 15: 96 · Baseline entries: 153",
-      "since": "2026-08-22",
+      "ok": true,
+      "at": "2026-08-23T01:22:25.715Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
+      "measuredOn": "593c7a2f55e9696a2724adc9217d3e4c32282457af742bb2d578cf21e05c207f",
       "tier": "pr"
     },
     "complexity": {
       "title": "Function complexity ratchet",
       "command": "npm run complexity:check",
-      "ok": false,
-      "at": "2026-08-23T00:22:37.178Z",
-      "commit": "2a290b9b62b881eea253a0065c8488fdd15ef186",
-      "detail": "failed in CI — Findings: 12",
-      "since": "2026-08-22",
+      "ok": true,
+      "at": "2026-08-23T01:22:25.715Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
+      "measuredOn": "593c7a2f55e9696a2724adc9217d3e4c32282457af742bb2d578cf21e05c207f",
       "tier": "pr"
     },
     "complexity-multilang": {
       "title": "Multi-language function complexity",
       "command": "npm run complexity:multilang",
-      "ok": false,
-      "at": "2026-08-23T00:22:43.913Z",
-      "commit": "2a290b9b62b881eea253a0065c8488fdd15ef186",
-      "detail": "failed in CI — Functions: 7667 · Exemptions: 88",
-      "since": "2026-08-22",
+      "ok": true,
+      "at": "2026-08-23T01:22:25.715Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
+      "measuredOn": "593c7a2f55e9696a2724adc9217d3e4c32282457af742bb2d578cf21e05c207f",
       "tier": "pr"
     },
     "coupling": {
       "title": "Module coupling and modularity",
       "command": "npm run coupling:check",
-      "ok": false,
-      "at": "2026-08-23T00:22:50.266Z",
-      "commit": "2a290b9b62b881eea253a0065c8488fdd15ef186",
-      "detail": "failed in CI — Modules: 1345 · Components: 26 · Cycles: 4",
-      "since": "2026-08-22",
+      "ok": true,
+      "at": "2026-08-23T01:22:25.715Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
+      "measuredOn": "593c7a2f55e9696a2724adc9217d3e4c32282457af742bb2d578cf21e05c207f",
       "tier": "pr"
     },
     "coverage": {
@@ -320,6 +316,16 @@
       "ok": true,
       "at": "2026-08-23T00:04:02.201Z",
       "commit": "2a290b9b62b881eea253a0065c8488fdd15ef186",
+      "tier": "nightly"
+    },
+    "mutation": {
+      "title": "Protocol mutation score",
+      "command": "npm run mutation:check",
+      "ok": false,
+      "at": "2026-08-23T01:17:28.700Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
+      "detail": "gate has never produced a result artifact",
+      "since": "2026-08-23",
       "tier": "nightly"
     },
     "mutation-policy": {

@@ -360,6 +360,59 @@ function renderNode(node, onEvent, options = {}) {
  * Host-owned preview surfaces. The sandbox never receives pixels/samples —
  * only an opaque session handle for layout.
  */
+function renderCameraPreview(shell, node, live) {
+  if (live?.classId !== "camera") return;
+  const video = document.createElement("video");
+  video.className = "widget-preview-media";
+  video.muted = true;
+  video.playsInline = true;
+  video.autoplay = true;
+  shell.appendChild(video);
+  if (typeof navigator?.mediaDevices?.getUserMedia !== "function") return;
+  void navigator.mediaDevices
+    .getUserMedia({ video: true, audio: false })
+    .then((stream) => {
+      video.srcObject = stream;
+      video.dataset.previewStream = "1";
+    })
+    .catch(() => {
+      const note = document.createElement("p");
+      note.className = "widget-muted";
+      note.textContent = "Camera preview unavailable";
+      shell.appendChild(note);
+    });
+}
+
+function renderMeterPreview(shell) {
+  const meter = document.createElement("div");
+  meter.className = "widget-preview-meter";
+  meter.setAttribute("aria-hidden", "true");
+  shell.appendChild(meter);
+}
+
+function renderMapPreview(shell, node, live) {
+  if (live?.classId !== "location") return;
+  const map = document.createElement("p");
+  map.className = "widget-muted";
+  map.textContent = `Host map preview (zoom ${String(node.props?.zoom ?? 12)}) — coordinates stay in host chrome`;
+  shell.appendChild(map);
+}
+
+function renderRemoteVideoPreview(shell, node) {
+  const remote = document.createElement("p");
+  remote.className = "widget-muted";
+  remote.textContent = `Remote video shell · peer=${String(node.props?.peer ?? "—")}`;
+  shell.appendChild(remote);
+}
+
+const PREVIEW_RENDERERS = {
+  "camera-preview": renderCameraPreview,
+  "audio-meter": renderMeterPreview,
+  waveform: renderMeterPreview,
+  "map-preview": renderMapPreview,
+  "remote-video": renderRemoteVideoPreview,
+};
+
 function renderPreviewSurface(node, options = {}) {
   const session = String(node.props?.session ?? "");
   const sessions = Array.isArray(options.deviceSessions)
@@ -378,43 +431,8 @@ function renderPreviewSurface(node, options = {}) {
     : `${node.type} · waiting for session`;
   shell.appendChild(title);
 
-  if (node.type === "camera-preview" && live?.classId === "camera") {
-    const video = document.createElement("video");
-    video.className = "widget-preview-media";
-    video.muted = true;
-    video.playsInline = true;
-    video.autoplay = true;
-    shell.appendChild(video);
-    if (typeof navigator?.mediaDevices?.getUserMedia === "function") {
-      void navigator.mediaDevices
-        .getUserMedia({ video: true, audio: false })
-        .then((stream) => {
-          video.srcObject = stream;
-          video.dataset.previewStream = "1";
-        })
-        .catch(() => {
-          const note = document.createElement("p");
-          note.className = "widget-muted";
-          note.textContent = "Camera preview unavailable";
-          shell.appendChild(note);
-        });
-    }
-  } else if (node.type === "audio-meter" || node.type === "waveform") {
-    const meter = document.createElement("div");
-    meter.className = "widget-preview-meter";
-    meter.setAttribute("aria-hidden", "true");
-    shell.appendChild(meter);
-  } else if (node.type === "map-preview" && live?.classId === "location") {
-    const map = document.createElement("p");
-    map.className = "widget-muted";
-    map.textContent = `Host map preview (zoom ${String(node.props?.zoom ?? 12)}) — coordinates stay in host chrome`;
-    shell.appendChild(map);
-  } else if (node.type === "remote-video") {
-    const remote = document.createElement("p");
-    remote.className = "widget-muted";
-    remote.textContent = `Remote video shell · peer=${String(node.props?.peer ?? "—")}`;
-    shell.appendChild(remote);
-  }
+  const renderer = PREVIEW_RENDERERS[node.type];
+  if (renderer) renderer(shell, node, live);
 
   return shell;
 }
@@ -441,58 +459,52 @@ function minimalTextEdit(before, after) {
   return { start, end: beforeEnd, text: after.slice(start, afterEnd) };
 }
 
+const STYLE_APPLIERS = {
+  display: (element, value) => {
+    element.style.display = value;
+  },
+  flexDirection: (element, value) => {
+    element.style.flexDirection = value;
+  },
+  alignItems: (element, value) => {
+    element.style.alignItems = value;
+  },
+  justifyContent: (element, value) => {
+    element.style.justifyContent = value;
+  },
+  padding: (element, value) => {
+    element.style.padding = `${value}px`;
+  },
+  gap: (element, value) => {
+    element.style.gap = `${value}px`;
+  },
+  margin: (element, value) => {
+    element.style.margin = `${value}px`;
+  },
+  width: (element, value) => {
+    element.style.width = typeof value === "number" ? `${value}px` : value;
+  },
+  height: (element, value) => {
+    element.style.height = typeof value === "number" ? `${value}px` : value;
+  },
+  backgroundColor: (element, value) => {
+    element.style.backgroundColor = value;
+  },
+  color: (element, value) => {
+    element.style.color = value;
+  },
+  fontSize: (element, value) => {
+    element.style.fontSize = `${value}px`;
+  },
+  fontWeight: (element, value) => {
+    element.style.fontWeight = String(value);
+  },
+};
+
 function applyStyle(element, style) {
-  if (style.display !== undefined) {
-    element.style.display = style.display;
-  }
-
-  if (style.flexDirection !== undefined) {
-    element.style.flexDirection = style.flexDirection;
-  }
-
-  if (style.alignItems !== undefined) {
-    element.style.alignItems = style.alignItems;
-  }
-
-  if (style.justifyContent !== undefined) {
-    element.style.justifyContent = style.justifyContent;
-  }
-
-  if (style.padding !== undefined) {
-    element.style.padding = `${style.padding}px`;
-  }
-
-  if (style.gap !== undefined) {
-    element.style.gap = `${style.gap}px`;
-  }
-
-  if (style.margin !== undefined) {
-    element.style.margin = `${style.margin}px`;
-  }
-
-  if (style.width !== undefined) {
-    element.style.width =
-      typeof style.width === "number" ? `${style.width}px` : style.width;
-  }
-
-  if (style.height !== undefined) {
-    element.style.height =
-      typeof style.height === "number" ? `${style.height}px` : style.height;
-  }
-
-  if (style.backgroundColor !== undefined) {
-    element.style.backgroundColor = style.backgroundColor;
-  }
-
-  if (style.color !== undefined) {
-    element.style.color = style.color;
-  }
-
-  if (style.fontSize !== undefined) {
-    element.style.fontSize = `${style.fontSize}px`;
-  }
-
-  if (style.fontWeight !== undefined) {
-    element.style.fontWeight = String(style.fontWeight);
+  for (const [key, value] of Object.entries(style)) {
+    if (value === undefined) continue;
+    const apply = STYLE_APPLIERS[key];
+    if (apply) apply(element, value);
   }
 }

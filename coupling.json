@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "modules": 1321,
-  "components": 25,
+  "modules": 1345,
+  "components": 26,
   "cycles": 4,
   "unresolvedDependencies": 0,
   "violations": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 275,
+      "modules": 277,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,
@@ -69,10 +69,10 @@
     },
     {
       "id": "packages/miniapp-runtime",
-      "modules": 94,
-      "ca": 12,
+      "modules": 101,
+      "ca": 13,
       "ce": 3,
-      "instability": 0.2,
+      "instability": 0.19,
       "dependsOn": [
         "packages/effects",
         "packages/peer-discovery",
@@ -132,7 +132,7 @@
     },
     {
       "id": "apps/host-desktop",
-      "modules": 38,
+      "modules": 39,
       "ca": 1,
       "ce": 13,
       "instability": 0.93,
@@ -154,7 +154,7 @@
     },
     {
       "id": "packages/worklet-core",
-      "modules": 35,
+      "modules": 36,
       "ca": 4,
       "ce": 10,
       "instability": 0.71,
@@ -173,7 +173,7 @@
     },
     {
       "id": "apps/handbook",
-      "modules": 31,
+      "modules": 32,
       "ca": 0,
       "ce": 3,
       "instability": 1,
@@ -210,6 +210,16 @@
       "dependsOn": []
     },
     {
+      "id": "packages/miniapp-sdk",
+      "modules": 21,
+      "ca": 1,
+      "ce": 1,
+      "instability": 0.5,
+      "dependsOn": [
+        "packages/miniapp-runtime"
+      ]
+    },
+    {
       "id": "packages/bridge-hyper",
       "modules": 19,
       "ca": 6,
@@ -223,16 +233,6 @@
       ]
     },
     {
-      "id": "packages/miniapp-sdk",
-      "modules": 19,
-      "ca": 1,
-      "ce": 1,
-      "instability": 0.5,
-      "dependsOn": [
-        "packages/miniapp-runtime"
-      ]
-    },
-    {
       "id": "packages/peer-discovery",
       "modules": 19,
       "ca": 5,
@@ -240,6 +240,23 @@
       "instability": 0.17,
       "dependsOn": [
         "packages/protocol"
+      ]
+    },
+    {
+      "id": "packages/cli",
+      "modules": 18,
+      "ca": 2,
+      "ce": 8,
+      "instability": 0.8,
+      "dependsOn": [
+        "packages/app-registry",
+        "packages/bridge-freenet",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/host-core",
+        "packages/miniapp-runtime",
+        "packages/miniapp-test",
+        "packages/reticulum-ts"
       ]
     },
     {
@@ -262,22 +279,6 @@
       "instability": 0.22,
       "dependsOn": [
         "packages/cas-256t",
-        "packages/reticulum-ts"
-      ]
-    },
-    {
-      "id": "packages/cli",
-      "modules": 12,
-      "ca": 2,
-      "ce": 7,
-      "instability": 0.78,
-      "dependsOn": [
-        "packages/app-registry",
-        "packages/bridge-freenet",
-        "packages/bridge-hyper",
-        "packages/cas-256t",
-        "packages/host-core",
-        "packages/miniapp-runtime",
         "packages/reticulum-ts"
       ]
     },
@@ -328,6 +329,16 @@
       ]
     },
     {
+      "id": "packages/miniapp-test",
+      "modules": 4,
+      "ca": 1,
+      "ce": 1,
+      "instability": 0.5,
+      "dependsOn": [
+        "packages/miniapp-runtime"
+      ]
+    },
+    {
       "id": "packages/widget-renderer-headless",
       "modules": 4,
       "ca": 2,
@@ -352,7 +363,7 @@
     "fanOut": [
       {
         "key": "packages/miniapp-runtime/src/index.ts",
-        "value": 45,
+        "value": 49,
         "limit": 40
       },
       {
@@ -371,6 +382,11 @@
         "limit": 15
       },
       {
+        "key": "packages/miniapp-runtime/src/worklet.ts",
+        "value": 17,
+        "limit": 15
+      },
+      {
         "key": "packages/protocol/src/index/link.ts",
         "value": 17,
         "limit": 15
@@ -382,11 +398,6 @@
       },
       {
         "key": "apps/harness-mobile/worklet/web-entry.mjs",
-        "value": 16,
-        "limit": 15
-      },
-      {
-        "key": "packages/miniapp-runtime/src/worklet.ts",
         "value": 16,
         "limit": 15
       },

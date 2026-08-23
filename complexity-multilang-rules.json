@@ -150,10 +150,6 @@
     "apps/host-desktop/src/renderer/qr-scanner.js::decodeQrVideoFrame": {
       "ccn": 14
     },
-    "apps/host-desktop/src/renderer/widgets.js::renderNode": {
-      "ccn": 47,
-      "nloc": 139
-    },
     "apps/host-desktop/worklet/entry-host-ipc.mjs::attachHostIpc": {
       "params": 6
     },

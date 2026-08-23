@@ -196,63 +196,7 @@ export function handleWorkletMessage(scope, message) {
   }
 
   if (message.type === "miniapp-runtime") {
-    if (message.slot === "preview") {
-      if (previewRoot) {
-        renderWidgetTree(
-          message.runtime?.widgetTree ?? null,
-          previewRoot,
-          (nodeId, event, value) => {
-            host.send({
-              type: "miniapp-ui-event",
-              slot: "preview",
-              nodeId,
-              event,
-              value,
-            });
-          },
-          { deviceSessions: lastDeviceState?.sessions ?? [] },
-        );
-      }
-    } else {
-      scope.runningAppId = message.runtime.appId;
-      scope.runningApps = message.runtime.running ?? [];
-      if (scope.runningAppId === null) scope.miniappHostView = false;
-      if (runningAppId === requestedAppId) scope.requestedAppLaunchTimer = null;
-      document.body.classList.toggle(
-        "miniapp-running",
-        scope.runningAppId !== null && !scope.miniappHostView,
-      );
-      if (scope.returnMiniapp)
-        scope.returnMiniapp.hidden =
-          scope.runningAppId === null || !scope.miniappHostView;
-      if (miniappTitle)
-        miniappTitle.textContent = scope.runningAppId ?? "Mini-app";
-      renderRunningApps(scope);
-      renderInstalled();
-      if (scope.runningAppId !== null)
-        host.send({ type: "get-limits", appId: scope.runningAppId });
-      renderWidgetTree(
-        message.runtime.widgetTree,
-        widgetRoot,
-        (nodeId, event, value) => {
-          host.send({ type: "miniapp-ui-event", nodeId, event, value });
-        },
-        {
-          readDocument: readWorkspaceDocument,
-          deviceSessions: lastDeviceState?.sessions ?? [],
-        },
-      );
-      renderDiagnosticsPanel(
-        {
-          lifecycleChip,
-          appError,
-          appDiagnostics,
-          notifyEnabled: scope.notifyEnabled,
-          notifyHistory: scope.notifyHistory,
-        },
-        message.runtime,
-      );
-    }
+    handleMiniappRuntimeMessage(scope, message);
   }
 
   if (message.type === "install-review") {
@@ -317,58 +261,7 @@ export function handleWorkletMessage(scope, message) {
   }
 
   if (message.type === "identity-operation") {
-    if (identityResult) {
-      identityResult.textContent = message.ok
-        ? `${message.operation} complete${message.identityHash ? ` (${message.identityHash.slice(0, 12)})` : ""}`
-        : (message.error ?? `${message.operation} failed`);
-    }
-    if (message.ok && message.backupHex)
-      void host.saveIdentityBackup(message.backupHex);
-    if (message.ok && message.first && message.second) {
-      void host.setIdentityContentProtection(true);
-      identityWordsFirst.value = message.first;
-      identityWordsSecond.value = message.second;
-    }
-    if (message.ok && message.operation === "recovery-import")
-      void host.setIdentityContentProtection(false);
-    if (
-      message.ok &&
-      message.operation === "import-inspect" &&
-      pendingIdentityImport !== null
-    ) {
-      const candidate = message.candidateIdentityHash;
-      if (
-        window.confirm(
-          `Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`,
-        )
-      ) {
-        host.send({
-          type: "identity-import",
-          ...pendingIdentityImport,
-          confirmedCandidateHash: candidate,
-        });
-      }
-      scope.pendingIdentityImport = null;
-    }
-    if (
-      message.ok &&
-      message.operation === "recovery-import-inspect" &&
-      pendingIdentityRecovery !== null
-    ) {
-      const candidate = message.candidateIdentityHash;
-      if (
-        window.confirm(
-          `Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`,
-        )
-      ) {
-        host.send({
-          type: "identity-recovery-import",
-          ...pendingIdentityRecovery,
-          confirmedCandidateHash: candidate,
-        });
-      }
-      scope.pendingIdentityRecovery = null;
-    }
+    handleIdentityOperationMessage(scope, message);
   }
 
   if (message.type === "moderation-state") renderModerationState(message);
@@ -396,6 +289,142 @@ export function handleWorkletMessage(scope, message) {
   if (message.type === "inbound-media-frame") {
     logInboundMediaFrame(appendLog, message);
   }
+}
+
+function sendPreviewUiEvent(host, nodeId, event, value) {
+  host.send({ type: "miniapp-ui-event", slot: "preview", nodeId, event, value });
+}
+
+function handlePreviewRuntimeMessage(scope, message) {
+  const { host, previewRoot } = scope;
+  if (!previewRoot) return;
+  renderWidgetTree(
+    message.runtime?.widgetTree ?? null,
+    previewRoot,
+    (nodeId, event, value) => sendPreviewUiEvent(host, nodeId, event, value),
+    { deviceSessions: scope.lastDeviceState?.sessions ?? [] },
+  );
+}
+
+function sendRunningUiEvent(host, nodeId, event, value) {
+  host.send({ type: "miniapp-ui-event", nodeId, event, value });
+}
+
+function updateRunningAppChrome(scope) {
+  const { runningAppId, miniappHostView, returnMiniapp, miniappTitle } = scope;
+  if (runningAppId === null) scope.miniappHostView = false;
+  document.body.classList.toggle(
+    "miniapp-running",
+    runningAppId !== null && !miniappHostView,
+  );
+  if (returnMiniapp)
+    returnMiniapp.hidden = runningAppId === null || !miniappHostView;
+  if (miniappTitle) miniappTitle.textContent = runningAppId ?? "Mini-app";
+}
+
+function handleRunningRuntimeMessage(scope, message) {
+  const { host, widgetRoot, readWorkspaceDocument } = scope;
+  scope.runningAppId = message.runtime.appId;
+  scope.runningApps = message.runtime.running ?? [];
+  if (scope.runningAppId === scope.requestedAppId)
+    scope.requestedAppLaunchTimer = null;
+  updateRunningAppChrome(scope);
+  renderRunningApps(scope);
+  renderInstalled();
+  if (scope.runningAppId !== null)
+    host.send({ type: "get-limits", appId: scope.runningAppId });
+  renderWidgetTree(
+    message.runtime.widgetTree,
+    widgetRoot,
+    (nodeId, event, value) => sendRunningUiEvent(host, nodeId, event, value),
+    {
+      readDocument: readWorkspaceDocument,
+      deviceSessions: scope.lastDeviceState?.sessions ?? [],
+    },
+  );
+  renderDiagnosticsPanel(
+    {
+      lifecycleChip: scope.lifecycleChip,
+      appError: scope.appError,
+      appDiagnostics: scope.appDiagnostics,
+      notifyEnabled: scope.notifyEnabled,
+      notifyHistory: scope.notifyHistory,
+    },
+    message.runtime,
+  );
+}
+
+function handleMiniappRuntimeMessage(scope, message) {
+  if (message.slot === "preview") {
+    handlePreviewRuntimeMessage(scope, message);
+  } else {
+    handleRunningRuntimeMessage(scope, message);
+  }
+}
+
+function renderIdentityResultText(message) {
+  if (!message.ok) return message.error ?? `${message.operation} failed`;
+  return message.identityHash
+    ? `${message.operation} complete (${message.identityHash.slice(0, 12)})`
+    : `${message.operation} complete`;
+}
+
+function handleIdentityWords(scope, message) {
+  const { host, identityWordsFirst, identityWordsSecond } = scope;
+  if (!message.ok || !message.first || !message.second) return;
+  void host.setIdentityContentProtection(true);
+  identityWordsFirst.value = message.first;
+  identityWordsSecond.value = message.second;
+}
+
+function confirmIdentityReplace(candidate) {
+  return window.confirm(
+    `Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`,
+  );
+}
+
+function handleIdentityImportInspect(scope, message) {
+  const { host, pendingIdentityImport } = scope;
+  if (!message.ok || pendingIdentityImport === null) return;
+  const candidate = message.candidateIdentityHash;
+  if (confirmIdentityReplace(candidate)) {
+    host.send({
+      type: "identity-import",
+      ...pendingIdentityImport,
+      confirmedCandidateHash: candidate,
+    });
+  }
+  scope.pendingIdentityImport = null;
+}
+
+function handleIdentityRecoveryImportInspect(scope, message) {
+  const { host, pendingIdentityRecovery } = scope;
+  if (!message.ok || pendingIdentityRecovery === null) return;
+  const candidate = message.candidateIdentityHash;
+  if (confirmIdentityReplace(candidate)) {
+    host.send({
+      type: "identity-recovery-import",
+      ...pendingIdentityRecovery,
+      confirmedCandidateHash: candidate,
+    });
+  }
+  scope.pendingIdentityRecovery = null;
+}
+
+function handleIdentityOperationMessage(scope, message) {
+  const { host, identityResult } = scope;
+  if (identityResult) {
+    identityResult.textContent = renderIdentityResultText(message);
+  }
+  if (message.ok && message.backupHex)
+    void host.saveIdentityBackup(message.backupHex);
+  handleIdentityWords(scope, message);
+  if (message.ok && message.operation === "recovery-import")
+    void host.setIdentityContentProtection(false);
+  if (message.operation === "import-inspect")
+    handleIdentityImportInspect(scope, message);
+  if (message.operation === "recovery-import-inspect")
+    handleIdentityRecoveryImportInspect(scope, message);
 }
 
 const CONFIRM_KIND_TITLES = {

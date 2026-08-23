@@ -47,6 +47,20 @@ export function createDevSideLoadMethod({
   host,
   pushRuntime,
 }) {
+  function applyLinkResourceLimits(appId, link) {
+    if (link === undefined || link === null || typeof link !== "object") return;
+    const bitrate = Number(link.bitrate);
+    if (Number.isFinite(bitrate) && bitrate > 0) {
+      const messages = Math.max(1, Math.floor(bitrate / 8 / 256));
+      host.setResourceLimits(appId, {
+        maxMessagesPerSecond: Math.min(128, messages),
+      });
+    }
+    if (link.peerOffline === true) {
+      host.setResourceLimits(appId, { maxMessagesPerSecond: 1 });
+    }
+  }
+
   return async function devSideLoad(manifest, bundleBytes) {
     if (!getDeveloperMode()) {
       throw new Error("Developer mode is disabled");
@@ -65,19 +79,7 @@ export function createDevSideLoadMethod({
       },
       bundleBytes,
     );
-    const link = manifest.link;
-    if (link !== undefined && link !== null && typeof link === "object") {
-      const bitrate = Number(link.bitrate);
-      if (Number.isFinite(bitrate) && bitrate > 0) {
-        const messages = Math.max(1, Math.floor(bitrate / 8 / 256));
-        host.setResourceLimits(appId, {
-          maxMessagesPerSecond: Math.min(128, messages),
-        });
-      }
-      if (link.peerOffline === true) {
-        host.setResourceLimits(appId, { maxMessagesPerSecond: 1 });
-      }
-    }
+    applyLinkResourceLimits(appId, manifest.link);
     pushRuntime();
   };
 }
