@@ -9,11 +9,16 @@ counterpart: docs/static-analysis-plan.md
 
 This document describes the analysis gates implemented today. Remaining activation and
 follow-up work is tracked in the [static-analysis plan](static-analysis-plan.md); where
-the two disagree, this live document wins.
+the two disagree, this live document wins. Four gates that close boundaries the rest of
+this tooling deliberately does not cross — cross-language constants, the shipped wasm
+contracts' restriction lints, shipped artifact bytes, and specification evidence
+citations — have their own document: [Analysis gaps](analysis-gaps.md).
 
 ## Gate registry and local runner
 
-`scripts/checks/registry.mjs` is the sole declaration of static-analysis gates. Each
+`scripts/checks/registry.mjs` declares the static-analysis gates and is the single
+import every consumer uses; the record shape and scheduling policy sit in `gate.mjs`
+beside it, and the gates needing a non-Node toolchain in `gates-languages.mjs`. Each
 entry names its command, PR or nightly tier, local prerequisites, artifacts, summary
 renderer, and runner OS. The registry drives:
 

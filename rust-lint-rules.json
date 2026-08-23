@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "description": "Policy for the `rust-lints` gate, which runs clippy's restriction and pedantic lints over the shipped Freenet contracts. Findings are ratcheted in language-ratchets/rust-lints.json and may only disappear. Lints that already hold at zero are not here — they are denied outright in each contract's Cargo.toml, where ordinary clippy enforces them.",
+  "rationale": {
+    "whyNotTheRustGate": "The existing `rust` gate runs clippy with `-D warnings`, which is a zero-tolerance check and has to stay one. These lints have 56 findings today that cannot be fixed in one change, and a zero-tolerance gate cannot carry a backlog. Mixing the two would mean either weakening the existing gate to a list of allowed failures or blocking on a rewrite of three decoders. They are separate gates for the same reason `lint` and `lint-all` are.",
+    "whyLibOnly": "Measured over `--lib`, not `--all-targets`. The subject is the code that ships inside wasm32 linear memory, where a panic aborts a node's contract execution. A test that indexes a fixture it just built is not that, and counting it would bury the findings that matter under ones that do not.",
+    "whyTheseLints": "Each one names a way an untrusted-input decoder fails in a wasm target specifically. `indexing_slicing` is an abort on a malformed peer state. `arithmetic_side_effects` is the cursor arithmetic the fuzzer already found one allocation bug behind, and it wraps silently in release builds without the `overflow-checks` the manifests now set. `as_conversions` and `cast_possible_truncation` are how a u32 length field becomes a too-small usize on a 32-bit target — which wasm32 is, and the hosts running the tests are not.",
+    "whyRatchetNotFix": "The decoders are already careful by hand: every cursor advance uses `checked_add`, and `direction` is validated before it indexes. The findings are mostly that discipline expressed in a form clippy cannot verify. Rewriting them onto `.get()` is worthwhile and is what the ratchet is for; doing it under the same change that adds the measurement would make both unreviewable."
+  },
+  "crates": [
+    "packages/bridge-freenet/contract/locator",
+    "packages/bridge-freenet/contract/packet-log",
+    "packages/bridge-freenet/contract/propagation-set"
+  ],
+  "ratcheted": [
+    "clippy::indexing_slicing",
+    "clippy::arithmetic_side_effects",
+    "clippy::as_conversions",
+    "clippy::cast_possible_truncation",
+    "clippy::cast_possible_wrap",
+    "clippy::cast_sign_loss",
+    "clippy::integer_division"
+  ],
+  "denied": {
+    "note": "Enforced by [lints.clippy] in each contract's Cargo.toml, not by this gate. Listed here so the two policies are visible together, and checked by conformance/checks/rust-lints.test.mjs so a lint cannot quietly leave the manifests.",
+    "lints": ["unwrap_used", "expect_used", "panic", "unreachable", "todo"]
+  }
+}

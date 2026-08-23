@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "description": "Evidence citations that do not resolve, recorded with a reason so the gate can be enforced at zero for everything else. An entry here is debt, not permission: it records that someone read the citation and decided what to do about it. `npm run spec-traceability:check` fails on any finding not listed, and warns about any listing that no longer matches a finding so a fixed one gets removed.",
+  "policy": "Every entry needs a reason and an owner-facing next step. Nothing here may be added to make a red gate green without that; the point of the list is that it is short, reviewable, and shrinking.",
+  "waivers": [
+    {
+      "id": "SPEC-MEDIA-BLE-LXMF",
+      "finding": "specs/spec-media/ble.md: cites `ble-interop.test.ts` (\"exchanges LXMF messages between two peers\"), but no such test title exists in packages/reticulum-interfaces/test/ble-interop.test.ts",
+      "reason": "Found by this gate on its first complete run. The BLE profile's \"LXMF exchange / Message carriage\" subset row cites a test that does not exist: ble-interop.test.ts covers link establishment and echo, resource transfer, mid-transfer reconnect, and framing properties, but nothing carrying an LXMF message. This is a missing test rather than a stale citation, so it is recorded rather than reworded — pointing the row at one of the tests that does exist would make the gate green while leaving the claim unpinned, which is the failure this gate exists to prevent.",
+      "next": "Either add an LXMF-over-BLE interop case to packages/reticulum-interfaces/test/ble-interop.test.ts, or move the row to Deviations. Until then SPEC-MEDIA's BLE profile is not done by its own rule."
+    },
+    {
+      "id": "SPEC-MSG-PROPAGATION-TITLE",
+      "finding": "specs/spec-msg/spec.md: cites `router.test.ts` (\"delivers propagated messages via a propagation node over PipeInterface\"), but no such test title exists in packages/lxmf-ts/test/router.test.ts",
+      "reason": "Found by this gate on its first complete run. The test appears to have been renamed: `PropagationClient sync` now contains \"downloads queued messages from a propagation node over PipeInterface\", which is the same behaviour under a different title. Recorded rather than corrected here because editing a normative specification to make a newly added gate pass is the wrong order — the correction belongs in a change that is reviewed as a specification change.",
+      "next": "Confirm the rename is the whole story, update the citation in specs/spec-msg/spec.md to the current title, and delete this waiver."
+    }
+  ]
+}

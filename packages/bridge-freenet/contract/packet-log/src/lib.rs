@@ -236,6 +236,16 @@ impl ContractInterface for PacketLogContract {
     }
 }
 
+// A test asserting a known-good decode is entitled to unwrap: the panic *is*
+// the assertion, and its blast radius is the test runner rather than a node
+// executing a contract. The crate-level denials in Cargo.toml exist for the
+// shipped paths, so the opt-out is scoped here rather than weakened there.
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unreachable
+)]
 #[cfg(test)]
 mod tests {
     use super::*;

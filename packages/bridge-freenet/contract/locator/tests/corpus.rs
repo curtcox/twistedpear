@@ -6,6 +6,13 @@
 //! the properties the contract promises — validation is total, update is closed
 //! under validation, and merge converges regardless of arrival order.
 
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unreachable
+)]
+
 use freenet_stdlib::prelude::{
     ContractInterface, Parameters, RelatedContracts, State, UpdateData, ValidateResult,
 };

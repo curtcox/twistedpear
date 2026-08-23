@@ -10,6 +10,13 @@
 //! of state whose count field claimed four billion entries, which the decoder
 //! obligingly reserved capacity for.
 
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unreachable
+)]
+
 use twistedpear_freenet_packet_log_contract::{decode_entries, encode_entries, merge_encoded};
 
 #[path = "../../../../../conformance/fuzz/rust/peak_alloc.rs"]

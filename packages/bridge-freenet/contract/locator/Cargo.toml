@@ -14,3 +14,37 @@ freenet-stdlib = { version = "=0.8.5", git = "https://github.com/freenet/freenet
 [features]
 default = ["freenet-main-contract"]
 freenet-main-contract = []
+
+# Panic policy for code that runs inside wasm32 linear memory.
+#
+# `cargo clippy` runs with `-D warnings` but only over its default groups, and
+# every lint below lives in `restriction` or `pedantic`, which are off. That
+# left the three shipped contracts — the code peers agree on, the target of the
+# fuzzing gate, and the one place in this repository where a panic aborts a
+# node's contract execution rather than failing a test — checked by nothing
+# beyond ordinary clippy.
+#
+# The five denied here already hold at zero across all three contracts. Denying
+# them costs nothing today and is the whole point: the decoders are careful by
+# hand (`checked_add` on every cursor advance, `direction` validated before it
+# indexes) and hand-discipline is exactly what stops holding on the edit nobody
+# reviews closely. Test modules opt out individually, because a test asserting a
+# known-good decode is entitled to unwrap.
+#
+# The lints with findings today are *not* listed here. They are warnings carried
+# by the ratcheted `rust-lints` gate, because a baseline of allowed failures
+# does not belong in a compiler configuration.
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+unreachable = "deny"
+todo = "deny"
+
+# Release builds turn integer overflow checks off, so in the wasm these
+# contracts actually ship as, `cursor + 9` on attacker-supplied bytes wraps
+# silently instead of trapping. The debug build every test and fuzz target runs
+# under does check, which means the one configuration nobody tests is the one
+# users get. The contracts are small; the branch cost is not the concern here.
+[profile.release]
+overflow-checks = true
