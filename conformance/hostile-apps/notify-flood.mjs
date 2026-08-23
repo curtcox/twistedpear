@@ -4,28 +4,13 @@
  */
 import {
   GrantStore,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
 
-class MemoryStore {
-  values = new Map();
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-  async delete(key) {
-    this.values.delete(key);
-  }
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
-
 export async function runNotifyHostileCases() {
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   let now = 1_000;
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),

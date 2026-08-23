@@ -2,6 +2,20 @@
  * Handbook applet: prove identity.destinationHash() on this host.
  * Export async function run(sdk, report).
  */
+function reportError(report, started, error) {
+  const message = error instanceof Error ? error.message : String(error);
+  const status = /CAPABILITY_DENIED|has not been granted|Capability/.test(
+    message,
+  )
+    ? "not-granted"
+    : "fail";
+  report({
+    details: message,
+    status,
+    timings: { ms: Date.now() - started },
+  });
+}
+
 export async function run(sdk, report) {
   const started = Date.now();
   try {
@@ -21,15 +35,6 @@ export async function run(sdk, report) {
       timings: { ms: Date.now() - started },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const notGranted =
-      message.includes("CAPABILITY_DENIED") ||
-      message.includes("has not been granted") ||
-      message.includes("Capability");
-    report({
-      status: notGranted ? "not-granted" : "fail",
-      details: message,
-      timings: { ms: Date.now() - started },
-    });
+    reportError(report, started, error);
   }
 }

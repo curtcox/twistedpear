@@ -4,29 +4,10 @@
  */
 import {
   GrantStore,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 function handlerBundle(body) {
   return new TextEncoder().encode(`
@@ -52,7 +33,7 @@ async function waitUntil(condition, timeoutMs = 2_000) {
 }
 
 async function assertHandlerError(body, expectedMessage) {
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),
     grantStore: new GrantStore(store),

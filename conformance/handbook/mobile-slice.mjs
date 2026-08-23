@@ -18,6 +18,7 @@ import {
   GrantStore,
   HOST_API_VERSION,
   KvStorageBeeBackend,
+  MemoryKvStoreBackend,
   MiniappHost,
   createSimulatedDeviceManager,
   createSandboxBackend,
@@ -53,26 +54,6 @@ export const DEVICE_GATED_APPLET_IDS = new Set([
   "multicast-auto",
   "camera-qr-scan",
 ]);
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 function launchManifest(app, publisherPublicKey) {
   return {
@@ -356,7 +337,7 @@ export async function runHandbookMobileSlice(options) {
   const catalog = loadCatalog();
   const packed = await packHandbook();
 
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   await store.set(
     "miniapp-resource:handbook:probe",
     new TextEncoder().encode("handbook-resource-probe-payload"),

@@ -1,3 +1,5 @@
+import { addWatcher, notifyWatchers } from "./watchers.js";
+
 export interface AnnounceSubscription {
   readonly namespace: string;
 }
@@ -94,9 +96,7 @@ export class AnnounceService implements AnnounceBackend {
     });
     this.events.set(key, bucket);
     const event = bucket[bucket.length - 1]!;
-    for (const handler of this.watchers.get(key) ?? []) {
-      handler(event);
-    }
+    notifyWatchers(this.watchers, key, event);
     return Promise.resolve();
   }
 
@@ -114,12 +114,6 @@ export class AnnounceService implements AnnounceBackend {
     namespace?: string,
   ): () => void {
     const key = resolveAnnounceNamespace(appId, namespace);
-    const bucket = this.watchers.get(key) ?? new Set();
-    bucket.add(handler);
-    this.watchers.set(key, bucket);
-    return () => {
-      bucket.delete(handler);
-      if (bucket.size === 0) this.watchers.delete(key);
-    };
+    return addWatcher(this.watchers, key, handler);
   }
 }

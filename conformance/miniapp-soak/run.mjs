@@ -14,6 +14,7 @@ import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 import {
   CorestoreBeeBackend,
   GrantStore,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
@@ -26,26 +27,6 @@ const examplesDir = resolve(
 );
 const EXAMPLE_NAMES = ["chat", "file-drop", "board"];
 const SOAK_DURATION_MS = Number(process.env.SOAK_DURATION_MS ?? "15000");
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 function sleep(ms) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -176,7 +157,7 @@ async function main() {
     packed.push({ name, ...(await packExample(name)) });
   }
 
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const beePath = mkdtempSync(join(tmpdir(), "miniapp-soak-bee-"));
   const { host, beeBackend } = await createHost(store, beePath);
   await store.set(

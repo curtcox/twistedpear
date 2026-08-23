@@ -41,6 +41,7 @@ export function desktopHostMock({ emitName, messagesName }) {
 import {
   GrantStore,
   KvStorageBeeBackend,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
   AnnounceService,
@@ -56,26 +57,6 @@ export const fakeIdentity =
   "TPDEMO7LQ2X9C4M6K8R3V5N1B7D9F2H4J6L8P3S5W7Y9A2C4E6G8K1M3Q5T7V9X2Z4B6D8F1H3J5L7N9P2R4T6";
 export const fakeHash = "7f3a1c9e42b68d05a7c31e9f42b68d05";
 export const fakeT256 = "D".repeat(94);
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
-
 function treeText(tree) {
   const values = [];
   const visit = (node) => {
@@ -110,7 +91,7 @@ async function launchCookbookApp(
   options = {},
 ) {
   const appDir = options.appDir ?? join(repoRoot, "cookbook/apps", name);
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const encoder = new TextEncoder();
   await seed(store);
   if (name === "ask-the-handbook") {

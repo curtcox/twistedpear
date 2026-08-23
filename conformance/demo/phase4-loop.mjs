@@ -25,6 +25,7 @@ import {
 } from "../../packages/cli/dist/commands/index.js";
 import {
   GrantStore,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
@@ -36,33 +37,16 @@ const chatExample = resolve(
 const HOST_API_VERSION = "0.1.0";
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
-
 async function sleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
 }
 
 async function waitFor(evaluate, timeoutMs = 20_000) {
   const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
+  for (;;) {
+    if (Date.now() - started >= timeoutMs) {
+      throw new Error("waitFor timeout");
+    }
     const value = await evaluate();
     if (value !== null && value !== undefined) {
       return value;
@@ -70,8 +54,6 @@ async function waitFor(evaluate, timeoutMs = 20_000) {
 
     await sleep(100);
   }
-
-  throw new Error("waitFor timeout");
 }
 
 function treeHasTitle(tree) {
@@ -173,7 +155,7 @@ async function main() {
       archive.length,
     );
 
-    const store = new MemoryStore();
+    const store = new MemoryKvStoreBackend();
     const host = new MiniappHost({
       backend: new NodeWorkerSandboxBackend(),
       grantStore: new GrantStore(store),

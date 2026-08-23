@@ -26,7 +26,10 @@ import {
   runPack,
   runPublish,
 } from "../../packages/cli/dist/commands/index.js";
-import { HOST_API_VERSION } from "../../packages/miniapp-runtime/dist/index.js";
+import {
+  HOST_API_VERSION,
+  MemoryKvStoreBackend,
+} from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 import { runBareLifecycleSliceProcess } from "../scenarios/bare/runner-host.mjs";
@@ -43,26 +46,6 @@ const LIFECYCLE_CYCLES = Number.parseInt(
   10,
 );
 const IDENTITY_PASSPHRASE = "conformance identity passphrase";
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 function waitForPeer(timeoutMs = 15_000) {
   return new Promise((resolve, reject) => {
@@ -99,7 +82,7 @@ async function miniappChurn(durationMs) {
   cpSync(chatExample, appDir, { recursive: true });
 
   const outbound = [];
-  const kvStore = new MemoryStore();
+  const kvStore = new MemoryKvStoreBackend();
   const runtime = nodeRuntime();
   const provider = new NodeCryptoProvider();
   const catalog = new CatalogStore(provider);

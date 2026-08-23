@@ -4,6 +4,7 @@ import {
   describeWidgetTree,
   GrantStore,
   KvStorageBeeBackend,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
   type GrantKeyValueStore,
@@ -16,29 +17,9 @@ import {
 import type { LinkProfileName } from "./link-profiles.js";
 import { applyLinkProfile, type LinkProfile } from "./link-profiles.js";
 
-export class MemoryKvStore implements GrantKeyValueStore {
-  readonly values = new Map<string, Uint8Array>();
-
-  get(key: string): Promise<Uint8Array | null> {
-    return Promise.resolve(this.values.get(key) ?? null);
-  }
-
-  set(key: string, value: Uint8Array): Promise<void> {
-    this.values.set(key, value);
-    return Promise.resolve();
-  }
-
-  delete(key: string): Promise<void> {
-    this.values.delete(key);
-    return Promise.resolve();
-  }
-
-  list(prefix: string): Promise<ReadonlyArray<string>> {
-    return Promise.resolve(
-      [...this.values.keys()].filter((key) => key.startsWith(prefix)),
-    );
-  }
-}
+export class MemoryKvStore
+  extends MemoryKvStoreBackend
+  implements GrantKeyValueStore {}
 
 export interface MountAppOptions {
   readonly manifest: LaunchManifest;

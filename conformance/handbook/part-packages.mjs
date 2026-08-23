@@ -24,6 +24,7 @@ import {
   GrantStore,
   HOST_API_VERSION,
   KvStorageBeeBackend,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
@@ -36,26 +37,6 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(root, "apps/handbook");
 const partsRoot = join(handbookDir, "generated/part-packages");
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 function ensurePartPackages() {
   if (existsSync(partsRoot)) {
@@ -163,7 +144,7 @@ export async function runHandbookPartPackagesSmoke() {
       throw new Error(`unexpected app id ${packed.app.name} for ${part.id}`);
     }
 
-    const store = new MemoryStore();
+    const store = new MemoryKvStoreBackend();
     const host = new MiniappHost({
       backend: new NodeWorkerSandboxBackend(),
       grantStore: new GrantStore(store),

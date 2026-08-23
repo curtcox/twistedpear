@@ -11,31 +11,12 @@ import { pathToFileURL } from "node:url";
 import { runCreate } from "../../packages/cli/dist/commands/index.js";
 import { startDevServer } from "../../packages/cli/dist/dev/server.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
+import { MemoryKvStoreBackend } from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 import { createDevChannelClient } from "../../packages/worklet-core/src/dev-channel.mjs";
 
 const BUDGET_MS = 5_000;
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 function readDevPayload(socket) {
   return new Promise((resolve, reject) => {
@@ -60,7 +41,7 @@ export async function runIosDevLoop() {
   const workDir = mkdtempSync(join(tmpdir(), "tp-ios-dev-loop-"));
   const beeDir = mkdtempSync(join(tmpdir(), "tp-ios-dev-bee-"));
   const outbound = [];
-  const kvStore = new MemoryStore();
+  const kvStore = new MemoryKvStoreBackend();
   const provider = new NodeCryptoProvider();
 
   const miniappHost = createWorkletMiniappHost({

@@ -18,6 +18,7 @@ import {
   GrantStore,
   HOST_API_VERSION,
   KvStorageBeeBackend,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
   createSimulatedDeviceManager,
@@ -51,26 +52,6 @@ const RESULT_STATUSES = new Set([
   "not-granted",
   "skipped",
 ]);
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 async function assertPreviewSlot(host, appsBackend) {
   const tree = host.snapshot().widgetTree;
@@ -304,7 +285,7 @@ async function main() {
   const packed = await packHandbook();
   console.log(`handbook: packed ${packed.packageBytes} bytes`);
 
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   await store.set(
     "miniapp-resource:handbook:probe",
     new TextEncoder().encode("handbook-resource-probe-payload"),

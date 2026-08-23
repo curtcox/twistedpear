@@ -15,6 +15,7 @@ import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 import {
   CorestoreBeeBackend,
   GrantStore,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
@@ -25,26 +26,6 @@ const examplesDir = resolve(
 );
 const BLE_INSTALL_BUDGET_BYTES = 180 * 1024;
 const EXAMPLE_NAMES = ["chat", "file-drop", "board"];
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 function sleep(ms) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -201,7 +182,7 @@ async function createHost(store, options = {}) {
 }
 
 async function exerciseChat(packed) {
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const { host } = await createHost(store);
 
   try {
@@ -264,7 +245,7 @@ async function exerciseChat(packed) {
 }
 
 async function exerciseFileDrop(packed) {
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const { host } = await createHost(store);
 
   try {
@@ -327,7 +308,7 @@ async function exerciseFileDrop(packed) {
 }
 
 async function exerciseBoard(packed) {
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const beePath = mkdtempSync(join(tmpdir(), "example-board-bee-"));
   const { host, beeBackend } = await createHost(store, { beePath });
 

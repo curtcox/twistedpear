@@ -23,7 +23,10 @@ import {
   bytesToHex,
   nodeRuntime,
 } from "../../packages/reticulum-ts/dist/index.js";
-import { HOST_API_VERSION } from "../../packages/miniapp-runtime/dist/index.js";
+import {
+  HOST_API_VERSION,
+  MemoryKvStoreBackend,
+} from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { reviveJsonWireValue } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { createWorkletMiniappHost as createElectronMiniappHost } from "../../apps/host-desktop/worklet/miniapp-host.mjs";
@@ -37,26 +40,6 @@ const devstudioDir = resolve(
   "../../apps/devstudio",
 );
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
-
-class MemoryKvStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 class MemoryPackageStorage {
   records = [];
@@ -365,7 +348,7 @@ function hexToBytes(hex) {
 
 function createElectronPeer(exchange, tmp, name) {
   const identity = new Identity(provider);
-  const kvStore = new MemoryKvStore();
+  const kvStore = new MemoryKvStoreBackend();
   const installed = new InstalledPackageStore(64 * 1024 * 1024);
   const peerRuntime = { ...runtime, store: archiveStore() };
   const outbound = [];
@@ -413,7 +396,7 @@ function createElectronPeer(exchange, tmp, name) {
 
 function createWebPeer(exchange, tmp, name) {
   const identity = new Identity(provider);
-  const kvStore = new MemoryKvStore();
+  const kvStore = new MemoryKvStoreBackend();
   const packageStorage = new MemoryPackageStorage();
   const outbound = [];
   const relay = new WebSandboxRelay();

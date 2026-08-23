@@ -8,6 +8,7 @@ import {
   MiniappBroker,
   MiniappHost,
   MiniappLifecycle,
+  MemoryKvStoreBackend,
   NodeWorkerSandboxBackend,
   GrantStore,
   validateWidgetTree,
@@ -16,26 +17,6 @@ import {
 import { runCapabilityProbes } from "./capability-probes.mjs";
 import { runHandlerErrorCases } from "./handler-errors.mjs";
 import { runNotifyHostileCases } from "./notify-flood.mjs";
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 const helloBundle = new TextEncoder()
   .encode(`import { ui } from "@twistedpear/miniapp-sdk";
@@ -76,7 +57,7 @@ function wideNode(index) {
 }
 
 async function main() {
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),
     grantStore: new GrantStore(store),

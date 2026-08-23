@@ -68,6 +68,18 @@ export function createMiniappAnnounceService(options) {
     return copyAppData ? payload.slice() : payload;
   }
 
+  function recordEvent(aspect, destination, appData) {
+    const bucket = buckets.get(aspect) ?? [];
+    bucket.push({
+      destination,
+      appData: storeAppData(appData),
+      receivedAt: Date.now(),
+    });
+    buckets.set(aspect, bucket.slice(-256));
+    const event = bucket[bucket.length - 1];
+    for (const handler of watchers.get(aspect) ?? []) handler(event);
+  }
+
   return {
     async publish(appId, appData, namespace) {
       const node = await getNode();
@@ -90,17 +102,7 @@ export function createMiniappAnnounceService(options) {
       }
       const payload = boundAppData(appData);
       await destination.announce({ appData: payload });
-      const bucket = buckets.get(aspect) ?? [];
-      bucket.push({
-        destination: bytesToHex(destination.hash),
-        appData: storeAppData(payload),
-        receivedAt: Date.now(),
-      });
-      buckets.set(aspect, bucket.slice(-256));
-      const event = bucket[bucket.length - 1];
-      for (const handler of watchers.get(aspect) ?? []) {
-        handler(event);
-      }
+      recordEvent(aspect, bytesToHex(destination.hash), payload);
     },
 
     async subscribe(appId, namespace) {
@@ -110,17 +112,7 @@ export function createMiniappAnnounceService(options) {
         node.registerAnnounceHandler({
           aspectFilter: `tp.miniapp.${aspect}`,
           receivedAnnounce(info) {
-            const bucket = buckets.get(aspect) ?? [];
-            bucket.push({
-              destination: bytesToHex(info.destinationHash),
-              appData: storeAppData(info.appData ?? new Uint8Array()),
-              receivedAt: Date.now(),
-            });
-            buckets.set(aspect, bucket.slice(-256));
-            const event = bucket[bucket.length - 1];
-            for (const handler of watchers.get(aspect) ?? []) {
-              handler(event);
-            }
+            recordEvent(aspect, bytesToHex(info.destinationHash), info.appData);
           },
         });
         handlers.add(aspect);

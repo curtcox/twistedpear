@@ -3,6 +3,7 @@ import {
   type HostConfirmationChannel,
 } from "../confirm.js";
 import { createNodeConfirmationEffects } from "./confirmation-effects.js";
+import { addWatcher, notifyWatchers } from "./watchers.js";
 
 const APP_CHANNEL_MAX_PAYLOAD_BYTES = 16 * 1024;
 const APP_CHANNEL_MAX_INBOX = 32;
@@ -174,9 +175,7 @@ export class AppChannelService {
     });
     this.inboxes.set(inboxKey, inbox);
     const delivered = inbox[inbox.length - 1]!;
-    for (const handler of this.watchers.get(inboxKey) ?? []) {
-      handler(delivered);
-    }
+    notifyWatchers(this.watchers, inboxKey, delivered);
     return { id };
   }
 
@@ -185,13 +184,7 @@ export class AppChannelService {
     handler: (message: AppChannelMessage) => void,
   ): () => void {
     const key = identityKey(peer);
-    const bucket = this.watchers.get(key) ?? new Set();
-    bucket.add(handler);
-    this.watchers.set(key, bucket);
-    return () => {
-      bucket.delete(handler);
-      if (bucket.size === 0) this.watchers.delete(key);
-    };
+    return addWatcher(this.watchers, key, handler);
   }
 
   receive(caller: AppChannelPeer): ReadonlyArray<AppChannelMessage> {

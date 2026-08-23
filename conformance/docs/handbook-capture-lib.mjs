@@ -23,6 +23,7 @@ import {
   GrantStore,
   HOST_API_VERSION,
   KvStorageBeeBackend,
+  MemoryKvStoreBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
 } from "../../packages/miniapp-runtime/dist/index.js";
@@ -38,26 +39,6 @@ import {
 const docsRoot = dirname(fileURLToPath(import.meta.url));
 export const repoRoot = join(docsRoot, "../..");
 export const handbookDir = join(repoRoot, "apps/handbook");
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 export function buildCaptureDeps() {
   const build = spawnSync(
@@ -187,7 +168,7 @@ export async function captureHandbookWidgetTree(options = {}) {
   const logPrefix = options.logPrefix ?? "handbook-capture";
 
   const packed = await packHandbook();
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const host = createCaptureHost(store, packed, platform);
   const capabilities = (packed.app.capabilities ?? []).map((entry) =>
     typeof entry === "string" ? entry : entry.id,

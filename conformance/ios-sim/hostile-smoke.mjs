@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import {
   MiniappBroker,
   MiniappLifecycle,
+  MemoryKvStoreBackend,
   NodeWorkerSandboxBackend,
   validateWidgetTree,
   WidgetValidationError,
@@ -14,26 +15,6 @@ import {
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
-
-class MemoryStore {
-  values = new Map();
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async set(key, value) {
-    this.values.set(key, value);
-  }
-
-  async delete(key) {
-    this.values.delete(key);
-  }
-
-  async list(prefix) {
-    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
-  }
-}
 
 const helloBundle = new TextEncoder()
   .encode(`import { ui } from "@twistedpear/miniapp-sdk";
@@ -50,7 +31,7 @@ await ui.render({
 `);
 
 export async function runIosHostileSmoke() {
-  const store = new MemoryStore();
+  const store = new MemoryKvStoreBackend();
   const provider = new NodeCryptoProvider();
   const outbound = [];
 

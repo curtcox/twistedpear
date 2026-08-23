@@ -58,7 +58,10 @@ async function sleep(ms) {
 
 async function waitFor(evaluate, timeoutMs = 10_000) {
   const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
+  for (;;) {
+    if (Date.now() - started >= timeoutMs) {
+      throw new Error("waitFor timeout");
+    }
     const value = await evaluate();
     if (value !== null && value !== undefined) {
       return value;
@@ -67,7 +70,6 @@ async function waitFor(evaluate, timeoutMs = 10_000) {
     await sleep(50);
   }
 
-  throw new Error("waitFor timeout");
 }
 
 async function connectPeers(provider, runtime) {
