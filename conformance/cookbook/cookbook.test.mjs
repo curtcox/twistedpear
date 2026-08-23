@@ -157,6 +157,75 @@ async function validateSources() {
   expect(errors, "cookbook ESLint errors").toEqual([]);
 }
 
+/**
+ * Prose that states how many cookbook samples there are, spelled out.
+ *
+ * The count is repeated across the repository README, the three reader guides, two
+ * cookbook chapters, the FAQ, and the site stager. When `line-check` landed as the
+ * 26th app only the app index was updated, and the other ten claims said
+ * "twenty-five" for three weeks. `appNames` is the ground truth; this list is what
+ * has to agree with it.
+ */
+const SAMPLE_COUNT_CLAIMS = [
+  "README.md",
+  "authors/README.md",
+  "guide/README.md",
+  "docs/FAQ.md",
+  "cookbook/README.md",
+  "cookbook/appendix-app-index.md",
+  "cookbook/02-apps-with-no-capabilities.md",
+  "cookbook/09-apps-for-a-bad-link.md",
+  "scripts/site/stage.mjs",
+  "scripts/analysis/spelling.mjs",
+];
+
+const COUNT_WORDS = new Map([
+  [20, "twenty"],
+  [21, "twenty-one"],
+  [22, "twenty-two"],
+  [23, "twenty-three"],
+  [24, "twenty-four"],
+  [25, "twenty-five"],
+  [26, "twenty-six"],
+  [27, "twenty-seven"],
+  [28, "twenty-eight"],
+  [29, "twenty-nine"],
+  [30, "thirty"],
+]);
+
+/**
+ * Every file in `SAMPLE_COUNT_CLAIMS` states the current sample count and neither
+ * neighbouring one.
+ *
+ * Checking the neighbours rather than every wrong word is deliberate: the drift this
+ * catches is adding or removing an app, and an unrelated "twenty-three more" in the
+ * cookbook README's directory tree is a legitimate different number in a listed file.
+ */
+function validateSampleCountProse() {
+  const expected = COUNT_WORDS.get(appNames.length);
+  expect(
+    expected,
+    `no spelled-out word for ${appNames.length} samples; extend COUNT_WORDS`,
+  ).toBeDefined();
+  const stale = [appNames.length - 1, appNames.length + 1]
+    .map((n) => COUNT_WORDS.get(n))
+    .filter((word) => word !== undefined);
+
+  for (const relativePath of SAMPLE_COUNT_CLAIMS) {
+    const text = readFileSync(join(repositoryRoot, relativePath), "utf8");
+    expect(
+      text.toLowerCase(),
+      `${relativePath} states the sample count as "${expected}"`,
+    ).toContain(expected);
+    for (const word of stale) {
+      expect(
+        text.toLowerCase(),
+        `${relativePath} still says "${word}"; there are ${appNames.length} samples`,
+      ).not.toContain(word);
+    }
+  }
+}
+
 function validateDocumentation() {
   const imageRoot = join(repositoryRoot, "cookbook/images");
   const imageNames = readdirSync(imageRoot).filter((name) =>
@@ -863,6 +932,7 @@ beforeAll(async () => {
   expect(appNames).toHaveLength(26);
   expect(Object.keys(behaviorScenarios).sort()).toEqual(appNames);
   validateDocumentation();
+  validateSampleCountProse();
   await validateSources();
 });
 
