@@ -161,6 +161,7 @@ Veilid
 venv
 venvs
 Verif
+WCAG
 WEBED
 webrtc
 widenable

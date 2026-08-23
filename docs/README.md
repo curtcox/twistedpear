@@ -94,8 +94,9 @@ deliberate v1 scope.
 [Platform facilities proposals](platform-facilities-plan.md) is a survey of facilities for
 running and developing mini-apps that the platform does not offer, written as unscheduled
 proposals: it carries no register IDs, nothing in it gates the release, and it excludes gaps
-the feature-status appendices already track. Its one fully developed item is
-[mini-app record and replay](miniapp-record-replay-plan.md).
+the feature-status appendices already track. Two of its items are developed in full:
+[mini-app record and replay](miniapp-record-replay-plan.md) and
+[accessibility in the widget model](widget-accessibility-plan.md).
 
 ## Archive
 
