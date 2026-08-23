@@ -6,11 +6,11 @@
     "kotlin",
     "swift"
   ],
-  "files": 656,
-  "functions": 7617,
-  "groups": 4621,
+  "files": 663,
+  "functions": 7667,
+  "groups": 4656,
   "exemptions": 88,
-  "violations": 0,
+  "violations": 5,
   "stale": 0,
   "findings": [
     {
@@ -30,13 +30,26 @@
       "key": "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage",
       "file": "apps/host-desktop/src/renderer/app-worklet-messages.mjs",
       "name": "handleWorkletMessage",
-      "line": 11,
+      "line": 12,
       "tier": "source",
       "ccn": 85,
-      "nloc": 268,
+      "nloc": 281,
       "pinned": {
         "ccn": 85,
         "nloc": 268
+      }
+    },
+    {
+      "key": "apps/host-desktop/src/renderer/widgets.js::renderNode",
+      "file": "apps/host-desktop/src/renderer/widgets.js",
+      "name": "renderNode",
+      "line": 13,
+      "tier": "source",
+      "ccn": 73,
+      "nloc": 202,
+      "pinned": {
+        "ccn": 47,
+        "nloc": 139
       }
     },
     {
@@ -88,19 +101,6 @@
       }
     },
     {
-      "key": "apps/host-desktop/src/renderer/widgets.js::renderNode",
-      "file": "apps/host-desktop/src/renderer/widgets.js",
-      "name": "renderNode",
-      "line": 13,
-      "tier": "source",
-      "ccn": 47,
-      "nloc": 139,
-      "pinned": {
-        "ccn": 47,
-        "nloc": 139
-      }
-    },
-    {
       "key": "conformance/tools/mini-json-schema.mjs::check",
       "file": "conformance/tools/mini-json-schema.mjs",
       "name": "check",
@@ -128,7 +128,7 @@
       "key": "apps/handbook/build-content.mjs::loadApplets",
       "file": "apps/handbook/build-content.mjs",
       "name": "loadApplets",
-      "line": 260,
+      "line": 262,
       "tier": "tooling",
       "ccn": 38,
       "pinned": {
@@ -226,7 +226,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createMediaPipeline",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createMediaPipeline",
-      "line": 184,
+      "line": 198,
       "tier": "source",
       "ccn": 30,
       "pinned": {
@@ -303,7 +303,7 @@
       "key": "conformance/hostile-apps/run.mjs::main",
       "file": "conformance/hostile-apps/run.mjs",
       "name": "main",
-      "line": 76,
+      "line": 78,
       "tier": "tooling",
       "ccn": 23,
       "nloc": 296,
@@ -338,7 +338,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createCommonHostInfoBackend",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createCommonHostInfoBackend",
-      "line": 82,
+      "line": 96,
       "tier": "source",
       "ccn": 22,
       "pinned": {
@@ -746,6 +746,15 @@
       }
     },
     {
+      "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::devSideLoad",
+      "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "name": "devSideLoad",
+      "line": 50,
+      "tier": "source",
+      "ccn": 14,
+      "pinned": null
+    },
+    {
       "key": "apps/handbook/content/applets/ai-chat/main.js::run",
       "file": "apps/handbook/content/applets/ai-chat/main.js",
       "name": "run",
@@ -937,6 +946,15 @@
       }
     },
     {
+      "key": "apps/host-desktop/src/renderer/diagnostics-panel.mjs::renderDiagnosticsPanel",
+      "file": "apps/host-desktop/src/renderer/diagnostics-panel.mjs",
+      "name": "renderDiagnosticsPanel",
+      "line": 58,
+      "tier": "source",
+      "ccn": 11,
+      "pinned": null
+    },
+    {
       "key": "packages/worklet-core/src/worklet-entry-discovery.mjs::receivedAnnounce",
       "file": "packages/worklet-core/src/worklet-entry-discovery.mjs",
       "name": "receivedAnnounce",
@@ -1006,7 +1024,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "launchWithoutReview",
-      "line": 514,
+      "line": 528,
       "tier": "source",
       "params": 7,
       "pinned": {

@@ -1,11 +1,11 @@
 {
   "version": 1,
   "total": 8173,
-  "cap": 8130,
+  "cap": 8173,
   "packages": 21,
   "entryPoints": 47,
   "unresolved": 0,
-  "violations": 7,
+  "violations": 0,
   "findings": [
     {
       "name": "protocol",
