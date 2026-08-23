@@ -79,15 +79,16 @@ function collectAccessibilityGaps(node: WidgetNode, gaps: string[]): void {
   }
 }
 
-export async function doctorApp(appDir: string): Promise<DoctorReport> {
-  const manifest = JSON.parse(
-    readFileSync(join(appDir, "app.manifest.json"), "utf8"),
-  ) as {
-    entry: string;
-    capabilities?: string[];
-    minHostApi?: string;
-  };
-  const source = readFileSync(join(appDir, manifest.entry), "utf8");
+interface AppManifest {
+  entry: string;
+  capabilities?: string[];
+  minHostApi?: string;
+}
+
+function checkCapabilityDeclarations(
+  manifest: AppManifest,
+  source: string,
+): DoctorFinding[] {
   const declared = new Set(manifest.capabilities ?? []);
   const used = usedCapabilities(source);
   const findings: DoctorFinding[] = [];
@@ -110,8 +111,11 @@ export async function doctorApp(appDir: string): Promise<DoctorReport> {
       });
     }
   }
-  const files = walkFiles(appDir);
-  const bytes = files.reduce((sum, file) => sum + file.size, 0);
+  return findings;
+}
+
+function checkLinkCeilings(bytes: number): DoctorFinding[] {
+  const findings: DoctorFinding[] = [];
   if (bytes > LINK_CEILINGS.lora) {
     findings.push({
       code: "lora-ceiling",
@@ -124,46 +128,77 @@ export async function doctorApp(appDir: string): Promise<DoctorReport> {
       message: `${bytes} bytes exceeds the ~180 KiB BLE one-minute ceiling`,
     });
   }
+  return findings;
+}
+
+function checkMinHostApi(manifest: AppManifest): DoctorFinding[] {
   if (
-    manifest.minHostApi !== undefined &&
-    manifest.minHostApi > HOST_API_VERSION
+    manifest.minHostApi === undefined ||
+    manifest.minHostApi <= HOST_API_VERSION
   ) {
-    findings.push({
+    return [];
+  }
+  return [
+    {
       code: "minHostApi",
       message: `minHostApi ${manifest.minHostApi} is newer than this SDK host ${HOST_API_VERSION}`,
+    },
+  ];
+}
+
+function checkWidgetTree(tree: ReturnType<AppHandle["rawTree"]>): DoctorFinding[] {
+  if (tree === null) return [];
+  const findings: DoctorFinding[] = [];
+  try {
+    validateWidgetTree(tree);
+  } catch (error) {
+    findings.push({
+      code: "unknown-widget",
+      message: error instanceof Error ? error.message : String(error),
     });
   }
+  const gaps: string[] = [];
+  collectAccessibilityGaps(tree.root, gaps);
+  for (const id of gaps) {
+    findings.push({
+      code: "accessibilityLabel",
+      message: `view "${id}" is missing accessibilityLabel`,
+    });
+  }
+  return findings;
+}
 
+async function checkMountedApp(appDir: string): Promise<DoctorFinding[]> {
   let handle: AppHandle | undefined;
   try {
     handle = await mountAppFromDir(appDir);
-    const tree = handle.rawTree();
-    if (tree !== null) {
-      try {
-        validateWidgetTree(tree);
-      } catch (error) {
-        findings.push({
-          code: "unknown-widget",
-          message: error instanceof Error ? error.message : String(error),
-        });
-      }
-      const gaps: string[] = [];
-      collectAccessibilityGaps(tree.root, gaps);
-      for (const id of gaps) {
-        findings.push({
-          code: "accessibilityLabel",
-          message: `view "${id}" is missing accessibilityLabel`,
-        });
-      }
-    }
+    return checkWidgetTree(handle.rawTree());
   } catch (error) {
-    findings.push({
-      code: "launch",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    return [
+      {
+        code: "launch",
+        message: error instanceof Error ? error.message : String(error),
+      },
+    ];
   } finally {
     await handle?.close();
   }
+}
+
+export async function doctorApp(appDir: string): Promise<DoctorReport> {
+  const manifest = JSON.parse(
+    readFileSync(join(appDir, "app.manifest.json"), "utf8"),
+  ) as AppManifest;
+  const source = readFileSync(join(appDir, manifest.entry), "utf8");
+  const files = walkFiles(appDir);
+  const bytes = files.reduce((sum, file) => sum + file.size, 0);
+
+  const findings: DoctorFinding[] = [
+    ...checkCapabilityDeclarations(manifest, source),
+    ...checkLinkCeilings(bytes),
+    ...checkMinHostApi(manifest),
+    ...(await checkMountedApp(appDir)),
+  ];
 
   return { appDir, bytes, findings };
 }

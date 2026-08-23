@@ -10,323 +10,356 @@ export function renderWidgetTree(root, container, onEvent, options = {}) {
   container.appendChild(renderNode(root.root, onEvent, options));
 }
 
+function renderViewNode(node, onEvent, options, style) {
+  const element = document.createElement("div");
+  element.className = "widget-view";
+  applyStyle(element, style);
+  for (const child of node.children ?? []) {
+    element.appendChild(renderNode(child, onEvent, options));
+  }
+  return element;
+}
+
+function renderTextNode(node, onEvent, options, style) {
+  const element = document.createElement("p");
+  element.textContent = String(node.props?.value ?? "");
+  applyStyle(element, style);
+  return element;
+}
+
+function renderButtonNode(node, onEvent, options, style) {
+  const element = document.createElement("button");
+  element.className = "widget-button";
+  element.textContent = String(node.props?.label ?? "Button");
+  applyStyle(element, style);
+  element.addEventListener("click", () => {
+    const event = node.props?.event;
+    if (typeof event === "string") {
+      onEvent?.(node.id, event);
+    }
+  });
+  return element;
+}
+
+function applyTextInputKeyboard(element, node) {
+  element.type = node.props?.secure === true ? "password" : "text";
+  if (node.props?.keyboard === "numeric") element.inputMode = "numeric";
+  if (node.props?.keyboard === "email") element.type = "email";
+  if (node.props?.keyboard === "url") element.type = "url";
+}
+
+function renderTextInputNode(node, onEvent, options, style) {
+  const element = document.createElement(
+    node.props?.multiline === true ? "textarea" : "input",
+  );
+  element.className = "widget-input";
+  if (element instanceof HTMLInputElement) {
+    applyTextInputKeyboard(element, node);
+  }
+  element.value = String(node.props?.value ?? "");
+  if ("placeholder" in element) {
+    element.placeholder = String(node.props?.placeholder ?? "");
+  }
+  applyStyle(element, style);
+  element.addEventListener("input", () => {
+    const event = node.props?.event;
+    if (typeof event === "string") {
+      onEvent?.(node.id, event, element.value);
+    }
+  });
+  return element;
+}
+
+function renderSelectNode(node, onEvent, options, style) {
+  const element = document.createElement("select");
+  element.className = "widget-input";
+  const items = Array.isArray(node.props?.options) ? node.props.options : [];
+  for (const option of items) {
+    const item = document.createElement("option");
+    item.value = String(option);
+    item.textContent = String(option);
+    element.appendChild(item);
+  }
+  element.value = String(node.props?.value ?? "");
+  applyStyle(element, style);
+  element.addEventListener("change", () => {
+    const event = node.props?.event;
+    if (typeof event === "string") {
+      onEvent?.(node.id, event, element.value);
+    }
+  });
+  return element;
+}
+
+function renderSliderNode(node, onEvent, options, style) {
+  const element = document.createElement("input");
+  element.type = "range";
+  element.min = String(node.props?.min ?? 0);
+  element.max = String(node.props?.max ?? 100);
+  if (typeof node.props?.step === "number") {
+    element.step = String(node.props.step);
+  }
+  element.value = String(node.props?.value ?? 0);
+  applyStyle(element, style);
+  element.addEventListener("input", () => {
+    const event = node.props?.event;
+    if (typeof event === "string") {
+      onEvent?.(node.id, event, Number(element.value));
+    }
+  });
+  return element;
+}
+
+function renderDateNode(node, onEvent, options, style) {
+  const element = document.createElement("input");
+  element.type = "date";
+  element.value = String(node.props?.value ?? "");
+  applyStyle(element, style);
+  element.addEventListener("change", () => {
+    const event = node.props?.event;
+    if (typeof event === "string") {
+      onEvent?.(node.id, event, element.value);
+    }
+  });
+  return element;
+}
+
+function renderSwitchNode(node, onEvent) {
+  const element = document.createElement("input");
+  element.type = "checkbox";
+  element.checked = Boolean(node.props?.value);
+  element.addEventListener("change", () => {
+    const event = node.props?.event;
+    if (typeof event === "string") {
+      onEvent?.(node.id, event, element.checked);
+    }
+  });
+  return element;
+}
+
+function renderScrollNode(node, onEvent, options, style) {
+  const element = document.createElement("div");
+  element.className = "widget-scroll";
+  element.dataset.testid = node.id;
+  element.style.overflow = "auto";
+  const offset =
+    typeof node.props?.scrollOffset === "number" ? node.props.scrollOffset : 0;
+  if (offset > 0) {
+    element.scrollTop = offset;
+  }
+  element.addEventListener("scroll", () => {
+    const event = node.props?.event;
+    if (typeof event === "string") {
+      onEvent?.(node.id, event, { y: element.scrollTop });
+    }
+  });
+  applyStyle(element, style);
+  for (const child of node.children ?? []) {
+    element.appendChild(renderNode(child, onEvent, options));
+  }
+  return element;
+}
+
+function renderDividerNode() {
+  const element = document.createElement("hr");
+  element.className = "widget-divider";
+  return element;
+}
+
+function renderSpacerNode() {
+  const element = document.createElement("div");
+  element.className = "widget-spacer";
+  return element;
+}
+
+function renderProgressNode(node, onEvent, options, style) {
+  const element = document.createElement("progress");
+  element.className = "widget-progress";
+  element.max = 1;
+  const value = Number(node.props?.value ?? 0);
+  element.value = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+  element.setAttribute(
+    "aria-label",
+    `Progress ${Math.round(element.value * 100)}%`,
+  );
+  applyStyle(element, style);
+  return element;
+}
+
+function renderListNode(node, onEvent, options, style) {
+  const element = document.createElement("div");
+  applyStyle(element, style);
+  for (const item of Array.isArray(node.props?.items) ? node.props.items : []) {
+    const row = document.createElement("p");
+    row.className = "widget-muted";
+    row.textContent = typeof item === "string" ? item : JSON.stringify(item);
+    element.appendChild(row);
+  }
+  for (const child of node.children ?? []) {
+    element.appendChild(renderNode(child, onEvent, options));
+  }
+  return element;
+}
+
+function renderImageNode(node, onEvent, options, style) {
+  const assetName = String(node.props?.asset ?? "");
+  const svg = options.assets?.[assetName];
+  const alt = typeof node.props?.alt === "string" ? node.props.alt : assetName;
+  if (typeof svg === "string") {
+    const element = document.createElement("img");
+    element.className = "widget-image";
+    element.alt = alt;
+    element.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    applyStyle(element, style);
+    return element;
+  }
+  // No asset supplied for this name: fall back to a readable placeholder.
+  const element = document.createElement("p");
+  element.className = "widget-muted";
+  element.textContent = `Image: ${assetName}`;
+  return element;
+}
+
+function loadCodeEditorContent(element, options, documentId, setBaseline) {
+  if (typeof options.readDocument !== "function" || documentId.length === 0) {
+    return;
+  }
+  // Content-by-reference: the tree carries only a documentId; the host
+  // resolves file content itself, so app state stays in the workspace.
+  void options.readDocument(documentId).then(
+    (content) => {
+      if (typeof content === "string" && document.activeElement !== element) {
+        element.value = content;
+        setBaseline(content);
+      }
+    },
+    () => {
+      element.placeholder = `Unable to load ${documentId}`;
+    },
+  );
+}
+
+function bindCodeEditorInput(element, node, onEvent, documentId, state) {
+  element.addEventListener("input", () => {
+    const event = node.props?.event;
+    if (typeof event !== "string") {
+      return;
+    }
+    if (state.debounce !== null) {
+      clearTimeout(state.debounce);
+    }
+    state.debounce = setTimeout(() => {
+      state.debounce = null;
+      const next = element.value;
+      const edit = minimalTextEdit(state.baseline, next);
+      if (edit !== null) {
+        onEvent?.(node.id, event, {
+          documentId,
+          baseLength: state.baseline.length,
+          edits: [edit],
+        });
+        state.baseline = next;
+      }
+    }, 300);
+  });
+}
+
+function renderCodeEditorNode(node, onEvent, options, style) {
+  const element = document.createElement("textarea");
+  element.className = "widget-input widget-code-editor";
+  element.spellcheck = false;
+  element.readOnly = Boolean(node.props?.readOnly);
+  const documentId = String(node.props?.documentId ?? "");
+  element.dataset.documentId = documentId;
+  applyStyle(element, style);
+  const state = { baseline: "", debounce: null };
+  loadCodeEditorContent(element, options, documentId, (content) => {
+    state.baseline = content;
+  });
+  bindCodeEditorInput(element, node, onEvent, documentId, state);
+  return element;
+}
+
+function renderQrCodeGraphic(element, node) {
+  const value = String(node.props?.value ?? "");
+  const qrFactory = globalThis.qrcode;
+  if (typeof qrFactory !== "function") return;
+  try {
+    const qr = qrFactory(0, "M");
+    qr.addData(value);
+    qr.make();
+    const svgHost = document.createElement("div");
+    svgHost.innerHTML = qr.createSvgTag({
+      cellSize: 4,
+      margin: 8,
+      scalable: true,
+    });
+    const svg = svgHost.firstElementChild;
+    if (svg === null) return;
+    const size = typeof node.props?.size === "number" ? node.props.size : 192;
+    svg.setAttribute("width", String(size));
+    svg.setAttribute("height", String(size));
+    element.appendChild(svg);
+  } catch {
+    // fall through to the copyable string below
+  }
+}
+
+function renderQrCodeNode(node) {
+  const element = document.createElement("figure");
+  element.className = "widget-qr";
+  renderQrCodeGraphic(element, node);
+
+  const text = document.createElement("figcaption");
+  text.className = "widget-qr-value";
+  text.textContent = String(node.props?.value ?? "");
+  element.appendChild(text);
+
+  if (typeof node.props?.caption === "string") {
+    const caption = document.createElement("p");
+    caption.className = "widget-muted";
+    caption.textContent = node.props.caption;
+    element.appendChild(caption);
+  }
+  return element;
+}
+
+function renderUnsupportedNode(node) {
+  const element = document.createElement("p");
+  element.className = "widget-muted";
+  element.textContent = `Unsupported node: ${node.type}`;
+  return element;
+}
+
+const NODE_RENDERERS = {
+  view: renderViewNode,
+  text: renderTextNode,
+  button: renderButtonNode,
+  "text-input": renderTextInputNode,
+  select: renderSelectNode,
+  slider: renderSliderNode,
+  date: renderDateNode,
+  switch: (node, onEvent) => renderSwitchNode(node, onEvent),
+  scroll: renderScrollNode,
+  divider: renderDividerNode,
+  spacer: renderSpacerNode,
+  progress: renderProgressNode,
+  list: renderListNode,
+  image: renderImageNode,
+  "code-editor": renderCodeEditorNode,
+  "qr-code": (node) => renderQrCodeNode(node),
+  "camera-preview": (node, onEvent, options) =>
+    renderPreviewSurface(node, options),
+  "audio-meter": (node, onEvent, options) => renderPreviewSurface(node, options),
+  waveform: (node, onEvent, options) => renderPreviewSurface(node, options),
+  "map-preview": (node, onEvent, options) => renderPreviewSurface(node, options),
+  "remote-video": (node, onEvent, options) => renderPreviewSurface(node, options),
+};
+
 function renderNode(node, onEvent, options = {}) {
   const style = node.style ?? {};
-
-  switch (node.type) {
-    case "view": {
-      const element = document.createElement("div");
-      element.className = "widget-view";
-      applyStyle(element, style);
-      for (const child of node.children ?? []) {
-        element.appendChild(renderNode(child, onEvent, options));
-      }
-      return element;
-    }
-    case "text": {
-      const element = document.createElement("p");
-      element.textContent = String(node.props?.value ?? "");
-      applyStyle(element, style);
-      return element;
-    }
-    case "button": {
-      const element = document.createElement("button");
-      element.className = "widget-button";
-      element.textContent = String(node.props?.label ?? "Button");
-      applyStyle(element, style);
-      element.addEventListener("click", () => {
-        const event = node.props?.event;
-        if (typeof event === "string") {
-          onEvent?.(node.id, event);
-        }
-      });
-      return element;
-    }
-    case "text-input": {
-      const element = document.createElement(
-        node.props?.multiline === true ? "textarea" : "input",
-      );
-      element.className = "widget-input";
-      if (element instanceof HTMLInputElement) {
-        element.type = node.props?.secure === true ? "password" : "text";
-        if (node.props?.keyboard === "numeric") element.inputMode = "numeric";
-        if (node.props?.keyboard === "email") element.type = "email";
-        if (node.props?.keyboard === "url") element.type = "url";
-      }
-      element.value = String(node.props?.value ?? "");
-      if ("placeholder" in element) {
-        element.placeholder = String(node.props?.placeholder ?? "");
-      }
-      applyStyle(element, style);
-      element.addEventListener("input", () => {
-        const event = node.props?.event;
-        if (typeof event === "string") {
-          onEvent?.(node.id, event, element.value);
-        }
-      });
-      return element;
-    }
-    case "select": {
-      const element = document.createElement("select");
-      element.className = "widget-input";
-      const options = Array.isArray(node.props?.options)
-        ? node.props.options
-        : [];
-      for (const option of options) {
-        const item = document.createElement("option");
-        item.value = String(option);
-        item.textContent = String(option);
-        element.appendChild(item);
-      }
-      element.value = String(node.props?.value ?? "");
-      applyStyle(element, style);
-      element.addEventListener("change", () => {
-        const event = node.props?.event;
-        if (typeof event === "string") {
-          onEvent?.(node.id, event, element.value);
-        }
-      });
-      return element;
-    }
-    case "slider": {
-      const element = document.createElement("input");
-      element.type = "range";
-      element.min = String(node.props?.min ?? 0);
-      element.max = String(node.props?.max ?? 100);
-      if (typeof node.props?.step === "number") {
-        element.step = String(node.props.step);
-      }
-      element.value = String(node.props?.value ?? 0);
-      applyStyle(element, style);
-      element.addEventListener("input", () => {
-        const event = node.props?.event;
-        if (typeof event === "string") {
-          onEvent?.(node.id, event, Number(element.value));
-        }
-      });
-      return element;
-    }
-    case "date": {
-      const element = document.createElement("input");
-      element.type = "date";
-      element.value = String(node.props?.value ?? "");
-      applyStyle(element, style);
-      element.addEventListener("change", () => {
-        const event = node.props?.event;
-        if (typeof event === "string") {
-          onEvent?.(node.id, event, element.value);
-        }
-      });
-      return element;
-    }
-    case "switch": {
-      const element = document.createElement("input");
-      element.type = "checkbox";
-      element.checked = Boolean(node.props?.value);
-      element.addEventListener("change", () => {
-        const event = node.props?.event;
-        if (typeof event === "string") {
-          onEvent?.(node.id, event, element.checked);
-        }
-      });
-      return element;
-    }
-    case "scroll": {
-      const element = document.createElement("div");
-      element.className = "widget-scroll";
-      element.dataset.testid = node.id;
-      element.style.overflow = "auto";
-      const offset =
-        typeof node.props?.scrollOffset === "number"
-          ? node.props.scrollOffset
-          : 0;
-      if (offset > 0) {
-        element.scrollTop = offset;
-      }
-      element.addEventListener("scroll", () => {
-        const event = node.props?.event;
-        if (typeof event === "string") {
-          onEvent?.(node.id, event, { y: element.scrollTop });
-        }
-      });
-      applyStyle(element, style);
-      for (const child of node.children ?? []) {
-        element.appendChild(renderNode(child, onEvent, options));
-      }
-      return element;
-    }
-    case "divider": {
-      const element = document.createElement("hr");
-      element.className = "widget-divider";
-      return element;
-    }
-    case "spacer": {
-      const element = document.createElement("div");
-      element.className = "widget-spacer";
-      return element;
-    }
-    case "progress": {
-      const element = document.createElement("progress");
-      element.className = "widget-progress";
-      element.max = 1;
-      const value = Number(node.props?.value ?? 0);
-      element.value = Number.isFinite(value)
-        ? Math.max(0, Math.min(1, value))
-        : 0;
-      element.setAttribute(
-        "aria-label",
-        `Progress ${Math.round(element.value * 100)}%`,
-      );
-      applyStyle(element, style);
-      return element;
-    }
-    case "list": {
-      const element = document.createElement("div");
-      applyStyle(element, style);
-      for (const item of Array.isArray(node.props?.items)
-        ? node.props.items
-        : []) {
-        const row = document.createElement("p");
-        row.className = "widget-muted";
-        row.textContent =
-          typeof item === "string" ? item : JSON.stringify(item);
-        element.appendChild(row);
-      }
-      for (const child of node.children ?? []) {
-        element.appendChild(renderNode(child, onEvent, options));
-      }
-      return element;
-    }
-    case "image": {
-      const assetName = String(node.props?.asset ?? "");
-      const svg = options.assets?.[assetName];
-      const alt =
-        typeof node.props?.alt === "string" ? node.props.alt : assetName;
-      if (typeof svg === "string") {
-        const element = document.createElement("img");
-        element.className = "widget-image";
-        element.alt = alt;
-        element.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-        applyStyle(element, style);
-        return element;
-      }
-      // No asset supplied for this name: fall back to a readable placeholder.
-      const element = document.createElement("p");
-      element.className = "widget-muted";
-      element.textContent = `Image: ${assetName}`;
-      return element;
-    }
-    case "code-editor": {
-      const element = document.createElement("textarea");
-      element.className = "widget-input widget-code-editor";
-      element.spellcheck = false;
-      element.readOnly = Boolean(node.props?.readOnly);
-      const documentId = String(node.props?.documentId ?? "");
-      element.dataset.documentId = documentId;
-      applyStyle(element, style);
-      let baseline = "";
-
-      // Content-by-reference: the tree carries only a documentId; the host
-      // resolves file content itself, so app state stays in the workspace.
-      if (typeof options.readDocument === "function" && documentId.length > 0) {
-        void options.readDocument(documentId).then(
-          (content) => {
-            if (
-              typeof content === "string" &&
-              document.activeElement !== element
-            ) {
-              element.value = content;
-              baseline = content;
-            }
-          },
-          () => {
-            element.placeholder = `Unable to load ${documentId}`;
-          },
-        );
-      }
-
-      let debounce = null;
-      element.addEventListener("input", () => {
-        const event = node.props?.event;
-        if (typeof event !== "string") {
-          return;
-        }
-
-        if (debounce !== null) {
-          clearTimeout(debounce);
-        }
-        debounce = setTimeout(() => {
-          debounce = null;
-          const next = element.value;
-          const edit = minimalTextEdit(baseline, next);
-          if (edit !== null) {
-            onEvent?.(node.id, event, {
-              documentId,
-              baseLength: baseline.length,
-              edits: [edit],
-            });
-            baseline = next;
-          }
-        }, 300);
-      });
-      return element;
-    }
-    case "qr-code": {
-      const element = document.createElement("figure");
-      element.className = "widget-qr";
-      const value = String(node.props?.value ?? "");
-      const qrFactory = globalThis.qrcode;
-      if (typeof qrFactory === "function") {
-        try {
-          const qr = qrFactory(0, "M");
-          qr.addData(value);
-          qr.make();
-          const svgHost = document.createElement("div");
-          svgHost.innerHTML = qr.createSvgTag({
-            cellSize: 4,
-            margin: 8,
-            scalable: true,
-          });
-          const svg = svgHost.firstElementChild;
-          if (svg !== null) {
-            const size =
-              typeof node.props?.size === "number" ? node.props.size : 192;
-            svg.setAttribute("width", String(size));
-            svg.setAttribute("height", String(size));
-            element.appendChild(svg);
-          }
-        } catch {
-          // fall through to the copyable string below
-        }
-      }
-
-      const text = document.createElement("figcaption");
-      text.className = "widget-qr-value";
-      text.textContent = value;
-      element.appendChild(text);
-
-      if (typeof node.props?.caption === "string") {
-        const caption = document.createElement("p");
-        caption.className = "widget-muted";
-        caption.textContent = node.props.caption;
-        element.appendChild(caption);
-      }
-      return element;
-    }
-    case "camera-preview":
-    case "audio-meter":
-    case "waveform":
-    case "map-preview":
-    case "remote-video": {
-      return renderPreviewSurface(node, options);
-    }
-    default: {
-      const element = document.createElement("p");
-      element.className = "widget-muted";
-      element.textContent = `Unsupported node: ${node.type}`;
-      return element;
-    }
-  }
+  const renderer = NODE_RENDERERS[node.type] ?? renderUnsupportedNode;
+  return renderer(node, onEvent, options, style);
 }
 
 /**

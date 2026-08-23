@@ -55,56 +55,80 @@ export function formatNotifications(runtime) {
   };
 }
 
+function applyLifecycleChip(elements, chip) {
+  if (!elements.lifecycleChip) return;
+  elements.lifecycleChip.textContent = chip.label;
+  elements.lifecycleChip.dataset.state = chip.state;
+}
+
+function applyAppError(elements, error) {
+  if (!elements.appError) return;
+  if (error === null) {
+    elements.appError.hidden = true;
+    elements.appError.textContent = "";
+    delete elements.appError.dataset.authored;
+    return;
+  }
+  elements.appError.hidden = false;
+  elements.appError.dataset.authored = "true";
+  elements.appError.textContent = `App error (${error.badge}): ${error.text}`;
+}
+
+function applyDiagnosticsLog(elements, logs) {
+  if (!elements.appDiagnostics) return;
+  elements.appDiagnostics.dataset.authored = "true";
+  const dropped =
+    logs.dropped > 0 ? `\n(${logs.dropped} older lines dropped)` : "";
+  elements.appDiagnostics.textContent = logs.text + dropped;
+}
+
+function formatNotifyHistoryLine(item) {
+  return `${item.appId}: ${item.title} — ${item.body}`;
+}
+
+function renderNotifyHistoryAsText(elements, notifications) {
+  elements.notifyHistory.textContent = notifications.items
+    .map(formatNotifyHistoryLine)
+    .join("\n");
+}
+
+function renderNotifyHistoryAsDom(elements, notifications) {
+  elements.notifyHistory.replaceChildren();
+  for (const item of notifications.items) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.dataset.authored = "true";
+    row.dataset.notifyId = item.id;
+    row.textContent = formatNotifyHistoryLine(item);
+    elements.notifyHistory.appendChild(row);
+  }
+}
+
+function applyNotifyEnabled(elements, notifications) {
+  if (!elements.notifyEnabled) return;
+  elements.notifyEnabled.checked = notifications.enabled;
+}
+
+function applyNotifyHistory(elements, notifications) {
+  if (!elements.notifyHistory) return;
+  elements.notifyHistory.dataset.authored = "true";
+  const canDom =
+    typeof elements.notifyHistory.appendChild === "function" &&
+    typeof globalThis.document?.createElement === "function";
+  if (canDom) {
+    renderNotifyHistoryAsDom(elements, notifications);
+  } else {
+    renderNotifyHistoryAsText(elements, notifications);
+  }
+}
+
 export function renderDiagnosticsPanel(elements, runtime) {
-  const chip = formatLifecycleChip(runtime?.state);
-  if (elements.lifecycleChip) {
-    elements.lifecycleChip.textContent = chip.label;
-    elements.lifecycleChip.dataset.state = chip.state;
-  }
-  const error = formatAppError(runtime?.lastAppError);
-  if (elements.appError) {
-    if (error === null) {
-      elements.appError.hidden = true;
-      elements.appError.textContent = "";
-      delete elements.appError.dataset.authored;
-    } else {
-      elements.appError.hidden = false;
-      elements.appError.dataset.authored = "true";
-      elements.appError.textContent = `App error (${error.badge}): ${error.text}`;
-    }
-  }
-  const logs = formatDiagnosticsLines(runtime?.diagnostics);
-  if (elements.appDiagnostics) {
-    elements.appDiagnostics.dataset.authored = "true";
-    const dropped =
-      logs.dropped > 0 ? `\n(${logs.dropped} older lines dropped)` : "";
-    elements.appDiagnostics.textContent = logs.text + dropped;
-  }
+  applyLifecycleChip(elements, formatLifecycleChip(runtime?.state));
+  applyAppError(elements, formatAppError(runtime?.lastAppError));
+  applyDiagnosticsLog(elements, formatDiagnosticsLines(runtime?.diagnostics));
   const notifications = formatNotifications(runtime);
-  if (elements.notifyEnabled) {
-    elements.notifyEnabled.checked = notifications.enabled;
-  }
-  if (elements.notifyHistory) {
-    elements.notifyHistory.dataset.authored = "true";
-    const canDom =
-      typeof elements.notifyHistory.appendChild === "function" &&
-      typeof globalThis.document?.createElement === "function";
-    if (!canDom) {
-      elements.notifyHistory.textContent = notifications.items
-        .map((item) => `${item.appId}: ${item.title} — ${item.body}`)
-        .join("\n");
-    } else {
-      elements.notifyHistory.replaceChildren();
-      for (const item of notifications.items) {
-        const row = document.createElement("button");
-        row.type = "button";
-        row.dataset.authored = "true";
-        row.dataset.notifyId = item.id;
-        row.textContent = `${item.appId}: ${item.title} — ${item.body}`;
-        elements.notifyHistory.appendChild(row);
-      }
-    }
-  }
+  applyNotifyEnabled(elements, notifications);
+  applyNotifyHistory(elements, notifications);
 }
 
 export function bindNotifyPanel(elements, send, runningAppId) {
