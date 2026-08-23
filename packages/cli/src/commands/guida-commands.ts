@@ -48,7 +48,7 @@ const TEMPLATE_ROOT = join(
   "../../../guida-twistedpear/templates/hello",
 );
 
-export function isGuidaAppDir(appDir: string): boolean {
+function isGuidaAppDir(appDir: string): boolean {
   return existsSync(join(appDir, "elm.json"));
 }
 

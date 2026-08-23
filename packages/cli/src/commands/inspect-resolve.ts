@@ -56,7 +56,7 @@ function casRoot(cwd: string): string {
   return resolveFromCwd(cwd, join(config.storageDir, "cas"));
 }
 
-export function openLocalCas(cwd: string): CasStore {
+function openLocalCas(cwd: string): CasStore {
   const provider = new NodeCryptoProvider();
   return new CasStore(new DirKvStore(casRoot(cwd)), (data) =>
     provider.sha512(data),

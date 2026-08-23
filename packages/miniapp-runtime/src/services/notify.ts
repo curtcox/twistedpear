@@ -29,9 +29,9 @@ export class NotifyServiceError extends Error {
 }
 
 /** Per-host token bucket: small burst, low sustained rate. */
-export const NOTIFY_BURST = 3;
-export const NOTIFY_REFILL_MS = 10_000;
-export const NOTIFY_HISTORY_LIMIT = 50;
+const NOTIFY_BURST = 3;
+const NOTIFY_REFILL_MS = 10_000;
+const NOTIFY_HISTORY_LIMIT = 50;
 const MAX_TITLE = 80;
 const MAX_BODY = 240;
 const MAX_EVENT = 64;

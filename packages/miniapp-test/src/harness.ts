@@ -193,4 +193,3 @@ async function settleHost(host: MiniappHost, timeoutMs = 2_000): Promise<void> {
 }
 
 export { describeWidgetTree } from "@twistedpear/miniapp-runtime";
-export type { RenderedWidgetNode } from "@twistedpear/miniapp-runtime";

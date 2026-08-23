@@ -146,7 +146,7 @@ function rewriteLocalImports(
   );
 }
 
-export function linkJsModules(
+function linkJsModules(
   files: ReadonlyMap<string, string>,
   entry: string,
 ): string {

@@ -17,6 +17,5 @@ export { RelayBrokerService } from "./relay.js";
 export { FreenetBrokerService } from "./freenet.js";
 export { DeviceBrokerService } from "./device.js";
 export { AppChannelService } from "./app-channel.js";
-export { NotifyService, NotifyServiceError } from "./notify.js";
-export type { HostNotification, NotifyPostRequest } from "./notify.js";
-export { CryptoService, CryptoServiceError } from "./crypto.js";
+export { NotifyService } from "./notify.js";
+export { CryptoService } from "./crypto.js";

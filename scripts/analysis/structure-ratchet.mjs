@@ -122,6 +122,7 @@ const allowed = {
     "bridge-freenet",
     "bridge-hyper",
     "host-core",
+    "miniapp-test",
     "miniapp-runtime",
     "reticulum-ts",
     "cas-256t",

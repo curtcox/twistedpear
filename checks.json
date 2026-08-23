@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-23T22:32:36.571Z",
-  "commit": "857f6c3f58c6b651c804026418516d0eba7bf134",
-  "digest": "9c29ed7bfaa6d315610327d5c688aaa2cad3252e1b78d6a1e51b42942ad9c475",
-  "treeDigest": "dc949a8b248a2465ca9badf7ed940e83dc02cfb1100a912526af18b87f1297ce",
+  "generatedAt": "2026-08-23T22:43:05.478Z",
+  "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
+  "digest": "56f55e4cd2a6277c88649ba6cb769177daa873f8e3861188ab9af39e061618a1",
+  "treeDigest": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
   "gates": {
     "accessibility": {
       "title": "Accessibility ratchet",
@@ -200,9 +200,9 @@
       "title": "Harness-mobile typecheck",
       "command": "npm run harness-mobile:typecheck",
       "ok": true,
-      "at": "2026-08-23T22:32:02.252Z",
-      "commit": "857f6c3f58c6b651c804026418516d0eba7bf134",
-      "measuredOn": "dc949a8b248a2465ca9badf7ed940e83dc02cfb1100a912526af18b87f1297ce",
+      "at": "2026-08-23T22:42:51.351Z",
+      "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
+      "measuredOn": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
       "tier": "pr"
     },
     "install-scripts": {
@@ -258,9 +258,9 @@
       "title": "TypeScript and Sans-IO lint",
       "command": "npm run lint",
       "ok": true,
-      "at": "2026-08-23T22:32:01.454Z",
-      "commit": "857f6c3f58c6b651c804026418516d0eba7bf134",
-      "measuredOn": "dc949a8b248a2465ca9badf7ed940e83dc02cfb1100a912526af18b87f1297ce",
+      "at": "2026-08-23T22:42:50.776Z",
+      "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
+      "measuredOn": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
       "tier": "pr"
     },
     "lint-all": {
@@ -413,11 +413,10 @@
     "structure": {
       "title": "Dependency structure",
       "command": "npm run structure:check",
-      "ok": false,
-      "at": "2026-08-23T21:45:12.023Z",
-      "commit": "5d1e7e62fb768975b7de625219f2c83bbfeb4516",
-      "detail": "failed in CI — Findings: 199 · Knip files: 0 · Knip workspaces: 55",
-      "since": "2026-08-22",
+      "ok": true,
+      "at": "2026-08-23T22:42:18.887Z",
+      "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
+      "measuredOn": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
       "tier": "pr"
     },
     "swift": {
@@ -448,9 +447,9 @@
       "title": "TypeScript strictness parity",
       "command": "npm run tsconfig:check",
       "ok": true,
-      "at": "2026-08-23T22:32:02.410Z",
-      "commit": "857f6c3f58c6b651c804026418516d0eba7bf134",
-      "measuredOn": "dc949a8b248a2465ca9badf7ed940e83dc02cfb1100a912526af18b87f1297ce",
+      "at": "2026-08-23T22:42:51.511Z",
+      "commit": "75fe2d9c9c61158d84e302519fbf358eef364dd4",
+      "measuredOn": "96e25b377754398f2891d3aff5ab41241372cf748e98e6e93db0788fe33bacce",
       "tier": "pr"
     },
     "type-coverage": {
@@ -484,9 +483,11 @@
     "unit-tests": {
       "title": "Unit tests",
       "command": "npm run test",
-      "ok": true,
-      "at": "2026-08-23T21:37:34.790Z",
-      "commit": "5d1e7e62fb768975b7de625219f2c83bbfeb4516",
+      "ok": false,
+      "at": "2026-08-23T22:43:05.250Z",
+      "commit": "857f6c3f58c6b651c804026418516d0eba7bf134",
+      "detail": "The latest test that might've caused the error is \"reports an error for an undiscovered target\". It might mean one of the following: / - The error was thrown, while Vitest was running this test. / - If the error occurred after the test had been completed, this was the last documented test before it ",
+      "since": "2026-08-23",
       "tier": "pr"
     },
     "visual-regression": {

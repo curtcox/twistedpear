@@ -12,13 +12,13 @@ export class CryptoServiceError extends Error {
   }
 }
 
-export const CRYPTO_MAX_RANDOM_BYTES = 256;
-export const CRYPTO_MAX_INPUT_BYTES = 64 * 1024;
-export const CRYPTO_HASH_ALGS = ["sha256", "sha512"] as const;
-export const CRYPTO_HMAC_ALGS = ["sha256"] as const;
+const CRYPTO_MAX_RANDOM_BYTES = 256;
+const CRYPTO_MAX_INPUT_BYTES = 64 * 1024;
+const CRYPTO_HASH_ALGS = ["sha256", "sha512"] as const;
+const CRYPTO_HMAC_ALGS = ["sha256"] as const;
 
-export type CryptoHashAlg = (typeof CRYPTO_HASH_ALGS)[number];
-export type CryptoHmacAlg = (typeof CRYPTO_HMAC_ALGS)[number];
+type CryptoHashAlg = (typeof CRYPTO_HASH_ALGS)[number];
+type CryptoHmacAlg = (typeof CRYPTO_HMAC_ALGS)[number];
 
 export interface CryptoEntropy {
   randomBytes(n: number): Uint8Array;

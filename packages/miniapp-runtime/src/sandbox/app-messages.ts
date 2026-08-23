@@ -11,7 +11,7 @@ const PHASES: ReadonlySet<string> = new Set([
   "lifecycle",
 ]);
 
-export interface SandboxAppErrorMessage {
+interface SandboxAppErrorMessage {
   readonly type: "app-error";
   readonly phase?: string;
   readonly message?: unknown;
@@ -20,7 +20,7 @@ export interface SandboxAppErrorMessage {
   readonly nodeId?: unknown;
 }
 
-export interface SandboxAppLogMessage {
+interface SandboxAppLogMessage {
   readonly type: "app-log";
   readonly level?: unknown;
   readonly message?: unknown;
@@ -34,7 +34,7 @@ export interface SandboxAppMessageHandlers {
   setAlive(alive: boolean): void;
 }
 
-export function parseAppError(data: SandboxAppErrorMessage): AppErrorReport {
+function parseAppError(data: SandboxAppErrorMessage): AppErrorReport {
   const phase: AppErrorPhase = PHASES.has(String(data.phase))
     ? (data.phase as AppErrorPhase)
     : "bundle";
