@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://twistedpear.dev/specs/spec-policy/schema/policy-document.schema.json",
+  "title": "UserPolicyDocument",
+  "description": "A user-authored policy for one TwistedPear installation. Informative until an evaluator validates against it; see specs/spec-policy/spec.md. Every vocabulary below is closed on purpose: an unrecognised subject, predicate, or combinator blocks load rather than being ignored (P-R1), because a policy the host does not fully understand must never be treated as satisfied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "base", "rules"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": {
+      "description": "Policy language version. Committed into the seal, so a host that does not know this version refuses the installation rather than opening it (P-R9).",
+      "type": "integer",
+      "minimum": 1
+    },
+    "base": { "$ref": "#/$defs/BasePosture" },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Rule" }
+    }
+  },
+  "$defs": {
+    "Subject": {
+      "description": "The closed set of action classes a rule may gate. policy:amend and policy:seal are ordinary subjects: policy governs the setting of policy.",
+      "type": "string",
+      "enum": [
+        "app:install",
+        "app:launch",
+        "grant:request",
+        "interface:enable",
+        "identity:link",
+        "identity:export",
+        "apps:publish",
+        "policy:amend",
+        "policy:seal"
+      ]
+    },
+    "BasePosture": {
+      "description": "The decision for a subject when no rule matches. Every subject must be listed: a policy that does not say what happens by default does not load.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "app:install",
+        "app:launch",
+        "grant:request",
+        "interface:enable",
+        "identity:link",
+        "identity:export",
+        "apps:publish",
+        "policy:amend",
+        "policy:seal"
+      ],
+      "properties": {
+        "app:install": { "$ref": "#/$defs/Effect" },
+        "app:launch": { "$ref": "#/$defs/Effect" },
+        "grant:request": { "$ref": "#/$defs/Effect" },
+        "interface:enable": { "$ref": "#/$defs/Effect" },
+        "identity:link": { "$ref": "#/$defs/Effect" },
+        "identity:export": { "$ref": "#/$defs/Effect" },
+        "apps:publish": { "$ref": "#/$defs/Effect" },
+        "policy:amend": { "$ref": "#/$defs/Effect" },
+        "policy:seal": { "$ref": "#/$defs/Effect" }
+      }
+    },
+    "Effect": { "type": "string", "enum": ["allow", "deny"] },
+    "Rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "subject", "effect", "when", "onUnknown"],
+      "properties": {
+        "id": {
+          "description": "Stable within the document. Identifies the rule in previews, consent records, and seal commits.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+        },
+        "subject": { "$ref": "#/$defs/Subject" },
+        "capability": {
+          "description": "Narrows a grant:request rule to one capability id. Absent means every capability.",
+          "type": "string"
+        },
+        "effect": { "$ref": "#/$defs/Effect" },
+        "when": { "$ref": "#/$defs/Expression" },
+        "onUnknown": {
+          "description": "The terminal collapse for this rule. Mandatory, with no default: a rule that does not say what an unresolved condition means does not load (P-R2). \"ask\" escalates to host chrome and applies the answer to this decision only.",
+          "type": "string",
+          "enum": ["deny", "allow", "ask"]
+        },
+        "sealed": {
+          "description": "Committed into the chain deriving the installation vault key. A sealed rule cannot be removed by any amendment, and editing it on disk renders the store unreadable (P-R7, P-R8).",
+          "type": "boolean",
+          "default": false
+        },
+        "note": {
+          "description": "The author's own words, reproduced verbatim in the consequence preview.",
+          "type": "string"
+        }
+      }
+    },
+    "Expression": {
+      "description": "Three-valued: every expression evaluates to true, false, or unknown. unknown means the evidence was not obtainable and is never silently equated with false.",
+      "oneOf": [
+        { "type": "boolean" },
+        { "$ref": "#/$defs/NullaryPredicate" },
+        { "$ref": "#/$defs/Combinator" },
+        { "$ref": "#/$defs/ParameterizedPredicate" },
+        { "$ref": "#/$defs/Comparison" }
+      ]
+    },
+    "NullaryPredicate": {
+      "description": "Predicates taking no argument. The environmental and interactive ones resolve to unknown whenever the evidence source is absent, stale, or unattested.",
+      "type": "string",
+      "enum": [
+        "app.usesNetwork",
+        "user.awake",
+        "user.voiceAuthorized",
+        "user.passphrase",
+        "power.charging",
+        "network.offline",
+        "clock.attested"
+      ]
+    },
+    "Combinator": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 1,
+      "properties": {
+        "all": {
+          "description": "Strong Kleene AND: false if any operand is false, else unknown if any is unknown, else true.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Expression" }
+        },
+        "any": {
+          "description": "Strong Kleene OR: true if any operand is true, else unknown if any is unknown, else false.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Expression" }
+        },
+        "not": {
+          "description": "Negation. unknown maps to unknown.",
+          "$ref": "#/$defs/Expression"
+        },
+        "known": {
+          "description": "True only if the operand is true; unknown becomes false. The \"must be demonstrated\" combinator.",
+          "$ref": "#/$defs/Expression"
+        },
+        "assume": {
+          "description": "Collapses unknown to the given literal. The only way to write \"treat unverifiable as satisfied\", and always listed as a weakening in the consequence preview.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            { "$ref": "#/$defs/Expression" },
+            { "type": "boolean" }
+          ]
+        }
+      }
+    },
+    "ParameterizedPredicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 1,
+      "properties": {
+        "place.is": {
+          "description": "A user-named place. Makes the host's location sensing load-bearing; permanently unknown on a host without it.",
+          "type": "string"
+        },
+        "time.localHourIn": {
+          "description": "Half-open local-hour window [from, to). Resolves unknown unless the clock is attested (P-R13).",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer", "minimum": 0, "maximum": 24 }
+        },
+        "approval.by": {
+          "description": "A role name bound to an approver identity. Rebinding the name is itself an amendment, not configuration (P-R12).",
+          "type": "string"
+        },
+        "approval.byOrg": {
+          "description": "A role name bound to an organisational approver key.",
+          "type": "string"
+        },
+        "user.typedPhrase": {
+          "description": "The user typing an exact phrase. false on an explicit refusal, unknown on timeout.",
+          "type": "string"
+        }
+      }
+    },
+    "Term": {
+      "description": "An attribute of the artifact or installation. Artifact terms are always decidable from the package and never resolve to unknown.",
+      "type": "string",
+      "enum": [
+        "app.sourceBytes",
+        "app.riskTier",
+        "app.capabilities",
+        "app.publisher",
+        "app.firstSeenAt",
+        "package.hash",
+        "host.class",
+        "sibling.count",
+        "policy.sealedAt"
+      ]
+    },
+    "Comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 1,
+      "properties": {
+        "lt": { "$ref": "#/$defs/NumericComparison" },
+        "lte": { "$ref": "#/$defs/NumericComparison" },
+        "gt": { "$ref": "#/$defs/NumericComparison" },
+        "gte": { "$ref": "#/$defs/NumericComparison" },
+        "eq": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            { "$ref": "#/$defs/Term" },
+            { "type": ["string", "number", "boolean"] }
+          ]
+        },
+        "in": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            { "$ref": "#/$defs/Term" },
+            { "type": "array", "items": { "type": ["string", "number"] } }
+          ]
+        },
+        "subsetOf": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            { "$ref": "#/$defs/Term" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        }
+      }
+    },
+    "NumericComparison": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [{ "$ref": "#/$defs/Term" }, { "type": "number" }]
+    }
+  }
+}

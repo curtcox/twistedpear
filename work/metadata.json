@@ -1406,6 +1406,62 @@
         "conformance/devstudio-loop/run.mjs"
       ]
     },
+    "POL-1-EVAL": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm test -- packages/protocol/test/policy-evaluate.test.ts",
+      "added": "2026-08-23",
+      "notes": "Sans-IO. Deny-overrides over an unordered rule set; strong Kleene combinators; mandatory per-rule unknown collapse; exhaustive truth-table vectors. P-R1..P-R3."
+    },
+    "POL-2-AMEND": {
+      "type": "feature",
+      "requires": ["POL-1-EVAL"],
+      "verify": "npm test -- packages/protocol/test/policy-amend.test.ts",
+      "added": "2026-08-23",
+      "notes": "Policy governs policy:amend. A-1 pre-amendment evaluation, A-2 atomicity, A-3 syntactic tightening, A-4 evidence-dependency. Properties P1, P2, P4, P5. P-R4..P-R6."
+    },
+    "POL-3-SEAL": {
+      "type": "feature",
+      "requires": ["POL-2-AMEND"],
+      "verify": "npm test -- packages/host-core/test/policy-seal.test.ts",
+      "added": "2026-08-23",
+      "notes": "Includes deciding which stores come under the sealed key. Tampering with or rolling back a sealed policy must render the store unreadable; an older host must refuse rather than open. P-R7..P-R9."
+    },
+    "POL-4-EVIDENCE": {
+      "type": "feature",
+      "requires": ["POL-1-EVAL"],
+      "verify": "npm test -- packages/host-core/test/policy-evidence.test.ts",
+      "added": "2026-08-23",
+      "notes": "Evidence gathering is a host adapter; the evaluator stays Sans-IO. Attestations bind subject, package hash, installation id, nonce, expiry and are single-use. Time is unknown unless the clock is attested. P-R11..P-R13."
+    },
+    "POL-5-PREVIEW": {
+      "type": "feature",
+      "requires": ["POL-1-EVAL"],
+      "verify": "npm test -- packages/host-core/test/policy-preview.test.ts",
+      "added": "2026-08-23",
+      "notes": "Generated from the policy, not hand-written; recorded verbatim in the consent record. Reachability, terminal-policy detection, load-bearing people and sources, unknown collapses, reinstall cost. Property P6 makes a preview that lies a test failure. P-R15..P-R17."
+    },
+    "POL-6-BYPASS": {
+      "type": "feature",
+      "requires": ["POL-3-SEAL", "POL-4-EVIDENCE", "POL-5-PREVIEW"],
+      "verify": "runbook:docs/user-policy-plan.md#93-bypass-catalogue",
+      "added": "2026-08-23",
+      "notes": "Gate self-removal, amendment ladders, evidence starvation, clock attacks, approval replay and substitution, sibling laundering, backup laundering, disk tamper, app-initiated amendment, host downgrade, adapter substitution, collapse laddering. B14 asserts the platform does not refuse a self-locking policy."
+    },
+    "POL-7-FORMAL": {
+      "type": "feature",
+      "requires": ["POL-2-AMEND"],
+      "verify": "runbook:specs/spec-policy/spec.md#to-finish-this-spec",
+      "added": "2026-08-23",
+      "notes": "Follows the SPEC-CAP four-representation shape: executable table, formal twin, checked traces, generated vector. TLC checks seal permanence and tightening monotonicity."
+    },
+    "POL-8-RECOVERY": {
+      "type": "feature",
+      "requires": ["POL-3-SEAL"],
+      "verify": "runbook:docs/user-policy-plan.md#94-recovery",
+      "added": "2026-08-23",
+      "notes": "Harden an install to uselessness, delete, reinstall, confirm usable; then confirm the reinstall cost matches what the preview claimed. Restoring a pre-seal backup must not shed the seal. P-R14."
+    },
     "QL-ASSURANCE-GAPS": {
       "type": "quality",
       "requires": [],

@@ -183,6 +183,7 @@ Protocol implementation details live in the
 | Whether a grant can be scoped to just the I/O an app needs | [Capability scoping — current](capability-scoping.md), [plan](capability-scoping-plan.md), [audit](capability-scoping-audit.md) |
 | Adversarial scenarios for author deception of users        | [Hostile author plan](hostile-author-plan.md), [measured catalog](../conformance/hostile-authors/README.md)                     |
 | Making approval evidence proportionate to app risk         | [App approval risk](app-approval-risk.md), [remaining plan](app-approval-risk-plan.md)                                          |
+| User-authored, irreversible restrictions on this install   | [User policy plan](user-policy-plan.md), [SPEC-POLICY](../specs/spec-policy/spec.md)                                            |
 | CI gates, nightly jobs, and exclusions                     | [CI policy](ci-policy.md)                                                                                                       |
 | Full local validation workflow                             | [Single-Mac validation](mac-validation.md)                                                                                      |
 | Kernel panics on the 16 GB validation Mac                  | [16 GB macOS host kernel panics](macos-dev-host-panics.md)                                                                      |

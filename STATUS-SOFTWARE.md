@@ -52,8 +52,16 @@ verification command for each ID live in [work/metadata.json](work/metadata.json
 and `npm run work:next` picks the next item from this table. See
 [work tracking](docs/work-tracking.md).
 
-| ID  | Status | Item | Evidence | Verify |
-| --- | ------ | ---- | -------- | ------ |
+| ID             | Status | Item                                                                                     | Evidence                                                                                          | Verify                                                        |
+| -------------- | ------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| POL-1-EVAL     | open   | Three-valued policy evaluator over a closed subject and predicate vocabulary             | Design: [user policy plan](docs/user-policy-plan.md) §3, [SPEC-POLICY](specs/spec-policy/spec.md) | `npm test -- packages/protocol/test/policy-evaluate.test.ts`  |
+| POL-2-AMEND    | open   | Amendment machine: pre-amendment authorization and certified-tightening classifier       | Design: [user policy plan](docs/user-policy-plan.md) §4                                           | `npm test -- packages/protocol/test/policy-amend.test.ts`     |
+| POL-4-EVIDENCE | open   | Policy predicate providers: attested clock, place, wakefulness, and single-use approvals | Design: [user policy plan](docs/user-policy-plan.md) §7                                           | `npm test -- packages/host-core/test/policy-evidence.test.ts` |
+| POL-3-SEAL     | open   | Key-bound policy seal: commit chain, store rewrap, tamper and rollback                   | Design: [user policy plan](docs/user-policy-plan.md) §5                                           | `npm test -- packages/host-core/test/policy-seal.test.ts`     |
+| POL-5-PREVIEW  | open   | Consequence preview and typed sealing confirmation                                       | Design: [user policy plan](docs/user-policy-plan.md) §6                                           | `npm test -- packages/host-core/test/policy-preview.test.ts`  |
+| POL-7-FORMAL   | open   | TLA+ amendment twin cross-checked against the policy evaluator                           | Design: [SPEC-POLICY](specs/spec-policy/spec.md), normative artifacts                             | `runbook:specs/spec-policy/spec.md#to-finish-this-spec`       |
+| POL-6-BYPASS   | open   | Policy bypass suite B1-B14, including self-lockout asserted to succeed                   | Design: [user policy plan](docs/user-policy-plan.md) §9.3                                         | `runbook:docs/user-policy-plan.md#93-bypass-catalogue`        |
+| POL-8-RECOVERY | open   | Reinstall recovery and backup-laundering tests for sealed policy                         | Design: [user policy plan](docs/user-policy-plan.md) §9.4                                         | `runbook:docs/user-policy-plan.md#94-recovery`                |
 
 ## Blocked backlog
 

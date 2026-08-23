@@ -93,6 +93,7 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 | [SPEC-CHROME](spec-chrome/spec.md)               | Host confirmations, grant screens, draw-over rules                         | **normative**            |
 | [SPEC-DEVICE](spec-device/spec.md)               | Device-class registry, tiers, session lifecycle                            | stub                     |
 | [SPEC-STREAM](spec-stream/spec.md)               | Peer-media readiness, admission, adaptation, framing, and stream lifecycle | **normative**            |
+| [SPEC-POLICY](spec-policy/spec.md)               | User policy: conditions, amendment, and sealing                            | stub (informative)       |
 
 ## Exemplar
 

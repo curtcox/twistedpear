@@ -14,6 +14,7 @@ APPSCOPE
 attributability
 Autobase
 autointerface
+backsies
 baselined
 Berty
 Bitfinex
@@ -90,6 +91,7 @@ Keet
 kext
 kexts
 killability
+Kleene
 ktlint
 libp
 libsodium
@@ -138,6 +140,7 @@ streamability
 subresource
 syncable
 sysdiagnose
+takesie
 Tarjan
 Temurin
 twistedpear
@@ -162,6 +165,7 @@ venv
 venvs
 Verif
 WCAG
+weakenable
 WEBED
 webrtc
 widenable
