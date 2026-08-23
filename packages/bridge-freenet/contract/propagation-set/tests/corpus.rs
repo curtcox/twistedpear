@@ -6,6 +6,13 @@
 //! generated seeds and every counterexample a session ever found — and holds the
 //! same properties over it, on the compiler `rust-tests` already runs.
 
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unreachable
+)]
+
 use twistedpear_freenet_propagation_set_contract::{decode_entries, encode_entries, merge_encoded};
 
 #[path = "../../../../../conformance/fuzz/rust/peak_alloc.rs"]

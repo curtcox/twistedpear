@@ -1,18 +1,25 @@
 /**
- * PR gates whose command needs compiled workspace packages.
+ * The static-analysis gates, and the single list CI expands into its matrix.
  *
- * CI runs `npm run build` only for these. Every other PR gate must produce the
- * same result on a clean checkout as on a tree that has already been built —
- * a gate whose answer depends on `dist/` existing is not a gate.
+ * The gate record shape and the scheduling policy live in `./gate.mjs`; the
+ * gates needing a non-Node toolchain live in `./gates-languages.mjs`. Both are
+ * re-exported here, so this module stays the one import every consumer uses.
+ *
+ * `scripts/release/status.mjs` reads this file as *text* to confirm that
+ * `test:release-harness`, `test:hostile-apps`, and `test:sim-fixed-replay` are
+ * wired. Those three must therefore stay declared in this file rather than move
+ * into a gate module.
  */
-export const prebuildPrGates = [
-  "unit-tests",
-  "coverage",
-  "structure",
-  "properties",
-  "harness-mobile-typecheck",
-  "census",
-];
+import {
+  deferredOnPages,
+  gate,
+  gateRequiresJvm,
+  isOffPagesBuild,
+  prebuildPrGates,
+} from "./gate.mjs";
+import { languageGates } from "./gates-languages.mjs";
+
+export { deferredOnPages, gateRequiresJvm, isOffPagesBuild, prebuildPrGates };
 
 export const gates = [
   gate("lint", "TypeScript and Sans-IO lint", "lint", "pr", ["node"]),
@@ -49,6 +56,25 @@ export const gates = [
     "pr",
     ["node", "guida"],
   ),
+  // `swift-tests`, `kotlin-tests` and `unit-tests` each check one language's
+  // copy of the BLE spec against itself, and all three pass. Nothing compared
+  // the copies, and they are typed by hand: four GATT UUIDs in Swift and
+  // Kotlin, the default ATT MTU in five places across four files. A transposed
+  // digit is green in every gate here and surfaces as an iPhone that cannot see
+  // an Android device — hardware-gated work that reads as a radio fault rather
+  // than a typo. Node-only and textual on purpose: needing Xcode and Gradle to
+  // compare two numbers is what kept this from running everywhere.
+  gate(
+    "native-parity",
+    "Cross-language native bridge parity",
+    "native-parity:check",
+    "pr",
+    ["node"],
+    [
+      "conformance/native-parity/ble-bridge.json",
+      "artifacts/checks/native-parity-detail.json",
+    ],
+  ),
   gate(
     "file-sizes",
     "File-size ratchet",
@@ -57,10 +83,47 @@ export const gates = [
     ["node"],
     ["file-sizes.json"],
   ),
+  // `file-sizes` above measures authored source, and exempts `**/*.bundle`,
+  // `**/*.bundle.mjs` and `**/*.generated.mjs` — correctly, since a bundle
+  // cannot be decomposed by editing it. `generated-freshness` proves those
+  // bundles are current. Neither asks how big they are, so the two largest
+  // files in the repository, 11.4 MB and 10.9 MB of shipped host runtime, were
+  // measured by nothing at all. On a platform that distributes over Reticulum
+  // and installs onto phones, shipped bytes are a user-visible property.
+  //
+  // A budget rather than a ratchet: bundles legitimately grow, and a monotonic
+  // floor would fail on every honest change and be routed around, exactly as a
+  // benchmark floor pinned to the best-ever measurement would.
+  gate(
+    "artifact-sizes",
+    "Shipped artifact byte budgets",
+    "artifact-sizes:check",
+    "pr",
+    ["node"],
+    ["artifact-size-rules.json", "artifacts/checks/artifact-sizes-detail.json"],
+  ),
   gate("release-harness", "Release harness", "test:release-harness", "pr", [
     "node",
   ]),
   gate("doc-audit", "Documentation audit", "test:doc-audit", "pr", ["node"]),
+  // `doc-audit` resolves every markdown link in the tree. A citation written as
+  // an inline code span is not a link, and that is the form the specs use for
+  // vector keys, test titles, and commands — so deleting a vector key or
+  // renaming a test silently un-pins a normative claim. SPEC-WIRE states the
+  // rule this enforces in its own prose: a profile is done when every subset row
+  // cites a pinned vector or interop test. Nothing checked it, and the first
+  // complete run found two rows citing tests that do not exist.
+  gate(
+    "spec-traceability",
+    "Specification evidence traceability",
+    "spec-traceability:check",
+    "pr",
+    ["node"],
+    [
+      "spec-traceability-waivers.json",
+      "artifacts/checks/spec-traceability-detail.json",
+    ],
+  ),
   // `doc-audit` is structure (headers, counterparts, repo links). This one is
   // the generated GitHub Pages tree: real screenshots, not hatch placeholders.
   gate(
@@ -446,138 +509,7 @@ export const gates = [
     ["node"],
     ["install-scripts-allowlist.json"],
   ),
-  gate(
-    "rust",
-    "Rust clippy, fmt, and deny",
-    "lint:rust",
-    "pr",
-    ["rust", "cargo-deny"],
-    ["artifacts/languages/rust.json"],
-  ),
-  gate(
-    "shell",
-    "ShellCheck",
-    "lint:shell",
-    "pr",
-    ["shellcheck"],
-    ["artifacts/languages/shell.json"],
-  ),
-  gate(
-    "python",
-    "Python ruff and mypy",
-    "lint:python",
-    "pr",
-    ["python", "ruff", "mypy"],
-    ["artifacts/languages/python.json"],
-  ),
-  gate(
-    "kotlin",
-    "Kotlin lint",
-    "lint:kotlin",
-    "pr",
-    ["jvm", "ktlint"],
-    ["artifacts/languages/kotlin.json"],
-  ),
-  gate(
-    "swift",
-    "Swift lint",
-    "lint:swift",
-    "pr",
-    ["macos", "swiftlint"],
-    ["artifacts/languages/swift.json"],
-    "generic",
-    "macos-15",
-  ),
-  // Native unit tests. Until 2026-08-15 the Rust and Swift suites below were
-  // committed but never executed by anything — the language gates run analyzers
-  // only, which is style and soundness, not behaviour. The Android suite did
-  // run, but only from a workflow_dispatch lab workflow that no change
-  // triggers. Nothing here is ratcheted: a failing test is a failing test.
-  gate(
-    "rust-tests",
-    "Rust contract unit tests",
-    "test:rust",
-    "pr",
-    ["rust"],
-    ["artifacts/languages/rust-tests.json"],
-    "native-tests",
-  ),
-  // `rust-tests` above proves the tests pass. It cannot say how much they
-  // touch, and `cargo test` reports "ok" for a suite that has been annotated
-  // out: adding `#[ignore]` to the locator contract's only test drops it from
-  // 77.3% to 52.6% lines while that gate stays green. The coverage ratchet
-  // covers `packages/*` and `apps/*` — TypeScript only — so the three Freenet
-  // contracts, the code peers have to agree on, were the least measured in the
-  // repository.
-  gate(
-    "rust-coverage",
-    "Rust coverage ratchet",
-    "coverage:rust",
-    "pr",
-    ["rust", "cargo-llvm-cov"],
-    [
-      "artifacts/languages/rust-coverage.json",
-      "language-ratchets/rust-coverage.json",
-    ],
-  ),
-  gate(
-    "swift-tests",
-    "Swift bridge unit tests",
-    "test:swift",
-    "pr",
-    ["macos", "swift"],
-    ["artifacts/languages/swift-tests.json"],
-    "native-tests",
-    "macos-15",
-  ),
-  gate(
-    "swift-coverage",
-    "Swift coverage ratchet",
-    "coverage:swift",
-    "pr",
-    ["macos", "swift"],
-    [
-      "artifacts/languages/swift-coverage.json",
-      "language-ratchets/swift-coverage.json",
-    ],
-    "generic",
-    "macos-15",
-  ),
-  gate(
-    "kotlin-tests",
-    "Android bridge unit tests",
-    "test:kotlin",
-    "pr",
-    ["jvm", "android-sdk"],
-    ["artifacts/languages/kotlin-tests.json"],
-    "native-tests",
-  ),
-  gate(
-    "kotlin-coverage",
-    "Kotlin coverage ratchet",
-    "coverage:kotlin",
-    "pr",
-    ["jvm", "android-sdk"],
-    [
-      "artifacts/languages/kotlin-coverage.json",
-      "language-ratchets/kotlin-coverage.json",
-    ],
-  ),
-  // Nightly rather than PR, for the same reason `kotlin-tests` is: installing a
-  // second Rust toolchain and building three sanitizer-instrumented binaries is
-  // minutes, and a fuzzing session that finds anything needs more than a PR's
-  // patience. What protects a pull request is the corpus-replay test inside each
-  // contract — every input a session ever committed, replayed on the stable
-  // compiler `rust-tests` already runs.
-  gate(
-    "rust-fuzz",
-    "Freenet contract fuzzing",
-    "fuzz:rust",
-    "nightly",
-    ["rust", "rust-nightly", "cargo-fuzz"],
-    ["artifacts/rust-fuzz/rust-fuzz.json"],
-    "rust-fuzz",
-  ),
+  ...languageGates,
   // Whether the tests can be trusted, rather than whether the code is right.
   // Nothing measured this: `vitest.config.ts` sets no retry and no repeats, and
   // nothing reran a suite to compare, so a test passing 90% of the time was
@@ -712,55 +644,6 @@ export const gates = [
     "mutation",
   ),
 ];
-
-// Gates too slow to sit on the Pages publish path. The Pages workflow neither
-// runs nor imports these; it records them as deferred and publishes without
-// them, so a ~70 minute gate cannot hold the site hostage. They still run on
-// the nightly schedule, and mutation-policy keeps reporting the committed
-// ratchet floor in the meantime.
-export const deferredOnPages = new Set(["mutation"]);
-
-/** JVM-backed gates. GitHub downloads every `uses:` at job start, `if:` or
- * not, so these must not share a matrix template with setup-java. */
-export function gateRequiresJvm(gate) {
-  return gate.requires.includes("jvm");
-}
-
-/** Nightly, non-Linux, and JVM gates publish evidence in parallel rather than
- * running inside the Linux Pages build, which must not list setup-java. */
-export function isOffPagesBuild(gate) {
-  return (
-    gate.tier === "nightly" ||
-    gate.os !== "ubuntu-latest" ||
-    gateRequiresJvm(gate)
-  );
-}
-
-function gate(
-  id,
-  title,
-  script,
-  tier,
-  requires,
-  artifacts = [],
-  summary = "generic",
-  os = "ubuntu-latest",
-) {
-  return {
-    id,
-    title,
-    command: ["npm", "run", script],
-    tier,
-    requires,
-    artifacts: [
-      `artifacts/checks/${id}.json`,
-      `artifacts/logs/${id}.log`,
-      ...artifacts,
-    ],
-    summary,
-    os,
-  };
-}
 
 export function gateById(id) {
   return gates.find((candidate) => candidate.id === id);

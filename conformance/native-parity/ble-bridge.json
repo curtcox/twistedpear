@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "description": "The single declaration of every BLE constant that more than one implementation has to agree on. `npm run native-parity:check` reads this file, extracts the same constants from each implementation named in `bindings`, and fails on any divergence. Values are also required to appear in the specification document when `doc` is true.",
+  "spec": "docs/ble-interface.md",
+  "rationale": {
+    "whyAGate": "docs/ble-interface.md is normative and packages/reticulum-interfaces/src/ble/spec-framing.ts says in its own header comment that it mirrors that document. Nothing checked either claim. The GATT UUIDs, the identity beacon size, and the MTU targets were retyped by hand into Swift, Kotlin, TypeScript, and the worklet shim, and every copy is unit-tested against itself in its own language. A transposed digit in one UUID, or an MTU constant that moves in three places out of five, passes swift-tests, kotlin-tests, unit-tests, lint, and every other gate in the registry. It surfaces when a real iPhone fails to see a real Android device, which is STATUS-HARDWARE work that runs rarely and reports as a radio problem rather than as a typo.",
+    "whyStatic": "Extraction is textual rather than compiled on purpose. A gate that needs Xcode and Gradle to answer 'are these two numbers the same' would run on one runner and skip everywhere else, which is how the drift got in. This one is Node-only and runs on every PR. It cannot check behaviour — that is what the shared cases in `sources` are for, asserted inside each language's own test suite — but constants are where the copies actually diverge.",
+    "whyUnregisteredFails": "A name declared in two or more implementations but absent here fails the gate. Without that rule the file is a list someone has to remember to extend, and the next shared constant simply is not covered. With it, adding a constant to both native specs and nowhere else is itself the failure."
+  },
+  "sources": {
+    "swift": {
+      "file": "apps/harness-mobile/modules/ble-bridge/ios/BleBridgeSpec.swift",
+      "pattern": "static let"
+    },
+    "kotlin": {
+      "file": "apps/harness-mobile/modules/ble-bridge/android/src/main/java/network/twistedpear/harness/BleBridgeSpec.kt",
+      "pattern": "const val / val"
+    },
+    "ts": {
+      "file": "packages/reticulum-interfaces/src/ble/spec-framing.ts",
+      "pattern": "export const"
+    },
+    "worklet": {
+      "file": "apps/harness-mobile/worklet/ipc-ble-bridge.mjs",
+      "pattern": "const"
+    }
+  },
+  "constants": [
+    {
+      "name": "identityBeaconSize",
+      "value": 16,
+      "doc": false,
+      "note": "The control characteristic carries a 16-byte Reticulum identity hash. Named in docs/ble-interface.md §2 as prose rather than as a number in a table, so it is not doc-matched.",
+      "bindings": {
+        "swift": "identityBeaconSize",
+        "kotlin": "IDENTITY_BEACON_SIZE"
+      }
+    },
+    {
+      "name": "defaultMtu",
+      "value": 247,
+      "doc": true,
+      "note": "Five copies before this gate existed. docs/ble-interface.md §2 lists 185/247/512 as the accepted ATT MTUs.",
+      "bindings": {
+        "swift": "defaultMtu",
+        "kotlin": "DEFAULT_MTU",
+        "ts": "BLE_DEFAULT_PIPE_MTU",
+        "worklet": "DEFAULT_MTU"
+      }
+    },
+    {
+      "name": "targetMtu",
+      "value": 512,
+      "doc": true,
+      "note": "docs/ble-interface.md §2: 'Request the largest ATT MTU supported (target 512)'.",
+      "bindings": { "swift": "targetMtu", "kotlin": "TARGET_MTU" }
+    },
+    {
+      "name": "mtuFallbackDelayMs",
+      "value": 500,
+      "doc": false,
+      "note": "Kotlin declares this as a Long (`500L`); the extractor normalizes the suffix.",
+      "bindings": {
+        "swift": "mtuFallbackDelayMs",
+        "kotlin": "MTU_FALLBACK_DELAY_MS"
+      }
+    },
+    {
+      "name": "serviceUuid",
+      "value": "6e6f0001-7e3a-4f2d-9b1c-8a5d3e2f1a0b",
+      "doc": true,
+      "bindings": { "swift": "serviceUUID", "kotlin": "SERVICE_UUID" }
+    },
+    {
+      "name": "dataCharacteristicUuid",
+      "value": "6e6f0002-7e3a-4f2d-9b1c-8a5d3e2f1a0b",
+      "doc": true,
+      "bindings": {
+        "swift": "dataCharacteristicUUID",
+        "kotlin": "DATA_CHARACTERISTIC_UUID"
+      }
+    },
+    {
+      "name": "controlCharacteristicUuid",
+      "value": "6e6f0003-7e3a-4f2d-9b1c-8a5d3e2f1a0b",
+      "doc": true,
+      "bindings": {
+        "swift": "controlCharacteristicUUID",
+        "kotlin": "CONTROL_CHARACTERISTIC_UUID"
+      }
+    },
+    {
+      "name": "clientConfigDescriptorUuid",
+      "value": "00002902-0000-1000-8000-00805f9b34fb",
+      "doc": false,
+      "note": "The Bluetooth SIG Client Characteristic Configuration descriptor. Not a TwistedPear value, but both native bridges hard-code it and both have to hard-code the same one.",
+      "bindings": {
+        "swift": "clientConfigDescriptorUUID",
+        "kotlin": "CLIENT_CONFIG_DESCRIPTOR_UUID"
+      }
+    },
+    {
+      "name": "frameHeaderSize",
+      "value": 4,
+      "doc": true,
+      "note": "Framing lives above the native bridges: they carry opaque bytes and the worklet frames them. TypeScript is the only implementation, so this row is doc-parity rather than cross-language parity — it holds spec-framing.ts to the packet diagram in docs/ble-interface.md §3.",
+      "bindings": { "ts": "BLE_FRAME_HEADER_SIZE" }
+    },
+    {
+      "name": "flagMore",
+      "value": 1,
+      "doc": false,
+      "note": "Flag values are checked against the specification document by `docFlags` below rather than by literal match, because the document writes them in hex and the source in hex while JSON has no hex literal.",
+      "bindings": { "ts": "BLE_FLAG_MORE" }
+    },
+    {
+      "name": "flagAckReq",
+      "value": 2,
+      "doc": false,
+      "bindings": { "ts": "BLE_FLAG_ACK_REQ" }
+    },
+    {
+      "name": "flagKeepalive",
+      "value": 4,
+      "doc": false,
+      "bindings": { "ts": "BLE_FLAG_KEEPALIVE" }
+    },
+    {
+      "name": "flagIdentity",
+      "value": 8,
+      "doc": false,
+      "bindings": { "ts": "BLE_FLAG_IDENTITY" }
+    }
+  ],
+  "docFlags": [
+    { "name": "flagMore", "label": "MORE" },
+    { "name": "flagAckReq", "label": "ACK_REQ" },
+    { "name": "flagKeepalive", "label": "KEEPALIVE" },
+    { "name": "flagIdentity", "label": "IDENTITY" }
+  ],
+  "platformOnly": {
+    "swift": ["centralRestoreIdentifier", "peripheralRestoreIdentifier"]
+  }
+}

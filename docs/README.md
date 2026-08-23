@@ -191,6 +191,7 @@ Protocol implementation details live in the
 | Source-file size thresholds and the decomposition ratchet  | [File-size classification](file-sizes.md)                                                                                       |
 | Static analysis gates, baselines, and local runner         | [Static analysis](static-analysis.md), [remaining plan](static-analysis-plan.md)                                                |
 | Mutation score floors and what they cover                  | [Mutation testing](mutation-testing.md)                                                                                         |
+| Gaps the other analysis gates do not cover                 | [Analysis gaps](analysis-gaps.md)                                                                                               |
 
 Additional focused runbooks are indexed from the
 [conformance overview](../conformance/README.md).
