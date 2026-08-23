@@ -41,6 +41,7 @@ import {
   writeTemplate,
 } from "./helpers.js";
 import { parseDevLinkFlags, resolveDevLinkProfile } from "./dev-link-flags.js";
+import type { LinkProfile } from "@twistedpear/miniapp-test";
 import { maybeBuildGuidaApp } from "./guida-commands.js";
 import { maybeLinkJsProject } from "./js-bundle.js";
 
@@ -60,6 +61,37 @@ export function runCreate(ctx: CommandContext): Promise<number> {
   return Promise.resolve(0);
 }
 
+function devPublisherPublicKey(
+  ctx: CommandContext,
+  provider: NodeCryptoProvider,
+  identityPath: string,
+): string {
+  if (!existsSync(identityPath)) return "dev";
+  return bytesToHex(loadIdentity(provider, identityPath, ctx).getPublicKey());
+}
+
+function logDevServerReady(
+  app: { name: string; version: string },
+  link: LinkProfile | undefined,
+  serverUrl: string,
+): void {
+  console.log(`Dev side-load ready for ${app.name} (${app.version})`);
+  if (link !== undefined) {
+    console.log(
+      `Link profile ${link.name} bitrate=${link.bitrate} latency=${link.latencyMs}ms loss=${link.loss}${link.peerOffline ? " peer-offline" : ""}`,
+    );
+  }
+  console.log(`Connect harness developer mode to ${serverUrl}`);
+  console.log("Press Ctrl+C to stop.");
+}
+
+function waitForShutdownSignal(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    process.on("SIGINT", () => resolve());
+    process.on("SIGTERM", () => resolve());
+  });
+}
+
 export async function runDev(ctx: CommandContext): Promise<number> {
   const appDir = ctx.args[0];
   if (appDir === undefined) {
@@ -75,9 +107,7 @@ export async function runDev(ctx: CommandContext): Promise<number> {
   const config = loadConfig(ctx.cwd);
   const provider = new NodeCryptoProvider();
   const identityPath = resolveFromCwd(ctx.cwd, config.identityPath);
-  const publisherPublicKey = existsSync(identityPath)
-    ? bytesToHex(loadIdentity(provider, identityPath, ctx).getPublicKey())
-    : "dev";
+  const publisherPublicKey = devPublisherPublicKey(ctx, provider, identityPath);
   const link = resolveDevLinkProfile(parseDevLinkFlags(ctx.args));
 
   const server = await startDevServer({
@@ -95,20 +125,8 @@ export async function runDev(ctx: CommandContext): Promise<number> {
     ...(link === undefined ? {} : { link }),
   });
 
-  console.log(`Dev side-load ready for ${app.name} (${app.version})`);
-  if (link !== undefined) {
-    console.log(
-      `Link profile ${link.name} bitrate=${link.bitrate} latency=${link.latencyMs}ms loss=${link.loss}${link.peerOffline ? " peer-offline" : ""}`,
-    );
-  }
-  console.log(`Connect harness developer mode to ${server.url}`);
-  console.log("Press Ctrl+C to stop.");
-
-  await new Promise<void>((resolve) => {
-    process.on("SIGINT", () => resolve());
-    process.on("SIGTERM", () => resolve());
-  });
-
+  logDevServerReady(app, link, server.url);
+  await waitForShutdownSignal();
   await server.close();
   return 0;
 }

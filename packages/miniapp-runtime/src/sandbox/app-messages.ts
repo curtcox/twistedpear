@@ -57,6 +57,30 @@ export function parseAppError(data: SandboxAppErrorMessage): AppErrorReport {
   return report;
 }
 
+function handleAppErrorMessage(
+  data: SandboxAppErrorMessage,
+  handlers: SandboxAppMessageHandlers,
+): void {
+  const report = parseAppError(data);
+  handlers.setLastError(report.message);
+  handlers.setLastAppError(report);
+  handlers.onAppError?.(report);
+  if (report.phase === "bundle") {
+    handlers.setAlive(false);
+  }
+}
+
+function handleAppLogMessage(
+  data: SandboxAppLogMessage,
+  handlers: SandboxAppMessageHandlers,
+): void {
+  const level = isDiagnosticsLevel(String(data.level))
+    ? (data.level as DiagnosticsLevel)
+    : "log";
+  const message = typeof data.message === "string" ? data.message : "";
+  handlers.onAppLog?.(level, message);
+}
+
 /**
  * Handle worker→host diagnostics that must not enter `broker.dispatch`.
  * Returns true when the message was consumed.
@@ -70,22 +94,11 @@ export function handleSandboxAppMessage(
   }
   const typed = data as { type: string };
   if (typed.type === "app-error") {
-    const report = parseAppError(data as SandboxAppErrorMessage);
-    handlers.setLastError(report.message);
-    handlers.setLastAppError(report);
-    handlers.onAppError?.(report);
-    if (report.phase === "bundle") {
-      handlers.setAlive(false);
-    }
+    handleAppErrorMessage(data as SandboxAppErrorMessage, handlers);
     return true;
   }
   if (typed.type === "app-log") {
-    const log = data as SandboxAppLogMessage;
-    const level = isDiagnosticsLevel(String(log.level))
-      ? (log.level as DiagnosticsLevel)
-      : "log";
-    const message = typeof log.message === "string" ? log.message : "";
-    handlers.onAppLog?.(level, message);
+    handleAppLogMessage(data as SandboxAppLogMessage, handlers);
     return true;
   }
   return false;

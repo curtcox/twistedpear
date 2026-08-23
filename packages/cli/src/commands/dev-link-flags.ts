@@ -8,18 +8,32 @@ export interface DevLinkFlags {
   readonly peerOffline: boolean;
 }
 
-export function parseDevLinkFlags(args: ReadonlyArray<string>): DevLinkFlags {
+function parseDevLinkName(
+  args: ReadonlyArray<string>,
+): LinkProfileName | undefined {
   const link = parseFlag(args, "--link");
-  if (link !== null && link !== "lan" && link !== "ble" && link !== "lora") {
+  if (link === null) return undefined;
+  if (link !== "lan" && link !== "ble" && link !== "lora") {
     throw new Error(`Unknown --link profile: ${link}`);
   }
+  return link;
+}
+
+function parseDevLinkLoss(args: ReadonlyArray<string>): number | undefined {
   const lossRaw = parseFlag(args, "--loss");
-  const loss = lossRaw === null ? undefined : Number(lossRaw) / 100;
-  if (loss !== undefined && (!Number.isFinite(loss) || loss < 0 || loss > 1)) {
+  if (lossRaw === null) return undefined;
+  const loss = Number(lossRaw) / 100;
+  if (!Number.isFinite(loss) || loss < 0 || loss > 1) {
     throw new Error("--loss must be a percentage between 0 and 100");
   }
+  return loss;
+}
+
+export function parseDevLinkFlags(args: ReadonlyArray<string>): DevLinkFlags {
+  const link = parseDevLinkName(args);
+  const loss = parseDevLinkLoss(args);
   return {
-    ...(link === null ? {} : { link }),
+    ...(link === undefined ? {} : { link }),
     ...(loss === undefined ? {} : { loss }),
     peerOffline: args.includes("--peer-offline"),
   };

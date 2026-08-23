@@ -31,6 +31,123 @@ export function renderHeadlessTree(tree: WidgetTree): RenderedWidgetNode {
   return renderNode(tree.root);
 }
 
+type NodeProps = WidgetNode["props"];
+
+interface RenderNodeBase {
+  readonly id: string;
+  readonly style?: Readonly<Record<string, unknown>>;
+}
+
+function optionalStringProp(
+  props: NodeProps,
+  key: string,
+): Record<string, string> {
+  const value = props?.[key];
+  return typeof value === "string" ? { [key]: value } : {};
+}
+
+function optionalNumberProp(
+  props: NodeProps,
+  key: string,
+): Record<string, number> {
+  const value = props?.[key];
+  return typeof value === "number" ? { [key]: value } : {};
+}
+
+function optionalTrueProp(
+  props: NodeProps,
+  key: string,
+): Record<string, true> {
+  return props?.[key] === true ? { [key]: true } : {};
+}
+
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" ? value : fallback;
+}
+
+function renderTextInput(
+  base: RenderNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "TextInput",
+    props: {
+      value: asString(n.props?.value, ""),
+      placeholder: asString(n.props?.placeholder, ""),
+      ...optionalStringProp(n.props, "event"),
+      ...optionalTrueProp(n.props, "multiline"),
+      ...optionalTrueProp(n.props, "secure"),
+      ...optionalStringProp(n.props, "keyboard"),
+    },
+  };
+}
+
+function renderSlider(
+  base: RenderNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "Slider",
+    props: {
+      value: numberOr(n.props?.value, 0),
+      min: numberOr(n.props?.min, 0),
+      max: numberOr(n.props?.max, 100),
+      ...optionalNumberProp(n.props, "step"),
+      ...optionalStringProp(n.props, "event"),
+    },
+  };
+}
+
+function renderList(base: RenderNodeBase, n: WidgetNode): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "List",
+    children: (Array.isArray(n.props?.items) ? n.props.items : []).map(
+      (item, index) => ({
+        component: "ListItem",
+        id: `${n.id}-item-${index}`,
+        props: {
+          value: typeof item === "string" ? item : JSON.stringify(item),
+        },
+      }),
+    ),
+  };
+}
+
+function renderCodeEditor(
+  base: RenderNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "CodeEditor",
+    props: {
+      documentId: asString(n.props?.documentId, ""),
+      language:
+        typeof n.props?.language === "string" ? n.props.language : "text",
+      readOnly: Boolean(n.props?.readOnly),
+      ...optionalStringProp(n.props, "event"),
+    },
+  };
+}
+
+function renderQrCode(
+  base: RenderNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "QrCode",
+    props: {
+      value: asString(n.props?.value, ""),
+      ...optionalNumberProp(n.props, "size"),
+      ...optionalStringProp(n.props, "caption"),
+    },
+  };
+}
+
 function renderNode(node: WidgetNode): RenderedWidgetNode {
   const style = renderStyle(node.style);
   const base = {
@@ -53,49 +170,26 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
       component: "Button",
       props: {
         label: asString(n.props?.label, "Button"),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...optionalStringProp(n.props, "event"),
       },
     }),
-    "text-input": (n) => ({
-      ...base,
-      component: "TextInput",
-      props: {
-        value: asString(n.props?.value, ""),
-        placeholder: asString(n.props?.placeholder, ""),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-        ...(n.props?.multiline === true ? { multiline: true } : {}),
-        ...(n.props?.secure === true ? { secure: true } : {}),
-        ...(typeof n.props?.keyboard === "string"
-          ? { keyboard: n.props.keyboard }
-          : {}),
-      },
-    }),
+    "text-input": (n) => renderTextInput(base, n),
     select: (n) => ({
       ...base,
       component: "Select",
       props: {
         value: asString(n.props?.value, ""),
         options: Array.isArray(n.props?.options) ? n.props.options : [],
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...optionalStringProp(n.props, "event"),
       },
     }),
-    slider: (n) => ({
-      ...base,
-      component: "Slider",
-      props: {
-        value: typeof n.props?.value === "number" ? n.props.value : 0,
-        min: typeof n.props?.min === "number" ? n.props.min : 0,
-        max: typeof n.props?.max === "number" ? n.props.max : 100,
-        ...(typeof n.props?.step === "number" ? { step: n.props.step } : {}),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-      },
-    }),
+    slider: (n) => renderSlider(base, n),
     date: (n) => ({
       ...base,
       component: "Date",
       props: {
         value: asString(n.props?.value, ""),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...optionalStringProp(n.props, "event"),
       },
     }),
     switch: (n) => ({
@@ -103,7 +197,7 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
       component: "Switch",
       props: {
         value: Boolean(n.props?.value),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...optionalStringProp(n.props, "event"),
       },
     }),
     divider: () => ({ ...base, component: "Divider" }),
@@ -113,46 +207,14 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
       component: "Progress",
       props: { value: n.props?.value ?? 0 },
     }),
-    list: (n) => ({
-      ...base,
-      component: "List",
-      children: (Array.isArray(n.props?.items) ? n.props.items : []).map(
-        (item, index) => ({
-          component: "ListItem",
-          id: `${n.id}-item-${index}`,
-          props: {
-            value: typeof item === "string" ? item : JSON.stringify(item),
-          },
-        }),
-      ),
-    }),
+    list: (n) => renderList(base, n),
     image: (n) => ({
       ...base,
       component: "Image",
       props: { asset: asString(n.props?.asset, "") },
     }),
-    "code-editor": (n) => ({
-      ...base,
-      component: "CodeEditor",
-      props: {
-        documentId: asString(n.props?.documentId, ""),
-        language:
-          typeof n.props?.language === "string" ? n.props.language : "text",
-        readOnly: Boolean(n.props?.readOnly),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-      },
-    }),
-    "qr-code": (n) => ({
-      ...base,
-      component: "QrCode",
-      props: {
-        value: asString(n.props?.value, ""),
-        ...(typeof n.props?.size === "number" ? { size: n.props.size } : {}),
-        ...(typeof n.props?.caption === "string"
-          ? { caption: n.props.caption }
-          : {}),
-      },
-    }),
+    "code-editor": (n) => renderCodeEditor(base, n),
+    "qr-code": (n) => renderQrCode(base, n),
     "camera-preview": (n) => previewSurface(base, n),
     "audio-meter": (n) => previewSurface(base, n),
     waveform: (n) => previewSurface(base, n),
@@ -162,10 +224,7 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
 }
 
 function previewSurface(
-  base: {
-    readonly id: string;
-    readonly style?: Readonly<Record<string, unknown>>;
-  },
+  base: RenderNodeBase,
   node: WidgetNode,
 ): RenderedWidgetNode {
   return {

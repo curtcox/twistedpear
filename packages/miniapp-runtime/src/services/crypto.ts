@@ -115,24 +115,27 @@ function requireBytes(value: unknown, field: string): Uint8Array {
   return bytes;
 }
 
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "number");
+}
+
+function coerceJsonBuffer(value: unknown): Uint8Array | null {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    !("type" in value) ||
+    (value as { type?: string }).type !== "Buffer"
+  ) {
+    return null;
+  }
+  const data = (value as { data?: unknown }).data;
+  return isNumberArray(data) ? Uint8Array.from(data) : null;
+}
+
 function coerceBytes(value: unknown): Uint8Array | null {
   if (value instanceof Uint8Array) return Uint8Array.from(value);
-  if (Array.isArray(value) && value.every((item) => typeof item === "number")) {
-    return Uint8Array.from(value);
-  }
-  if (
-    value !== null &&
-    typeof value === "object" &&
-    "type" in value &&
-    (value as { type?: string }).type === "Buffer" &&
-    Array.isArray((value as { data?: unknown }).data)
-  ) {
-    const data = (value as { data?: unknown }).data;
-    if (Array.isArray(data) && data.every((item) => typeof item === "number")) {
-      return Uint8Array.from(data);
-    }
-  }
-  return null;
+  if (isNumberArray(value)) return Uint8Array.from(value);
+  return coerceJsonBuffer(value);
 }
 
 function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {

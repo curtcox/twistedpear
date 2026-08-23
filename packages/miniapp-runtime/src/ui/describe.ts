@@ -21,22 +21,148 @@ export function describeWidgetTree(tree: WidgetTree): RenderedWidgetNode {
   return describeWidgetNode(tree.root);
 }
 
+type NodeProps = WidgetNode["props"];
+
+interface WidgetNodeBase {
+  readonly id: string;
+  readonly style?: Readonly<Record<string, unknown>>;
+}
+
+function optionalStringProp(
+  props: NodeProps,
+  key: string,
+): Record<string, string> {
+  const value = props?.[key];
+  return typeof value === "string" ? { [key]: value } : {};
+}
+
+function optionalNumberProp(
+  props: NodeProps,
+  key: string,
+): Record<string, number> {
+  const value = props?.[key];
+  return typeof value === "number" ? { [key]: value } : {};
+}
+
+function optionalTrueProp(
+  props: NodeProps,
+  key: string,
+): Record<string, true> {
+  return props?.[key] === true ? { [key]: true } : {};
+}
+
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" ? value : fallback;
+}
+
+function describeWithChildren(
+  base: WidgetNodeBase,
+  component: string,
+  node: WidgetNode,
+): RenderedWidgetNode {
+  const children = describeChildren(node);
+  return {
+    ...base,
+    component,
+    ...(children === undefined ? {} : { children }),
+  };
+}
+
+function describeTextInput(
+  base: WidgetNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "TextInput",
+    props: {
+      value: String(n.props?.value ?? ""),
+      placeholder: String(n.props?.placeholder ?? ""),
+      ...optionalStringProp(n.props, "event"),
+      ...optionalTrueProp(n.props, "multiline"),
+      ...optionalTrueProp(n.props, "secure"),
+      ...optionalStringProp(n.props, "keyboard"),
+    },
+  };
+}
+
+function describeSlider(
+  base: WidgetNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "Slider",
+    props: {
+      value: numberOr(n.props?.value, 0),
+      min: numberOr(n.props?.min, 0),
+      max: numberOr(n.props?.max, 100),
+      ...optionalNumberProp(n.props, "step"),
+      ...optionalStringProp(n.props, "event"),
+    },
+  };
+}
+
+function describeList(
+  base: WidgetNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "List",
+    children: (Array.isArray(n.props?.items) ? n.props.items : []).map(
+      (item, index) => ({
+        component: "ListItem",
+        id: `${n.id}-item-${index}`,
+        props: {
+          value: typeof item === "string" ? item : JSON.stringify(item),
+        },
+      }),
+    ),
+  };
+}
+
+function describeCodeEditor(
+  base: WidgetNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "CodeEditor",
+    props: {
+      documentId: String(n.props?.documentId ?? ""),
+      language:
+        typeof n.props?.language === "string" ? n.props.language : "text",
+      readOnly: Boolean(n.props?.readOnly),
+      ...optionalStringProp(n.props, "event"),
+    },
+  };
+}
+
+function describeQrCode(
+  base: WidgetNodeBase,
+  n: WidgetNode,
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "QrCode",
+    props: {
+      value: String(n.props?.value ?? ""),
+      ...optionalNumberProp(n.props, "size"),
+      ...optionalStringProp(n.props, "caption"),
+    },
+  };
+}
+
 function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
   const style = describeStyle(node.style);
-  const base = {
+  const base: WidgetNodeBase = {
     id: node.id,
     ...(style === undefined ? {} : { style }),
   };
 
   return visitWidget(node, {
-    view: (n) => {
-      const children = describeChildren(n);
-      return {
-        ...base,
-        component: "View",
-        ...(children === undefined ? {} : { children }),
-      };
-    },
+    view: (n) => describeWithChildren(base, "View", n),
     text: (n) => ({
       ...base,
       component: "Text",
@@ -47,49 +173,26 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
       component: "Button",
       props: {
         label: String(n.props?.label ?? "Button"),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...optionalStringProp(n.props, "event"),
       },
     }),
-    "text-input": (n) => ({
-      ...base,
-      component: "TextInput",
-      props: {
-        value: String(n.props?.value ?? ""),
-        placeholder: String(n.props?.placeholder ?? ""),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-        ...(n.props?.multiline === true ? { multiline: true } : {}),
-        ...(n.props?.secure === true ? { secure: true } : {}),
-        ...(typeof n.props?.keyboard === "string"
-          ? { keyboard: n.props.keyboard }
-          : {}),
-      },
-    }),
+    "text-input": (n) => describeTextInput(base, n),
     select: (n) => ({
       ...base,
       component: "Select",
       props: {
         value: String(n.props?.value ?? ""),
         options: Array.isArray(n.props?.options) ? n.props.options : [],
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...optionalStringProp(n.props, "event"),
       },
     }),
-    slider: (n) => ({
-      ...base,
-      component: "Slider",
-      props: {
-        value: typeof n.props?.value === "number" ? n.props.value : 0,
-        min: typeof n.props?.min === "number" ? n.props.min : 0,
-        max: typeof n.props?.max === "number" ? n.props.max : 100,
-        ...(typeof n.props?.step === "number" ? { step: n.props.step } : {}),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-      },
-    }),
+    slider: (n) => describeSlider(base, n),
     date: (n) => ({
       ...base,
       component: "Date",
       props: {
         value: String(n.props?.value ?? ""),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...optionalStringProp(n.props, "event"),
       },
     }),
     switch: (n) => ({
@@ -97,17 +200,10 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
       component: "Switch",
       props: {
         value: Boolean(n.props?.value),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
+        ...optionalStringProp(n.props, "event"),
       },
     }),
-    scroll: (n) => {
-      const children = describeChildren(n);
-      return {
-        ...base,
-        component: "ScrollView",
-        ...(children === undefined ? {} : { children }),
-      };
-    },
+    scroll: (n) => describeWithChildren(base, "ScrollView", n),
     divider: () => ({
       ...base,
       component: "Divider",
@@ -122,46 +218,14 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
       component: "Progress",
       props: { value: n.props?.value ?? 0 },
     }),
-    list: (n) => ({
-      ...base,
-      component: "List",
-      children: (Array.isArray(n.props?.items) ? n.props.items : []).map(
-        (item, index) => ({
-          component: "ListItem",
-          id: `${n.id}-item-${index}`,
-          props: {
-            value: typeof item === "string" ? item : JSON.stringify(item),
-          },
-        }),
-      ),
-    }),
+    list: (n) => describeList(base, n),
     image: (n) => ({
       ...base,
       component: "Image",
       props: { asset: String(n.props?.asset ?? "") },
     }),
-    "code-editor": (n) => ({
-      ...base,
-      component: "CodeEditor",
-      props: {
-        documentId: String(n.props?.documentId ?? ""),
-        language:
-          typeof n.props?.language === "string" ? n.props.language : "text",
-        readOnly: Boolean(n.props?.readOnly),
-        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {}),
-      },
-    }),
-    "qr-code": (n) => ({
-      ...base,
-      component: "QrCode",
-      props: {
-        value: String(n.props?.value ?? ""),
-        ...(typeof n.props?.size === "number" ? { size: n.props.size } : {}),
-        ...(typeof n.props?.caption === "string"
-          ? { caption: n.props.caption }
-          : {}),
-      },
-    }),
+    "code-editor": (n) => describeCodeEditor(base, n),
+    "qr-code": (n) => describeQrCode(base, n),
     "camera-preview": (n) => describePreview(base, n),
     "audio-meter": (n) => describePreview(base, n),
     waveform: (n) => describePreview(base, n),
@@ -171,10 +235,7 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
 }
 
 function describePreview(
-  base: {
-    readonly id: string;
-    readonly style?: Readonly<Record<string, unknown>>;
-  },
+  base: WidgetNodeBase,
   node: WidgetNode,
 ): RenderedWidgetNode {
   return {

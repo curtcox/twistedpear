@@ -61,13 +61,17 @@ function renderTextInputNode(node, onEvent, options, style) {
     element.placeholder = String(node.props?.placeholder ?? "");
   }
   applyStyle(element, style);
-  element.addEventListener("input", () => {
+  bindStringValueEvent(element, node, onEvent, "input");
+  return element;
+}
+
+function bindStringValueEvent(element, node, onEvent, domEvent) {
+  element.addEventListener(domEvent, () => {
     const event = node.props?.event;
     if (typeof event === "string") {
       onEvent?.(node.id, event, element.value);
     }
   });
-  return element;
 }
 
 function renderSelectNode(node, onEvent, options, style) {
@@ -82,12 +86,7 @@ function renderSelectNode(node, onEvent, options, style) {
   }
   element.value = String(node.props?.value ?? "");
   applyStyle(element, style);
-  element.addEventListener("change", () => {
-    const event = node.props?.event;
-    if (typeof event === "string") {
-      onEvent?.(node.id, event, element.value);
-    }
-  });
+  bindStringValueEvent(element, node, onEvent, "change");
   return element;
 }
 
@@ -115,12 +114,7 @@ function renderDateNode(node, onEvent, options, style) {
   element.type = "date";
   element.value = String(node.props?.value ?? "");
   applyStyle(element, style);
-  element.addEventListener("change", () => {
-    const event = node.props?.event;
-    if (typeof event === "string") {
-      onEvent?.(node.id, event, element.value);
-    }
-  });
+  bindStringValueEvent(element, node, onEvent, "change");
   return element;
 }
 

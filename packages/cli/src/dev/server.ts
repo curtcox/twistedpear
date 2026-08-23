@@ -33,10 +33,7 @@ function readBundle(appDir: string, entry: string): Uint8Array {
   return new TextEncoder().encode(prepareBundleSource(source));
 }
 
-function pushBundle(socket: Socket, options: DevServerOptions): void {
-  if (options.link?.peerOffline === true) {
-    return;
-  }
+function bundlePushLine(options: DevServerOptions): string {
   const bundle = readBundle(options.appDir, options.manifest.entry);
   const payload = {
     type: "dev-bundle",
@@ -46,22 +43,34 @@ function pushBundle(socket: Socket, options: DevServerOptions): void {
     },
     bundleHex: bytesToHex(bundle),
   };
-  const line = `${JSON.stringify(payload)}\n`;
+  return `${JSON.stringify(payload)}\n`;
+}
+
+function linkDelayMs(link: LinkProfile | undefined, line: string): number {
+  const serializeMs =
+    link === undefined ? 0 : (Buffer.byteLength(line) * 8 * 1000) / link.bitrate;
+  return (link?.latencyMs ?? 0) + serializeMs;
+}
+
+function writeWithDelay(socket: Socket, line: string, delay: number): void {
+  if (delay <= 0) {
+    socket.write(line);
+    return;
+  }
+  setTimeout(() => {
+    if (!socket.destroyed) socket.write(line);
+  }, delay);
+}
+
+function pushBundle(socket: Socket, options: DevServerOptions): void {
+  if (options.link?.peerOffline === true) {
+    return;
+  }
+  const line = bundlePushLine(options);
   if (options.link !== undefined && options.link.loss > 0) {
     if (Math.random() < options.link.loss) return;
   }
-  const serializeMs =
-    options.link === undefined
-      ? 0
-      : (Buffer.byteLength(line) * 8 * 1000) / options.link.bitrate;
-  const delay = (options.link?.latencyMs ?? 0) + serializeMs;
-  if (delay > 0) {
-    setTimeout(() => {
-      if (!socket.destroyed) socket.write(line);
-    }, delay);
-    return;
-  }
-  socket.write(line);
+  writeWithDelay(socket, line, linkDelayMs(options.link, line));
 }
 
 function formatClientLine(payload: {
