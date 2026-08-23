@@ -1,12 +1,14 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrokerRequest } from "@twistedpear/miniapp-runtime";
 import { setMiniappHostTransport } from "../src/rpc.js";
 import * as announce from "../src/announce.js";
 import * as apps from "../src/apps.js";
+import * as crypto from "../src/crypto.js";
 import * as freenet from "../src/freenet.js";
 import * as host from "../src/host.js";
 import * as identity from "../src/identity.js";
 import * as lxmf from "../src/lxmf.js";
+import * as notify from "../src/notify.js";
 import * as presence from "../src/presence.js";
 import * as resource from "../src/resource.js";
 import * as share from "../src/share.js";
@@ -66,6 +68,38 @@ const cases: ReadonlyArray<SurfaceCase> = [
     expected: [],
   },
   {
+    label: "crypto.randomBytes",
+    call: () => crypto.randomBytes(4),
+    namespace: "crypto",
+    method: "randomBytes",
+    capability: undefined,
+    payload: { n: 4 },
+  },
+  {
+    label: "crypto.hash",
+    call: () => crypto.hash("sha256", new Uint8Array([1])),
+    namespace: "crypto",
+    method: "hash",
+    capability: undefined,
+    payload: { alg: "sha256", bytes: new Uint8Array([1]) },
+  },
+  {
+    label: "crypto.hmac",
+    call: () => crypto.hmac("sha256", new Uint8Array([1]), new Uint8Array([2])),
+    namespace: "crypto",
+    method: "hmac",
+    capability: undefined,
+    payload: { alg: "sha256", key: new Uint8Array([1]), bytes: new Uint8Array([2]) },
+  },
+  {
+    label: "crypto.timingSafeEqual",
+    call: () => crypto.timingSafeEqual(new Uint8Array([1]), new Uint8Array([1])),
+    namespace: "crypto",
+    method: "timingSafeEqual",
+    capability: undefined,
+    payload: { a: new Uint8Array([1]), b: new Uint8Array([1]) },
+  },
+  {
     label: "host.info",
     call: () => host.info(),
     namespace: "host",
@@ -115,6 +149,14 @@ const cases: ReadonlyArray<SurfaceCase> = [
     capability: "lxmf:receive",
     result: [],
     expected: [],
+  },
+  {
+    label: "notify.post",
+    call: () => notify.post({ title: "title", body: "body", event: "event" }),
+    namespace: "notify",
+    method: "post",
+    capability: "notify:post",
+    payload: { title: "title", body: "body", event: "event" },
   },
   {
     label: "presence.snapshot",
@@ -445,5 +487,38 @@ describe("broker surface", () => {
     const labels = cases.map((surface) => surface.label);
 
     expect(new Set(labels).size).toBe(labels.length);
+  });
+});
+
+describe("event hooks", () => {
+  afterEach(() => {
+    delete (globalThis as { sdk?: unknown }).sdk;
+  });
+
+  it("registers announce, LXMF, and app-channel handlers", () => {
+    const announceHandler = vi.fn();
+    const lxmfHandler = vi.fn();
+    const channelHandler = vi.fn();
+    (globalThis as { sdk?: unknown }).sdk = {
+      announce: { onEvent: announceHandler },
+      lxmf: { onMessage: lxmfHandler },
+      apps: { channel: { onMessage: channelHandler } },
+    };
+
+    announce.onEvent(announceHandler);
+    lxmf.onMessage(lxmfHandler);
+    apps.channel.onMessage(channelHandler);
+
+    expect(announceHandler).toHaveBeenCalledWith(announceHandler);
+    expect(lxmfHandler).toHaveBeenCalledWith(lxmfHandler);
+    expect(channelHandler).toHaveBeenCalledWith(channelHandler);
+  });
+
+  it("rejects event hooks outside a host sandbox", () => {
+    expect(() => announce.onEvent(() => {})).toThrow("announce.onEvent");
+    expect(() => lxmf.onMessage(() => {})).toThrow("lxmf.onMessage");
+    expect(() => apps.channel.onMessage(() => {})).toThrow(
+      "apps.channel.onMessage",
+    );
   });
 });

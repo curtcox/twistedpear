@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-23T15:46:15.351Z",
-  "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
-  "digest": "a7327cefb638be193e063b08b31c1743b292a77abfcd82a0d39e7e1d650e874d",
-  "treeDigest": "593c7a2f55e9696a2724adc9217d3e4c32282457af742bb2d578cf21e05c207f",
+  "generatedAt": "2026-08-23T21:20:01.529Z",
+  "commit": "1b5f4a6ecfb712671fed9d8db949e63d1fb07f5c",
+  "digest": "71ada7d2d25666a3f5b8b3e1dbb6193815d908be603ba743a18366a7d9beb1d6",
+  "treeDigest": "71ada7d2d25666a3f5b8b3e1dbb6193815d908be603ba743a18366a7d9beb1d6",
   "gates": {
     "accessibility": {
       "title": "Accessibility ratchet",
@@ -54,6 +54,16 @@
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
       "tier": "pr"
     },
+    "artifact-sizes": {
+      "title": "Shipped artifact byte budgets",
+      "command": "npm run artifact-sizes:check",
+      "ok": false,
+      "at": "2026-08-23T21:20:01.529Z",
+      "commit": "1b5f4a6ecfb712671fed9d8db949e63d1fb07f5c",
+      "detail": "gate has never produced a result artifact",
+      "since": "2026-08-23",
+      "tier": "pr"
+    },
     "ast-grep": {
       "title": "Structural reliability ratchet",
       "command": "npm run ast-grep:check",
@@ -64,14 +74,6 @@
       "since": "2026-08-23",
       "tier": "pr"
     },
-    "audit": {
-      "title": "Dependency advisory scan",
-      "command": "npm run audit:nightly",
-      "ok": true,
-      "at": "2026-08-23T15:18:45.201Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
-    },
     "audit-policy": {
       "title": "Advisory allowlist policy",
       "command": "npm run audit:policy",
@@ -79,14 +81,6 @@
       "at": "2026-08-23T15:43:21.282Z",
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
       "tier": "pr"
-    },
-    "benchmark": {
-      "title": "Crypto benchmark drift",
-      "command": "npm run benchmark:check",
-      "ok": true,
-      "at": "2026-08-23T15:17:53.598Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
     },
     "census": {
       "title": "Quality surface census",
@@ -96,54 +90,45 @@
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
       "tier": "pr"
     },
-    "codeql-alerts": {
-      "title": "Open CodeQL alert ratchet",
-      "command": "npm run codeql:check",
-      "ok": true,
-      "at": "2026-08-23T15:18:31.183Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
-    },
     "cognitive-complexity": {
       "title": "Cognitive complexity ratchet",
       "command": "npm run cognitive-complexity:check",
       "ok": true,
-      "at": "2026-08-23T15:41:14.627Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
+      "at": "2026-08-23T01:22:25.715Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
       "tier": "pr"
     },
     "complexity": {
       "title": "Function complexity ratchet",
       "command": "npm run complexity:check",
       "ok": true,
-      "at": "2026-08-23T15:36:36.353Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
+      "at": "2026-08-23T01:22:25.715Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
       "tier": "pr"
     },
     "complexity-multilang": {
       "title": "Multi-language function complexity",
       "command": "npm run complexity:multilang",
       "ok": true,
-      "at": "2026-08-23T15:36:43.010Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
+      "at": "2026-08-23T01:22:25.715Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
       "tier": "pr"
     },
     "coupling": {
       "title": "Module coupling and modularity",
       "command": "npm run coupling:check",
       "ok": true,
-      "at": "2026-08-23T15:36:49.126Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
+      "at": "2026-08-23T01:22:25.715Z",
+      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
       "tier": "pr"
     },
     "coverage": {
       "title": "Coverage ratchet",
       "command": "npm run coverage:check",
-      "ok": false,
-      "at": "2026-08-23T15:36:08.726Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "detail": "failed in CI — statements: 38.97% · branches: 36.85% · functions: 42.12% · lines: 41.97% · Workspaces ratcheted: 22 · Packages ratcheted: 19 · Apps ratcheted: 3",
-      "since": "2026-08-22",
+      "ok": true,
+      "at": "2026-08-23T21:19:57.675Z",
+      "commit": "1b5f4a6ecfb712671fed9d8db949e63d1fb07f5c",
+      "measuredOn": "71ada7d2d25666a3f5b8b3e1dbb6193815d908be603ba743a18366a7d9beb1d6",
       "tier": "pr"
     },
     "differential-fuzz": {
@@ -169,14 +154,6 @@
       "at": "2026-08-23T15:29:44.956Z",
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
       "tier": "pr"
-    },
-    "flake": {
-      "title": "Unit-suite flake detection",
-      "command": "npm run flake:check",
-      "ok": true,
-      "at": "2026-08-23T15:22:22.575Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
     },
     "formal": {
       "title": "Formal machine conformance and model checking",
@@ -230,14 +207,6 @@
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
       "tier": "pr"
     },
-    "hotspots": {
-      "title": "Churn-weighted complexity hotspots",
-      "command": "npm run hotspots",
-      "ok": true,
-      "at": "2026-08-23T15:18:12.975Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
-    },
     "install-scripts": {
       "title": "Dependency install-script policy",
       "command": "npm run install-scripts:check",
@@ -288,14 +257,6 @@
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
       "tier": "pr"
     },
-    "link-benchmark": {
-      "title": "Link handshake latency drift",
-      "command": "npm run test:link-benchmark",
-      "ok": true,
-      "at": "2026-08-23T15:18:43.698Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
-    },
     "lint": {
       "title": "TypeScript and Sans-IO lint",
       "command": "npm run lint",
@@ -314,30 +275,22 @@
       "since": "2026-08-23",
       "tier": "pr"
     },
-    "miniapp-benchmark": {
-      "title": "Mini-app spawn and watchdog drift",
-      "command": "npm run test:miniapp-benchmark",
-      "ok": true,
-      "at": "2026-08-23T15:18:34.402Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
-    },
-    "mutation": {
-      "title": "Protocol mutation score",
-      "command": "npm run mutation:check",
-      "ok": false,
-      "at": "2026-08-23T01:17:28.700Z",
-      "commit": "6604160ee5658af60e92aff24c581859d81d20f5",
-      "detail": "gate has never produced a result artifact",
-      "since": "2026-08-23",
-      "tier": "nightly"
-    },
     "mutation-policy": {
       "title": "Mutation score policy",
       "command": "npm run mutation:ratchet",
       "ok": true,
       "at": "2026-08-23T15:43:21.506Z",
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
+      "tier": "pr"
+    },
+    "native-parity": {
+      "title": "Cross-language native bridge parity",
+      "command": "npm run native-parity:check",
+      "ok": false,
+      "at": "2026-08-23T21:20:01.529Z",
+      "commit": "1b5f4a6ecfb712671fed9d8db949e63d1fb07f5c",
+      "detail": "gate has never produced a result artifact",
+      "since": "2026-08-23",
       "tier": "pr"
     },
     "properties": {
@@ -347,14 +300,6 @@
       "at": "2026-08-23T15:42:29.595Z",
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
       "tier": "pr"
-    },
-    "provenance": {
-      "title": "Dependency registry signatures",
-      "command": "npm run provenance:check",
-      "ok": true,
-      "at": "2026-08-23T15:18:22.273Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
     },
     "python": {
       "title": "Python ruff and mypy",
@@ -389,13 +334,15 @@
       "measuredOn": "78b5a65f8b6494d9e62c03563161a0e0154687d605a7680e0ea6e55e15f2b465",
       "tier": "pr"
     },
-    "rust-fuzz": {
-      "title": "Freenet contract fuzzing",
-      "command": "npm run fuzz:rust",
-      "ok": true,
-      "at": "2026-08-23T15:19:34.705Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
+    "rust-lints": {
+      "title": "Rust contract restriction lints",
+      "command": "npm run rust-lints:check",
+      "ok": false,
+      "at": "2026-08-23T21:20:01.529Z",
+      "commit": "1b5f4a6ecfb712671fed9d8db949e63d1fb07f5c",
+      "detail": "gate has never produced a result artifact",
+      "since": "2026-08-23",
+      "tier": "pr"
     },
     "rust-tests": {
       "title": "Rust contract unit tests",
@@ -404,14 +351,6 @@
       "at": "2026-08-23T15:45:11.000Z",
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
       "tier": "pr"
-    },
-    "sbom": {
-      "title": "CycloneDX SBOM",
-      "command": "npm run sbom",
-      "ok": true,
-      "at": "2026-08-23T15:17:51.101Z",
-      "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
-      "tier": "nightly"
     },
     "secrets": {
       "title": "Secret scanning",
@@ -451,6 +390,16 @@
       "ok": true,
       "at": "2026-08-23T15:29:58.059Z",
       "commit": "dd307851c9b0723a5a08def2566520fa6f8eaa3b",
+      "tier": "pr"
+    },
+    "spec-traceability": {
+      "title": "Specification evidence traceability",
+      "command": "npm run spec-traceability:check",
+      "ok": false,
+      "at": "2026-08-23T21:20:01.529Z",
+      "commit": "1b5f4a6ecfb712671fed9d8db949e63d1fb07f5c",
+      "detail": "gate has never produced a result artifact",
+      "since": "2026-08-23",
       "tier": "pr"
     },
     "spelling": {

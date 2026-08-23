@@ -8,13 +8,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // the callbacks the renderer built. MiniappWidgetTree.test.tsx covers the real
 // react-native-web markup.
 const captured = new Map<string, Record<string, unknown>>();
+const effectCleanups: Array<() => void> = [];
 
 vi.mock("react", async (importOriginal) => {
   const react = await importOriginal<typeof import("react")>();
   return {
     ...react,
     useEffect: (effect: () => void | (() => void)) => {
-      effect();
+      const cleanup = effect();
+      if (typeof cleanup === "function") effectCleanups.push(cleanup);
     },
   };
 });
@@ -26,6 +28,8 @@ vi.mock("react-native", () => {
       const testID = props.testID;
       if (typeof testID === "string") {
         captured.set(testID, props);
+      } else {
+        captured.set(`${tag}-${captured.size}`, props);
       }
       return createElement(
         tag,
@@ -56,6 +60,7 @@ function mount(
   readDocument?: (documentId: string) => Promise<string>,
 ) {
   captured.clear();
+  effectCleanups.length = 0;
   renderToStaticMarkup(
     <MiniappWidgetTree
       tree={{ root }}
@@ -122,6 +127,43 @@ describe("text input events", () => {
     handler("i", "onChangeText")("hello" as never);
     expect(events).toEqual([]);
   });
+
+  it.each([
+    ["numeric", "numeric"],
+    ["email", "email-address"],
+    ["url", "url"],
+  ] as const)("maps the %s keyboard", (keyboard, expected) => {
+    mount({ id: "i", type: "text-input", props: { keyboard } });
+    expect(props("i").keyboardType).toBe(expected);
+  });
+});
+
+describe("select, slider, and date events", () => {
+  it("renders select options", () => {
+    mount({
+      id: "select",
+      type: "select",
+      props: { options: ["one", { two: 2 }] },
+    });
+    const option = [...captured.values()].find(
+      (value) => typeof value.onPress === "function",
+    );
+    if (option === undefined) throw new Error("select option was not rendered");
+    (option.onPress as () => void)();
+    expect(props("select")).toBeDefined();
+  });
+
+  it("emits slider values as numbers", () => {
+    mount({ id: "slider", type: "slider", props: { event: "slide" } }, record);
+    handler("slider", "onChangeText")("12.5" as never);
+    expect(events).toEqual([["slider", "slide", 12.5]]);
+  });
+
+  it("emits date values as strings", () => {
+    mount({ id: "date", type: "date", props: { event: "date" } }, record);
+    handler("date", "onChangeText")("2026-08-23" as never);
+    expect(events).toEqual([["date", "date", "2026-08-23"]]);
+  });
 });
 
 describe("switch events", () => {
@@ -160,6 +202,24 @@ describe("scroll events", () => {
       props: { scrollOffset: 40, event: "scrolled" },
     });
     expect(props("sc")).toBeDefined();
+  });
+
+  it("passes host handlers to scroll descendants", () => {
+    mount(
+      {
+        id: "sc",
+        type: "scroll",
+        children: [
+          { id: "b", type: "button", props: { event: "tap" } },
+          { id: "e", type: "code-editor", props: { documentId: "d" } },
+        ],
+      },
+      record,
+      async () => "loaded",
+    );
+    handler("b", "onPress")();
+    expect(events).toEqual([["b", "tap", undefined]]);
+    expect(props("e")).toBeDefined();
   });
 });
 
@@ -202,6 +262,7 @@ describe("code editor edits", () => {
     mount(editor, record, async () => "loaded");
     await Promise.resolve();
     expect(props("e")).toBeDefined();
+    for (const cleanup of effectCleanups) cleanup();
   });
 });
 

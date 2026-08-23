@@ -127,6 +127,30 @@ describe("renderHeadlessTree", () => {
     });
   });
 
+  it("renders text input flags and optional keyboard", () => {
+    expect(
+      rendered({
+        id: "i",
+        type: "text-input",
+        props: {
+          multiline: true,
+          secure: true,
+          keyboard: "email",
+        },
+      }),
+    ).toEqual({
+      id: "i",
+      component: "TextInput",
+      props: {
+        value: "",
+        placeholder: "",
+        multiline: true,
+        secure: true,
+        keyboard: "email",
+      },
+    });
+  });
+
   it("coerces switch values to booleans", () => {
     expect(rendered({ id: "s", type: "switch", props: { value: 1 } })).toEqual({
       id: "s",
@@ -137,6 +161,58 @@ describe("renderHeadlessTree", () => {
       id: "s",
       component: "Switch",
       props: { value: false },
+    });
+  });
+
+  it("renders select, slider, and date controls with defaults and events", () => {
+    expect(
+      rendered({
+        id: "select",
+        type: "select",
+        props: { options: ["one"], value: "one", event: "choose" },
+      }),
+    ).toEqual({
+      id: "select",
+      component: "Select",
+      props: { options: ["one"], value: "one", event: "choose" },
+    });
+    expect(
+      rendered({
+        id: "slider",
+        type: "slider",
+        props: { value: 2, min: 1, max: 5, step: 0.5, event: "slide" },
+      }),
+    ).toEqual({
+      id: "slider",
+      component: "Slider",
+      props: { value: 2, min: 1, max: 5, step: 0.5, event: "slide" },
+    });
+    expect(
+      rendered({
+        id: "fallback-slider",
+        type: "slider",
+        props: { value: "bad", min: "bad", max: "bad", step: "bad" },
+      }),
+    ).toEqual({
+      id: "fallback-slider",
+      component: "Slider",
+      props: { value: 0, min: 0, max: 100 },
+    });
+    expect(
+      rendered({
+        id: "invalid-select",
+        type: "select",
+        props: { options: "bad" },
+      }),
+    ).toEqual({
+      id: "invalid-select",
+      component: "Select",
+      props: { value: "", options: [] },
+    });
+    expect(rendered({ id: "date", type: "date" })).toEqual({
+      id: "date",
+      component: "Date",
+      props: { value: "" },
     });
   });
 });
@@ -257,6 +333,21 @@ describe("renderHeadlessTree leaf widgets", () => {
       component: "DevicePreview",
       props: { surface: type, session: "sess" },
     });
+  });
+});
+
+describe("renderHeadlessSnapshot", () => {
+  it("emits stable sorted props and styles", () => {
+    expect(
+      renderHeadlessSnapshot({
+        root: {
+          id: "root",
+          type: "progress",
+          props: { value: ["hello", "world"] },
+          style: { color: "red" },
+        },
+      }),
+    ).toBe('Progress#root {"value":["hello","world"]} style={"color":"red"}');
   });
 });
 

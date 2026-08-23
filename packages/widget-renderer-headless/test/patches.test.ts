@@ -126,7 +126,10 @@ describe("applyWidgetPatches", () => {
 
   it("rejects a stream that removes the root outright", () => {
     expect(() =>
-      applyWidgetPatches(base, [{ op: "remove", id: "root" }]),
+      applyWidgetPatches(base, [
+        { op: "remove", id: "root" },
+        { op: "remove", id: "gone" },
+      ]),
     ).toThrow("patch stream removed the root node");
   });
 });

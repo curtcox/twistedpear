@@ -124,6 +124,27 @@ describe("layoutWidgetTree style resolution", () => {
     ).toEqual({ t: { x: 0, y: 0, width: 150, height: 20 } });
   });
 
+  it("resolves a numeric width directly", () => {
+    expect(
+      layout({
+        id: "t",
+        type: "text",
+        props: { value: "x" },
+        style: { width: 40 },
+      }),
+    ).toEqual({ t: { x: 0, y: 0, width: 40, height: 20 } });
+  });
+
+  it.each([
+    ["select", 32],
+    ["slider", 24],
+    ["date", 32],
+  ] as const)("uses the fixed height for %s", (type, height) => {
+    expect(layout({ id: "n", type })).toEqual({
+      n: { x: 0, y: 0, width: 320, height },
+    });
+  });
+
   it("uses an explicit numeric height in place of the content height", () => {
     expect(
       layout({
