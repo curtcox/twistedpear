@@ -15,7 +15,7 @@ You need to be comfortable with JavaScript. You do **not** need to know Reticulu
 Hyperdrive, or anything about the host internals. Everything a mini-app can do goes through
 one import, and that import is the whole surface.
 
-If you want twenty-five complete sample apps rather than a systematic tour of the SDK, the
+If you want twenty-six complete sample apps rather than a systematic tour of the SDK, the
 [Cookbook](../cookbook/README.md) works the other way round: it starts with an app somebody
 would want and works backwards to the calls that build it.
 
@@ -109,7 +109,7 @@ you can move a project between them by copying two files.
 - [docs/devstudio.md](../docs/devstudio.md) — DevStudio's own design notes.
 - [apps/examples](../apps/examples/README.md) — the three reference mini-apps this guide
   quotes from.
-- [Cookbook](../cookbook/README.md) — twenty-five sample apps, indexed
+- [Cookbook](../cookbook/README.md) — twenty-six sample apps, indexed
   [by capability](../cookbook/appendix-app-index.md).
 - [Sample catalog](https://curtcox.github.io/twistedpear/samples/) — every fenced listing in
   the published docs, with search plus GitHub, recipe, live, and editor links.

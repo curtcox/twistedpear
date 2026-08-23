@@ -310,4 +310,4 @@ line existed, and every other choice in that app follows from it.
 
 ---
 
-Next: [Appendix: app index](appendix-app-index.md) — all twenty-five samples in one table.
+Next: [Appendix: app index](appendix-app-index.md) — all twenty-six samples in one table.

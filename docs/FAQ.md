@@ -276,7 +276,7 @@ See [authors/11](../authors/11-testing-and-debugging.md) and
 ### Is there example code?
 
 Three reference apps under [apps/examples](../apps/examples/README.md), the Handbook and
-DevStudio themselves, and twenty-five complete sample apps in the
+DevStudio themselves, and twenty-six complete sample apps in the
 [Cookbook](../cookbook/README.md) — all of which CI packs, validates, and launches, so they
 cannot rot quietly.
 

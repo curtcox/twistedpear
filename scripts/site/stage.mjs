@@ -334,7 +334,7 @@ features:
     details: Write, preview, package, sign, and publish a mini-app — in DevStudio or with the tp CLI.
     link: /authors/
   - title: Cookbook
-    details: Twenty-five complete sample mini-apps, from a no-capability calculator to an app that publishes other apps.
+    details: Twenty-six complete sample mini-apps, from a no-capability calculator to an app that publishes other apps.
     link: /cookbook/
   - title: Sample catalog
     details: Every fenced code listing in the published docs, with search, GitHub source, recipe, React Native Web, and editor links.

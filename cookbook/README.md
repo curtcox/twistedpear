@@ -6,7 +6,7 @@ audited: 2026-08-21
 register: none
 -->
 
-Twenty-five complete sample mini-apps, each one small enough to read in a sitting and
+Twenty-six complete sample mini-apps, each one small enough to read in a sitting and
 real enough to install. This is the guide for people who have understood the platform and
 now want to know **what it is actually good for** — and, just as usefully, what it is not.
 
@@ -59,7 +59,7 @@ these on your own host.
 
 ## The sample apps
 
-All twenty-five live under [`cookbook/apps/`](apps/), one directory each. JavaScript
+All twenty-six live under [`cookbook/apps/`](apps/), one directory each. JavaScript
 `bundle.js` is the published artifact the host packs; `elm.json` and `src/Main.elm` are
 the Guida source variant of the same app. The directory layout is deliberately the same
 as [`apps/examples/`](../apps/examples/README.md), so anything you learn about packing one

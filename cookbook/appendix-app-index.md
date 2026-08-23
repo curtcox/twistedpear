@@ -11,7 +11,7 @@ All twenty-six cookbook samples in one table, sorted by chapter. Every directory
 Guida variant (`elm.json` + `src/Main.elm`). The Freenet integration notebook under
 `cookbook/examples/` ships the same pair.
 
-The **size** column is the approximate packaged `.tpkg` size. All twenty-five are far inside
+The **size** column is the approximate packaged `.tpkg` size. All twenty-six are far inside
 the 180 KiB BLE install budget, and the four largest are still under a minute of BLE transfer
 — but see [Chapter 9](09-apps-for-a-bad-link.md) for what any of them cost over LoRa.
 
@@ -88,7 +88,7 @@ capability strings is in the
 [SDK reference appendix](../authors/appendix-sdk-reference.md).
 
 The optional [Contract notebook](examples/contract-notebook/README.md) is kept
-outside the twenty-five general-purpose samples because it requires a configured
+outside the twenty-six general-purpose samples because it requires a configured
 external Freenet node. It demonstrates `freenet:contract` `get`, `put`, and
 `update`, including the host's per-write confirmation.
 

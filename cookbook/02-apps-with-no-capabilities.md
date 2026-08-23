@@ -292,7 +292,7 @@ Reach for a capability when the app cannot exist without it, not when the app wo
 slightly nicer with it. Every grant you request is a dialog the user has to read, a thing
 they might say no to, and a reason for them to wonder what you are doing with it.
 
-Three of the twenty-five apps in this cookbook need nothing. When you finish designing an
+Three of the twenty-six apps in this cookbook need nothing. When you finish designing an
 app, it is worth one minute to ask whether yours could have been a fourth.
 
 ---

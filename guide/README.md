@@ -68,7 +68,7 @@ behind that appendix are [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) (open softw
   device. This guide is the version you can read before you have installed anything.
 - The [App Authoring Guide](../authors/README.md) is the equivalent of this guide for people
   who want to _write_ a mini-app rather than run one.
-- The [Cookbook](../cookbook/README.md) is twenty-five complete sample apps. Read the chapter
+- The [Cookbook](../cookbook/README.md) is twenty-six complete sample apps. Read the chapter
   openers if you want to know what kinds of thing TwistedPear can carry, and skip the code.
 - [docs/](../docs/README.md) is the engineering documentation. Read it if you want to
   know how something is built rather than how to use it.

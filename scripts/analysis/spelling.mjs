@@ -7,7 +7,7 @@
  * other, that a `historical` one lives under `archive/`, that every link and
  * image resolves. All of it is structure. None of it reads a sentence.
  *
- * The published site is the user guide, the app-authoring guide, twenty-five
+ * The published site is the user guide, the app-authoring guide, twenty-six
  * cookbook samples, the specs, and the docs tree — the parts of the project a
  * reader meets before any code. A typo there is not a build failure, which is
  * exactly why nothing had ever caught one.

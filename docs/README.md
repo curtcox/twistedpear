@@ -91,6 +91,12 @@ feature-status appendices of the [User Guide](../guide/appendix-feature-status.m
 guides admit to into work this repository can do and work gated on hardware, accounts, or
 deliberate v1 scope.
 
+[Platform facilities proposals](platform-facilities-plan.md) is a survey of facilities for
+running and developing mini-apps that the platform does not offer, written as unscheduled
+proposals: it carries no register IDs, nothing in it gates the release, and it excludes gaps
+the feature-status appendices already track. Its one fully developed item is
+[mini-app record and replay](miniapp-record-replay-plan.md).
+
 ## Archive
 
 Superseded plans, closed decision records, one-shot handoffs, executed repository work

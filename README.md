@@ -35,7 +35,7 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 | [apps/host-desktop](apps/host-desktop/)               | Electron desktop host.                                                                                             |
 | [apps/examples](apps/examples/)                       | Reference chat, file-drop, and board mini-apps.                                                                    |
 | [apps/handbook](apps/handbook/)                       | Interactive platform Handbook shipped as a mini-app.                                                               |
-| [cookbook/apps](cookbook/apps/)                       | Twenty-five cookbook sample mini-apps. CI validates their packages, runtime rendering, and React Native Web pages. |
+| [cookbook/apps](cookbook/apps/)                       | Twenty-six cookbook sample mini-apps. CI validates their packages, runtime rendering, and React Native Web pages. |
 | [conformance](conformance/)                           | Scenario runners, golden vectors, interop tests, and device runbooks.                                              |
 | [specs](specs/)                                       | Quasi-independent specification units; vectors and formal models are normative.                                    |
 
@@ -47,7 +47,7 @@ contributors alike — with a pointer to the canonical document for each, read t
 
 If you want to _use_ TwistedPear rather than work on it, start with the
 [User Guide](guide/README.md). If you want to _write a mini-app_ for it, start with the
-[App Authoring Guide](authors/README.md). For twenty-five complete sample apps showing what
+[App Authoring Guide](authors/README.md). For twenty-six complete sample apps showing what
 the platform can carry, see the [Cookbook](cookbook/README.md).
 
 Published site: [curtcox.github.io/twistedpear](https://curtcox.github.io/twistedpear/)
