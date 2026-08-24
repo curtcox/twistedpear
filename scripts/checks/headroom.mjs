@@ -99,23 +99,41 @@ export function unitWorkerArgs(env = process.env) {
   return [`--maxWorkers=${workers}`];
 }
 
+function parseDarwinSwapUsedBytes(text) {
+  const normalized = text.toLowerCase();
+  const usedAt = normalized.indexOf("used");
+  if (usedAt === -1) return null;
+  const separatorAt = normalized.indexOf("=", usedAt);
+  if (separatorAt === -1) return null;
+  const quantity = normalized.slice(separatorAt + 1);
+  const value = Number.parseFloat(quantity);
+  if (!Number.isFinite(value)) return null;
+  if (quantity.includes("g")) return value * GiB;
+  if (quantity.includes("m")) return value * 1024 * 1024;
+  return null;
+}
+
+function parseLinuxSwapKiB(text, label) {
+  const prefixed = `\n${text}`;
+  const start = prefixed.indexOf(`\n${label}`);
+  if (start === -1) return null;
+  const value = Number.parseInt(prefixed.slice(start + label.length + 1), 10);
+  return Number.isFinite(value) ? value : null;
+}
+
+function parseLinuxSwapUsedBytes(text) {
+  const totalKiB = parseLinuxSwapKiB(text, "SwapTotal:");
+  const freeKiB = parseLinuxSwapKiB(text, "SwapFree:");
+  if (totalKiB === null || freeKiB === null) return null;
+  return Math.max(0, (totalKiB - freeKiB) * 1024);
+}
+
 /**
  * @param {string} text
  * @returns {number}
  */
 export function parseSwapUsedBytes(text) {
-  const darwin = text.match(/used\s*=\s*([\d.]+)\s*([MG])/i);
-  if (darwin) {
-    const value = Number(darwin[1]);
-    const unit = darwin[2];
-    return unit === "G" || unit === "g" ? value * GiB : value * 1024 * 1024;
-  }
-  const total = text.match(/^SwapTotal:\s+(\d+)\s+kB/m);
-  const free = text.match(/^SwapFree:\s+(\d+)\s+kB/m);
-  if (total && free) {
-    return Math.max(0, (Number(total[1]) - Number(free[1])) * 1024);
-  }
-  return 0;
+  return parseDarwinSwapUsedBytes(text) ?? parseLinuxSwapUsedBytes(text) ?? 0;
 }
 
 /**
@@ -150,6 +168,49 @@ function formatGiB(bytes) {
   return `${(bytes / GiB).toFixed(1)} GiB`;
 }
 
+function appendSwapReason(reasons, snapshot, cost) {
+  if (
+    cost === "heavy" &&
+    snapshot.swapUsedBytes > LIMITS.maxHeavySwapUsedBytes
+  ) {
+    reasons.push(
+      `swap used ${formatGiB(snapshot.swapUsedBytes)} (heavy-gate limit ${formatGiB(LIMITS.maxHeavySwapUsedBytes)})`,
+    );
+    return;
+  }
+  if (cost !== "light") return;
+  if (snapshot.swapUsedBytes > LIMITS.maxLightSwapUsedBytes) {
+    reasons.push(
+      `swap used ${formatGiB(snapshot.swapUsedBytes)} (light-gate limit ${formatGiB(LIMITS.maxLightSwapUsedBytes)})`,
+    );
+    return;
+  }
+  if (
+    snapshot.swapUsedBytes > LIMITS.maxHeavySwapUsedBytes &&
+    snapshot.freeBytes < LIMITS.minLightFreeBytesWhileSwapped
+  ) {
+    reasons.push(
+      `free memory ${formatGiB(snapshot.freeBytes)} while swap remains above ${formatGiB(LIMITS.maxHeavySwapUsedBytes)} (minimum ${formatGiB(LIMITS.minLightFreeBytesWhileSwapped)})`,
+    );
+  }
+}
+
+function appendLoadReason(reasons, snapshot, cpus) {
+  if (snapshot.load1 <= cpus * LIMITS.maxLoadPerCpu) return;
+  reasons.push(
+    `load ${snapshot.load1.toFixed(1)} on ${cpus} cores (limit ${LIMITS.maxLoadPerCpu}×)`,
+  );
+}
+
+function appendRivalReason(reasons, snapshot, cost, rivals) {
+  if (cost !== "heavy" || rivals.length === 0) return;
+  if (snapshot.totalBytes >= LIMITS.smallHostBytes) return;
+  const names = [...new Set(rivals.map((row) => rivalLabel(row.args)))];
+  reasons.push(
+    `${rivals.length} rival heap(s) on a <32 GiB host: ${names.join(", ")}`,
+  );
+}
+
 /**
  * @param {HostSnapshot} snapshot
  * @param {{ cost?: "light" | "heavy"; force?: boolean }} [options]
@@ -163,45 +224,9 @@ export function judgeHeadroom(snapshot, options = {}) {
   const cpus = Math.max(1, snapshot.cpuCount);
   const rivals = rivalProcesses(snapshot.processes, snapshot.selfPids);
 
-  if (
-    cost === "heavy" &&
-    snapshot.swapUsedBytes > LIMITS.maxHeavySwapUsedBytes
-  ) {
-    reasons.push(
-      `swap used ${formatGiB(snapshot.swapUsedBytes)} (heavy-gate limit ${formatGiB(LIMITS.maxHeavySwapUsedBytes)})`,
-    );
-  }
-  if (
-    cost === "light" &&
-    snapshot.swapUsedBytes > LIMITS.maxLightSwapUsedBytes
-  ) {
-    reasons.push(
-      `swap used ${formatGiB(snapshot.swapUsedBytes)} (light-gate limit ${formatGiB(LIMITS.maxLightSwapUsedBytes)})`,
-    );
-  } else if (
-    cost === "light" &&
-    snapshot.swapUsedBytes > LIMITS.maxHeavySwapUsedBytes &&
-    snapshot.freeBytes < LIMITS.minLightFreeBytesWhileSwapped
-  ) {
-    reasons.push(
-      `free memory ${formatGiB(snapshot.freeBytes)} while swap remains above ${formatGiB(LIMITS.maxHeavySwapUsedBytes)} (minimum ${formatGiB(LIMITS.minLightFreeBytesWhileSwapped)})`,
-    );
-  }
-  if (snapshot.load1 > cpus * LIMITS.maxLoadPerCpu) {
-    reasons.push(
-      `load ${snapshot.load1.toFixed(1)} on ${cpus} cores (limit ${LIMITS.maxLoadPerCpu}×)`,
-    );
-  }
-  if (
-    cost === "heavy" &&
-    rivals.length > 0 &&
-    snapshot.totalBytes < LIMITS.smallHostBytes
-  ) {
-    const names = [...new Set(rivals.map((row) => rivalLabel(row.args)))];
-    reasons.push(
-      `${rivals.length} rival heap(s) on a <32 GiB host: ${names.join(", ")}`,
-    );
-  }
+  appendSwapReason(reasons, snapshot, cost);
+  appendLoadReason(reasons, snapshot, cpus);
+  appendRivalReason(reasons, snapshot, cost, rivals);
 
   return { ok: reasons.length === 0, reasons };
 }
@@ -216,19 +241,32 @@ function recoverablePressure(verdict) {
   );
 }
 
+function resolveWaitOptions(options) {
+  return {
+    cost: options.cost ?? "light",
+    sample: options.sample ?? snapshotHost,
+    wait: options.wait ?? ((ms) => new Promise((done) => setTimeout(done, ms))),
+    maxSamples: options.maxSamples ?? LIMITS.recoverySamples,
+    delayMs: options.delayMs ?? LIMITS.recoveryDelayMs,
+    force: options.force ?? false,
+  };
+}
+
+function pressureIsImproving(current, next) {
+  return (
+    next.swapUsedBytes < current.swapUsedBytes ||
+    next.freeBytes > current.freeBytes
+  );
+}
+
 /**
  * Give macOS a bounded chance to drain swap after a completed gate. Continue
  * only while swap is falling or immediately free memory is rising; rival heaps
  * and load are operator actions, not conditions a runner should sleep through.
  */
 export async function waitForHeadroom(options = {}) {
-  const cost = options.cost ?? "light";
-  const sample = options.sample ?? snapshotHost;
-  const wait =
-    options.wait ?? ((ms) => new Promise((done) => setTimeout(done, ms)));
-  const maxSamples = options.maxSamples ?? LIMITS.recoverySamples;
-  const delayMs = options.delayMs ?? LIMITS.recoveryDelayMs;
-  const force = options.force ?? false;
+  const { cost, sample, wait, maxSamples, delayMs, force } =
+    resolveWaitOptions(options);
   let current = sample();
   let verdict = judgeHeadroom(current, { cost, force });
   let samples = 1;
@@ -240,9 +278,7 @@ export async function waitForHeadroom(options = {}) {
     const nextVerdict = judgeHeadroom(next, { cost, force });
     if (nextVerdict.ok)
       return { snapshot: next, verdict: nextVerdict, samples, recovered: true };
-    const improving =
-      next.swapUsedBytes < current.swapUsedBytes ||
-      next.freeBytes > current.freeBytes;
+    const improving = pressureIsImproving(current, next);
     current = next;
     verdict = nextVerdict;
     if (!improving) break;
