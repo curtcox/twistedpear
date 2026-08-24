@@ -38,6 +38,15 @@ const ROOT = path.resolve(
 
 const DECLARATION = "conformance/native-parity/ble-bridge.json";
 
+// Keep literal grammar outside the functions that use it. Besides making the
+// accepted forms easy to review together, this prevents JavaScript complexity
+// scanners from mistaking regexp punctuation for control-flow operators.
+const WRAPPED_LITERAL =
+  /^(?:CBUUID\(string:\s*|UUID\.fromString\(|ParcelUuid\.fromString\()\s*(.+?)\s*\)$/;
+const QUOTED_LITERAL = /^"(.*)"$/;
+const HEX_LITERAL = /^0[xX]([0-9a-fA-F]+)[LlUu]*$/;
+const DECIMAL_LITERAL = /^(-?\d+)[LlUuFfDd]?$/;
+
 /**
  * Per-language declaration forms.
  *
@@ -67,19 +76,16 @@ const EXTRACTORS = {
 export function normalizeLiteral(raw) {
   let text = raw.trim().replace(/,$/, "");
 
-  const wrapped =
-    /^(?:CBUUID\(string:\s*|UUID\.fromString\(|ParcelUuid\.fromString\()\s*(.+?)\s*\)$/.exec(
-      text,
-    );
+  const wrapped = WRAPPED_LITERAL.exec(text);
   if (wrapped?.[1] !== undefined) text = wrapped[1].trim();
 
-  const quoted = /^"(.*)"$/.exec(text);
+  const quoted = QUOTED_LITERAL.exec(text);
   if (quoted?.[1] !== undefined) return quoted[1];
 
-  const hex = /^0[xX]([0-9a-fA-F]+)[LlUu]*$/.exec(text);
+  const hex = HEX_LITERAL.exec(text);
   if (hex?.[1] !== undefined) return Number.parseInt(hex[1], 16);
 
-  const decimal = /^(-?\d+)[LlUuFfDd]?$/.exec(text);
+  const decimal = DECIMAL_LITERAL.exec(text);
   if (decimal?.[1] !== undefined) return Number.parseInt(decimal[1], 10);
 
   return null;
@@ -116,19 +122,7 @@ function describe(value) {
   return typeof value === "string" ? `"${value}"` : String(value);
 }
 
-/**
- * Compare every implementation against the declaration.
- *
- * Returns findings and counts rather than exiting, so the gate's own regression
- * tests can drive it in-process.
- *
- * @param {string} [root]
- */
-export function checkNativeParity(root = ROOT) {
-  const declaration = readJson(path.join(root, DECLARATION));
-  const findings = [];
-
-  /** Each implementation's extracted constants, keyed by language. */
+function extractImplementations(root, declaration, findings) {
   const extracted = new Map();
   for (const [language, source] of Object.entries(declaration.sources)) {
     const file = path.join(root, source.file);
@@ -149,8 +143,10 @@ export function checkNativeParity(root = ROOT) {
     }
     extracted.set(language, constants);
   }
+  return extracted;
+}
 
-  // 1. Every declared binding exists and holds the declared value.
+function checkDeclaredBindings(declaration, extracted, findings) {
   for (const constant of declaration.constants) {
     for (const [language, identifier] of Object.entries(constant.bindings)) {
       const constants = extracted.get(language);
@@ -169,20 +165,17 @@ export function checkNativeParity(root = ROOT) {
       }
     }
   }
+}
 
-  // 2. A constant two or more implementations carry must be declared here.
-  //    Without this rule the declaration is a list someone has to remember to
-  //    extend, and the next shared constant is simply not covered.
-  const registered = new Set(
+function registeredConstantNames(declaration) {
+  return new Set(
     declaration.constants.flatMap((constant) =>
       Object.values(constant.bindings).map(foldName),
     ),
   );
-  const platformOnly = new Set(
-    Object.values(declaration.platformOnly ?? {})
-      .flat()
-      .map(foldName),
-  );
+}
+
+function collectCarriers(extracted) {
   const carriers = new Map();
   for (const [language, constants] of extracted) {
     for (const name of constants.keys()) {
@@ -191,55 +184,80 @@ export function checkNativeParity(root = ROOT) {
       carriers.get(folded).push(`${language} ${name}`);
     }
   }
-  for (const [folded, where] of carriers) {
+  return carriers;
+}
+
+function checkSharedConstantRegistration(declaration, extracted, findings) {
+  const registered = new Set(registeredConstantNames(declaration));
+  const platformOnly = new Set(
+    Object.values(declaration.platformOnly ?? {})
+      .flat()
+      .map(foldName),
+  );
+  for (const [folded, where] of collectCarriers(extracted)) {
     if (registered.has(folded) || platformOnly.has(folded)) continue;
     if (where.length < 2) continue;
     findings.push(
       `unregistered shared constant: ${where.join(", ")} agree on a name but no row in ${DECLARATION} governs the value`,
     );
   }
+}
 
-  // 3. Values the normative document states must still say what it states. Both
-  //    halves of "the source mirrors the document" are worth holding: a value
-  //    changed in every implementation and not in the specification is drift in
-  //    the other direction.
-  const specPath = path.join(root, declaration.spec);
-  const spec = fs.existsSync(specPath)
-    ? fs.readFileSync(specPath, "utf8")
-    : null;
-  if (spec === null) {
-    findings.push(`spec: ${declaration.spec} does not exist`);
-  } else {
-    for (const constant of declaration.constants) {
-      if (constant.doc !== true) continue;
-      if (!spec.includes(String(constant.value))) {
-        findings.push(
-          `${constant.name}: ${describe(constant.value)} does not appear in ${declaration.spec}`,
-        );
-      }
-    }
-    // Flags are written in hex in both the document and the source, and JSON
-    // has no hex literal, so they are matched against the document by their
-    // labelled bullet rather than by the decimal value stored here.
-    for (const flag of declaration.docFlags ?? []) {
-      const constant = declaration.constants.find(
-        (candidate) => candidate.name === flag.name,
+function checkDocumentedValues(spec, declaration, findings) {
+  for (const constant of declaration.constants) {
+    if (constant.doc !== true) continue;
+    if (!spec.includes(String(constant.value))) {
+      findings.push(
+        `${constant.name}: ${describe(constant.value)} does not appear in ${declaration.spec}`,
       );
-      if (constant === undefined) {
-        findings.push(`docFlags: no constant named ${flag.name}`);
-        continue;
-      }
-      const hex = `0x${constant.value.toString(16).padStart(2, "0")}`;
-      // The document renders these as `` `0x01` MORE ``; match the pair while
-      // tolerating the code span, so the check is about the value and the label
-      // belonging together rather than about Markdown punctuation.
-      if (!new RegExp(`\`?${hex}\`?\\s+${flag.label}\\b`, "i").test(spec)) {
-        findings.push(
-          `${flag.name}: ${declaration.spec} does not document "${hex} ${flag.label}" (source value ${constant.value})`,
-        );
-      }
     }
   }
+}
+
+function checkDocumentedFlags(spec, declaration, findings) {
+  for (const flag of declaration.docFlags ?? []) {
+    const constant = declaration.constants.find(
+      (candidate) => candidate.name === flag.name,
+    );
+    if (constant === undefined) {
+      findings.push(`docFlags: no constant named ${flag.name}`);
+      continue;
+    }
+    const hex = `0x${constant.value.toString(16).padStart(2, "0")}`;
+    if (!new RegExp(`\`?${hex}\`?\\s+${flag.label}\\b`, "i").test(spec)) {
+      findings.push(
+        `${flag.name}: ${declaration.spec} does not document "${hex} ${flag.label}" (source value ${constant.value})`,
+      );
+    }
+  }
+}
+
+function checkSpecification(root, declaration, findings) {
+  const specPath = path.join(root, declaration.spec);
+  if (!fs.existsSync(specPath)) {
+    findings.push(`spec: ${declaration.spec} does not exist`);
+    return;
+  }
+  const spec = fs.readFileSync(specPath, "utf8");
+  checkDocumentedValues(spec, declaration, findings);
+  checkDocumentedFlags(spec, declaration, findings);
+}
+
+/**
+ * Compare every implementation against the declaration.
+ *
+ * Returns findings and counts rather than exiting, so the gate's own regression
+ * tests can drive it in-process.
+ *
+ * @param {string} [root]
+ */
+export function checkNativeParity(root = ROOT) {
+  const declaration = readJson(path.join(root, DECLARATION));
+  const findings = [];
+  const extracted = extractImplementations(root, declaration, findings);
+  checkDeclaredBindings(declaration, extracted, findings);
+  checkSharedConstantRegistration(declaration, extracted, findings);
+  checkSpecification(root, declaration, findings);
 
   return {
     findings,

@@ -49,7 +49,6 @@
     "empty-catch-block:apps/host-desktop/src/renderer/peer-webrtc-bridge.js:closeSession#2",
     "empty-catch-block:apps/host-desktop/src/renderer/peer-webrtc-bridge.js:closeSession#3",
     "empty-catch-block:apps/host-desktop/src/renderer/peer-webrtc-bridge.js:detachMedia#1",
-    "empty-catch-block:apps/host-desktop/src/renderer/widgets.js:renderNode > (anonymous@1) > (anonymous@2)#1",
     "empty-catch-block:apps/host-desktop/worklet/entry-host-ipc.mjs:attachHostIpc > (anonymous@1)#1",
     "empty-catch-block:apps/host-desktop/worklet/entry.mjs:?#1",
     "empty-catch-block:apps/peer-link/bundle.js:(anonymous@0)#1",

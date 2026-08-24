@@ -54,10 +54,7 @@ function optionalNumberProp(
   return typeof value === "number" ? { [key]: value } : {};
 }
 
-function optionalTrueProp(
-  props: NodeProps,
-  key: string,
-): Record<string, true> {
+function optionalTrueProp(props: NodeProps, key: string): Record<string, true> {
   return props?.[key] === true ? { [key]: true } : {};
 }
 
@@ -83,10 +80,7 @@ function renderTextInput(
   };
 }
 
-function renderSlider(
-  base: RenderNodeBase,
-  n: WidgetNode,
-): RenderedWidgetNode {
+function renderSlider(base: RenderNodeBase, n: WidgetNode): RenderedWidgetNode {
   return {
     ...base,
     component: "Slider",
@@ -133,10 +127,7 @@ function renderCodeEditor(
   };
 }
 
-function renderQrCode(
-  base: RenderNodeBase,
-  n: WidgetNode,
-): RenderedWidgetNode {
+function renderQrCode(base: RenderNodeBase, n: WidgetNode): RenderedWidgetNode {
   return {
     ...base,
     component: "QrCode",

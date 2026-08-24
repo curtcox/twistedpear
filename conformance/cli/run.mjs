@@ -50,12 +50,12 @@ function runTp(cwd, argv) {
 }
 
 function assertExit(result, expectedCode, label) {
-  if (result.status !== expectedCode) {
-    const detail = (result.stderr || result.stdout || "").trim();
-    throw new Error(
-      `${label}: expected exit ${expectedCode}, got ${result.status}${detail ? ` — ${detail}` : ""}`,
-    );
-  }
+  if (result.status === expectedCode) return;
+  const detail = (result.stderr || result.stdout || "").trim();
+  const suffix = detail === "" ? "" : ` — ${detail}`;
+  throw new Error(
+    `${label}: expected exit ${expectedCode}, got ${result.status}${suffix}`,
+  );
 }
 
 async function sleep(ms) {

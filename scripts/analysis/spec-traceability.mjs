@@ -43,6 +43,15 @@ const VECTOR_ROOTS = ["conformance/vectors"];
 
 const WAIVERS = path.join(ROOT, "spec-traceability-waivers.json");
 
+// These expressions are grammar declarations, not control flow. Keeping them
+// at module scope also stops complexity scanners from counting regexp tokens as
+// branches in the small extraction helpers below.
+const VECTOR_CITATION =
+  /`([\w.-]+\.json)`\s*(?:→|->)\s*((?:`(?![\w.-]*\.json`)[\w.-]+`(?:\s*,\s*)?)+)/g;
+const VECTOR_KEY = /`([\w.-]+)`/g;
+const TEST_CITATION = /`([\w./-]+\.test\.[tm]?[jt]s)`[^("]*\(([^)]*)\)/g;
+const QUOTED_TITLE = /"([^"]+)"/g;
+
 /**
  * Cells of one markdown table row, trimmed. Returns `null` for a non-row or the
  * `|---|---|` separator.
@@ -105,11 +114,9 @@ export function vectorCitations(text) {
   // swallowing it: excluding it after the fact still consumes it, which left
   // the second citation unmatched and therefore unchecked — a hole that looked
   // exactly like a pass.
-  for (const match of text.matchAll(
-    /`([\w.-]+\.json)`\s*(?:→|->)\s*((?:`(?![\w.-]*\.json`)[\w.-]+`(?:\s*,\s*)?)+)/g,
-  )) {
+  for (const match of text.matchAll(VECTOR_CITATION)) {
     const file = match[1];
-    for (const key of (match[2] ?? "").matchAll(/`([\w.-]+)`/g)) {
+    for (const key of (match[2] ?? "").matchAll(VECTOR_KEY)) {
       found.push({ file, key: key[1] });
     }
   }
@@ -124,10 +131,8 @@ export function vectorCitations(text) {
  */
 export function testCitations(text) {
   const found = [];
-  for (const match of text.matchAll(
-    /`([\w./-]+\.test\.[tm]?[jt]s)`[^("]*\(([^)]*)\)/g,
-  )) {
-    for (const title of (match[2] ?? "").matchAll(/"([^"]+)"/g)) {
+  for (const match of text.matchAll(TEST_CITATION)) {
+    for (const title of (match[2] ?? "").matchAll(QUOTED_TITLE)) {
       found.push({ file: match[1], title: title[1] });
     }
   }
@@ -249,183 +254,196 @@ export function indexStatuses(text) {
   return statuses;
 }
 
-function main() {
-  const findings = [];
-  const scripts = new Set(
-    Object.keys(readJson(path.join(ROOT, "package.json")).scripts ?? {}),
-  );
-  const statuses = indexStatuses(
-    fs.readFileSync(path.join(ROOT, SPECS, "README.md"), "utf8"),
-  );
-  const locateCache = new Map();
+function emptyCounts() {
+  return {
+    profiles: 0,
+    subsetRows: 0,
+    vectorKeys: 0,
+    testTitles: 0,
+    commands: 0,
+  };
+}
 
-  const specDirs = fs
+function addCounts(total, added) {
+  for (const key of Object.keys(total)) total[key] += added[key];
+}
+
+function checkSubsetEvidence(relative, text, findings) {
+  const rows = subsetRows(text);
+  for (const row of rows) {
+    if (row.pinnedBy !== "") continue;
+    findings.push(
+      `${relative}:${row.line}: subset row "${row.feature}" has an empty "Pinned by" cell; a profile is done only when every row cites a vector or an interop test`,
+    );
+  }
+  return { profiles: rows.length > 0 ? 1 : 0, subsetRows: rows.length };
+}
+
+function findVector(citation, name, locateCache) {
+  return (
+    findByBasename(citation.file, [
+      ...VECTOR_ROOTS,
+      path.join(SPECS, name, "vectors"),
+    ]) ??
+    locateAnywhere(citation.file, locateCache).find((candidate) =>
+      candidate.includes("vectors"),
+    )
+  );
+}
+
+function checkVectorEvidence(relative, name, text, locateCache, findings) {
+  const citations = vectorCitations(text);
+  for (const citation of citations) {
+    const found = findVector(citation, name, locateCache);
+    if (found === undefined || found === null) {
+      findings.push(
+        `${relative}: cites vector file \`${citation.file}\`, which does not exist`,
+      );
+      continue;
+    }
+    let parsed;
+    try {
+      parsed = readJson(path.join(ROOT, found));
+    } catch (error) {
+      findings.push(
+        `${relative}: ${found} is not readable JSON (${error.message})`,
+      );
+      continue;
+    }
+    if (!hasKey(parsed, citation.key)) {
+      findings.push(
+        `${relative}: cites \`${citation.file}\` → \`${citation.key}\`, but ${found} has no such key; the claim is no longer pinned`,
+      );
+    }
+  }
+  return citations.length;
+}
+
+function testCandidates(citation, locateCache) {
+  if (!citation.file.includes("/")) {
+    return locateAnywhere(path.basename(citation.file), locateCache);
+  }
+  return [citation.file].filter((candidate) =>
+    fs.existsSync(path.join(ROOT, candidate)),
+  );
+}
+
+function checkTestEvidence(relative, text, locateCache, findings) {
+  const citations = testCitations(text);
+  for (const citation of citations) {
+    const candidates = testCandidates(citation, locateCache);
+    if (candidates.length === 0) {
+      findings.push(
+        `${relative}: cites test file \`${citation.file}\`, which does not exist`,
+      );
+      continue;
+    }
+    const matched = candidates.some((candidate) =>
+      titleMatches(
+        fs.readFileSync(path.join(ROOT, candidate), "utf8"),
+        citation.title,
+      ),
+    );
+    if (!matched) {
+      findings.push(
+        `${relative}: cites \`${citation.file}\` ("${citation.title}"), but no such test title exists in ${candidates.join(", ")}`,
+      );
+    }
+  }
+  return citations.length;
+}
+
+function checkScriptEvidence(relative, text, scripts, findings) {
+  const citations = scriptCitations(text);
+  for (const script of citations) {
+    if (scripts.has(script)) continue;
+    findings.push(
+      `${relative}: cites \`npm run ${script}\`, which is not a script in package.json`,
+    );
+  }
+  return citations.length;
+}
+
+function inspectDocument(name, document, scripts, locateCache, findings) {
+  const relative = path.join(SPECS, name, document);
+  const text = fs.readFileSync(path.join(ROOT, relative), "utf8");
+  const counts = emptyCounts();
+  Object.assign(counts, checkSubsetEvidence(relative, text, findings));
+  counts.vectorKeys = checkVectorEvidence(
+    relative,
+    name,
+    text,
+    locateCache,
+    findings,
+  );
+  counts.testTitles = checkTestEvidence(relative, text, locateCache, findings);
+  counts.commands = checkScriptEvidence(relative, text, scripts, findings);
+  return { counts, text };
+}
+
+function hasCheckableEvidence(text) {
+  return (
+    vectorCitations(text).length > 0 ||
+    testCitations(text).length > 0 ||
+    scriptCitations(text).length > 0 ||
+    /\.(tla|cfg|json|spthy|pv)\)/.test(text)
+  );
+}
+
+function inspectSpec(name, scripts, statuses, locateCache, findings) {
+  const counts = emptyCounts();
+  const texts = [];
+  const documents = fs
+    .readdirSync(path.join(ROOT, SPECS, name))
+    .filter((entry) => entry.endsWith(".md"))
+    .sort();
+  for (const document of documents) {
+    const inspected = inspectDocument(
+      name,
+      document,
+      scripts,
+      locateCache,
+      findings,
+    );
+    texts.push(inspected.text);
+    addCounts(counts, inspected.counts);
+  }
+  const normative = (statuses.get(name) ?? "").includes("normative");
+  if (normative && !texts.some(hasCheckableEvidence)) {
+    findings.push(
+      `${path.join(SPECS, name)}: indexed as normative but cites no vector, model, test, or command`,
+    );
+  }
+  return counts;
+}
+
+function discoverSpecs() {
+  return fs
     .readdirSync(path.join(ROOT, SPECS))
     .filter((name) => name.startsWith("spec-"))
     .filter((name) => fs.existsSync(path.join(ROOT, SPECS, name, "spec.md")))
     .sort();
+}
 
-  let vectorChecks = 0;
-  let testChecks = 0;
-  let scriptChecks = 0;
-  let subsetChecks = 0;
-  let profiles = 0;
-
-  for (const name of specDirs) {
-    // Every document in the directory, not only `spec.md`. SPEC-MEDIA is a
-    // dispatcher: its own page holds no citations and delegates to six
-    // per-medium profiles beside it, four of which carry Subset tables. Reading
-    // only `spec.md` measured none of them and reported the parent as an
-    // uncited normative spec, which was a bug in the gate rather than in
-    // the tree.
-    const documents = fs
-      .readdirSync(path.join(ROOT, SPECS, name))
-      .filter((entry) => entry.endsWith(".md"))
-      .sort();
-    const specTexts = [];
-
-    for (const document of documents) {
-      const relative = path.join(SPECS, name, document);
-      const text = fs.readFileSync(path.join(ROOT, relative), "utf8");
-      specTexts.push(text);
-
-      // 1. The profiles' own done-rule: every subset row cites something.
-      const rows = subsetRows(text);
-      if (rows.length > 0) profiles += 1;
-      for (const row of rows) {
-        subsetChecks += 1;
-        if (row.pinnedBy === "") {
-          findings.push(
-            `${relative}:${row.line}: subset row "${row.feature}" has an empty "Pinned by" cell; a profile is done only when every row cites a vector or an interop test`,
-          );
-        }
-      }
-
-      // 2. Vector citations resolve to a file and a key inside it.
-      for (const citation of vectorCitations(text)) {
-        vectorChecks += 1;
-        const found =
-          findByBasename(citation.file, [
-            ...VECTOR_ROOTS,
-            path.join(SPECS, name, "vectors"),
-          ]) ??
-          locateAnywhere(citation.file, locateCache).find((candidate) =>
-            candidate.includes("vectors"),
-          );
-        if (found === undefined || found === null) {
-          findings.push(
-            `${relative}: cites vector file \`${citation.file}\`, which does not exist`,
-          );
-          continue;
-        }
-        let parsed;
-        try {
-          parsed = readJson(path.join(ROOT, found));
-        } catch (error) {
-          findings.push(
-            `${relative}: ${found} is not readable JSON (${error.message})`,
-          );
-          continue;
-        }
-        if (!hasKey(parsed, citation.key)) {
-          findings.push(
-            `${relative}: cites \`${citation.file}\` → \`${citation.key}\`, but ${found} has no such key; the claim is no longer pinned`,
-          );
-        }
-      }
-
-      // 3. Test citations resolve to a file and a title inside it.
-      for (const citation of testCitations(text)) {
-        testChecks += 1;
-        const basename = path.basename(citation.file);
-        const candidates = citation.file.includes("/")
-          ? [citation.file].filter((candidate) =>
-              fs.existsSync(path.join(ROOT, candidate)),
-            )
-          : locateAnywhere(basename, locateCache);
-        if (candidates.length === 0) {
-          findings.push(
-            `${relative}: cites test file \`${citation.file}\`, which does not exist`,
-          );
-          continue;
-        }
-        const matched = candidates.some((candidate) =>
-          titleMatches(
-            fs.readFileSync(path.join(ROOT, candidate), "utf8"),
-            citation.title,
-          ),
-        );
-        if (!matched) {
-          findings.push(
-            `${relative}: cites \`${citation.file}\` ("${citation.title}"), but no such test title exists in ${candidates.join(", ")}`,
-          );
-        }
-      }
-
-      // 4. Cited commands exist. `doc-audit` does this for the status registers
-      //    and stops there, so a spec could cite a script deleted a year ago.
-      for (const script of scriptCitations(text)) {
-        scriptChecks += 1;
-        if (!scripts.has(script)) {
-          findings.push(
-            `${relative}: cites \`npm run ${script}\`, which is not a script in package.json`,
-          );
-        }
-      }
-    }
-
-    // 5. The index's own status definition: "normative" means machine-checkable
-    //    artifacts exist and are cross-checked. A normative spec citing nothing
-    //    checkable is the label claiming more than the tree holds. Judged over
-    //    the whole directory, since a dispatcher page delegates its evidence to
-    //    the profiles beside it.
-    const status = statuses.get(name) ?? "";
-    if (status.includes("normative")) {
-      const checkable = specTexts.some(
-        (text) =>
-          vectorCitations(text).length > 0 ||
-          testCitations(text).length > 0 ||
-          scriptCitations(text).length > 0 ||
-          /\.(tla|cfg|json|spthy|pv)\)/.test(text),
-      );
-      if (!checkable) {
-        findings.push(
-          `${path.join(SPECS, name)}: indexed as normative but cites no vector, model, test, or command`,
-        );
-      }
-    }
-  }
-
-  // A spec that stops being discovered would retire all of its checks silently.
-  if (specDirs.length === 0) {
-    findings.push("specs: no spec directories found; the tree layout changed");
-  }
-
-  // Recorded findings, each with a reason. An entry is debt rather than
-  // permission: everything not listed is enforced at zero, and a listing that
-  // no longer matches anything is reported so a fixed citation loses its waiver
-  // instead of quietly licensing the next one.
+function applyWaivers(findings) {
   const waivers = readJson(WAIVERS).waivers ?? [];
   const waived = new Map(waivers.map((entry) => [entry.finding, entry]));
   const unwaived = findings.filter((finding) => !waived.has(finding));
   const applied = findings.filter((finding) => waived.has(finding));
   const stale = waivers.filter((entry) => !findings.includes(entry.finding));
-
   for (const finding of unwaived) console.error(`  ${finding}`);
-  for (const entry of applied) {
-    console.warn(`  waived ${waived.get(entry).id}: ${entry}`);
+  for (const finding of applied) {
+    console.warn(`  waived ${waived.get(finding).id}: ${finding}`);
   }
   for (const entry of stale) {
     console.error(
       `  stale waiver ${entry.id}: no longer matches any finding; remove it from ${path.relative(ROOT, WAIVERS)}`,
     );
   }
-  findings.length = 0;
-  findings.push(
-    ...unwaived,
-    ...stale.map((entry) => `stale waiver ${entry.id}`),
-  );
+  return [...unwaived, ...stale.map((entry) => `stale waiver ${entry.id}`)];
+}
 
+function writeArtifact(specs, counts, findings) {
   const artifact = path.join(
     ROOT,
     "artifacts/checks/spec-traceability-detail.json",
@@ -438,13 +456,13 @@ function main() {
         version: 1,
         generatedAt: new Date().toISOString(),
         ok: findings.length === 0,
-        specs: specDirs.length,
-        profiles,
+        specs,
+        profiles: counts.profiles,
         checks: {
-          subsetRows: subsetChecks,
-          vectorKeys: vectorChecks,
-          testTitles: testChecks,
-          commands: scriptChecks,
+          subsetRows: counts.subsetRows,
+          vectorKeys: counts.vectorKeys,
+          testTitles: counts.testTitles,
+          commands: counts.commands,
         },
         findings,
       },
@@ -452,11 +470,34 @@ function main() {
       2,
     )}\n`,
   );
+}
 
-  console.log(
-    `spec-traceability: ${findings.length === 0 ? "PASS" : "FAIL"}; ${specDirs.length} spec(s), ${profiles} profile(s), ${subsetChecks} subset row(s), ${vectorChecks} vector key(s), ${testChecks} test title(s), ${scriptChecks} command(s).`,
+function main() {
+  const scripts = new Set(
+    Object.keys(readJson(path.join(ROOT, "package.json")).scripts ?? {}),
   );
-  process.exit(findings.length === 0 ? 0 : 1);
+  const statuses = indexStatuses(
+    fs.readFileSync(path.join(ROOT, SPECS, "README.md"), "utf8"),
+  );
+  const specDirs = discoverSpecs();
+  const counts = emptyCounts();
+  const findings = [];
+  const locateCache = new Map();
+  for (const name of specDirs) {
+    addCounts(
+      counts,
+      inspectSpec(name, scripts, statuses, locateCache, findings),
+    );
+  }
+  if (specDirs.length === 0) {
+    findings.push("specs: no spec directories found; the tree layout changed");
+  }
+  const activeFindings = applyWaivers(findings);
+  writeArtifact(specDirs.length, counts, activeFindings);
+  console.log(
+    `spec-traceability: ${activeFindings.length === 0 ? "PASS" : "FAIL"}; ${specDirs.length} spec(s), ${counts.profiles} profile(s), ${counts.subsetRows} subset row(s), ${counts.vectorKeys} vector key(s), ${counts.testTitles} test title(s), ${counts.commands} command(s).`,
+  );
+  process.exit(activeFindings.length === 0 ? 0 : 1);
 }
 
 if (

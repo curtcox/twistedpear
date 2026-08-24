@@ -245,3 +245,4 @@
 {"at":"2026-08-23T22:13:58.699Z","actor":"Curt Cox","action":"add","id":"POL-7-FORMAL","to":"open","type":"feature","verify":"npm run formal:policy","requires":["POL-2-AMEND"]}
 {"at":"2026-08-23T22:13:59.592Z","actor":"Curt Cox","action":"add","id":"POL-6-BYPASS","to":"open","type":"feature","verify":"npm run test:policy-bypass","requires":["POL-3-SEAL","POL-4-EVIDENCE","POL-5-PREVIEW"]}
 {"at":"2026-08-23T22:14:00.479Z","actor":"Curt Cox","action":"add","id":"POL-8-RECOVERY","to":"open","type":"feature","verify":"npm run test:policy-recovery","requires":["POL-3-SEAL"]}
+{"at":"2026-08-24T00:42:48.856Z","actor":"Curt Cox","action":"audit","id":"-","findings":39,"high":1,"report":"work/audit-report.json","digest":"sha256:7fe21aa0e4276917a49c3f0f1985496718f090e58343afd7ab975ba34937b023"}

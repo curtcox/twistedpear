@@ -108,8 +108,8 @@ inventoried in the plan.
 
 The schema is the first artifact and is already here; it becomes normative when the
 evaluator validates against it. The spec goes **normative** when the executable table, the
-TLA+ twin, and the generated vectors are cross-checked edge-for-edge by
-`npm run formal:policy`, in the shape [SPEC-CAP](../spec-cap/spec.md) sets, and when every
+TLA+ twin, and the generated vectors are cross-checked edge-for-edge by the planned
+`formal:policy` command, in the shape [SPEC-CAP](../spec-cap/spec.md) sets, and when every
 requirement key above is cited by at least one conformance case. The bypass suite is a
 release gate for this spec rather than an optional extra: a policy language nobody has
 tried to break is not evidence of anything.

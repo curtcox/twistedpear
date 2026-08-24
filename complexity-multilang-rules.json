@@ -132,8 +132,8 @@
       "ccn": 13
     },
     "apps/host-desktop/src/renderer/app-worklet-messages.mjs::handleWorkletMessage": {
-      "ccn": 85,
-      "nloc": 268
+      "ccn": 56,
+      "nloc": 204
     },
     "apps/host-desktop/src/renderer/device-bridge.js::deviceAvailability": {
       "ccn": 15
@@ -188,9 +188,6 @@
     "apps/host-desktop/worklet/test-agent-handler.mjs::handleCommand": {
       "ccn": 57,
       "nloc": 288
-    },
-    "conformance/cli/run.mjs::assertExit": {
-      "ccn": 22
     },
     "conformance/cross-device-dev/run.mjs::(anonymous)": {
       "ccn": 34,

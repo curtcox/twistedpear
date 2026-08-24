@@ -1,0 +1,16 @@
+
+> twistedpear@0.0.0 work:check
+> node scripts/work/check.mjs
+
+  ok    metadata shape
+  ok    resources shape
+  ok    canonical form
+  ok    register coverage
+  ok    prerequisites
+  ok    verify commands
+  ok    evidence paths
+  ok    journal shape
+  ok    journal append-only
+  ok    journal vs registers
+
+work registry is consistent.

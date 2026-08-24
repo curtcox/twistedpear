@@ -17,9 +17,6 @@ const CRYPTO_MAX_INPUT_BYTES = 64 * 1024;
 const CRYPTO_HASH_ALGS = ["sha256", "sha512"] as const;
 const CRYPTO_HMAC_ALGS = ["sha256"] as const;
 
-type CryptoHashAlg = (typeof CRYPTO_HASH_ALGS)[number];
-type CryptoHmacAlg = (typeof CRYPTO_HMAC_ALGS)[number];
-
 export interface CryptoEntropy {
   randomBytes(n: number): Uint8Array;
 }
@@ -116,7 +113,9 @@ function requireBytes(value: unknown, field: string): Uint8Array {
 }
 
 function isNumberArray(value: unknown): value is number[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "number");
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "number")
+  );
 }
 
 function coerceJsonBuffer(value: unknown): Uint8Array | null {

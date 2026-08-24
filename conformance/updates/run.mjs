@@ -69,7 +69,6 @@ async function waitFor(evaluate, timeoutMs = 10_000) {
 
     await sleep(50);
   }
-
 }
 
 async function connectPeers(provider, runtime) {

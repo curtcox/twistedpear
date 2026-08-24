@@ -57,7 +57,6 @@ async function waitFor(evaluate, timeoutMs = 20_000) {
 
     await sleep(100);
   }
-
 }
 
 function treeHasTitle(tree) {

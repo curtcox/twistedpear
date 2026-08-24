@@ -295,7 +295,8 @@ function renderQrCodeGraphic(element, node) {
     svg.setAttribute("height", String(size));
     element.appendChild(svg);
   } catch {
-    // fall through to the copyable string below
+    // The caller still renders the copyable string when QR generation fails.
+    return;
   }
 }
 
@@ -344,10 +345,13 @@ const NODE_RENDERERS = {
   "qr-code": (node) => renderQrCodeNode(node),
   "camera-preview": (node, onEvent, options) =>
     renderPreviewSurface(node, options),
-  "audio-meter": (node, onEvent, options) => renderPreviewSurface(node, options),
+  "audio-meter": (node, onEvent, options) =>
+    renderPreviewSurface(node, options),
   waveform: (node, onEvent, options) => renderPreviewSurface(node, options),
-  "map-preview": (node, onEvent, options) => renderPreviewSurface(node, options),
-  "remote-video": (node, onEvent, options) => renderPreviewSurface(node, options),
+  "map-preview": (node, onEvent, options) =>
+    renderPreviewSurface(node, options),
+  "remote-video": (node, onEvent, options) =>
+    renderPreviewSurface(node, options),
 };
 
 function renderNode(node, onEvent, options = {}) {

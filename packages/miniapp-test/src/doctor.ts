@@ -146,7 +146,9 @@ function checkMinHostApi(manifest: AppManifest): DoctorFinding[] {
   ];
 }
 
-function checkWidgetTree(tree: ReturnType<AppHandle["rawTree"]>): DoctorFinding[] {
+function checkWidgetTree(
+  tree: ReturnType<AppHandle["rawTree"]>,
+): DoctorFinding[] {
   if (tree === null) return [];
   const findings: DoctorFinding[] = [];
   try {

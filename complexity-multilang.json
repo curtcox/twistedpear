@@ -6,10 +6,10 @@
     "kotlin",
     "swift"
   ],
-  "files": 663,
-  "functions": 7767,
-  "groups": 4728,
-  "exemptions": 87,
+  "files": 671,
+  "functions": 7800,
+  "groups": 4724,
+  "exemptions": 86,
   "violations": 0,
   "stale": 0,
   "findings": [
@@ -59,10 +59,10 @@
       "line": 12,
       "tier": "source",
       "ccn": 56,
-      "nloc": 217,
+      "nloc": 204,
       "pinned": {
-        "ccn": 85,
-        "nloc": 268
+        "ccn": 56,
+        "nloc": 204
       }
     },
     {
@@ -189,7 +189,7 @@
       "key": "conformance/handbook/run.mjs::main",
       "file": "conformance/handbook/run.mjs",
       "name": "main",
-      "line": 288,
+      "line": 269,
       "tier": "tooling",
       "ccn": 31,
       "nloc": 268,
@@ -290,7 +290,7 @@
       "key": "conformance/hostile-apps/run.mjs::main",
       "file": "conformance/hostile-apps/run.mjs",
       "name": "main",
-      "line": 78,
+      "line": 59,
       "tier": "tooling",
       "ccn": 23,
       "nloc": 296,
@@ -305,17 +305,6 @@
       "name": "handleHostMessageImpl",
       "line": 26,
       "tier": "source",
-      "ccn": 22,
-      "pinned": {
-        "ccn": 22
-      }
-    },
-    {
-      "key": "conformance/cli/run.mjs::assertExit",
-      "file": "conformance/cli/run.mjs",
-      "name": "assertExit",
-      "line": 52,
-      "tier": "tooling",
       "ccn": 22,
       "pinned": {
         "ccn": 22
@@ -446,7 +435,7 @@
       "key": "conformance/desktop/dev-loop.mjs::runDesktopDevLoop",
       "file": "conformance/desktop/dev-loop.mjs",
       "name": "runDesktopDevLoop",
-      "line": 58,
+      "line": 39,
       "tier": "tooling",
       "ccn": 18,
       "pinned": {
@@ -457,7 +446,7 @@
       "key": "conformance/ios-sim/dev-loop.mjs::runIosDevLoop",
       "file": "conformance/ios-sim/dev-loop.mjs",
       "name": "runIosDevLoop",
-      "line": 58,
+      "line": 39,
       "tier": "tooling",
       "ccn": 18,
       "pinned": {
@@ -525,7 +514,7 @@
       "key": "conformance/handbook/mobile-slice.mjs::runHandbookMobileSlice",
       "file": "conformance/handbook/mobile-slice.mjs",
       "name": "runHandbookMobileSlice",
-      "line": 350,
+      "line": 331,
       "tier": "tooling",
       "ccn": 17,
       "pinned": {
@@ -569,7 +558,7 @@
       "key": "conformance/handbook/part-packages.mjs::runHandbookPartPackagesSmoke",
       "file": "conformance/handbook/part-packages.mjs",
       "name": "runHandbookPartPackagesSmoke",
-      "line": 145,
+      "line": 126,
       "tier": "tooling",
       "ccn": 16,
       "pinned": {
@@ -591,7 +580,7 @@
       "key": "conformance/seeder/run.mjs::main",
       "file": "conformance/seeder/run.mjs",
       "name": "main",
-      "line": 87,
+      "line": 88,
       "tier": "tooling",
       "ccn": 16,
       "pinned": {

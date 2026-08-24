@@ -89,11 +89,16 @@ const cases: ReadonlyArray<SurfaceCase> = [
     namespace: "crypto",
     method: "hmac",
     capability: undefined,
-    payload: { alg: "sha256", key: new Uint8Array([1]), bytes: new Uint8Array([2]) },
+    payload: {
+      alg: "sha256",
+      key: new Uint8Array([1]),
+      bytes: new Uint8Array([2]),
+    },
   },
   {
     label: "crypto.timingSafeEqual",
-    call: () => crypto.timingSafeEqual(new Uint8Array([1]), new Uint8Array([1])),
+    call: () =>
+      crypto.timingSafeEqual(new Uint8Array([1]), new Uint8Array([1])),
     namespace: "crypto",
     method: "timingSafeEqual",
     capability: undefined,

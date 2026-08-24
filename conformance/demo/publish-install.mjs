@@ -54,7 +54,6 @@ async function waitFor(evaluate, timeoutMs = 20_000) {
 
     await sleep(100);
   }
-
 }
 
 async function fetchWithRetry(driveManager, version) {

@@ -44,10 +44,7 @@ function optionalNumberProp(
   return typeof value === "number" ? { [key]: value } : {};
 }
 
-function optionalTrueProp(
-  props: NodeProps,
-  key: string,
-): Record<string, true> {
+function optionalTrueProp(props: NodeProps, key: string): Record<string, true> {
   return props?.[key] === true ? { [key]: true } : {};
 }
 
@@ -103,10 +100,7 @@ function describeSlider(
   };
 }
 
-function describeList(
-  base: WidgetNodeBase,
-  n: WidgetNode,
-): RenderedWidgetNode {
+function describeList(base: WidgetNodeBase, n: WidgetNode): RenderedWidgetNode {
   return {
     ...base,
     component: "List",

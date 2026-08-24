@@ -48,7 +48,9 @@ function bundlePushLine(options: DevServerOptions): string {
 
 function linkDelayMs(link: LinkProfile | undefined, line: string): number {
   const serializeMs =
-    link === undefined ? 0 : (Buffer.byteLength(line) * 8 * 1000) / link.bitrate;
+    link === undefined
+      ? 0
+      : (Buffer.byteLength(line) * 8 * 1000) / link.bitrate;
   return (link?.latencyMs ?? 0) + serializeMs;
 }
 

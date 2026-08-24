@@ -29,25 +29,12 @@ export function handleWorkletMessage(scope, message) {
     requestedAppId,
     scheduleRequestedAppLaunch,
     renderGrants,
-    previewRoot,
-    lastDeviceState,
-    runningAppId,
-    miniappTitle,
-    widgetRoot,
-    readWorkspaceDocument,
     showHostModal,
     pendingWorkspaceReads,
     renderLimits,
-    lifecycleChip,
-    appError,
-    appDiagnostics,
     renderTrustList,
     renderOwnIdentity,
     identityResult,
-    identityWordsFirst,
-    identityWordsSecond,
-    pendingIdentityImport,
-    pendingIdentityRecovery,
     renderModerationState,
     renderDeviceState,
     renderSessionInvites,
@@ -292,7 +279,13 @@ export function handleWorkletMessage(scope, message) {
 }
 
 function sendPreviewUiEvent(host, nodeId, event, value) {
-  host.send({ type: "miniapp-ui-event", slot: "preview", nodeId, event, value });
+  host.send({
+    type: "miniapp-ui-event",
+    slot: "preview",
+    nodeId,
+    event,
+    value,
+  });
 }
 
 function handlePreviewRuntimeMessage(scope, message) {
@@ -323,7 +316,7 @@ function updateRunningAppChrome(scope) {
 }
 
 function handleRunningRuntimeMessage(scope, message) {
-  const { host, widgetRoot, readWorkspaceDocument } = scope;
+  const { host, widgetRoot, readWorkspaceDocument, renderInstalled } = scope;
   scope.runningAppId = message.runtime.appId;
   scope.runningApps = message.runtime.running ?? [];
   if (scope.runningAppId === scope.requestedAppId)

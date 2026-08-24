@@ -93,7 +93,7 @@
     },
     "miniapp-test.api.md": {
       "package": "packages/miniapp-test",
-      "sha256": "4ed116fd7fc0a3788b74ce16549e63299c756d8d2eb1a7fc5582095a3fdd7991"
+      "sha256": "acb657c4a1957503a2be09cfc84f167110dd7c9b378d08603e07da56835f5db3"
     },
     "bridge-hyper-web.api.md": {
       "package": "packages/bridge-hyper",

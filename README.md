@@ -22,22 +22,22 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 
 ## Repository map
 
-| Path                                                  | Purpose                                                                                                            |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| [packages/reticulum-ts](packages/reticulum-ts/)       | Reticulum network stack implementation.                                                                            |
-| [packages/lxmf-ts](packages/lxmf-ts/)                 | LXMF client and router implementation.                                                                             |
-| [packages/miniapp-runtime](packages/miniapp-runtime/) | Broker, sandbox, lifecycle, grants, and widget model.                                                              |
-| [packages/miniapp-sdk](packages/miniapp-sdk/)         | SDK surface available to mini-app code.                                                                            |
-| [packages/bridge-freenet](packages/bridge-freenet/)   | Optional Freenet contract-state adapter and verified package fetch path.                                           |
-| [packages/host-core](packages/host-core/)             | Runtime-neutral host engine shared by desktop, web, mobile, and headless modes.                                    |
-| [packages/cli](packages/cli/)                         | `tp` CLI for packaging, publishing, seeding, and node roles.                                                       |
-| [apps/harness-mobile](apps/harness-mobile/)           | Expo dev-build mobile host and web-host target.                                                                    |
-| [apps/host-desktop](apps/host-desktop/)               | Electron desktop host.                                                                                             |
-| [apps/examples](apps/examples/)                       | Reference chat, file-drop, and board mini-apps.                                                                    |
-| [apps/handbook](apps/handbook/)                       | Interactive platform Handbook shipped as a mini-app.                                                               |
+| Path                                                  | Purpose                                                                                                           |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [packages/reticulum-ts](packages/reticulum-ts/)       | Reticulum network stack implementation.                                                                           |
+| [packages/lxmf-ts](packages/lxmf-ts/)                 | LXMF client and router implementation.                                                                            |
+| [packages/miniapp-runtime](packages/miniapp-runtime/) | Broker, sandbox, lifecycle, grants, and widget model.                                                             |
+| [packages/miniapp-sdk](packages/miniapp-sdk/)         | SDK surface available to mini-app code.                                                                           |
+| [packages/bridge-freenet](packages/bridge-freenet/)   | Optional Freenet contract-state adapter and verified package fetch path.                                          |
+| [packages/host-core](packages/host-core/)             | Runtime-neutral host engine shared by desktop, web, mobile, and headless modes.                                   |
+| [packages/cli](packages/cli/)                         | `tp` CLI for packaging, publishing, seeding, and node roles.                                                      |
+| [apps/harness-mobile](apps/harness-mobile/)           | Expo dev-build mobile host and web-host target.                                                                   |
+| [apps/host-desktop](apps/host-desktop/)               | Electron desktop host.                                                                                            |
+| [apps/examples](apps/examples/)                       | Reference chat, file-drop, and board mini-apps.                                                                   |
+| [apps/handbook](apps/handbook/)                       | Interactive platform Handbook shipped as a mini-app.                                                              |
 | [cookbook/apps](cookbook/apps/)                       | Twenty-six cookbook sample mini-apps. CI validates their packages, runtime rendering, and React Native Web pages. |
-| [conformance](conformance/)                           | Scenario runners, golden vectors, interop tests, and device runbooks.                                              |
-| [specs](specs/)                                       | Quasi-independent specification units; vectors and formal models are normative.                                    |
+| [conformance](conformance/)                           | Scenario runners, golden vectors, interop tests, and device runbooks.                                             |
+| [specs](specs/)                                       | Quasi-independent specification units; vectors and formal models are normative.                                   |
 
 ## Documentation
 
