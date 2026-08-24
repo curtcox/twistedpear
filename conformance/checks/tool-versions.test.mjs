@@ -20,7 +20,10 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const ciWorkflow = read(".github/workflows/ci.yml");
 const pagesWorkflow = read(".github/workflows/pages.yml");
 const nightlyWorkflow = read(".github/workflows/nightly.yml");
-const staticAnalysisDoc = read("docs/static-analysis.md");
+const staticAnalysisDocs = [
+  read("docs/static-analysis.md"),
+  read("docs/static-analysis-specialized-gates.md"),
+].join("\n");
 const languageCheck = read("scripts/languages/check.mjs");
 const languageTest = read("scripts/languages/test.mjs");
 const fuzzToolchain = read("conformance/fuzz/rust/rust-toolchain.toml");
@@ -101,8 +104,8 @@ describe("pinned tool versions", () => {
   it("documents the pins it enforces", () => {
     for (const [token, pin] of Object.entries(PINS)) {
       expect(
-        staticAnalysisDoc,
-        `${token} in docs/static-analysis.md`,
+        staticAnalysisDocs,
+        `${token} in the static-analysis documentation`,
       ).toContain(pin.version);
     }
   });
