@@ -310,9 +310,6 @@
     "scripts/site/run-reports.mjs::runJob": {
       "ccn": 20
     },
-    "scripts/site/stage.mjs::rewriteMarkdownLinks": {
-      "ccn": 51
-    },
     "scripts/size-ratchet.mjs::main": {
       "ccn": 50
     },

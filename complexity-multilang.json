@@ -7,9 +7,9 @@
     "swift"
   ],
   "files": 672,
-  "functions": 7840,
+  "functions": 7841,
   "groups": 4742,
-  "exemptions": 86,
+  "exemptions": 85,
   "violations": 0,
   "stale": 0,
   "findings": [
@@ -63,17 +63,6 @@
       "pinned": {
         "ccn": 56,
         "nloc": 204
-      }
-    },
-    {
-      "key": "scripts/site/stage.mjs::rewriteMarkdownLinks",
-      "file": "scripts/site/stage.mjs",
-      "name": "rewriteMarkdownLinks",
-      "line": 90,
-      "tier": "tooling",
-      "ccn": 51,
-      "pinned": {
-        "ccn": 51
       }
     },
     {

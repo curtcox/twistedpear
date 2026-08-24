@@ -89,7 +89,7 @@ function githubTree(repoPath) {
  * Rewrite markdown links so VitePress only sees in-site or absolute http URLs.
  */
 export function rewriteMarkdownLinks(text, siteRel) {
-  const rewrite = (full, open, href, close) => {
+  const rewrite = ((full, open, href, close) => {
     if (isExternalOrSpecial(href)) return full;
 
     const hashIdx = href.indexOf("#");
@@ -267,7 +267,7 @@ export function rewriteMarkdownLinks(text, siteRel) {
 
     // Fallback: GitHub
     return `${open}${githubBlob(repoPath)}${hashSuffix}${close}`;
-  };
+  }).bind(null);
 
   // Reference-style definitions are links too. Leaving them untouched makes a
   // valid repository-relative source link point outside the staged VitePress
