@@ -11,6 +11,7 @@ import {
   sectionImagesDir,
   surveySection,
 } from "../../scripts/site/section-images.mjs";
+import { rewriteMarkdownLinks } from "../../scripts/site/stage.mjs";
 
 const root = join(import.meta.dirname, "../..");
 
@@ -118,6 +119,17 @@ function rangeMismatchesInManifest(file, pkg, versions, repoRoot) {
 }
 
 describe("GitHub Pages site integrity", () => {
+  it("rewrites repository-relative reference links before VitePress sees them", () => {
+    expect(
+      rewriteMarkdownLinks(
+        "[renderer]: ../packages/widget-renderer-rn/src/MiniappWidgetTree.tsx",
+        "docs/widget-accessibility-plan.md",
+      ),
+    ).toBe(
+      "[renderer]: https://github.com/curtcox/twistedpear/blob/main/packages/widget-renderer-rn/src/MiniappWidgetTree.tsx",
+    );
+  });
+
   it("is a registered PR gate that publishes a structured report", () => {
     const gate = gates.find((entry) => entry.id === "site-pages");
     expect(gate).toMatchObject({

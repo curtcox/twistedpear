@@ -4,6 +4,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { ROOT, SITE_SRC, REPO_URL } from "./paths.mjs";
 import { writeSamplePages } from "./sample-catalog.mjs";
 
@@ -87,8 +88,8 @@ function githubTree(repoPath) {
 /**
  * Rewrite markdown links so VitePress only sees in-site or absolute http URLs.
  */
-function rewriteMarkdownLinks(text, siteRel) {
-  return text.replace(/(!?\[[^\]]*\]\()([^)\s]+)(\))/g, (full, open, href, close) => {
+export function rewriteMarkdownLinks(text, siteRel) {
+  const rewrite = (full, open, href, close) => {
     if (isExternalOrSpecial(href)) return full;
 
     const hashIdx = href.indexOf("#");
@@ -266,7 +267,14 @@ function rewriteMarkdownLinks(text, siteRel) {
 
     // Fallback: GitHub
     return `${open}${githubBlob(repoPath)}${hashSuffix}${close}`;
-  });
+  };
+
+  // Reference-style definitions are links too. Leaving them untouched makes a
+  // valid repository-relative source link point outside the staged VitePress
+  // tree, which aborts the Pages build before the fresh results can deploy.
+  return text
+    .replace(/(!?\[[^\]]*\]\()([^)\s]+)(\))/g, rewrite)
+    .replace(/^(\s*\[[^\]]+\]:\s*)(\S+)(.*)$/gm, rewrite);
 }
 
 function stageMarkdownFile(srcAbs, destAbs, siteRel) {
@@ -475,4 +483,9 @@ function main() {
   console.log(`Staged site content into ${SITE_SRC} (${samples.length} sample-catalog rows)`);
 }
 
-main();
+if (
+  globalThis.process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(globalThis.process.argv[1])
+) {
+  main();
+}
