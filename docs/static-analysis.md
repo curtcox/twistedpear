@@ -455,8 +455,12 @@ measured, so a slow laptop could silently lower it and leave a permanently green
 permanently meaningless check.
 
 So the gate ratchets the **reference**, not the measurement: a baseline value that
-falls against the base branch fails the gate. The measurement itself keeps the wide
-0.5x failure threshold and gains a 0.8x warn band that reports without failing.
+falls against the base branch fails the gate unless `benchmark-rules.json` records
+the exact suite, benchmark, old value, new value, and reason as an accepted lowering.
+That narrow exception is for an intentional algorithm or dependency tradeoff, not
+runner variance, and is published with the benchmark evidence. The measurement itself
+keeps the wide 0.5x failure threshold and gains a 0.8x warn band that reports without
+failing.
 Throughput is machine-dependent — the references were recorded on `ci-reference`,
 and a healthy developer laptop lands around 0.8x on x25519 — so a floor that rose
 to the fastest number ever seen would fail on the next slower runner and teach

@@ -14,8 +14,8 @@
  *    overwrites `baseline-node.json` with whatever the current machine
  *    measured, so a slow laptop could silently lower the reference and leave a
  *    permanently green, permanently meaningless gate. That is the part this
- *    file actually ratchets: baseline values may only rise, checked against the
- *    base branch, exactly like every other ratchet here.
+ *    file actually ratchets: baseline values may only rise unless the rules
+ *    record one exact, reasoned lowering, checked against the base branch.
  *
  * What is deliberately *not* ratcheted is the measurement. Benchmark throughput
  * is machine-dependent — this repository's own reference numbers were recorded
@@ -125,6 +125,7 @@ for (const suite of SUITES) {
 // copy — there is nowhere else for the previous values to live.
 const ref = baseRef(ROOT, "BENCHMARK_RATCHET_BASE_REF");
 const lowered = [];
+const acceptedLowerings = [];
 if (ref) {
   for (const suite of SUITES) {
     const prior = jsonAtRef(ROOT, ref, suite.baseline);
@@ -138,11 +139,35 @@ if (ref) {
           `${suite.id}/${reference.name}: removed from the baseline`,
         );
       } else if (now.opsPerSec < reference.opsPerSec) {
-        lowered.push(
-          `${suite.id}/${reference.name}: baseline lowered ${reference.opsPerSec} -> ${now.opsPerSec}`,
+        const accepted = RULES.acceptedBaselineLowerings?.find(
+          (entry) =>
+            entry.suite === suite.id &&
+            entry.benchmark === reference.name &&
+            entry.from === reference.opsPerSec &&
+            entry.to === now.opsPerSec,
         );
+        const description = `${suite.id}/${reference.name}: baseline lowered ${reference.opsPerSec} -> ${now.opsPerSec}`;
+        if (accepted) {
+          acceptedLowerings.push({
+            suite: suite.id,
+            benchmark: reference.name,
+            from: reference.opsPerSec,
+            to: now.opsPerSec,
+            reason: accepted.reason,
+          });
+        } else {
+          lowered.push(description);
+        }
       }
     }
+  }
+}
+if (acceptedLowerings.length > 0) {
+  console.warn(`Accepted benchmark baseline lowering vs ${ref}:`);
+  for (const entry of acceptedLowerings) {
+    console.warn(
+      `  ${entry.suite}/${entry.benchmark}: ${entry.from} -> ${entry.to}; ${entry.reason}`,
+    );
   }
 }
 if (lowered.length > 0) {
@@ -150,7 +175,7 @@ if (lowered.length > 0) {
   console.error(`Benchmark baseline lowered vs ${ref}:`);
   for (const line of lowered) console.error(`  ${line}`);
   console.error(
-    "A reference that can be lowered is not a reference. Raise it, or record why in the commit.",
+    "A reference that can be lowered is not a reference. Raise it, or record the exact intentional lowering in benchmark-rules.json.",
   );
 }
 
@@ -170,6 +195,7 @@ fs.writeFileSync(
       warnBelowRatio: RULES.warnBelowRatio,
       counts,
       baselineLowered: lowered,
+      acceptedBaselineLowerings: acceptedLowerings,
       suites,
     },
     null,

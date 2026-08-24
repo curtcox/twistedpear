@@ -2,14 +2,21 @@
   "runtime": "node",
   "provider": "pure",
   "iterations": 200,
-  "recordedAt": "2026-07-05",
+  "recordedAt": "2026-08-24",
   "host": "ci-reference",
+  "normalization": {
+    "benchmark": "ed25519-sign-64",
+    "dependency": "@noble/curves 2.2.0 -> 2.3.0",
+    "priorOpsPerSec": 2807,
+    "sameHostRatio": 0.602,
+    "method": "Median of five alternating one-second samples on the same host; 3806 ops/s at 2.2.0 and 2291 ops/s at 2.3.0. The 2.3.0 implementation adds scalar and nonce blinding."
+  },
   "results": [
     { "name": "x25519-keygen", "opsPerSec": 1134 },
     { "name": "x25519-shared-secret", "opsPerSec": 1158 },
     { "name": "hkdf-link-key", "opsPerSec": 31470 },
     { "name": "aes-256-cbc-encrypt-512", "opsPerSec": 57823 },
-    { "name": "ed25519-sign-64", "opsPerSec": 2807 },
+    { "name": "ed25519-sign-64", "opsPerSec": 1690 },
     { "name": "sha256-resource-chunk", "opsPerSec": 206950 }
   ]
 }

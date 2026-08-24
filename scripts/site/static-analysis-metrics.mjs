@@ -146,6 +146,10 @@ const RENDERERS = {
           metric("Failing", number(report.counts?.fail)),
           metric("Missing", number(report.counts?.missing)),
           metric("Baseline lowered", count(report.baselineLowered)),
+          metric(
+            "Accepted baseline lowering",
+            count(report.acceptedBaselineLowerings),
+          ),
         ]
       : [];
   },
