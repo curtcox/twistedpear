@@ -1,8 +1,8 @@
 /**
  * Preflight host headroom for serial gate runs.
  *
- * A 16 GB Mac that is already swapping, or that already has Gradle/JDT heaps
- * resident, cannot take Vitest coverage workers on top. The kernel then spends
+ * A 16 GB Mac under sustained swap pressure, or one that already has
+ * Gradle/JDT heaps resident, cannot take broad Vitest workers on top. The kernel then spends
  * its time compressing memory; if it stalls long enough to miss the SMC
  * watchdog, the machine hard-resets (`wdog,reset_in_1`) instead of exiting the
  * gate. Judgment is pure so it can be tested against that snapshot; sampling
@@ -19,6 +19,7 @@ export const GiB = 1024 ** 3;
 
 /** Gates that fork whole-program workers or instrument the tree. */
 export const HEAVY_GATE_IDS = [
+  "unit-tests",
   "coverage",
   "type-coverage",
   "typed-lint",
@@ -39,10 +40,14 @@ export const RIVAL_PATTERNS = [
 ];
 
 export const LIMITS = {
-  maxSwapUsedBytes: 2 * GiB,
+  maxHeavySwapUsedBytes: 2 * GiB,
+  maxLightSwapUsedBytes: 4 * GiB,
+  minLightFreeBytesWhileSwapped: 1 * GiB,
   maxLoadPerCpu: 4,
   /** Advertised 16/24 GB machines cannot stack heavy gates on IDE heaps. */
   smallHostBytes: 32 * GiB,
+  recoverySamples: 7,
+  recoveryDelayMs: 10_000,
 };
 
 /**
@@ -84,6 +89,14 @@ export function gateCost(id) {
 export function coverageWorkerArgs(env = process.env) {
   if (env.CI && env.TP_COVERAGE_SERIAL !== "1") return [];
   return ["--maxWorkers=1"];
+}
+
+/** The broad unit gate is heavy locally; CI already gives it an isolated VM. */
+export function unitWorkerArgs(env = process.env) {
+  if (env.CI) return [];
+  const requested = Number.parseInt(env.TP_UNIT_MAX_WORKERS ?? "1", 10);
+  const workers = Number.isFinite(requested) && requested > 0 ? requested : 1;
+  return [`--maxWorkers=${workers}`];
 }
 
 /**
@@ -150,9 +163,28 @@ export function judgeHeadroom(snapshot, options = {}) {
   const cpus = Math.max(1, snapshot.cpuCount);
   const rivals = rivalProcesses(snapshot.processes, snapshot.selfPids);
 
-  if (snapshot.swapUsedBytes > LIMITS.maxSwapUsedBytes) {
+  if (
+    cost === "heavy" &&
+    snapshot.swapUsedBytes > LIMITS.maxHeavySwapUsedBytes
+  ) {
     reasons.push(
-      `swap used ${formatGiB(snapshot.swapUsedBytes)} (limit ${formatGiB(LIMITS.maxSwapUsedBytes)})`,
+      `swap used ${formatGiB(snapshot.swapUsedBytes)} (heavy-gate limit ${formatGiB(LIMITS.maxHeavySwapUsedBytes)})`,
+    );
+  }
+  if (
+    cost === "light" &&
+    snapshot.swapUsedBytes > LIMITS.maxLightSwapUsedBytes
+  ) {
+    reasons.push(
+      `swap used ${formatGiB(snapshot.swapUsedBytes)} (light-gate limit ${formatGiB(LIMITS.maxLightSwapUsedBytes)})`,
+    );
+  } else if (
+    cost === "light" &&
+    snapshot.swapUsedBytes > LIMITS.maxHeavySwapUsedBytes &&
+    snapshot.freeBytes < LIMITS.minLightFreeBytesWhileSwapped
+  ) {
+    reasons.push(
+      `free memory ${formatGiB(snapshot.freeBytes)} while swap remains above ${formatGiB(LIMITS.maxHeavySwapUsedBytes)} (minimum ${formatGiB(LIMITS.minLightFreeBytesWhileSwapped)})`,
     );
   }
   if (snapshot.load1 > cpus * LIMITS.maxLoadPerCpu) {
@@ -174,6 +206,87 @@ export function judgeHeadroom(snapshot, options = {}) {
   return { ok: reasons.length === 0, reasons };
 }
 
+function recoverablePressure(verdict) {
+  return (
+    verdict.reasons.length > 0 &&
+    verdict.reasons.every(
+      (reason) =>
+        reason.startsWith("swap used") || reason.startsWith("free memory"),
+    )
+  );
+}
+
+/**
+ * Give macOS a bounded chance to drain swap after a completed gate. Continue
+ * only while swap is falling or immediately free memory is rising; rival heaps
+ * and load are operator actions, not conditions a runner should sleep through.
+ */
+export async function waitForHeadroom(options = {}) {
+  const cost = options.cost ?? "light";
+  const sample = options.sample ?? snapshotHost;
+  const wait =
+    options.wait ?? ((ms) => new Promise((done) => setTimeout(done, ms)));
+  const maxSamples = options.maxSamples ?? LIMITS.recoverySamples;
+  const delayMs = options.delayMs ?? LIMITS.recoveryDelayMs;
+  const force = options.force ?? false;
+  let current = sample();
+  let verdict = judgeHeadroom(current, { cost, force });
+  let samples = 1;
+
+  while (!verdict.ok && samples < maxSamples && recoverablePressure(verdict)) {
+    await wait(delayMs);
+    const next = sample();
+    samples += 1;
+    const nextVerdict = judgeHeadroom(next, { cost, force });
+    if (nextVerdict.ok)
+      return { snapshot: next, verdict: nextVerdict, samples, recovered: true };
+    const improving =
+      next.swapUsedBytes < current.swapUsedBytes ||
+      next.freeBytes > current.freeBytes;
+    current = next;
+    verdict = nextVerdict;
+    if (!improving) break;
+  }
+
+  return { snapshot: current, verdict, samples, recovered: false };
+}
+
+function processLabel(args) {
+  if (/Google Chrome/.test(args)) return "Chrome";
+  if (/Codex|ChatGPT/.test(args)) return "Codex";
+  if (/Claude/.test(args)) return "Claude";
+  if (/Devin|language_server_macos_arm/.test(args)) return "Devin";
+  if (/Zed|language_server/.test(args)) return "language server";
+  if (/GradleDaemon/.test(args)) return "GradleDaemon";
+  if (/kotlin-daemon/.test(args)) return "kotlin-daemon";
+  if (/jdt\.ls|equinox\.launcher/.test(args)) return "jdt.ls";
+  if (/freenet-bin/.test(args)) return "Freenet";
+  if (/Simulator|launchd_sim|SimMetalHost/.test(args)) return "Simulator";
+  if (/node|vitest/.test(args)) return "Node";
+  return "other";
+}
+
+export function hostDiagnostics(snapshot) {
+  const largestRss = snapshot.processes
+    .filter((row) => !snapshot.selfPids.has(row.pid))
+    .sort((a, b) => b.rssKiB - a.rssKiB)
+    .slice(0, 5)
+    .map((row) => ({
+      pid: row.pid,
+      label: processLabel(row.args),
+      rssMiB: Math.round(row.rssKiB / 1024),
+    }));
+  return {
+    totalGiB: Number((snapshot.totalBytes / GiB).toFixed(2)),
+    freeGiB: Number((snapshot.freeBytes / GiB).toFixed(2)),
+    swapUsedGiB: Number((snapshot.swapUsedBytes / GiB).toFixed(2)),
+    load1: Number(snapshot.load1.toFixed(2)),
+    cpuCount: snapshot.cpuCount,
+    processCount: snapshot.processes.length,
+    largestRss,
+  };
+}
+
 /** @param {string} args */
 function rivalLabel(args) {
   if (/GradleDaemon/.test(args)) return "GradleDaemon";
@@ -188,10 +301,23 @@ function rivalLabel(args) {
  * @param {string} gateId
  * @param {HeadroomVerdict} verdict
  */
-export function formatRefusal(gateId, verdict) {
+export function formatRefusal(gateId, verdict, snapshot, samples = 1) {
+  const diagnostic = snapshot ? hostDiagnostics(snapshot) : null;
   return [
     `REFUSE ${gateId}: host headroom`,
     ...verdict.reasons.map((reason) => `  ${reason}`),
+    ...(diagnostic
+      ? [
+          `  snapshot: ${diagnostic.freeGiB.toFixed(1)} GiB free, ${diagnostic.swapUsedGiB.toFixed(1)} GiB swap, load ${diagnostic.load1.toFixed(1)}/${diagnostic.cpuCount} cores, ${diagnostic.processCount} processes`,
+          ...(diagnostic.largestRss.length
+            ? [
+                `  largest RSS: ${diagnostic.largestRss.map((row) => `${row.label} ${row.rssMiB} MiB (pid ${row.pid})`).join(", ")}`,
+              ]
+            : []),
+          ...(samples > 1 ? [`  recovery samples: ${samples}`] : []),
+        ]
+      : []),
+    "Close large apps, wait briefly for swap to drain, then retry.",
     "Record from CI: npm run checks:status:import",
     "Override (unsafe): --force-headroom",
   ].join("\n");
@@ -218,13 +344,19 @@ function readProcessTable() {
 }
 
 function resolveHostOptions(options = {}) {
+  const env = options.env ?? process.env;
+  const ownerPids = (env.TP_HEADROOM_OWNER_PIDS ?? "")
+    .split(",")
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isFinite(value) && value > 0);
   return {
-    env: options.env ?? process.env,
+    env,
     osApi: options.osApi ?? os,
     readSwap: options.readSwap ?? readSwapUsedBytes,
     listProcesses: options.listProcesses ?? readProcessTable,
     pid: options.pid ?? process.pid,
     ppid: options.ppid ?? process.ppid,
+    ownerPids,
   };
 }
 
@@ -242,6 +374,8 @@ export function snapshotHost(options = {}) {
     load1: resolved.osApi.loadavg()[0] ?? 0,
     cpuCount: resolved.osApi.cpus()?.length || 1,
     processes: resolved.listProcesses(),
-    selfPids: new Set([resolved.pid, resolved.ppid].filter(Boolean)),
+    selfPids: new Set(
+      [resolved.pid, resolved.ppid, ...resolved.ownerPids].filter(Boolean),
+    ),
   };
 }

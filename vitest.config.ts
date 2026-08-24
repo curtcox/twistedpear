@@ -1,5 +1,18 @@
 import { defineConfig } from "vitest/config";
 
+const focusedUnitGate = process.env.TP_UNIT_GATE === "1";
+const dedicatedUnitGateExcludes = [
+  "conformance/release-harness/**",
+  "conformance/doc-audit/**",
+  "packages/guida-twistedpear/test/parity.test.ts",
+  "packages/guida-twistedpear/test/wrap-scope.test.ts",
+  "packages/guida-twistedpear/test/sdk-descriptor.test.ts",
+  "packages/guida-twistedpear/test/sdk-vectors.test.ts",
+  "packages/guida-twistedpear/test/compiler.test.ts",
+  "packages/reticulum-ts/test/fuzz.test.ts",
+  "packages/lxmf-ts/test/fuzz.test.ts",
+];
+
 export default defineConfig({
   test: {
     passWithNoTests: false,
@@ -10,6 +23,9 @@ export default defineConfig({
         test: {
           name: "protocol-tripwire",
           include: ["packages/protocol/test/**/*.test.ts"],
+          exclude: focusedUnitGate
+            ? ["packages/protocol/test/properties*.test.ts"]
+            : [],
           setupFiles: ["packages/protocol/test/setup-tripwire.ts"],
         },
       },
@@ -50,6 +66,7 @@ export default defineConfig({
           ],
           exclude: [
             "packages/protocol/test/**/*.test.ts",
+            ...(focusedUnitGate ? dedicatedUnitGateExcludes : []),
             // Coverage measures the unit suite plus the conformance files that
             // are already in this project. Vitest 4 project includes ignore
             // CLI `--exclude`, so coverage-run.mjs sets TP_COVERAGE and this

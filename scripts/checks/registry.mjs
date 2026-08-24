@@ -48,7 +48,7 @@ export const gates = [
     ["node"],
     ["tsconfig.base.json", "tsconfig.package.json"],
   ),
-  gate("unit-tests", "Unit tests", "test", "pr", ["node"]),
+  gate("unit-tests", "Unit tests", "test:unit", "pr", ["node"]),
   gate(
     "guida-parity",
     "Guida/JS widget-stream parity",

@@ -39,6 +39,8 @@ curtcox
 cyclomatically
 deanonymization
 deprioritize
+devnet
+DEVNET
 devstudio
 diffable
 Dioxus
@@ -63,6 +65,7 @@ frontmatter
 fsyncs
 fundable
 Geofence
+goldens
 goodput
 Gren
 guida

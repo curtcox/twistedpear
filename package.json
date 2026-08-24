@@ -29,6 +29,7 @@
     "flake:baseline": "node scripts/analysis/flake.mjs --write",
     "harness-mobile:typecheck": "npm run typecheck --workspace=harness-mobile",
     "test": "vitest run",
+    "test:unit": "node scripts/test-unit.mjs",
     "test:watch": "vitest",
     "check:fast": "npm run typecheck && npm test",
     "check:ci-base": "node scripts/checks/run.mjs --tier=pr --requires=node",

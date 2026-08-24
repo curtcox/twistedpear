@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-18
+audited: 2026-08-23
 register: none
 -->
 
@@ -138,10 +138,14 @@ npm run checks:status:import -- --write
 npm run checks:status                  # run the gates here and record them
 ```
 
-A local `checks:status` is serial and preflighted: it refuses a heavy gate when
-the host is already swapping or Gradle/JDT heaps are resident on a <32 GB
-machine. Prefer the import on a 16 GB Mac. `--force-headroom` bypasses the
-probe that exists to stop a watchdog reset.
+A local `checks:status` is serial and preflighted. Heavy gates, including the
+broad unit suite, refuse above 2 GiB of used swap or when Gradle/JDT heaps are
+resident on a <32 GB machine; unit and coverage runs use one local Vitest worker.
+Light gates tolerate moderate stale swap while free RAM remains healthy. If swap
+is the only blocker and is draining, the runner waits for at most 60 seconds and
+records a bounded host snapshot if it still refuses. Prefer the import on a
+contended 16 GB Mac. `--force-headroom` bypasses the probe that exists to stop a
+watchdog reset.
 
 ### The Pages workflow records its own results
 

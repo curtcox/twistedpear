@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-19
+audited: 2026-08-23
 register: none
 -->
 
@@ -98,6 +98,12 @@ Practical protocol for FN-A2 and other sim work:
 3. Keep the existing rule: do not run `npm run checks:status` or
    `coverage:check` on this contended host; import CI or use `--only=`
    with other IDEs closed.
+
+The local gate runner now treats the broad unit suite and coverage as heavy,
+limits both to one Vitest worker, and gives swap at most 60 seconds to drain
+while it is measurably improving. A refusal includes a bounded host snapshot.
+Do not turn that diagnostic into permission to use `--force-headroom`; close the
+named large apps or import CI instead.
 
 Two weeks of iOS sim work with Freenet down and no panic is stronger
 evidence than another stackshot. If it still panics with Freenet off, the

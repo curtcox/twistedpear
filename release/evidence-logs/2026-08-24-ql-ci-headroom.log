@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /Users/curtcox/me/twistedpear
+
+
+ Test Files  3 passed (3)
+      Tests  30 passed (30)
+   Start at  22:00:07
+   Duration  272ms (transform 100ms, setup 0ms, import 138ms, tests 111ms, environment 0ms)
+

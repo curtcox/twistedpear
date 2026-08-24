@@ -1623,6 +1623,21 @@
       ],
       "notes": "Implements the 2026-08-16 code-quality audit recommendations as separate reviewable commits; platform/tool-specific gates carry their own registry verification."
     },
+    "QL-CI-HEADROOM": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npx vitest run conformance/checks/headroom.test.mjs conformance/checks/unit-suite.test.mjs conformance/checks/registry.test.mjs",
+      "added": "2026-08-24",
+      "completed": "2026-08-24",
+      "evidence": [
+        "scripts/checks/headroom.mjs",
+        "scripts/test-unit.mjs",
+        "vitest.config.ts",
+        "conformance/checks/headroom.test.mjs",
+        "docs/static-analysis.md"
+      ],
+      "notes": "Classify the broad unit gate as heavy, cap local Vitest workers, avoid rerunning separately registered suites, distinguish stale swap from active pressure, allow bounded swap recovery, and preserve safe refusal diagnostics."
+    },
     "QL-COMPLEXITY-COMPLEXITY": {
       "type": "quality",
       "requires": [],

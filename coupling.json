@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1345,
+  "modules": 1354,
   "components": 26,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 277,
+      "modules": 278,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,
@@ -39,7 +39,7 @@
     },
     {
       "id": "scripts",
-      "modules": 210,
+      "modules": 217,
       "ca": 1,
       "ce": 11,
       "instability": 0.92,
@@ -69,7 +69,7 @@
     },
     {
       "id": "packages/miniapp-runtime",
-      "modules": 101,
+      "modules": 102,
       "ca": 13,
       "ce": 3,
       "instability": 0.19,

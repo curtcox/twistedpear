@@ -13,10 +13,14 @@ import {
   coverageWorkerArgs,
   formatRefusal,
   gateCost,
+  hostDiagnostics,
   judgeHeadroom,
   parseProcessTable,
   parseSwapUsedBytes,
   rivalProcesses,
+  snapshotHost,
+  unitWorkerArgs,
+  waitForHeadroom,
 } from "../../scripts/checks/headroom.mjs";
 
 const GiB16 = 16 * GiB;
@@ -71,6 +75,32 @@ describe("parseProcessTable", () => {
         args: "node scripts/checks/run.mjs --tier=pr",
       },
     ]);
+  });
+});
+
+describe("snapshotHost", () => {
+  it("treats the owning gate runner as self in a nested probe", () => {
+    const host = snapshotHost({
+      env: { TP_HEADROOM_OWNER_PIDS: "40,41" },
+      osApi: {
+        totalmem: () => GiB16,
+        freemem: () => 8 * GiB,
+        loadavg: () => [1],
+        cpus: () => Array.from({ length: 8 }),
+      },
+      readSwap: () => 0,
+      listProcesses: () => [
+        {
+          pid: 40,
+          rssKiB: 100_000,
+          args: "node scripts/checks/run.mjs --tier=pr",
+        },
+      ],
+      pid: 42,
+      ppid: 43,
+    });
+    expect([...host.selfPids]).toEqual([42, 43, 40, 41]);
+    expect(judgeHeadroom(host, { cost: "heavy" }).ok).toBe(true);
   });
 });
 
@@ -162,6 +192,23 @@ describe("judgeHeadroom", () => {
     ).toBe(false);
   });
 
+  it("lets light gates run through stale moderate swap when free RAM is healthy", () => {
+    expect(
+      judgeHeadroom(snapshot({ freeBytes: 6 * GiB, swapUsedBytes: 3 * GiB }), {
+        cost: "light",
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("refuses a light gate when moderate swap accompanies low free RAM", () => {
+    const verdict = judgeHeadroom(
+      snapshot({ freeBytes: 0.5 * GiB, swapUsedBytes: 3 * GiB }),
+      { cost: "light" },
+    );
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reasons.join("\n")).toMatch(/free memory/);
+  });
+
   it("allows a light gate next to Gradle when swap and load are calm", () => {
     expect(
       judgeHeadroom(
@@ -201,8 +248,109 @@ describe("coverage serialisation", () => {
   });
 });
 
+describe("unit serialisation", () => {
+  it("pins one Vitest worker locally and leaves CI on the default pool", () => {
+    expect(unitWorkerArgs({})).toEqual(["--maxWorkers=1"]);
+    expect(unitWorkerArgs({ TP_UNIT_MAX_WORKERS: "2" })).toEqual([
+      "--maxWorkers=2",
+    ]);
+    expect(unitWorkerArgs({ CI: "true", TP_UNIT_MAX_WORKERS: "1" })).toEqual(
+      [],
+    );
+  });
+});
+
+describe("bounded headroom recovery", () => {
+  it("continues while swap is draining and accepts a recovered host", async () => {
+    const samples = [
+      snapshot({ swapUsedBytes: 3 * GiB }),
+      snapshot({ swapUsedBytes: 2.5 * GiB }),
+      snapshot({ swapUsedBytes: 1.5 * GiB }),
+    ];
+    let waits = 0;
+    const result = await waitForHeadroom({
+      cost: "heavy",
+      sample: () => samples.shift(),
+      wait: async () => {
+        waits += 1;
+      },
+      maxSamples: 7,
+    });
+    expect(result.verdict.ok).toBe(true);
+    expect(result.recovered).toBe(true);
+    expect(result.samples).toBe(3);
+    expect(waits).toBe(2);
+  });
+
+  it("stops after one non-improving recovery sample", async () => {
+    const samples = [
+      snapshot({ swapUsedBytes: 3 * GiB }),
+      snapshot({ swapUsedBytes: 3 * GiB }),
+    ];
+    let waits = 0;
+    const result = await waitForHeadroom({
+      cost: "heavy",
+      sample: () => samples.shift(),
+      wait: async () => {
+        waits += 1;
+      },
+      maxSamples: 7,
+    });
+    expect(result.verdict.ok).toBe(false);
+    expect(result.samples).toBe(2);
+    expect(waits).toBe(1);
+  });
+
+  it("does not sleep for a competing heap", async () => {
+    let waits = 0;
+    const result = await waitForHeadroom({
+      cost: "heavy",
+      sample: () =>
+        snapshot({
+          processes: [
+            { pid: 1, rssKiB: 400_000, args: "java GradleDaemon 9.3.1" },
+          ],
+        }),
+      wait: async () => {
+        waits += 1;
+      },
+    });
+    expect(result.verdict.ok).toBe(false);
+    expect(waits).toBe(0);
+  });
+});
+
+describe("headroom diagnostics", () => {
+  it("records bounded, redacted process details in refusal output", () => {
+    const host = snapshot({
+      swapUsedBytes: 5 * GiB,
+      processes: [
+        {
+          pid: 42,
+          rssKiB: 2_048_000,
+          args: "Google Chrome --profile-directory=/private/user/path",
+        },
+      ],
+    });
+    const diagnostic = hostDiagnostics(host);
+    expect(diagnostic.largestRss).toEqual([
+      { pid: 42, label: "Chrome", rssMiB: 2000 },
+    ]);
+    expect(JSON.stringify(diagnostic)).not.toContain("/private/user/path");
+    const output = formatRefusal(
+      "unit-tests",
+      judgeHeadroom(host, { cost: "heavy" }),
+      host,
+      3,
+    );
+    expect(output).toMatch(/largest RSS: Chrome 2000 MiB/);
+    expect(output).toMatch(/recovery samples: 3/);
+  });
+});
+
 describe("heavy gates", () => {
-  it("names registered gates, including coverage", () => {
+  it("names registered gates, including unit tests and coverage", () => {
+    expect(gateCost("unit-tests")).toBe("heavy");
     expect(gateCost("coverage")).toBe("heavy");
     expect(gateCost("lint")).toBe("light");
     for (const id of HEAVY_GATE_IDS) {

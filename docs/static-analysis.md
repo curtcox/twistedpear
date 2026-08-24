@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-20
+audited: 2026-08-23
 register: none
 counterpart: docs/static-analysis-plan.md
 -->
@@ -31,14 +31,15 @@ renderer, and runner OS. The registry drives:
 - `conformance/checks/registry.test.mjs`, which checks declarations, npm scripts, CI
   consumption, dashboard consumption, artifact declarations, and unique IDs.
 
-Local runs are serial and preflighted. `scripts/checks/run.mjs` starts one gate at a
-time, samples RAM/swap/load and rival heaps (Gradle, JDT, leftover coverage) before
-each one, and stops on the first failure so a red coverage gate cannot stack the next
-PR gate onto a machine already in swap. Coverage itself pins `--maxWorkers=1` off CI.
-A refusal prints `REFUSE <id>: host headroom` and points at
-`npm run checks:status:import`; `--force-headroom` and `--keep-going` override, and
-are unsafe on a 16 GB host. CI skips the probe: each matrix job is already alone on
-its VM.
+Local runs are serial, stop on the first failure, and preflight RAM, swap, load, and
+rival Gradle/JDT/coverage heaps. Unit and coverage are heavy and use one Vitest worker
+locally; CI keeps its default pool. Unit and coverage omit release-harness, doc-audit,
+Guida parity, properties, and fuzz files because dedicated gates cover them. Heavy gates refuse above
+2 GiB of swap. Light gates tolerate stale swap with at least 1 GiB free, but refuse
+above 4 GiB or below that free-memory floor. Swap-only pressure gets at most seven
+samples over 60 seconds while improving; load and rival heaps refuse immediately. The
+artifact includes bounded host diagnostics and the `checks:status:import` hint.
+`--force-headroom` and `--keep-going` are unsafe on a 16 GB host. CI skips the probe.
 
 `npm run check:ci-base` remains the Node-only PR alias used by existing runbooks. CI
 surfaces every registry gate separately and writes a step summary plus
@@ -333,7 +334,7 @@ the root status and release documents, and the `docs/`, `guide/`, `authors/`, `c
 — lifecycle metadata, `counterpart:` pairing, archive placement, links and images resolving.
 None of it reads a sentence, and a typo in the user guide fails no build.
 
-`project-words.txt` holds 146 terms no general dictionary knows. `npm run spelling:baseline`
+`project-words.txt` holds 177 terms no general dictionary knows. `npm run spelling:baseline`
 adds unknown words in bulk, so the guard against blessing a real misspelling is that additions
 land as a reviewable diff, one word per line. British spellings are not in it: the config sets
 `"language": "en,en-GB"` so `behaviour` and `licence` are simply correct. Vendored trees are

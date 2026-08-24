@@ -14,10 +14,12 @@ describe("coverage suite", () => {
     );
     const config = fs.readFileSync(path.join(root, "vitest.config.ts"), "utf8");
     expect(run).toContain('TP_COVERAGE: "1"');
+    expect(run).toContain('TP_UNIT_GATE: "1"');
     expect(config).toContain('process.env.TP_COVERAGE === "1"');
     expect(run).toContain("conformance/cookbook/**");
     expect(config).toContain("conformance/cookbook/**");
+    expect(run).toContain('"**/*.d.ts"');
     expect(run).toContain("coverageWorkerArgs");
-    expect(run).toContain("judgeHeadroom");
+    expect(run).toContain("waitForHeadroom");
   });
 });

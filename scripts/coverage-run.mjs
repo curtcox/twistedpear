@@ -3,8 +3,7 @@ import { spawnSync } from "node:child_process";
 import {
   coverageWorkerArgs,
   formatRefusal,
-  judgeHeadroom,
-  snapshotHost,
+  waitForHeadroom,
 } from "./checks/headroom.mjs";
 
 // Every shipped source root the unit suite can reach. `apps/*` was excluded
@@ -23,7 +22,12 @@ const coverageInclude = [
   "apps/harness-mobile/*.{ts,tsx}",
   "apps/harness-mobile/host/**/*.{ts,tsx}",
 ];
-const coverageExclude = ["**/*.bundle.mjs", "**/dist/**", "**/node_modules/**"];
+const coverageExclude = [
+  "**/*.bundle.mjs",
+  "**/*.d.ts",
+  "**/dist/**",
+  "**/node_modules/**",
+];
 const vitestArgs = [
   "node_modules/vitest/vitest.mjs",
   "run",
@@ -45,19 +49,26 @@ const vitestArgs = [
 // `coverage-ratchet.json`.
 if (process.argv.includes("--fast-baseline"))
   vitestArgs.splice(2, 0, "packages/protocol/test", "packages/effects/test");
-const headroom = judgeHeadroom(snapshotHost(), {
+const headroom = await waitForHeadroom({
   cost: "heavy",
   force:
     process.argv.includes("--force-headroom") ||
     Boolean(process.env.TP_FORCE_HEADROOM),
 });
-if (!headroom.ok) {
-  console.error(formatRefusal("coverage", headroom));
+if (!headroom.verdict.ok) {
+  console.error(
+    formatRefusal(
+      "coverage",
+      headroom.verdict,
+      headroom.snapshot,
+      headroom.samples,
+    ),
+  );
   process.exit(2);
 }
 const report = spawnSync(process.execPath, vitestArgs, {
   stdio: "inherit",
-  env: { ...process.env, TP_COVERAGE: "1" },
+  env: { ...process.env, TP_COVERAGE: "1", TP_UNIT_GATE: "1" },
 });
 if (report.status !== 0) process.exit(report.status ?? 1);
 if (process.argv.includes("--report-only")) process.exit(0);

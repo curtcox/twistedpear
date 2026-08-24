@@ -9,8 +9,8 @@ import { requirementAvailable } from "../tools/requirements.mjs";
 import {
   formatRefusal,
   gateCost,
-  judgeHeadroom,
-  snapshotHost,
+  hostDiagnostics,
+  waitForHeadroom,
 } from "./headroom.mjs";
 
 const ROOT = path.resolve(
@@ -81,7 +81,10 @@ if (matrix) {
   process.exit(0);
 }
 
-function writeGateResult(gate, { startedAt, exitCode, ok, stdout, stderr }) {
+function writeGateResult(
+  gate,
+  { startedAt, exitCode, ok, stdout, stderr, headroom },
+) {
   const artifact = {
     id: gate.id,
     title: gate.title,
@@ -94,6 +97,7 @@ function writeGateResult(gate, { startedAt, exitCode, ok, stdout, stderr }) {
     exitCode,
     ok,
     host: `${os.platform()}-${os.arch()}`,
+    ...(headroom ? { headroom } : {}),
   };
   const artifactPath = path.join(
     ROOT,
@@ -155,12 +159,17 @@ for (const gate of selected) {
     continue;
   }
 
-  const headroom = judgeHeadroom(snapshotHost(), {
+  const headroom = await waitForHeadroom({
     cost: gateCost(gate.id),
     force: forceHeadroom,
   });
-  if (!headroom.ok) {
-    const message = formatRefusal(gate.id, headroom);
+  if (!headroom.verdict.ok) {
+    const message = formatRefusal(
+      gate.id,
+      headroom.verdict,
+      headroom.snapshot,
+      headroom.samples,
+    );
     console.error(message);
     writeGateResult(gate, {
       startedAt,
@@ -168,6 +177,7 @@ for (const gate of selected) {
       ok: false,
       stdout: "",
       stderr: message,
+      headroom: hostDiagnostics(headroom.snapshot),
     });
     failed += 1;
     refused += 1;
@@ -181,6 +191,9 @@ for (const gate of selected) {
     env: {
       ...process.env,
       CHECK_ID: gate.id,
+      TP_HEADROOM_OWNER_PIDS: [process.env.TP_HEADROOM_OWNER_PIDS, process.pid]
+        .filter(Boolean)
+        .join(","),
       ...(forceHeadroom ? { TP_FORCE_HEADROOM: "1" } : {}),
     },
     encoding: "utf8",
