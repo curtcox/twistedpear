@@ -3,11 +3,11 @@
 <!-- tp-doc
 lifecycle: planned
 audited: 2026-08-23
-register: none
+register: software
 -->
 
-**This document describes proposed work, not current behaviour.** Nothing here ships, it
-carries no register ID, and it does not gate the release. What ships today is the closed
+**This document describes planned work, not current behaviour.** Nothing here ships yet,
+and it does not gate the release. What ships today is the closed
 widget vocabulary defined by [SPEC-WIDGET](../specs/spec-widget/spec.md), laid out under
 [SPEC-PRESENT](../specs/spec-present/spec.md), refused by the host under the rules of
 [SPEC-CHROME](../specs/spec-chrome/spec.md), and measured — for host chrome only — by the
@@ -231,8 +231,8 @@ walk rather than a new harness.
 **Is it small enough to land inside existing gates?** On this evidence, yes: three `switch`
 edits, 38 `text-input` edits the ratchet does not force, one generated schema, three renderer
 prop-passes, one new pure function in the headless renderer, one ratchet file. No new spec
-unit, no formal model, no register ID — only an amendment to a spec already normative and
-already finished.
+unit or formal model is needed — only an amendment to a spec already normative and already
+finished.
 
 ## 10. Sequencing
 
@@ -247,6 +247,10 @@ already finished.
 
 Phase 1 is useful alone and changes no schema. Phase 4 is the only one that can break a
 shipped app, and the `minHostApi` gate is what stops it.
+
+The phases are tracked as `AX-1-RENDERERS`, `AX-2-SCHEMA`, `AX-3-TREE`,
+`AX-4-VALIDATE`, `AX-5-RATCHET`, and `AX-6-FOCUS` in the
+[software backlog](../STATUS-SOFTWARE.md), chained in the same order as the table.
 
 ## 11. Open questions
 
@@ -267,5 +271,5 @@ shipped app, and the `minHostApi` gate is what stops it.
   and already measured — badly — by the existing axe ratchet.
 - It does not open the vocabulary. An open prop bag would end the closed-set property that
   makes five renderers possible.
-- It does not gate the release: no register ID, no `STATUS-SOFTWARE.md` entry, nothing here
-  is scheduled.
+- It does not gate the release: the `AX-*` backlog rows are ordinary feature and quality
+  work, not release gates.

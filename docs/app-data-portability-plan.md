@@ -3,7 +3,7 @@
 <!-- tp-doc
 lifecycle: planned
 audited: 2026-08-23
-register: none
+register: software
 -->
 
 **This document describes proposed work, not current behaviour.** Nothing here ships, and
@@ -257,6 +257,12 @@ Phase 0 is neither optional nor cosmetic: without it, export on desktop and mobi
 produces an empty archive — the worst failure a backup feature can have. Phase 1 alone
 answers "the device is about to die"; phase 2 answers "the device died"; phase 4 is
 independent of both and can slip without stranding them.
+
+The six phases are tracked as `DATA-0-KEYS`, `DATA-1-ARCHIVE`, `DATA-2-RESTORE`,
+`DATA-3-CHROME`, `DATA-4-MIGRATION`, and `DATA-5-RECOVERY` in the
+[software backlog](../STATUS-SOFTWARE.md). Archive and restore are sequential;
+`DATA-4-MIGRATION` remains independent as the table requires, while recovery-word
+presentation waits only for the archive format.
 
 ## 10. What this deliberately does not do
 

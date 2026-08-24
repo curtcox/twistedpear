@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-14
+audited: 2026-08-23
 register: software
 counterpart: docs/linked-devices.md
 -->
@@ -85,7 +85,9 @@ hosts still start unlinked: `createNodeHost` loads a single identity, and
 `createInstallationIdentityLoader` still falls back to the publisher key. Chrome that shows
 both hashes and calls `enable`, then registers host and app serving destinations under
 `identities().serving`, is what remains. Desktop and mobile still need to mount
-`createSiblingDecisionChrome` so held proposals are visible in the running host.
+`createSiblingDecisionChrome` so held proposals are visible in the running host. This is
+tracked as `ID-HOST-WIRING` in the [software backlog](../STATUS-SOFTWARE.md), after the
+already-complete linked-mode and sibling-chrome core items.
 
 ## Non-goals for v1
 

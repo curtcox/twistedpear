@@ -3,11 +3,11 @@
 <!-- tp-doc
 lifecycle: planned
 audited: 2026-08-23
-register: none
+register: software
 -->
 
-**This document describes proposed work, not current behaviour, and nothing in it is
-scheduled.** What ships today is per-app, per-device storage — `storage:kv` and
+**This document describes planned work, not current behaviour.** What ships today is
+per-app, per-device storage — `storage:kv` and
 `storage:hyperbee`, described in [the mini-app SDK reference](miniapp-sdk.md) and bounded by
 the capability model in [capability scoping](capability-scoping.md). The survey entry this
 develops is §1 of [platform facilities proposals](platform-facilities-plan.md); its argument
@@ -229,7 +229,7 @@ it is what testing misses. The model should assert:
 
 | Phase | Deliverable                                                                  | Gate                                                                       |
 | ----- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 1     | SPEC-SYNC entry format and merge relation; local topic store; no replication | `npm run formal:replica` cross-checks all four representations             |
+| 1     | SPEC-SYNC entry format and merge relation; local topic store; no replication | `npm run formal:all` cross-checks all four representations                 |
 | 2     | Loopback replication between two sandboxes on one host                       | Convergence campaign under `drop`, `delay`, `reorder`, `duplicate`         |
 | 3     | Version-vector digest and reconcile over the LXMF plane, offer-bound         | `assertEgressAllowed` refuses an un-offered round; the ledger meters bytes |
 | 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder         | Two-host convergence in the multipeer harness                              |
@@ -240,6 +240,12 @@ Phase 1 is independently useful and carries none of the risk: a specified entry 
 checked merge function, and a version vector give the five Cookbook apps a canonical shape for
 the replication they hand-roll today. Phase 2 needs no radio. The egress review gate belongs
 at Phase 3, the §9 security review at Phase 5.
+
+The phases are tracked as `SYNC-1-SPEC`, `SYNC-2-LOOPBACK`, `SYNC-3-LXMF`,
+`SYNC-4-PLANES`, `SYNC-5-HOSTILE`, and `SYNC-6-COOKBOOK` in the
+[software backlog](../STATUS-SOFTWARE.md), chained in delivery order. The LXMF phase also
+depends on the already-complete scoped-egress enforcement rather than inventing a second
+authorization path.
 
 ## 12. Open questions
 

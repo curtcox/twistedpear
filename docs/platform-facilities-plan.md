@@ -3,15 +3,14 @@
 <!-- tp-doc
 lifecycle: planned
 audited: 2026-08-23
-register: none
+register: software
 -->
 
-**This document describes proposed work, not current behaviour, and nothing in it is
-scheduled.** What ships today is in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md); what is
+**This document describes planned work, not current behaviour.** What ships today is in
+[STATUS-COMPLETE.md](../STATUS-COMPLETE.md); what is
 open and gates the release is in [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md); what is
-known-limited is in [LIMITATIONS.md](../LIMITATIONS.md). None of these proposals is a
-release-qualification item and none should acquire a register ID without a decision to
-take it on.
+known-limited is in [LIMITATIONS.md](../LIMITATIONS.md). These facilities are now tracked
+as ordinary backlog, but none is a release-qualification item.
 
 A survey of facilities for **running** and **developing** mini-apps that the platform does
 not currently offer, with the case for each. Items already acknowledged as missing in the
@@ -208,6 +207,18 @@ in §7. Consent and redaction questions are the same ones §7 must answer, so th
 be designed together or not at all.
 
 **Cost.** Small once §7's privacy model exists; unwise before it does.
+
+## Registration
+
+The detailed plans carry phase-sized rows: `SYNC-1-SPEC` through `SYNC-6-COOKBOOK` (§1),
+`AX-1-RENDERERS` through `AX-6-FOCUS` (§2), `DATA-0-KEYS` through
+`DATA-5-RECOVERY` (§3), and `TRACE-1-FORMAT` through `TRACE-6-CHROME` (§7).
+
+The remaining proposals are tracked as `FAC-LAUNCH-TRIGGERS`, `FAC-SHARED-LIBS`,
+`FAC-PEER-PICKER`, `FAC-GOLDEN-SNAPSHOTS`, `FAC-DEVNET`, `FAC-CAP-MINIMIZER`, and
+`FAC-CRASH-REPORTS`. Golden snapshots wait for the accessibility-tree artifact, and crash
+reports wait for the sealed-trace privacy model. All rows live in the
+[software backlog](../STATUS-SOFTWARE.md) and do not gate v1.
 
 ## Deliberately not proposed
 

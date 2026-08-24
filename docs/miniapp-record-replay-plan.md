@@ -3,7 +3,7 @@
 <!-- tp-doc
 lifecycle: planned
 audited: 2026-08-23
-register: none
+register: software
 -->
 
 **This document describes intended work, not current behaviour.** Nothing here ships. What
@@ -186,6 +186,12 @@ Nothing in this plan is claimed until these run:
 Phases 1–3 are useful on their own: shape-only traces with no payload recording already
 solve mishandled denials, render loops, and quota branches, and they carry none of §6's
 risk. Phase 4 is where the review gate belongs.
+
+The phases are tracked as `TRACE-1-FORMAT`, `TRACE-2-RECORD`, `TRACE-3-REPLAY`,
+`TRACE-4-SEALED`, `TRACE-5-SHRINK`, and `TRACE-6-CHROME` in the
+[software backlog](../STATUS-SOFTWARE.md). Shrinking waits for both replay and the sealed
+payload format; host chrome waits for the privacy boundary rather than exposing an unsafe
+recording mode early.
 
 ## 10. Open questions
 

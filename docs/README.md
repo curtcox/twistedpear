@@ -92,9 +92,9 @@ guides admit to into work this repository can do and work gated on hardware, acc
 deliberate v1 scope.
 
 [Platform facilities proposals](platform-facilities-plan.md) is a survey of facilities for
-running and developing mini-apps that the platform does not offer, written as unscheduled
-proposals: it carries no register IDs, nothing in it gates the release, and it excludes gaps
-the feature-status appendices already track. Four of its items are developed in full:
+running and developing mini-apps that the platform does not offer. Its proposals now carry
+ordinary software-backlog IDs, but nothing in it gates the release, and it excludes gaps the
+feature-status appendices already track. Four of its items are developed in full:
 [mini-app record and replay](miniapp-record-replay-plan.md),
 [accessibility in the widget model](widget-accessibility-plan.md),
 [app data export, backup, restore, and migration](app-data-portability-plan.md), and

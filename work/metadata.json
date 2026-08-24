@@ -185,6 +185,48 @@
       ],
       "notes": "app-approval-risk-plan.md Phase 2, finding A-7 and hostile-author scenario HA-11. An update adding a capability must not auto-activate; the delta and its risk are named."
     },
+    "AX-1-RENDERERS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm run test:widget-parity",
+      "added": "2026-08-24",
+      "notes": "docs/widget-accessibility-plan.md Phase 1. RN/web, desktop DOM, headless, and describe.ts must carry accessibilityLabel and image alt; parity must catch a dropped prop."
+    },
+    "AX-2-SCHEMA": {
+      "type": "feature",
+      "requires": ["AX-1-RENDERERS"],
+      "verify": "npm run test:widget-parity",
+      "added": "2026-08-24",
+      "notes": "docs/widget-accessibility-plan.md Phase 2. Add the closed §3 prop set in ui/schema.ts, regenerate JSON Schema, and define renderer-neutral meaning in SPEC-WIDGET."
+    },
+    "AX-3-TREE": {
+      "type": "feature",
+      "requires": ["AX-2-SCHEMA"],
+      "verify": "npm run test:widget-parity",
+      "added": "2026-08-24",
+      "notes": "docs/widget-accessibility-plan.md Phase 3. Project AxNode trees and pin ax strings beside existing SPEC-WIDGET golden streams."
+    },
+    "AX-4-VALIDATE": {
+      "type": "feature",
+      "requires": ["AX-3-TREE"],
+      "verify": "npm run test:hostile-apps && npm run test:widget-parity",
+      "added": "2026-08-24",
+      "notes": "docs/widget-accessibility-plan.md Phase 4. Reject provably unnamed controls only for minHostApi >= 0.21.0, retarget advisory checks, and migrate the three existing switch sites."
+    },
+    "AX-5-RATCHET": {
+      "type": "quality",
+      "requires": ["AX-4-VALIDATE"],
+      "verify": "npm run test:cookbook",
+      "added": "2026-08-24",
+      "notes": "docs/widget-accessibility-plan.md Phase 5. Measure per-app unlabeled-control floors so a new app enters at zero and every existing floor can only shrink."
+    },
+    "AX-6-FOCUS": {
+      "type": "feature",
+      "requires": ["AX-5-RATCHET"],
+      "verify": "npm run test:formal && npm run test:widget-parity",
+      "added": "2026-08-24",
+      "notes": "docs/widget-accessibility-plan.md Phase 6. Derive focus order from laid-out geometry rather than accepting an author-supplied tab index, and regenerate vectors identically."
+    },
     "BUG-AUDIT-FIX-POSTINSTALL": {
       "type": "bug",
       "requires": [],
@@ -424,6 +466,48 @@
       ],
       "notes": "capability-scoping-plan.md Phase 1, audit finding F-5. Require an explicit ttlMs at every GrantStore.set call site; default by consentClass; show expiry in the grant screen; re-prompt on expiry. Typed bug rather than feature: SPEC-CAP already states no grant is immortal and the machinery is model-checked, so this is a conformance gap. Open question 2 in the plan (default TTL per consent class) is a product call that this item has to settle."
     },
+    "DATA-0-KEYS": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npx vitest run packages/worklet-core/test/runtime-key-value-store.test.ts packages/miniapp-runtime/test/storage-kv.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/app-data-portability-plan.md Phase 0. Export must enumerate durable desktop/mobile keys after restart, and quota accounting must not reset with the process."
+    },
+    "DATA-1-ARCHIVE": {
+      "type": "feature",
+      "requires": ["DATA-0-KEYS"],
+      "verify": "npx vitest run packages/host-core/test/app-data-archive.test.ts packages/cli/test/app-data.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/app-data-portability-plan.md Phase 1. Add golden and hostile archive vectors, chunked authenticated framing, and tp app export without a restore reader."
+    },
+    "DATA-2-RESTORE": {
+      "type": "feature",
+      "requires": ["DATA-1-ARCHIVE"],
+      "verify": "npx vitest run packages/host-core/test/app-data-restore.test.ts packages/cli/test/app-data.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/app-data-portability-plan.md Phase 2. Stage writes, reject every §7 failure mode without partial state, and make clear that app data moves while the installation-derived app address does not."
+    },
+    "DATA-3-CHROME": {
+      "type": "feature",
+      "requires": ["DATA-2-RESTORE"],
+      "verify": "npx vitest run packages/host-core/test/app-data-chrome.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/app-data-portability-plan.md Phase 3. Host-owned controls only; no app capability or app-reachable export trigger. Apply SPEC-CHROME R4/R5/R6."
+    },
+    "DATA-4-MIGRATION": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/app-registry/test/data-version.test.ts packages/miniapp-runtime/test/data-migration.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/app-data-portability-plan.md Phase 4. Sign dataVersion, run forward-only migrations before spawn with storage authority only, refuse downgrade, and land failures in crashed."
+    },
+    "DATA-5-RECOVERY": {
+      "type": "feature",
+      "requires": ["DATA-1-ARCHIVE"],
+      "verify": "npx vitest run packages/host-core/test/app-data-recovery.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/app-data-portability-plan.md Phase 5. Reuse the two labelled 24-word-group ritual without coupling archive recovery to the installation identity key."
+    },
     "DEV-BIOMETRIC": {
       "type": "feature",
       "requires": [],
@@ -519,6 +603,55 @@
       "completed": "2026-08-16",
       "evidence": ["docs/coverage-policy.md"],
       "notes": "docs/static-analysis.md sits at exactly 593 lines against a 593-line danger threshold in size-rules.json, so any new prose in it trips the sizes gate. The repo's rule is to decompose rather than compress: split out a docs/supply-chain.md holding the secrets, advisories, licenses, provenance, actions-pinned, install-scripts and SBOM sections."
+    },
+    "FAC-CAP-MINIMIZER": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/cli/test/capability-minimizer.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/platform-facilities-plan.md §10. Compare declared capabilities with statically discoverable SDK calls, report likely excess authority, and state the dynamic-dispatch ceiling."
+    },
+    "FAC-CRASH-REPORTS": {
+      "type": "feature",
+      "requires": ["TRACE-4-SEALED"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/crash-report.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/platform-facilities-plan.md §11. Reuse sealed-trace redaction, require user-visible opt-in, and send only to a publisher destination covered by the signed manifest."
+    },
+    "FAC-DEVNET": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/cli/test/devnet.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/platform-facilities-plan.md §9. Turn repository-internal peers and adversarial link profiles into tp devnet up --peers N --link PROFILE."
+    },
+    "FAC-GOLDEN-SNAPSHOTS": {
+      "type": "feature",
+      "requires": ["AX-3-TREE"],
+      "verify": "npx vitest run packages/cli/test/snapshot.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/platform-facilities-plan.md §8. Expose widget-renderer-headless through the CLI and diff both visual widget-tree and accessibility-tree artifacts."
+    },
+    "FAC-LAUNCH-TRIGGERS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/launch-triggers.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/platform-facilities-plan.md §4. Deliver incoming-message, notification-tap, 256t/deep-link, and peer-invite triggers without turning them into unbounded background execution."
+    },
+    "FAC-PEER-PICKER": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/host-core/test/peer-picker.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/platform-facilities-plan.md §6. Let an app receive only the user-selected opaque destination without contacts-read authority; govern the picker under SPEC-CHROME."
+    },
+    "FAC-SHARED-LIBS": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/app-registry/test/shared-libraries.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/platform-facilities-plan.md §5. Add manifest dependency resolution through the existing CAS/256t path with explicit signature and transitive-trust rules."
     },
     "FN-A1-ANDROID-E5": {
       "type": "quality",
@@ -999,6 +1132,13 @@
       ],
       "notes": "Decision 5 of docs/linked-devices-plan.md. The Devices panel lists cameras, microphones, and sensors; to a user 'my devices' means their phone and laptop, which is what the linked-installation screen will show. Relabel the peripheral chrome to 'Hardware access' and reserve 'Your devices' for installations. User-visible label strings only: device:<class>:<tier> capabilities, SPEC-DEVICE, the Device Manager, and all wire values keep their spelling. Must land before the first linked-installation screen so the two never ship sharing a word."
     },
+    "ID-HOST-WIRING": {
+      "type": "feature",
+      "requires": ["ID-LINKED-MODE", "ID-SIBLING-CHROME"],
+      "verify": "npx vitest run packages/host-core/test/linked-host-wiring.test.ts packages/host-core/test/sibling-decisions-wiring.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/linked-devices-plan.md Remaining work. Desktop and mobile must expose the one-way enable control, show both hashes, serve under installation identities, and render/apply held sibling proposals without transferring grants."
+    },
     "ID-JOURNAL": {
       "type": "feature",
       "requires": ["ID-ROSTER", "ID-SIBLING-GATE"],
@@ -1077,6 +1217,13 @@
       "completed": "2026-08-16",
       "evidence": ["scripts/languages/check.mjs", ".config/ruff.toml"],
       "notes": "scripts/languages/check.mjs runs ruff from the repo root without --config, and ruff only discovers ruff.toml/.ruff.toml/pyproject.toml beside the file or in an ancestor — never .config/ruff.toml. Nothing else in the tree references that file either, so its select = [E, F, I, UP, B] and line-length = 100 have never applied: the gate has been running ruff's defaults (E4/E7/E9/F, line-length 88). Passing --config .config/ruff.toml turns on I/UP/B across every tracked .py file, so it needs its own baselining decision rather than a one-line change."
+    },
+    "LPD-EXTERNAL-EVIDENCE": {
+      "type": "quality",
+      "requires": ["H14", "H18", "H23"],
+      "verify": "runbook:docs/local-peer-discovery-plan.md#remaining-evidence-campaigns",
+      "added": "2026-08-24",
+      "notes": "docs/local-peer-discovery-plan.md Remaining evidence campaigns. Retain sanitized Bluetooth, acoustic, QR/accessibility, cross-browser WebRTC, two-host Reticulum, and long-duration results in docs/local-peer-discovery-evidence.md."
     },
     "MAF-AMBIENT-SURFACE": {
       "type": "quality",
@@ -1803,6 +1950,90 @@
         "conformance/sim-campaign/artifacts/report.json"
       ],
       "notes": "simulation-plan.md S-B. The held rung is L2 (authored); L3 is the next queued increment, gated on shipping escrow/recovery semantics so that simulator-only collusion results are not relabelled as product evidence. Loop mechanics in docs/abuse-resistance-loop.md."
+    },
+    "SYNC-1-SPEC": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npm run formal:all",
+      "added": "2026-08-24",
+      "notes": "docs/replicated-state-plan.md Phase 1. Cross-check the spec prose, executable implementation, TLA+ model, and vectors for the signed union-merge relation."
+    },
+    "SYNC-2-LOOPBACK": {
+      "type": "feature",
+      "requires": ["SYNC-1-SPEC"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/storage-sync-loopback.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/replicated-state-plan.md Phase 2. Prove convergence under drop, delay, reorder, duplicate, partition, and retry without using a radio."
+    },
+    "SYNC-3-LXMF": {
+      "type": "feature",
+      "requires": ["SYNC-2-LOOPBACK", "CAP-EGRESS-WIRING"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/storage-sync-lxmf.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/replicated-state-plan.md Phase 3. Exchange version-vector digests and missing entries only after an EgressOffer; meter every emitted byte."
+    },
+    "SYNC-4-PLANES": {
+      "type": "feature",
+      "requires": ["SYNC-3-LXMF"],
+      "verify": "npm run test:local-multipeer",
+      "added": "2026-08-24",
+      "notes": "docs/replicated-state-plan.md Phase 4. Select across the SPEC-STREAM ladder, reserve bulk budget, and prove two-host convergence in the multipeer harness."
+    },
+    "SYNC-5-HOSTILE": {
+      "type": "feature",
+      "requires": ["SYNC-4-PLANES"],
+      "verify": "npm run test:hostile-apps",
+      "added": "2026-08-24",
+      "notes": "docs/replicated-state-plan.md Phase 5. Bound tombstones and per-author growth, reject forged attribution and cross-author deletes, and leave no hostile-peer scenario UNCONTROLLED."
+    },
+    "SYNC-6-COOKBOOK": {
+      "type": "feature",
+      "requires": ["SYNC-5-HOSTILE"],
+      "verify": "npm run test:cookbook",
+      "added": "2026-08-24",
+      "notes": "docs/replicated-state-plan.md Phase 6. Rebuild roll-call and neighborhood-board on the platform facility and remove the guidance that merge is each author's problem."
+    },
+    "TRACE-1-FORMAT": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/miniapp-runtime/test/trace-format.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/miniapp-record-replay-plan.md Phase 1. Define the interoperable trace unit and prove format-vector round trips on three example apps without recording payloads."
+    },
+    "TRACE-2-RECORD": {
+      "type": "feature",
+      "requires": ["TRACE-1-FORMAT"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/trace-recording.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/miniapp-record-replay-plan.md Phase 2. Record at the audit seam; a deliberately nondeterministic negative control must fail replay loudly."
+    },
+    "TRACE-3-REPLAY": {
+      "type": "feature",
+      "requires": ["TRACE-2-RECORD"],
+      "verify": "npx vitest run packages/cli/test/trace.test.ts conformance/cookbook/cookbook.test.mjs",
+      "added": "2026-08-24",
+      "notes": "docs/miniapp-record-replay-plan.md Phase 3. Every Cookbook app records a scripted session and replays to an identical widget-patch stream."
+    },
+    "TRACE-4-SEALED": {
+      "type": "feature",
+      "requires": ["TRACE-2-RECORD"],
+      "verify": "npx vitest run packages/miniapp-runtime/test/trace-security.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/miniapp-record-replay-plan.md Phase 4. Preserve the §6 privacy boundary: host-only recording, app isolation, bytewise secret-redaction checks, authenticated sealed traces, and bounded storage."
+    },
+    "TRACE-5-SHRINK": {
+      "type": "feature",
+      "requires": ["TRACE-3-REPLAY", "TRACE-4-SEALED"],
+      "verify": "npx vitest run packages/cli/test/trace-shrink.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/miniapp-record-replay-plan.md Phase 5. Minimise a real failing trace and turn it into a checked-in deterministic regression."
+    },
+    "TRACE-6-CHROME": {
+      "type": "feature",
+      "requires": ["TRACE-4-SEALED"],
+      "verify": "npx vitest run packages/host-core/test/trace-chrome.test.ts",
+      "added": "2026-08-24",
+      "notes": "docs/miniapp-record-replay-plan.md Phase 6. Add a host-owned Record session control and indicator under SPEC-CHROME; an app cannot induce, observe, or impersonate recording."
     },
     "WEBED-CHROME": {
       "type": "feature",

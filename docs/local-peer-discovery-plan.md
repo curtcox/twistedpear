@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-06
+audited: 2026-08-23
 register: software
 counterpart: docs/local-peer-discovery.md
 -->
@@ -41,6 +41,9 @@ Run and retain sanitized results for each gate in the evidence register:
 
 Each campaign updates `docs/local-peer-discovery-evidence.md`. Hardware-gated results also
 belong in `STATUS-HARDWARE.md`; do not change a pending row on simulated evidence alone.
+The combined retained-evidence close is tracked as `LPD-EXTERNAL-EVIDENCE` in the
+[blocked software backlog](../STATUS-SOFTWARE.md), waiting on the existing H14, H18, and
+H23 campaigns rather than duplicating their device acquisition work.
 
 ## Future browser Local Peer-to-Peer API
 
