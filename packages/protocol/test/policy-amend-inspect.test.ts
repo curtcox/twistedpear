@@ -184,4 +184,103 @@ describe("policy amendment inspection", () => {
       isSyntacticTightening(before, modified, diffRules(before, modified)),
     ).toBe(false);
   });
+
+  it("conflicts when a sealed rule is removed or rewritten", () => {
+    const sealed = policy([denyInstall("lock", { sealed: true })]);
+    expect(sealedConflict(sealed, policy([]))).toBe(true);
+    expect(
+      sealedConflict(
+        sealed,
+        policy([denyInstall("lock", { sealed: true, when: "user.awake" })]),
+      ),
+    ).toBe(true);
+
+    const mixed = policy([
+      denyInstall("open"),
+      denyInstall("lock", { sealed: true }),
+    ]);
+    expect(
+      sealedConflict(
+        mixed,
+        policy([
+          denyInstall("open"),
+          denyInstall("lock", { sealed: true, when: "user.awake" }),
+        ]),
+      ),
+    ).toBe(true);
+    expect(
+      sealedConflict(
+        policy([denyInstall("lock")]),
+        policy([denyInstall("lock", { sealed: true })]),
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts a syntactic tightening that adds a deny or drops an allow", () => {
+    const allowInstall = {
+      id: "allow-install",
+      subject: "app:install",
+      effect: "allow",
+      onUnknown: "deny",
+      when: true,
+    };
+    const current = policy([allowInstall]);
+    expect(
+      isSyntacticTightening(
+        current,
+        policy([allowInstall, denyInstall("no-install")]),
+        diffRules(current, policy([allowInstall, denyInstall("no-install")])),
+      ),
+    ).toBe(true);
+    expect(
+      isSyntacticTightening(current, policy([]), diffRules(current, policy([]))),
+    ).toBe(true);
+  });
+
+  it("walks known and nested assume(false) when judging a tightening", () => {
+    const known = policy([
+      denyInstall("home-only", { when: { known: { "place.is": "home" } } }),
+    ]);
+    expect(
+      isSyntacticTightening(policy([]), known, diffRules(policy([]), known)),
+    ).toBe(true);
+
+    const nested = policy([
+      denyInstall("asleep", {
+        when: { all: [{ assume: ["user.awake", false] }] },
+      }),
+    ]);
+    expect(
+      isSyntacticTightening(
+        policy([]),
+        nested,
+        diffRules(policy([]), nested),
+      ),
+    ).toBe(true);
+  });
+
+  it("starves place.is when a location grant is denied without a capability", () => {
+    const home = policy([
+      {
+        id: "home",
+        subject: "app:install",
+        effect: "allow",
+        onUnknown: "allow",
+        when: { "place.is": "home" },
+      },
+    ]);
+    const denied = policy([
+      ...home.rules,
+      {
+        id: "no-gps",
+        subject: "grant:request",
+        effect: "deny",
+        onUnknown: "deny",
+        when: true,
+      },
+    ]);
+    expect(
+      couldStarvePlaceIs(home, denied, diffRules(home, denied)),
+    ).toBe(true);
+  });
 });

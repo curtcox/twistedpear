@@ -216,4 +216,16 @@ describe("renderHeadlessAxSnapshot", () => {
       ),
     ).toBe('button "Go"');
   });
+
+  it("omits a missing value and ignores non-string name props", () => {
+    expect(
+      renderHeadlessAxSnapshot(
+        tree({
+          id: "name",
+          type: "text-input",
+          props: { accessibilityLabel: 1 },
+        }),
+      ),
+    ).toBe("textbox");
+  });
 });

@@ -50,6 +50,8 @@ export const TRANSIENT_GRADLE_PATTERNS = [
   /Read timed out/,
   /Connection reset/,
   /Premature end of Content-Length/,
+  /Error on ZipFile unknown archive/,
+  /Archive is not a ZIP archive/,
 ];
 
 export function transientReason(output) {

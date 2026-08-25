@@ -28,6 +28,15 @@ Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'
     Gradle Central Plugin Repository
 `;
 
+/** Verbatim from the Pages kotlin-coverage job that red-gated 1a7d6897. */
+const NDK_ZIP_FAILURE = `
+> Failed to apply plugin 'com.facebook.react.rootproject'.
+   > com.android.builder.sdk.InstallFailedException: Failed to install the following Android SDK packages:
+      ndk;27.1.12297006 NDK (Side by side) 27.1.12297006
+   Warning: An error occurred while preparing SDK package NDK (Side by side) 27.1.12297006: Error on ZipFile unknown archive.
+   "Install NDK (Side by side) 27.1.12297006 v.27.1.12297006" failed.
+`;
+
 /** A Kotlin assertion that genuinely does not hold. */
 const REAL_TEST_FAILURE = `
 > Task :twistedpear-ble-bridge:testDebugUnitTest FAILED
@@ -69,6 +78,10 @@ describe("transientReason", () => {
 
   it("does not classify a failing Kotlin test as transient", () => {
     expect(transientReason(REAL_TEST_FAILURE)).toBeNull();
+  });
+
+  it("classifies a truncated NDK zip as transient", () => {
+    expect(transientReason(NDK_ZIP_FAILURE)).not.toBeNull();
   });
 });
 

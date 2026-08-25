@@ -517,6 +517,12 @@
       "requires": ["DATA-0-KEYS"],
       "verify": "npx vitest run packages/host-core/test/app-data-archive.test.ts packages/cli/test/app-data.test.ts",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/host-core/src/app-data-archive.ts",
+        "packages/host-core/src/app-data-archive-frame.ts",
+        "packages/cli/src/commands/app-data-commands.ts"
+      ],
       "notes": "docs/app-data-portability-plan.md Phase 1. Add golden and hostile archive vectors, chunked authenticated framing, and tp app export without a restore reader."
     },
     "DATA-2-RESTORE": {

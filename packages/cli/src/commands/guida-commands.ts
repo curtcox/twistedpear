@@ -111,6 +111,10 @@ export async function runApp(ctx: CommandContext): Promise<number> {
     const { runJsAppBuild } = await import("./js-bundle-commands.js");
     return runJsAppBuild(rest);
   }
+  if (sub === "export") {
+    const { runAppExport } = await import("./app-data-commands.js");
+    return runAppExport({ ...ctx, args: ctx.args.slice(1) });
+  }
   printHelp("app");
   return 1;
 }
