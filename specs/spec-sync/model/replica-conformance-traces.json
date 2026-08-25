@@ -1,0 +1,15 @@
+{
+  "edges": [
+    ["idle", "open", "open"],
+    ["open", "append", "open"],
+    ["open", "ingest", "open"],
+    ["open", "tombstone", "open"],
+    ["open", "evict", "open"],
+    ["open", "cap", "capped"],
+    ["open", "close", "closed"],
+    ["capped", "ingest", "capped"],
+    ["capped", "tombstone", "capped"],
+    ["capped", "evict", "open"],
+    ["capped", "close", "closed"]
+  ]
+}

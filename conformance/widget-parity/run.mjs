@@ -318,6 +318,74 @@ for (const bad of badTrees) {
   }
 }
 
+// Bounded accessibility prop set: host validation and JSON Schema must agree.
+const a11yBounded = {
+  root: {
+    id: "root",
+    type: "view",
+    props: { accessibilityLabel: "Form", live: "polite" },
+    children: [
+      { id: "h", type: "text", props: { value: "Title", heading: 1 } },
+      { id: "img", type: "image", props: { asset: "x.png", decorative: true } },
+      {
+        id: "go",
+        type: "button",
+        props: { label: "Go", accessibilityHint: "Saves" },
+      },
+      {
+        id: "sw",
+        type: "switch",
+        props: {
+          value: false,
+          accessibilityLabel: "Alerts",
+          accessibilityHint: "Toggles alerts",
+        },
+      },
+    ],
+  },
+};
+validateWidgetTree(a11yBounded);
+if (validateTreeSchema(a11yBounded).length > 0) {
+  throw new Error("widget schema rejected the bounded accessibility prop set");
+}
+const a11yBadTrees = [
+  { root: { id: "r", type: "view", props: { accessibilityHint: "no" } } },
+  { root: { id: "r", type: "text", props: { value: "x", heading: 7 } } },
+  { root: { id: "r", type: "view", props: { live: "rude" } } },
+  {
+    root: {
+      id: "r",
+      type: "image",
+      props: { asset: "a.png", decorative: false },
+    },
+  },
+  { root: { id: "r", type: "view", props: { accessibilityLabel: "" } } },
+  {
+    root: {
+      id: "r",
+      type: "button",
+      props: { label: "Go", accessibilityLabel: "nope" },
+    },
+  },
+];
+for (const bad of a11yBadTrees) {
+  if (validateTreeSchema(bad).length === 0) {
+    throw new Error(
+      `widget schema failed to reject a11y tree: ${JSON.stringify(bad)}`,
+    );
+  }
+  try {
+    validateWidgetTree(bad);
+    throw new Error(
+      `host accepted illegal a11y tree: ${JSON.stringify(bad)}`,
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("host accepted")) {
+      throw error;
+    }
+  }
+}
+
 const streamsDir = join(specDir, "streams");
 const streamFiles = readdirSync(streamsDir)
   .filter((name) => name.endsWith(".json"))

@@ -138,6 +138,11 @@ export {
   MiniappKvQuotaError,
 } from "./services/storage-kv.js";
 export type { MiniappKvStoreBackend } from "./services/storage-kv.js";
+export {
+  ReplicaCapError,
+  TopicLogStore,
+} from "./services/storage-sync.js";
+export type { TopicLogOptions } from "./services/storage-sync.js";
 export { CorestoreBeeBackend } from "./services/storage-bee-corestore.js";
 export { KvStorageBeeBackend } from "./services/storage-bee-kv.js";
 export {
@@ -404,9 +409,16 @@ export {
   KeySharePolicy,
 } from "./security-policies.js";
 export {
+  ACCESSIBILITY_DECORATIVE_TYPES,
+  ACCESSIBILITY_HEADING_TYPES,
+  ACCESSIBILITY_HINT_TYPES,
+  ACCESSIBILITY_LABEL_TYPES,
+  ACCESSIBILITY_LIVE_REGIONS,
+  ACCESSIBILITY_LIVE_TYPES,
   CODE_EDITOR_LANGUAGES,
   EXTRA_PROP_SCHEMAS,
   EXTRA_REQUIRED,
+  MAX_ACCESSIBILITY_TEXT_LENGTH,
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
   MAX_DEVICE_SESSION_PROP_LENGTH,
   MAX_QR_CODE_VALUE_LENGTH,

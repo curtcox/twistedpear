@@ -14,6 +14,7 @@ export const GRANT_TTL_MS_BY_CONSENT_CLASS: Readonly<
 const CORE_CONSENT_CLASS = new Map<string, CapabilityConsentClass>([
   ["storage:kv", "low"],
   ["storage:hyperbee", "low"],
+  ["storage:sync", "low"],
   ["workspace", "low"],
   ["presence", "low"],
   ["link:observe", "low"],

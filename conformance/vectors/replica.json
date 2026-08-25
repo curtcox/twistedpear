@@ -1,0 +1,72 @@
+{
+  "schema": "twistedpear.transition-v1",
+  "machine": "replica",
+  "cells": [
+    {
+      "state": "idle",
+      "eventClass": "open",
+      "expectedState": { "phase": "open" },
+      "legal": true
+    },
+    {
+      "state": "open",
+      "eventClass": "append",
+      "expectedState": { "phase": "open" },
+      "legal": true
+    },
+    {
+      "state": "open",
+      "eventClass": "ingest",
+      "expectedState": { "phase": "open" },
+      "legal": true
+    },
+    {
+      "state": "open",
+      "eventClass": "tombstone",
+      "expectedState": { "phase": "open" },
+      "legal": true
+    },
+    {
+      "state": "open",
+      "eventClass": "evict",
+      "expectedState": { "phase": "open" },
+      "legal": true
+    },
+    {
+      "state": "open",
+      "eventClass": "cap",
+      "expectedState": { "phase": "capped" },
+      "legal": true
+    },
+    {
+      "state": "open",
+      "eventClass": "close",
+      "expectedState": { "phase": "closed" },
+      "legal": true
+    },
+    {
+      "state": "capped",
+      "eventClass": "ingest",
+      "expectedState": { "phase": "capped" },
+      "legal": true
+    },
+    {
+      "state": "capped",
+      "eventClass": "tombstone",
+      "expectedState": { "phase": "capped" },
+      "legal": true
+    },
+    {
+      "state": "capped",
+      "eventClass": "evict",
+      "expectedState": { "phase": "open" },
+      "legal": true
+    },
+    {
+      "state": "capped",
+      "eventClass": "close",
+      "expectedState": { "phase": "closed" },
+      "legal": true
+    }
+  ]
+}

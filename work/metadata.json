@@ -214,6 +214,16 @@
       "requires": ["AX-1-RENDERERS"],
       "verify": "npm run test:widget-parity",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/miniapp-runtime/src/ui/schema.ts",
+        "packages/miniapp-runtime/src/ui/validate.ts",
+        "packages/miniapp-runtime/test/ui-schema-a11y.test.ts",
+        "specs/spec-widget/spec.md",
+        "specs/spec-widget/schema/widget.schema.json",
+        "docs/widget-accessibility.md",
+        "conformance/widget-parity/run.mjs"
+      ],
       "notes": "docs/widget-accessibility-plan.md Phase 2. Add the closed §3 prop set in ui/schema.ts, regenerate JSON Schema, and define renderer-neutral meaning in SPEC-WIDGET."
     },
     "AX-3-TREE": {
@@ -2003,6 +2013,19 @@
       "requires": [],
       "verify": "npm run formal:all",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/protocol/src/replica-machine.ts",
+        "packages/protocol/src/replica-merge.ts",
+        "packages/protocol/test/replica-machine.test.ts",
+        "specs/spec-sync/spec.md",
+        "specs/spec-sync/schema/entry.schema.json",
+        "specs/spec-sync/model/replica.tla",
+        "conformance/vectors/replica.json",
+        "packages/miniapp-runtime/src/services/storage-sync.ts",
+        "packages/miniapp-runtime/test/storage-sync.test.ts",
+        "docs/replicated-state.md"
+      ],
       "notes": "docs/replicated-state-plan.md Phase 1. Cross-check the spec prose, executable implementation, TLA+ model, and vectors for the signed union-merge relation."
     },
     "SYNC-2-LOOPBACK": {

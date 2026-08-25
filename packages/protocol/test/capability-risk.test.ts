@@ -17,6 +17,7 @@ const PLAN_CORE_CLASSES: ReadonlyArray<readonly [string, CapabilityRiskClass]> =
   [
     ["storage:kv", "benign"],
     ["storage:hyperbee", "benign"],
+    ["storage:sync", "benign"],
     ["workspace", "benign"],
     ["presence", "benign"],
     ["link:observe", "benign"],

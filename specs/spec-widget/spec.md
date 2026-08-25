@@ -36,7 +36,8 @@ Tree well-formedness (enforced by
 types and unknown per-type props are rejected (`INVALID_WIDGET`, mirroring the
 unknown-capability rule in [SPEC-CAP](../spec-cap/spec.md)); node ids are non-empty
 and unique per tree; default budgets are 256 KiB serialized, 5000 nodes, depth 32
-(`TOO_LARGE` / `TOO_MANY_NODES` / `TOO_DEEP`).
+(`TOO_LARGE` / `TOO_MANY_NODES` / `TOO_DEEP`). Accessibility props are part of that
+closed per-type set — see [Accessibility](#accessibility).
 
 ## Normative artifacts (current locations)
 
@@ -93,6 +94,37 @@ such patches.
 3. DOM (web host partially covers this)
 4. TUI
 5. Flutter (proves language-neutrality end-to-end)
+
+## Accessibility
+
+These props are renderer-neutral. A host maps them onto the platform accessibility
+API; a TUI or Flutter renderer uses the same meaning. They do not change layout.
+
+`button.label` and `image.alt` remain the accessible name for those two types.
+`accessibilityLabel` is not accepted on them.
+
+| Prop                 | Domain                      | Meaning |
+| -------------------- | --------------------------- | ------- |
+| `accessibilityLabel` | string, 1–128 chars         | App-supplied accessible **name**. Used when the type has no dedicated name prop. Hosts expose this string as the name; they must not invent a different name from visible text when this prop is present. Omission means "no name supplied". An empty string is invalid. |
+| `accessibilityHint`  | string, 1–128 chars         | App-supplied description of the **result of activating** the node (`aria-describedby` / RN `accessibilityHint`). Must not be used as the name. Accepted only on interactive types. |
+| `heading`            | integer 1–6                 | The `text` node is a heading at that rank. The `value` remains the name. Hosts expose heading semantics (`h1`–`h6`, `role="header"` + level). |
+| `live`               | `"polite"` \| `"assertive"` | The `text` or `view` is a live region. Hosts announce updates at that politeness (`aria-live`, RN `accessibilityLiveRegion`). Omission means the node is not a live region. |
+| `decorative`         | `true`                      | The `image` or `view` is intentionally unnamed and must be omitted from the accessibility tree (`aria-hidden`, RN `accessibilityElementsHidden`). Distinct from a missing name: omission is possibly a bug; `decorative` is an explicit author claim. `decorative: false` is invalid — omit the prop. |
+
+Accepted on:
+
+- `accessibilityLabel` — `view`, `scroll`, `list`, `progress`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor`, `qr-code`, and the five preview surfaces
+- `accessibilityHint` — `button`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor`
+- `heading` — `text`
+- `live` — `text`, `view`
+- `decorative` — `image`, `view`
+
+Preview surfaces may carry `accessibilityLabel` as a name for the region. They still
+must not carry sample or pixel props; the live output is not in the widget tree.
+
+Unnamed-control rejection, the accessibility-tree projection, and derived focus order
+are specified in later amendments; this section only defines the vocabulary and its
+meaning.
 
 ## To finish this spec
 

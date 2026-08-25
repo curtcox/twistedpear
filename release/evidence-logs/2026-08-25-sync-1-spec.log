@@ -1,0 +1,15 @@
+
+> twistedpear@0.0.0 formal:all
+> npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs --all
+
+
+> @twistedpear/protocol@0.0.5 build
+> tsc -b
+
+grant TLA+ relation conforms across 7 legal edges
+escrow TLA+ relation conforms across 6 legal edges
+recovery TLA+ relation conforms across 5 legal edges
+device-session TLA+ relation conforms across 10 legal edges
+stream TLA+ relation conforms across 12 legal edges
+replica TLA+ relation conforms across 11 legal edges
+egress-offer TLA+ relation conforms across 6 legal edges

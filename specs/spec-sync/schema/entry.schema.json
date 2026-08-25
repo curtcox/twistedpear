@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://twistedpear.dev/specs/spec-sync/schema/entry.schema.json",
+  "title": "SPEC-SYNC replica entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["authorId", "seq", "at", "payload"],
+  "properties": {
+    "authorId": { "type": "string", "minLength": 1 },
+    "seq": { "type": "integer", "minimum": 1 },
+    "at": { "type": "integer", "minimum": 0 },
+    "payload": true,
+    "key": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "tombstone": { "const": true }
+  }
+}

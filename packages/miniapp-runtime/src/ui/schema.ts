@@ -89,44 +89,105 @@ export const WIDGET_STYLE_KEYS: ReadonlySet<string> = new Set([
   "fontWeight",
 ]);
 
+export const MAX_ACCESSIBILITY_TEXT_LENGTH = 128;
+export const ACCESSIBILITY_LIVE_REGIONS: ReadonlySet<string> = new Set([
+  "polite",
+  "assertive",
+]);
+export const ACCESSIBILITY_LABEL_TYPES: ReadonlySet<WidgetType> = new Set([
+  "view",
+  "scroll",
+  "list",
+  "progress",
+  "text-input",
+  "switch",
+  "slider",
+  "select",
+  "date",
+  "code-editor",
+  "qr-code",
+  "camera-preview",
+  "audio-meter",
+  "waveform",
+  "map-preview",
+  "remote-video",
+]);
+export const ACCESSIBILITY_HINT_TYPES: ReadonlySet<WidgetType> = new Set([
+  "button",
+  "text-input",
+  "switch",
+  "slider",
+  "select",
+  "date",
+  "code-editor",
+]);
+export const ACCESSIBILITY_HEADING_TYPES: ReadonlySet<WidgetType> = new Set([
+  "text",
+]);
+export const ACCESSIBILITY_LIVE_TYPES: ReadonlySet<WidgetType> = new Set([
+  "text",
+  "view",
+]);
+export const ACCESSIBILITY_DECORATIVE_TYPES: ReadonlySet<WidgetType> = new Set([
+  "image",
+  "view",
+]);
+
 export const WIDGET_PROP_KEYS: ReadonlyMap<
   WidgetType,
   ReadonlySet<string>
-> = new Map([
-  ["view", new Set(["accessibilityLabel"])],
-  ["text", new Set(["value"])],
-  ["image", new Set(["asset", "alt"])],
-  ["button", new Set(["label", "event"])],
-  [
-    "text-input",
-    new Set([
-      "value",
-      "placeholder",
-      "event",
-      "multiline",
-      "secure",
-      "keyboard",
-    ]),
-  ],
-  ["switch", new Set(["value", "event"])],
-  ["scroll", new Set(["event", "scrollOffset"])],
-  ["list", new Set(["items", "event"])],
-  ["progress", new Set(["value", "max"])],
-  ["divider", new Set()],
-  ["spacer", new Set(["size"])],
-  ["code-editor", new Set(["documentId", "language", "readOnly", "event"])],
-  ["qr-code", new Set(["value", "size", "caption"])],
-  ["select", new Set(["value", "options", "event"])],
-  ["slider", new Set(["value", "min", "max", "step", "event"])],
-  ["date", new Set(["value", "event"])],
-  // Preview surfaces: host draws live device output; apps lay out a region but
-  // cannot read pixels/samples back through the widget tree.
-  ["camera-preview", new Set(["session", "aspectRatio"])],
-  ["audio-meter", new Set(["session"])],
-  ["waveform", new Set(["session"])],
-  ["map-preview", new Set(["session", "zoom"])],
-  ["remote-video", new Set(["session", "peer"])],
-]);
+> = (() => {
+  const keys = new Map<WidgetType, Set<string>>([
+    ["view", new Set()],
+    ["text", new Set(["value"])],
+    ["image", new Set(["asset", "alt"])],
+    ["button", new Set(["label", "event"])],
+    [
+      "text-input",
+      new Set([
+        "value",
+        "placeholder",
+        "event",
+        "multiline",
+        "secure",
+        "keyboard",
+      ]),
+    ],
+    ["switch", new Set(["value", "event"])],
+    ["scroll", new Set(["event", "scrollOffset"])],
+    ["list", new Set(["items", "event"])],
+    ["progress", new Set(["value", "max"])],
+    ["divider", new Set()],
+    ["spacer", new Set(["size"])],
+    ["code-editor", new Set(["documentId", "language", "readOnly", "event"])],
+    ["qr-code", new Set(["value", "size", "caption"])],
+    ["select", new Set(["value", "options", "event"])],
+    ["slider", new Set(["value", "min", "max", "step", "event"])],
+    ["date", new Set(["value", "event"])],
+    // Preview surfaces: host draws live device output; apps lay out a region
+    // but cannot read pixels/samples back through the widget tree.
+    ["camera-preview", new Set(["session", "aspectRatio"])],
+    ["audio-meter", new Set(["session"])],
+    ["waveform", new Set(["session"])],
+    ["map-preview", new Set(["session", "zoom"])],
+    ["remote-video", new Set(["session", "peer"])],
+  ]);
+  const attach = (types: ReadonlySet<WidgetType>, prop: string): void => {
+    for (const type of types) {
+      const allowed = keys.get(type);
+      if (allowed === undefined) {
+        throw new Error(`cannot attach ${prop} to unknown type ${type}`);
+      }
+      allowed.add(prop);
+    }
+  };
+  attach(ACCESSIBILITY_LABEL_TYPES, "accessibilityLabel");
+  attach(ACCESSIBILITY_HINT_TYPES, "accessibilityHint");
+  attach(ACCESSIBILITY_HEADING_TYPES, "heading");
+  attach(ACCESSIBILITY_LIVE_TYPES, "live");
+  attach(ACCESSIBILITY_DECORATIVE_TYPES, "decorative");
+  return keys;
+})();
 
 export const CODE_EDITOR_LANGUAGES: ReadonlySet<string> = new Set([
   "javascript",
@@ -180,10 +241,62 @@ export const STYLE_VALUE_SCHEMAS: Readonly<Record<string, object>> = {
   fontWeight: { enum: ["regular", "medium", "bold"] },
 };
 
+const ACCESSIBILITY_LABEL_SCHEMA = {
+  type: "string",
+  minLength: 1,
+  maxLength: MAX_ACCESSIBILITY_TEXT_LENGTH,
+};
+const ACCESSIBILITY_HINT_SCHEMA = {
+  type: "string",
+  minLength: 1,
+  maxLength: MAX_ACCESSIBILITY_TEXT_LENGTH,
+};
+const ACCESSIBILITY_HEADING_SCHEMA = {
+  type: "integer",
+  minimum: 1,
+  maximum: 6,
+};
+const ACCESSIBILITY_LIVE_SCHEMA = {
+  enum: ["assertive", "polite"],
+};
+const ACCESSIBILITY_DECORATIVE_SCHEMA = { const: true };
+
+function withAccessibilitySchemas(
+  base: Record<string, Record<string, object>>,
+): Record<string, Record<string, object>> {
+  const add = (
+    types: ReadonlySet<WidgetType>,
+    key: string,
+    schema: object,
+  ): void => {
+    for (const type of types) {
+      base[type] = { ...base[type], [key]: schema };
+    }
+  };
+  add(
+    ACCESSIBILITY_LABEL_TYPES,
+    "accessibilityLabel",
+    ACCESSIBILITY_LABEL_SCHEMA,
+  );
+  add(
+    ACCESSIBILITY_HINT_TYPES,
+    "accessibilityHint",
+    ACCESSIBILITY_HINT_SCHEMA,
+  );
+  add(ACCESSIBILITY_HEADING_TYPES, "heading", ACCESSIBILITY_HEADING_SCHEMA);
+  add(ACCESSIBILITY_LIVE_TYPES, "live", ACCESSIBILITY_LIVE_SCHEMA);
+  add(
+    ACCESSIBILITY_DECORATIVE_TYPES,
+    "decorative",
+    ACCESSIBILITY_DECORATIVE_SCHEMA,
+  );
+  return base;
+}
+
 /** Per-type prop value schemas beyond key membership (serializer + validate.ts). */
 export const EXTRA_PROP_SCHEMAS: Readonly<
   Record<string, Readonly<Record<string, object>>>
-> = {
+> = withAccessibilitySchemas({
   "code-editor": {
     documentId: {
       type: "string",
@@ -199,7 +312,7 @@ export const EXTRA_PROP_SCHEMAS: Readonly<
       maxLength: MAX_QR_CODE_VALUE_LENGTH,
     },
   },
-};
+});
 
 export const EXTRA_REQUIRED: Readonly<Record<string, ReadonlyArray<string>>> = {
   "code-editor": ["documentId"],

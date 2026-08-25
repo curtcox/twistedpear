@@ -7,8 +7,8 @@ register: software
 counterpart: docs/widget-accessibility.md
 -->
 
-**This is a plan, not a description of current behaviour.** The two existing props
-(`view.accessibilityLabel`, `image.alt`) now pass through every renderer; that lives in
+**This is a plan, not a description of current behaviour.** The bounded prop set is now
+accepted by `ui/schema.ts` and specified in SPEC-WIDGET; that lives in
 [widget-accessibility.md](widget-accessibility.md). That live file wins against this one.
 Nothing here gates the release. This plan develops §2 of the
 [platform facilities survey](platform-facilities-plan.md) rather than repeating it.
@@ -19,10 +19,12 @@ from the widget tree alone — no browser, no human.
 
 ## 1. What still cannot be said
 
-The closed vocabulary in [SPEC-WIDGET](../specs/spec-widget/spec.md) still has no label
-for `text-input`, `switch`, `slider`, `select`, or `date`; no heading level on `text`; no
-live region; no hint distinct from a name. There are three renderer implementations, not
-four: the web host renders through `packages/widget-renderer-rn` under react-native-web.
+The closed vocabulary now *accepts* labels, hints, heading, live, and decorative — see
+[widget-accessibility.md](widget-accessibility.md). What still cannot be *checked* is an
+accessibility tree, unnamed-control rejection, a Cookbook floor, or derived focus order.
+There are three renderer implementations, not four: the web host renders through
+`packages/widget-renderer-rn` under react-native-web. Most of the new props are not yet
+honoured by those renderers.
 
 ## 2. Why this platform is the unusual case — checked, and narrower than it sounds
 
@@ -46,22 +48,12 @@ from `"input"`. Enforcement must stop where proof stops.
 
 ## 3. The bounded prop set
 
-SPEC-WIDGET is a closed vocabulary; an open prop bag would break it. Five props, each with a
-fixed value domain, each mapping to something all three renderers can already do:
-
-| Prop                 | Value                       | Accepted on                                                                                                                                       |
-| -------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `accessibilityLabel` | string, 1–128 chars         | `view`, `scroll`, `list`, `progress`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor`, `qr-code`, and the five preview surfaces |
-| `accessibilityHint`  | string, 1–128 chars         | the interactive types only: `button`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor`                                           |
-| `heading`            | integer 1–6                 | `text`                                                                                                                                            |
-| `live`               | `"polite"` \| `"assertive"` | `text`, `view`                                                                                                                                    |
-| `decorative`         | `true`                      | `image`, `view`                                                                                                                                   |
-
-`button.label` and `image.alt` already carry the accessible name for those two types and are
-not duplicated. `accessibilityHint` is not accepted on `view`: a hint describes the result
-of acting, and a container is not actionable. `decorative` is not decoration — it is the
-checkable way to say "this node has no accessible name on purpose", which a required-name
-rule needs or it has no honest escape (`aria-hidden`, RN `accessibilityElementsHidden`).
+The closed prop set, value domains, and per-type acceptance now live in
+[widget-accessibility.md](widget-accessibility.md) and
+[SPEC-WIDGET — Accessibility](../specs/spec-widget/spec.md#accessibility). Phase 2 landed
+them in `ui/schema.ts` and the generated JSON Schema. Remaining work is honouring them in
+the renderers (§5), projecting an accessibility tree (§6), and the rejection / ratchet /
+focus-order phases.
 
 **Focus order is not here, because it is presentation.** It is a function of laid-out reading
 order, which is exactly what SPEC-PRESENT already computes: `layoutWidgetTree` produces one
@@ -73,11 +65,10 @@ focus index is a known anti-pattern, and the vocabulary is better without one.
 ### Where the change actually lands
 
 `specs/spec-widget/schema/widget.schema.json` is **generated** from `ui/schema.ts` by
-`scripts/generate-widget-schema.mjs`, and `conformance/widget-parity/run.mjs:231` fails on
-drift — so the TypeScript tables are edited and the JSON Schema follows. But a JSON Schema
-cannot carry _meaning_, and meaning is what a Flutter or TUI renderer needs: the normative
-semantics of each prop must be written into `specs/spec-widget/spec.md` in the same change.
-Editing `schema.ts` alone produces a schema nobody can implement against.
+`scripts/generate-widget-schema.mjs`, and `conformance/widget-parity/run.mjs` fails on
+drift. Phase 2 edited the TypeScript tables, regenerated the JSON Schema, and wrote the
+normative meaning into `specs/spec-widget/spec.md`. Remaining renderer and tree work still
+starts from those tables.
 
 ## 4. Enforce, ratchet, or carry
 
@@ -216,7 +207,6 @@ finished.
 
 | Phase | Deliverable                                                                                | Gate                                                       |
 | ----- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| 2     | §3 prop set in `ui/schema.ts`, regenerated JSON Schema, semantics written into SPEC-WIDGET | `npm run test:widget-parity`                               |
 | 3     | Accessibility-tree projection and `ax` strings in the golden streams                       | Pinned per stream                                          |
 | 4     | `validate.ts` rejection tier behind `minHostApi >= 0.21.0`; `doctor.ts` retargeted         | Hostile-app fixture cannot bypass; 3 switch sites migrated |
 | 5     | Cookbook accessibility ratchet at measured floors                                          | New app cannot enter above its floor                       |
@@ -225,8 +215,8 @@ finished.
 Phase 4 is the only one that can break a shipped app, and the `minHostApi` gate is what
 stops it.
 
-The remaining phases are tracked as `AX-2-SCHEMA`, `AX-3-TREE`, `AX-4-VALIDATE`,
-`AX-5-RATCHET`, and `AX-6-FOCUS` in the [software backlog](../STATUS-SOFTWARE.md).
+The remaining phases are tracked as `AX-3-TREE`, `AX-4-VALIDATE`, `AX-5-RATCHET`, and
+`AX-6-FOCUS` in the [software backlog](../STATUS-SOFTWARE.md).
 
 ## 11. Open questions
 

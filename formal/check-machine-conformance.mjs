@@ -17,6 +17,10 @@ import {
   selectPlane,
   stepMediaReadiness,
   streamMachine,
+  replicaMachine,
+  mergeReplicaLogs,
+  replicaVisibleView,
+  capReplicaLogs,
 } from "../packages/protocol/dist/index.js";
 
 const definitions = {
@@ -50,6 +54,12 @@ const definitions = {
     model: "../specs/spec-stream/model/stream.tla",
     traces: "../specs/spec-stream/model/stream-conformance-traces.json",
     vector: "stream.json",
+  },
+  replica: {
+    machine: replicaMachine,
+    model: "../specs/spec-sync/model/replica.tla",
+    traces: "../specs/spec-sync/model/replica-conformance-traces.json",
+    vector: "replica.json",
   },
   "egress-offer": {
     machine: egressOfferMachine,
@@ -120,6 +130,7 @@ export async function checkMachineConformance(name, machineOverride) {
       .map((cell) => [cell.state, cell.eventClass, cell.expectedState.phase]),
   });
   if (name === "stream") assertStreamProperties();
+  if (name === "replica") assertReplicaProperties();
   return { name, edges: count };
 }
 
@@ -172,6 +183,49 @@ export function assertStreamProperties() {
     decoded.clockId !== 4
   ) {
     throw new Error("TPD2 timing round-trip is not conforming");
+  }
+}
+
+export function assertReplicaProperties() {
+  const a = [{ authorId: "a", seq: 1, at: 1, payload: 1 }];
+  const b = [{ authorId: "b", seq: 1, at: 2, payload: 2 }];
+  const c = [
+    { authorId: "a", seq: 2, at: 3, key: "k", payload: "x" },
+  ];
+  const ab = mergeReplicaLogs(a, b);
+  const ba = mergeReplicaLogs(b, a);
+  if (JSON.stringify(ab) !== JSON.stringify(ba)) {
+    throw new Error("replica merge is not commutative");
+  }
+  if (
+    JSON.stringify(mergeReplicaLogs(mergeReplicaLogs(a, b), c)) !==
+    JSON.stringify(mergeReplicaLogs(a, mergeReplicaLogs(b, c)))
+  ) {
+    throw new Error("replica merge is not associative");
+  }
+  if (JSON.stringify(mergeReplicaLogs(a, a)) !== JSON.stringify(a)) {
+    throw new Error("replica merge is not idempotent");
+  }
+  const tombstoned = mergeReplicaLogs(
+    [
+      { authorId: "a", seq: 1, at: 1, key: "k", payload: "old" },
+      { authorId: "a", seq: 2, at: 2, key: "k", tombstone: true, payload: null },
+    ],
+    [{ authorId: "b", seq: 1, at: 1, key: "k", payload: "stale" }],
+  );
+  if (replicaVisibleView(tombstoned).has("k")) {
+    throw new Error("replica tombstone was resurrected");
+  }
+  const capped = capReplicaLogs(
+    [
+      { authorId: "a", seq: 1, at: 1, payload: 1 },
+      { authorId: "a", seq: 2, at: 2, payload: 2 },
+      { authorId: "a", seq: 3, at: 3, payload: 3 },
+    ],
+    2,
+  );
+  if (capped.length !== 2 || capped[0].seq !== 2) {
+    throw new Error("replica author cap is not bounded");
   }
 }
 

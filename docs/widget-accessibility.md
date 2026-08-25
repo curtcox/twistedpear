@@ -11,13 +11,16 @@ counterpart: docs/widget-accessibility-plan.md
 [widget accessibility plan](widget-accessibility-plan.md). Where the two disagree, this
 file wins.
 
-The widget vocabulary is still the closed set in
-[SPEC-WIDGET](../specs/spec-widget/spec.md). Two accessibility props already exist in
-`WIDGET_PROP_KEYS`: `view.accessibilityLabel` and `image.alt`. Every renderer now
-honours both. The rest of the surface — labels on controls, heading levels, live
-regions, decorative, and a checkable accessibility tree — is still planned.
+The widget vocabulary is the closed set in
+[SPEC-WIDGET](../specs/spec-widget/spec.md). The host now **accepts** the bounded
+accessibility prop set below. Two props — `view.accessibilityLabel` and `image.alt` —
+already pass through every renderer. The rest of the set is accepted and specified;
+renderers do not yet honour the new members, and there is no accessibility-tree
+oracle yet.
 
 ## What ships
+
+### Renderer-honoured today
 
 | Prop                      | Canonical model (`describe.ts`) | Headless oracle | React Native / web | Desktop DOM                          |
 | ------------------------- | ------------------------------- | --------------- | ------------------ | ------------------------------------ |
@@ -26,15 +29,29 @@ regions, decorative, and a checkable accessibility tree — is still planned.
 
 `button.label` was already the accessible name for buttons and is unchanged.
 
-`npm run test:widget-parity` fails if either oracle drops one of those props, and it
-fails if the RN or desktop DOM source stops wiring them. The `a11y-existing` golden
-stream pins the rendered model.
+### Accepted by schema and `validate.ts` (not yet renderer-honoured)
+
+Normative meaning is in [SPEC-WIDGET — Accessibility](../specs/spec-widget/spec.md#accessibility).
+
+| Prop                 | Domain                      | Accepted on |
+| -------------------- | --------------------------- | ----------- |
+| `accessibilityLabel` | string, 1–128 chars         | `view`, `scroll`, `list`, `progress`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor`, `qr-code`, preview surfaces |
+| `accessibilityHint`  | string, 1–128 chars         | `button`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor` |
+| `heading`            | integer 1–6                 | `text` |
+| `live`               | `"polite"` \| `"assertive"` | `text`, `view` |
+| `decorative`         | `true`                      | `image`, `view` |
+
+`npm run test:widget-parity` fails if the JSON Schema drifts from `ui/schema.ts`, and it
+fails if host validation and the schema disagree on the trees above. The `a11y-existing`
+golden stream still pins the two renderer-honoured props.
 
 The web host still renders through `packages/widget-renderer-rn` under react-native-web,
 so RN and web stay one implementation.
 
+CHROME-R8 / CHROME-R9 scan `accessibilityHint` as well as `accessibilityLabel`.
+
 ## Not in this drop
 
-The bounded prop set (`accessibilityHint`, `heading`, `live`, `decorative`), the
-accessibility-tree projection, version-gated unnamed-control rejection, the Cookbook
-ratchet, and derived focus order remain in the [plan](widget-accessibility-plan.md).
+Renderer mapping for `accessibilityHint`, `heading`, `live`, and `decorative`; the
+accessibility-tree projection; version-gated unnamed-control rejection; the Cookbook
+ratchet; and derived focus order remain in the [plan](widget-accessibility-plan.md).

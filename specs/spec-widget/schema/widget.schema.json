@@ -66,6 +66,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "session": true
                   },
                   "additionalProperties": false
@@ -81,6 +86,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityHint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "event": true,
                     "label": true
                   },
@@ -97,6 +107,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "aspectRatio": true,
                     "session": true
                   },
@@ -113,6 +128,16 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityHint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "documentId": {
                       "type": "string",
                       "minLength": 1,
@@ -148,6 +173,16 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityHint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "event": true,
                     "value": true
                   },
@@ -177,7 +212,10 @@
                   "type": "object",
                   "properties": {
                     "alt": true,
-                    "asset": true
+                    "asset": true,
+                    "decorative": {
+                      "const": true
+                    }
                   },
                   "additionalProperties": false
                 }
@@ -192,6 +230,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "event": true,
                     "items": true
                   },
@@ -208,6 +251,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "session": true,
                     "zoom": true
                   },
@@ -224,6 +272,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "max": true,
                     "value": true
                   },
@@ -240,6 +293,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "caption": true,
                     "size": true,
                     "value": {
@@ -267,6 +325,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "peer": true,
                     "session": true
                   },
@@ -283,6 +346,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "event": true,
                     "scrollOffset": true
                   },
@@ -299,6 +367,16 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityHint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "event": true,
                     "options": true,
                     "value": true
@@ -316,6 +394,16 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityHint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "event": true,
                     "max": true,
                     "min": true,
@@ -350,6 +438,16 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityHint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "event": true,
                     "value": true
                   },
@@ -366,6 +464,17 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "heading": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 6
+                    },
+                    "live": {
+                      "enum": [
+                        "assertive",
+                        "polite"
+                      ]
+                    },
                     "value": true
                   },
                   "additionalProperties": false
@@ -381,6 +490,16 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityHint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "event": true,
                     "keyboard": true,
                     "multiline": true,
@@ -401,7 +520,20 @@
                 "props": {
                   "type": "object",
                   "properties": {
-                    "accessibilityLabel": true
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "decorative": {
+                      "const": true
+                    },
+                    "live": {
+                      "enum": [
+                        "assertive",
+                        "polite"
+                      ]
+                    }
                   },
                   "additionalProperties": false
                 }
@@ -416,6 +548,11 @@
                 "props": {
                   "type": "object",
                   "properties": {
+                    "accessibilityLabel": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "session": true
                   },
                   "additionalProperties": false

@@ -102,7 +102,8 @@ feature-status appendices already track. Four of its items are developed in full
 [accessibility in the widget model](widget-accessibility.md)
 ([plan](widget-accessibility-plan.md)),
 [app data export, backup, restore, and migration](app-data-portability-plan.md), and
-[replicated shared state](replicated-state-plan.md).
+[replicated shared state](replicated-state.md)
+([plan](replicated-state-plan.md)).
 
 ## Archive
 

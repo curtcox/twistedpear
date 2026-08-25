@@ -179,4 +179,21 @@ describe("CHROME-R9 no secret solicitation", () => {
       /CHROME-R9.*identity string/,
     );
   });
+
+  it("rejects secret solicitation hidden in accessibilityHint", () => {
+    rejects(
+      {
+        root: {
+          id: "go",
+          type: "button",
+          props: {
+            label: "Continue",
+            event: "x",
+            accessibilityHint: "Enter your recovery phrase to continue",
+          },
+        },
+      },
+      /CHROME-R9.*recovery phrase/,
+    );
+  });
 });

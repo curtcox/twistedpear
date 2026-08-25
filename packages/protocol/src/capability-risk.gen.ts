@@ -80,6 +80,14 @@ export const CAPABILITY_RISK_REGISTRY: ReadonlyArray<CapabilityRiskEntry> = [
     "standing": true
   },
   {
+    "id": "storage:sync",
+    "riskClass": "benign",
+    "namesDestination": false,
+    "irreversibleOrThirdParty": false,
+    "readsSensorSecretOrForeignData": false,
+    "standing": true
+  },
+  {
     "id": "resource:fetch",
     "riskClass": "elevated",
     "namesDestination": false,

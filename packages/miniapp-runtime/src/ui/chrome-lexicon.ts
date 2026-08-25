@@ -45,6 +45,7 @@ const STRING_PROPS = [
   "alt",
   "caption",
   "accessibilityLabel",
+  "accessibilityHint",
 ] as const;
 
 let cachedDescriptions: ReadonlyArray<string> | undefined;

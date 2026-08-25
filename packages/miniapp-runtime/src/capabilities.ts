@@ -28,6 +28,7 @@ export type MiniappCapability =
   | "lxmf:receive"
   | "storage:kv"
   | "storage:hyperbee"
+  | "storage:sync"
   | "resource:fetch"
   | "workspace"
   | "ai:chat"
@@ -87,6 +88,11 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinitionBase> = [
   {
     id: "storage:hyperbee",
     description: "Store ordered local Hyperbee data for this app.",
+  },
+  {
+    id: "storage:sync",
+    description:
+      "Store a host-merged topic log for this app. Replication is host-owned.",
   },
   {
     id: "resource:fetch",

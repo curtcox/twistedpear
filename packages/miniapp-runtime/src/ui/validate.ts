@@ -1,6 +1,8 @@
 import { chromeLexiconViolation } from "./chrome-lexicon.js";
 import {
+  ACCESSIBILITY_LIVE_REGIONS,
   CODE_EDITOR_LANGUAGES,
+  MAX_ACCESSIBILITY_TEXT_LENGTH,
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
   MAX_DEVICE_SESSION_PROP_LENGTH,
   MAX_QR_CODE_VALUE_LENGTH,
@@ -138,7 +140,7 @@ function validatePreviewSurface(node: WidgetNode): void {
 
   // Preview surfaces must not accept sample/pixel props — only opaque handles.
   for (const prop of Object.keys(node.props ?? {})) {
-    if (!PREVIEW_LAYOUT_PROPS.has(prop)) {
+    if (!PREVIEW_LAYOUT_PROPS.has(prop) && prop !== "accessibilityLabel") {
       invalidWidget(`${node.type} cannot carry media payload prop: ${prop}`);
     }
   }
@@ -152,6 +154,47 @@ function validateStyles(node: WidgetNode): void {
   }
 }
 
+function validateBoundedA11yString(node: WidgetNode, key: string): void {
+  const value = node.props?.[key];
+  if (value === undefined) return;
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > MAX_ACCESSIBILITY_TEXT_LENGTH
+  ) {
+    invalidWidget(
+      `${node.type}.${key} must be a string of 1-${MAX_ACCESSIBILITY_TEXT_LENGTH} characters`,
+    );
+  }
+}
+
+function validateAccessibilityProps(node: WidgetNode): void {
+  validateBoundedA11yString(node, "accessibilityLabel");
+  validateBoundedA11yString(node, "accessibilityHint");
+  const heading = node.props?.heading;
+  if (heading !== undefined) {
+    if (
+      typeof heading !== "number" ||
+      !Number.isInteger(heading) ||
+      heading < 1 ||
+      heading > 6
+    ) {
+      invalidWidget(`${node.type}.heading must be an integer 1-6`);
+    }
+  }
+  const live = node.props?.live;
+  if (
+    live !== undefined &&
+    (typeof live !== "string" || !ACCESSIBILITY_LIVE_REGIONS.has(live))
+  ) {
+    invalidWidget(`${node.type}.live must be "polite" or "assertive"`);
+  }
+  const decorative = node.props?.decorative;
+  if (decorative !== undefined && decorative !== true) {
+    invalidWidget(`${node.type}.decorative must be true`);
+  }
+}
+
 function validateNode(node: WidgetNode, ids: Set<string>): void {
   validateNodeIdentity(node, ids);
   validateWidgetType(node);
@@ -162,6 +205,7 @@ function validateNode(node: WidgetNode, ids: Set<string>): void {
   validateSelect(node);
   validateSlider(node);
   validatePreviewSurface(node);
+  validateAccessibilityProps(node);
   validateStyles(node);
 }
 
