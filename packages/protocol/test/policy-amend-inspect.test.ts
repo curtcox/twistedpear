@@ -154,7 +154,9 @@ describe("policy amendment inspection", () => {
       couldStarvePlaceIs(policy([]), proposed, diffRules(policy([]), proposed)),
     ).toBe(false);
   });
+});
 
+describe("policy amendment tightening", () => {
   it("rejects syntactic tightening when the base widens or a deny is removed", () => {
     const current = policy([], DENY_BASE);
     const widened = policy([], { ...DENY_BASE, "app:install": "allow" });
@@ -233,7 +235,11 @@ describe("policy amendment inspection", () => {
       ),
     ).toBe(true);
     expect(
-      isSyntacticTightening(current, policy([]), diffRules(current, policy([]))),
+      isSyntacticTightening(
+        current,
+        policy([]),
+        diffRules(current, policy([])),
+      ),
     ).toBe(true);
   });
 
@@ -251,11 +257,7 @@ describe("policy amendment inspection", () => {
       }),
     ]);
     expect(
-      isSyntacticTightening(
-        policy([]),
-        nested,
-        diffRules(policy([]), nested),
-      ),
+      isSyntacticTightening(policy([]), nested, diffRules(policy([]), nested)),
     ).toBe(true);
   });
 
@@ -279,8 +281,8 @@ describe("policy amendment inspection", () => {
         when: true,
       },
     ]);
-    expect(
-      couldStarvePlaceIs(home, denied, diffRules(home, denied)),
-    ).toBe(true);
+    expect(couldStarvePlaceIs(home, denied, diffRules(home, denied))).toBe(
+      true,
+    );
   });
 });

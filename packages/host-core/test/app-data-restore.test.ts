@@ -92,31 +92,29 @@ describe("restoreAppData", () => {
       replaced: false,
       parked: true,
     });
-    expect(new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting"))).toBe(
-      "hi",
-    );
+    expect(
+      new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting")),
+    ).toBe("hi");
     expect(APP_DATA_ADDRESS_WARNING).toMatch(/address does not/);
   });
 
   it("refuses an existing app unless replace is set, then overwrites", async () => {
     const store = new MemoryStore(
-      new Map([
-        ["miniapp-kv:hello:greeting", { seq: 1, value: utf8("old") }],
-      ]),
+      new Map([["miniapp-kv:hello:greeting", { seq: 1, value: utf8("old") }]]),
     );
     await expect(restoreAppData(store, cookbook)).rejects.toThrow(
       expect.objectContaining({ code: "COLLISION" }),
     );
-    expect(new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting"))).toBe(
-      "old",
-    );
+    expect(
+      new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting")),
+    ).toBe("old");
     const replaced = await restoreAppData(store, cookbook, {
       collision: "replace",
     });
     expect(replaced.replaced).toBe(true);
-    expect(new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting"))).toBe(
-      "hi",
-    );
+    expect(
+      new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting")),
+    ).toBe("hi");
   });
 
   it("refuses when the archive would exceed quota, before writing", async () => {
@@ -129,17 +127,15 @@ describe("restoreAppData", () => {
 
   it("does not leave partial keys when a later put fails after replace", async () => {
     const store = new MemoryStore(
-      new Map([
-        ["miniapp-kv:hello:greeting", { seq: 1, value: utf8("old") }],
-      ]),
+      new Map([["miniapp-kv:hello:greeting", { seq: 1, value: utf8("old") }]]),
     );
     store.throwOnPutOnce((key) => key === "miniapp-kv:hello:greeting");
     await expect(
       restoreAppData(store, cookbook, { collision: "replace" }),
     ).rejects.toThrow(/injected put failure/);
-    expect(new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting"))).toBe(
-      "hi",
-    );
+    expect(
+      new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting")),
+    ).toBe("hi");
     expect(await store.list("__tp-restore:")).toEqual([]);
   });
 
@@ -154,9 +150,9 @@ describe("restoreAppData", () => {
     const store = new MemoryStore();
     await restoreAppData(store, restored);
     expect(await store.list("miniapp-grants:")).toEqual([]);
-    expect(await snapshotAppData(store, "hello", { hostApi: "0.20.0" })).toEqual(
-      cookbook,
-    );
+    expect(
+      await snapshotAppData(store, "hello", { hostApi: "0.20.0" }),
+    ).toEqual(cookbook);
   });
 
   it("rejects a snapshot that smuggles a grant row", async () => {

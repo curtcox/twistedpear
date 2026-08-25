@@ -138,8 +138,9 @@ export async function runAppRestore(ctx: CommandContext): Promise<number> {
   const store = openStore(ctx.cwd, false);
   const result = await restoreAppData(store, snapshot, {
     collision: hasFlag(ctx.args, "--replace") ? "replace" : "refuse",
-    quotaBytes:
-      quotaFlag === undefined ? undefined : Number.parseInt(quotaFlag, 10),
+    ...(quotaFlag === null
+      ? {}
+      : { quotaBytes: Number.parseInt(quotaFlag, 10) }),
   });
   store.persist();
   console.log(
@@ -147,9 +148,7 @@ export async function runAppRestore(ctx: CommandContext): Promise<number> {
   );
   console.log(APP_DATA_ADDRESS_WARNING);
   if (result.parked) {
-    console.log(
-      `Parked data for ${result.appId}; install the app to use it.`,
-    );
+    console.log(`Parked data for ${result.appId}; install the app to use it.`);
   }
   return 0;
 }

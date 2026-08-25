@@ -131,7 +131,9 @@ describe("renderHeadlessAxSnapshot", () => {
       ].join("\n"),
     );
   });
+});
 
+describe("renderHeadlessAxSnapshot remaining roles", () => {
   it("projects every remaining widget role and value shape", () => {
     expect(
       renderHeadlessAxSnapshot(

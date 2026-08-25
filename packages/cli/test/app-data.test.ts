@@ -20,7 +20,10 @@ describe("tp app export", () => {
     writeFileSync(
       join(cwd, ".tp", "miniapp-kv.json"),
       JSON.stringify({
-        "miniapp-kv:hello:greeting": { seq: 2, value: Buffer.from("hi").toString("hex") },
+        "miniapp-kv:hello:greeting": {
+          seq: 2,
+          value: Buffer.from("hi").toString("hex"),
+        },
       }),
     );
     const readSecret = vi.fn(async () => PASSPHRASE);
@@ -33,9 +36,7 @@ describe("tp app export", () => {
           readSecret,
         }),
       ).toBe(0);
-      const bytes = new Uint8Array(
-        readFileSync(join(cwd, "hello.tpappdata")),
-      );
+      const bytes = new Uint8Array(readFileSync(join(cwd, "hello.tpappdata")));
       const restored = decodeAppDataArchive(bytes, PASSPHRASE);
       expect(restored.records).toHaveLength(1);
       expect(new TextDecoder().decode(restored.records[0]?.value)).toBe("hi");
@@ -139,9 +140,9 @@ describe("tp app restore", () => {
           readSecret: vi.fn(async () => PASSPHRASE),
         }),
       ).rejects.toThrow();
-      expect(JSON.parse(readFileSync(join(cwd, ".tp", "miniapp-kv.json"), "utf8"))).toEqual(
-        {},
-      );
+      expect(
+        JSON.parse(readFileSync(join(cwd, ".tp", "miniapp-kv.json"), "utf8")),
+      ).toEqual({});
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

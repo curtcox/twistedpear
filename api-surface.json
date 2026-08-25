@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "total": 8276,
-  "cap": 8276,
+  "total": 8286,
+  "cap": 8286,
   "packages": 21,
   "entryPoints": 47,
   "unresolved": 0,
@@ -36,12 +36,12 @@
     {
       "name": "host-core",
       "entryPoints": {
-        ".": 258,
+        ".": 268,
         "./web": 91,
         "./protocol": 12,
         "./identity-backup": 13
       },
-      "total": 374
+      "total": 384
     },
     {
       "name": "effects",

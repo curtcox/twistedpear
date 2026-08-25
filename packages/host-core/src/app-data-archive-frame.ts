@@ -101,15 +101,22 @@ export function encodeAppDataArchive(
   const chunks: Uint8Array[] = [];
   try {
     splitChunks(packRecords(snapshot.records)).forEach((plain, index) => {
-      const nonce = entropy.nonces?.[index] ?? provider.randomBytes(NONCE_BYTES);
-      if (nonce.length !== NONCE_BYTES) throw new Error("nonce must be 12 bytes");
+      const nonce =
+        entropy.nonces?.[index] ?? provider.randomBytes(NONCE_BYTES);
+      if (nonce.length !== NONCE_BYTES)
+        throw new Error("nonce must be 12 bytes");
       const ciphertext = gcm(
         key,
         nonce,
         concatBytes([header, u32be(index)]),
       ).encrypt(plain);
       chunks.push(
-        concatBytes([u32be(index), nonce, u32be(ciphertext.length), ciphertext]),
+        concatBytes([
+          u32be(index),
+          nonce,
+          u32be(ciphertext.length),
+          ciphertext,
+        ]),
       );
     });
   } finally {
@@ -141,6 +148,88 @@ function unpackRecords(plaintext: Uint8Array): AppDataRecord[] {
   return records;
 }
 
+type ParsedArchiveHeader = {
+  readonly salt: Uint8Array;
+  readonly appId: string;
+  readonly meta: {
+    readonly hostApi: string;
+    readonly includePending: boolean;
+    readonly records: number;
+  };
+  readonly header: Uint8Array;
+  readonly offset: number;
+};
+
+function parseArchiveHeader(container: Uint8Array): ParsedArchiveHeader {
+  let offset = MAGIC.length;
+  const version = take(container, offset, 1)[0];
+  const logN = take(container, offset + 1, 1)[0];
+  offset += 2;
+  const kdf = dataViewOf(take(container, offset, 4));
+  const r = kdf.getUint16(0, false);
+  const p = kdf.getUint16(2, false);
+  offset += 4;
+  if (
+    version !== 1 ||
+    logN !== 15 ||
+    r !== IDENTITY_SCRYPT_PARAMS.r ||
+    p !== IDENTITY_SCRYPT_PARAMS.p
+  ) {
+    throw new AppDataArchiveError("MAGIC", "Not an app data archive");
+  }
+  const salt = take(container, offset, SALT_BYTES);
+  offset += SALT_BYTES;
+  const appIdLen = dataViewOf(take(container, offset, 2)).getUint16(0, false);
+  offset += 2;
+  const appId = new TextDecoder().decode(take(container, offset, appIdLen));
+  offset += appIdLen;
+  const metaLen = dataViewOf(take(container, offset, 4)).getUint32(0, false);
+  offset += 4;
+  const meta = JSON.parse(
+    new TextDecoder().decode(take(container, offset, metaLen)),
+  ) as ParsedArchiveHeader["meta"];
+  offset += metaLen;
+  return {
+    salt,
+    appId,
+    meta,
+    header: container.subarray(0, offset),
+    offset,
+  };
+}
+
+function decryptArchiveChunks(
+  container: Uint8Array,
+  start: number,
+  header: Uint8Array,
+  key: Uint8Array,
+): Uint8Array {
+  const plains: Uint8Array[] = [];
+  let offset = start;
+  let index = 0;
+  while (offset < container.length) {
+    const claimed = dataViewOf(take(container, offset, 4)).getUint32(0, false);
+    offset += 4;
+    if (claimed !== index) {
+      throw new AppDataArchiveError(
+        "TRUNCATED",
+        "App data archive is truncated",
+      );
+    }
+    const nonce = take(container, offset, NONCE_BYTES);
+    offset += NONCE_BYTES;
+    const ctLen = dataViewOf(take(container, offset, 4)).getUint32(0, false);
+    offset += 4;
+    const ciphertext = take(container, offset, ctLen);
+    offset += ctLen;
+    plains.push(
+      gcm(key, nonce, concatBytes([header, u32be(index)])).decrypt(ciphertext),
+    );
+    index += 1;
+  }
+  return concatBytes(plains);
+}
+
 export function decodeAppDataArchive(
   container: Uint8Array,
   passphrase: string,
@@ -152,86 +241,29 @@ export function decodeAppDataArchive(
     throw new AppDataArchiveError("MAGIC", "Not an app data archive");
   }
   try {
-    let offset = MAGIC.length;
-    const version = take(container, offset, 1)[0];
-    const logN = take(container, offset + 1, 1)[0];
-    offset += 2;
-    const kdf = dataViewOf(take(container, offset, 4));
-    const r = kdf.getUint16(0, false);
-    const p = kdf.getUint16(2, false);
-    offset += 4;
-    if (
-      version !== 1 ||
-      logN !== 15 ||
-      r !== IDENTITY_SCRYPT_PARAMS.r ||
-      p !== IDENTITY_SCRYPT_PARAMS.p
-    ) {
-      throw new AppDataArchiveError("MAGIC", "Not an app data archive");
-    }
-    const salt = take(container, offset, SALT_BYTES);
-    offset += SALT_BYTES;
-    const appIdLen = dataViewOf(take(container, offset, 2)).getUint16(0, false);
-    offset += 2;
-    const appId = new TextDecoder().decode(take(container, offset, appIdLen));
-    offset += appIdLen;
-    const metaLen = dataViewOf(take(container, offset, 4)).getUint32(0, false);
-    offset += 4;
-    const meta = JSON.parse(
-      new TextDecoder().decode(take(container, offset, metaLen)),
-    ) as {
-      hostApi: string;
-      includePending: boolean;
-      records: number;
-    };
-    offset += metaLen;
-    const header = container.subarray(0, offset);
-    const key = deriveKey(passphrase, salt);
-    const plains: Uint8Array[] = [];
+    const parsed = parseArchiveHeader(container);
+    const key = deriveKey(passphrase, parsed.salt);
     try {
-      let index = 0;
-      while (offset < container.length) {
-        const claimed = dataViewOf(take(container, offset, 4)).getUint32(
-          0,
-          false,
+      const records = unpackRecords(
+        decryptArchiveChunks(container, parsed.offset, parsed.header, key),
+      );
+      if (records.length !== parsed.meta.records) {
+        throw new AppDataArchiveError(
+          "TRUNCATED",
+          "App data archive is truncated",
         );
-        offset += 4;
-        if (claimed !== index) {
-          throw new AppDataArchiveError(
-            "TRUNCATED",
-            "App data archive is truncated",
-          );
-        }
-        const nonce = take(container, offset, NONCE_BYTES);
-        offset += NONCE_BYTES;
-        const ctLen = dataViewOf(take(container, offset, 4)).getUint32(
-          0,
-          false,
-        );
-        offset += 4;
-        const ciphertext = take(container, offset, ctLen);
-        offset += ctLen;
-        plains.push(
-          gcm(key, nonce, concatBytes([header, u32be(index)])).decrypt(
-            ciphertext,
-          ),
-        );
-        index += 1;
       }
+      const snapshot = {
+        appId: parsed.appId,
+        hostApi: parsed.meta.hostApi,
+        includePending: parsed.meta.includePending,
+        records,
+      };
+      assertExportableSnapshot(snapshot);
+      return snapshot;
     } finally {
       key.fill(0);
     }
-    const records = unpackRecords(concatBytes(plains));
-    if (records.length !== meta.records) {
-      throw new AppDataArchiveError("TRUNCATED", "App data archive is truncated");
-    }
-    const snapshot = {
-      appId,
-      hostApi: meta.hostApi,
-      includePending: meta.includePending,
-      records,
-    };
-    assertExportableSnapshot(snapshot);
-    return snapshot;
   } catch (error) {
     if (error instanceof AppDataArchiveError) throw error;
     throw new AppDataArchiveError(

@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import { NodeCryptoProvider } from "@twistedpear/reticulum-ts";
 import {
   APP_DATA_ARCHIVE_MAGIC,
+  type AppDataKeyStore,
+} from "../src/app-data-archive.js";
+import {
   AppDataArchiveError,
   decodeAppDataArchive,
   encodeAppDataArchive,
   snapshotAppData,
-  type AppDataKeyStore,
   type AppDataRecord,
   type AppDataSnapshot,
 } from "../src/index.js";
@@ -18,11 +20,7 @@ function utf8(text: string): Uint8Array {
   return new TextEncoder().encode(text);
 }
 
-function record(
-  key: string,
-  value: string,
-  seq = 1,
-): AppDataRecord {
+function record(key: string, value: string, seq = 1): AppDataRecord {
   return { key, seq, value: utf8(value) };
 }
 
@@ -87,18 +85,9 @@ describe("app data archive", () => {
   it("snapshots user keys and refuses grants", async () => {
     const store = new MemoryStore(
       new Map([
-        [
-          "miniapp-kv:hello:greeting",
-          { seq: 4, value: utf8("hi") },
-        ],
-        [
-          "miniapp-grants:publisher:hello",
-          { seq: 1, value: utf8("grant") },
-        ],
-        [
-          "miniapp-lxmf-inbox:hello",
-          { seq: 1, value: utf8("mail") },
-        ],
+        ["miniapp-kv:hello:greeting", { seq: 4, value: utf8("hi") }],
+        ["miniapp-grants:publisher:hello", { seq: 1, value: utf8("grant") }],
+        ["miniapp-lxmf-inbox:hello", { seq: 1, value: utf8("mail") }],
       ]),
     );
     const user = await snapshotAppData(store, "hello", { hostApi: "0.20.0" });
@@ -133,7 +122,9 @@ describe("app data archive", () => {
       ]),
     );
     store.get = async (key) =>
-      key === "miniapp-kv:hello:missing" ? null : MemoryStore.prototype.get.call(store, key);
+      key === "miniapp-kv:hello:missing"
+        ? null
+        : MemoryStore.prototype.get.call(store, key);
     const listed = await snapshotAppData(store, "hello", {
       hostApi: "0.20.0",
       includePending: true,
@@ -145,12 +136,12 @@ describe("app data archive", () => {
     const withoutSeq = {
       list: (prefix = "") =>
         Promise.resolve(
-          ["miniapp-kv:hello:greeting"].filter((key) =>
-            key.startsWith(prefix),
-          ),
+          ["miniapp-kv:hello:greeting"].filter((key) => key.startsWith(prefix)),
         ),
       get: (key: string) =>
-        Promise.resolve(key === "miniapp-kv:hello:greeting" ? utf8("hi") : null),
+        Promise.resolve(
+          key === "miniapp-kv:hello:greeting" ? utf8("hi") : null,
+        ),
     };
     const zeroed = await snapshotAppData(withoutSeq, "hello", {
       hostApi: "0.20.0",
@@ -191,15 +182,8 @@ describe("app data archive", () => {
   });
 
   it("spans multiple chunks and rejects a version mismatch as MAGIC", () => {
-    const bulky = snapshot([
-      record("miniapp-kv:hello:blob", "x".repeat(5000)),
-    ]);
-    const bytes = encodeAppDataArchive(
-      provider,
-      bulky,
-      PASSPHRASE,
-      PASSPHRASE,
-    );
+    const bulky = snapshot([record("miniapp-kv:hello:blob", "x".repeat(5000))]);
+    const bytes = encodeAppDataArchive(provider, bulky, PASSPHRASE, PASSPHRASE);
     const restored = decodeAppDataArchive(bytes, PASSPHRASE);
     expect(new TextDecoder().decode(restored.records[0]?.value).length).toBe(
       5000,
@@ -218,12 +202,12 @@ describe("app data archive", () => {
       PASSPHRASE,
       PASSPHRASE,
     );
-    expect(() => decodeAppDataArchive(bytes.subarray(0, 3), PASSPHRASE)).toThrow(
-      expect.objectContaining({ code: "MAGIC" }),
-    );
-    expect(() => decodeAppDataArchive(bytes.subarray(0, 20), PASSPHRASE)).toThrow(
-      expect.objectContaining({ code: "TRUNCATED" }),
-    );
+    expect(() =>
+      decodeAppDataArchive(bytes.subarray(0, 3), PASSPHRASE),
+    ).toThrow(expect.objectContaining({ code: "MAGIC" }));
+    expect(() =>
+      decodeAppDataArchive(bytes.subarray(0, 20), PASSPHRASE),
+    ).toThrow(expect.objectContaining({ code: "TRUNCATED" }));
     const tampered = bytes.slice();
     tampered[tampered.length - 1] ^= 1;
     expect(() => decodeAppDataArchive(tampered, PASSPHRASE)).toThrow(

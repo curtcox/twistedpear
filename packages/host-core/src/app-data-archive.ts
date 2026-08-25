@@ -87,8 +87,7 @@ export function isExportableAppDataKey(
   includePending: boolean,
 ): boolean {
   if (isForbiddenAppDataKey(key)) return false;
-  if (userPrefixes(appId).some((prefix) => key.startsWith(prefix)))
-    return true;
+  if (userPrefixes(appId).some((prefix) => key.startsWith(prefix))) return true;
   if (!includePending) return false;
   return pendingPrefixes(appId).some(
     (prefix) => key === prefix || key.startsWith(`${prefix}:`),

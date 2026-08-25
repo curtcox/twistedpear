@@ -139,30 +139,19 @@ export {
 } from "./identity-backup.js";
 export {
   APP_DATA_ARCHIVE_EXTENSION,
-  APP_DATA_ARCHIVE_MAGIC,
   AppDataArchiveError,
-  appDataInstalledPrefix,
-  appDataLivePrefixes,
-  assertExportableSnapshot,
-  isExportableAppDataKey,
-  isForbiddenAppDataKey,
   snapshotAppData,
-  type AppDataArchiveCode,
-  type AppDataKeyStore,
   type AppDataRecord,
   type AppDataSnapshot,
 } from "./app-data-archive.js";
 export {
   decodeAppDataArchive,
   encodeAppDataArchive,
-  type AppDataArchiveEntropy,
 } from "./app-data-archive-frame.js";
 export {
   APP_DATA_ADDRESS_WARNING,
   restoreAppData,
   type AppDataMutableStore,
-  type RestoreAppDataOptions,
-  type RestoreAppDataResult,
 } from "./app-data-restore.js";
 export {
   createNodeHost,
