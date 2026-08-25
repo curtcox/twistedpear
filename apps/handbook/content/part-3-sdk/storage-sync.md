@@ -27,6 +27,12 @@ await storage.sync.append("board", { title: "hello" }, { key: "item-1" });
 const view = await storage.sync.view("board");
 ```
 
+```elm
+StorageSync.open "board" GotOpened
+StorageSync.append "board" payload (Just "item-1") GotAppended
+StorageSync.view "board" GotView
+```
+
 Replication, if any, is host-owned. The sandbox sees only the merged view.
 
 ## Outcomes

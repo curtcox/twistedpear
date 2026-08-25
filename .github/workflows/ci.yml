@@ -90,6 +90,14 @@ jobs:
         run: |
           rustup toolchain install 1.97.1 --profile minimal --component clippy --component rustfmt
           cargo install cargo-deny --version 0.20.2 --locked
+      - name: Install Rust restriction-lint toolchain
+        # rust-lints runs `rustup run 1.97.1 cargo clippy` against the
+        # contracts. The `rust` job above installs that toolchain, but this
+        # matrix cell does not share a runner, so without this step clippy
+        # fails with "toolchain 1.97.1 is not installed" before it can
+        # measure anything.
+        if: matrix.id == 'rust-lints'
+        run: rustup toolchain install 1.97.1 --profile minimal --component clippy
       - name: Install Rust toolchain
         # Same pin as the analyzer gate above, without the lint components:
         # tests must run under the compiler the lint gate checks against, or
