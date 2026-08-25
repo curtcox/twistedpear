@@ -63,7 +63,7 @@ export function printHelp(command: string): void {
       "tp create <hello|chat-min> [app-dir]  Scaffold a mini-app template",
     guida:
       "tp guida init [app-dir]  Scaffold a Guida mini-app (Main.elm + elm.json)",
-    app: "tp app build <app-dir> [--out <file>] [--no-minify]  Compile a Guida or multi-file JS project to bundle.js\n       tp app export <app-id> [--out <file>] [--include-pending] [--force]  Write an encrypted app-data archive; nothing reads it yet",
+    app: "tp app build <app-dir> [--out <file>] [--no-minify]  Compile a Guida or multi-file JS project to bundle.js\n       tp app export <app-id> [--out <file>] [--include-pending] [--force]  Write an encrypted app-data archive\n       tp app restore <file> [--replace] [--quota-bytes <n>]  Restore an archive; data moves, the app address does not",
     dev: "tp dev <app-dir> [--host 127.0.0.1:34987] [--link lan|ble|lora] [--loss <pct>] [--peer-offline]  Build and side-load to a dev-mode host",
     pack: "tp pack <app-dir> [--out <file.tpkg>]  Build unsigned package archive",
     sign: "tp sign <file.tpkg>  Re-sign an existing package archive",

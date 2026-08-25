@@ -8,7 +8,9 @@ export type AppDataArchiveCode =
   | "TRUNCATED"
   | "AUTH"
   | "FORBIDDEN"
-  | "EMPTY";
+  | "EMPTY"
+  | "COLLISION"
+  | "QUOTA";
 
 export class AppDataArchiveError extends Error {
   readonly code: AppDataArchiveCode;
@@ -59,6 +61,20 @@ function userPrefixes(appId: string): readonly string[] {
 
 function pendingPrefixes(appId: string): readonly string[] {
   return [`${INBOX}${appId}`, `${OUTBOX}${appId}`];
+}
+
+export function appDataLivePrefixes(
+  appId: string,
+  includePending: boolean,
+): readonly string[] {
+  return [
+    ...userPrefixes(appId),
+    ...(includePending ? pendingPrefixes(appId) : []),
+  ];
+}
+
+export function appDataInstalledPrefix(appId: string): string {
+  return `${INSTALLED}${appId}:`;
 }
 
 export function isForbiddenAppDataKey(key: string): boolean {
@@ -143,10 +159,7 @@ export async function snapshotAppData(
   options: { readonly hostApi: string; readonly includePending?: boolean },
 ): Promise<AppDataSnapshot> {
   const includePending = options.includePending === true;
-  const prefixes = [
-    ...userPrefixes(appId),
-    ...(includePending ? pendingPrefixes(appId) : []),
-  ];
+  const prefixes = appDataLivePrefixes(appId, includePending);
   const keys = new Set<string>();
   for (const prefix of prefixes) {
     for (const key of await store.list(prefix)) keys.add(key);

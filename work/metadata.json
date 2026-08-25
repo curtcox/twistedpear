@@ -530,6 +530,13 @@
       "requires": ["DATA-1-ARCHIVE"],
       "verify": "npx vitest run packages/host-core/test/app-data-restore.test.ts packages/cli/test/app-data.test.ts",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/host-core/src/app-data-restore.ts",
+        "packages/host-core/test/app-data-restore.test.ts",
+        "packages/cli/src/commands/app-data-commands.ts",
+        "packages/cli/test/app-data.test.ts"
+      ],
       "notes": "docs/app-data-portability-plan.md Phase 2. Stage writes, reject every §7 failure mode without partial state, and make clear that app data moves while the installation-derived app address does not."
     },
     "DATA-3-CHROME": {

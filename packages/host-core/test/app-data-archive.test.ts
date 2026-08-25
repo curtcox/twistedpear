@@ -123,6 +123,94 @@ describe("app data archive", () => {
     ).toThrow(AppDataArchiveError);
   });
 
+  it("snapshots bee and workspace keys, skips holes, and ignores non-matching list rows", async () => {
+    const store = new MemoryStore(
+      new Map([
+        ["miniapp-bee:hello:feed", { seq: 2, value: utf8("bee") }],
+        ["miniapp-workspace:hello:notes", { seq: 1, value: utf8("ws") }],
+        ["miniapp-kv:hello:missing", { seq: 1, value: utf8("gone") }],
+        ["miniapp-lxmf-inbox:hello-extra", { seq: 1, value: utf8("no") }],
+      ]),
+    );
+    store.get = async (key) =>
+      key === "miniapp-kv:hello:missing" ? null : MemoryStore.prototype.get.call(store, key);
+    const listed = await snapshotAppData(store, "hello", {
+      hostApi: "0.20.0",
+      includePending: true,
+    });
+    expect(listed.records.map((row) => row.key)).toEqual([
+      "miniapp-bee:hello:feed",
+      "miniapp-workspace:hello:notes",
+    ]);
+    const withoutSeq = {
+      list: (prefix = "") =>
+        Promise.resolve(
+          ["miniapp-kv:hello:greeting"].filter((key) =>
+            key.startsWith(prefix),
+          ),
+        ),
+      get: (key: string) =>
+        Promise.resolve(key === "miniapp-kv:hello:greeting" ? utf8("hi") : null),
+    };
+    const zeroed = await snapshotAppData(withoutSeq, "hello", {
+      hostApi: "0.20.0",
+    });
+    expect(zeroed.records[0]?.seq).toBe(0);
+  });
+
+  it("rejects empty app ids, mismatched passphrases, and undersized entropy", () => {
+    expect(() =>
+      encodeAppDataArchive(
+        provider,
+        snapshot([], false),
+        PASSPHRASE,
+        PASSPHRASE,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      encodeAppDataArchive(
+        provider,
+        { ...cookbook, appId: "" },
+        PASSPHRASE,
+        PASSPHRASE,
+      ),
+    ).toThrow(expect.objectContaining({ code: "EMPTY" }));
+    expect(() =>
+      encodeAppDataArchive(provider, cookbook, PASSPHRASE, "other passphrase"),
+    ).toThrow(/confirmation does not match/);
+    expect(() =>
+      encodeAppDataArchive(provider, cookbook, PASSPHRASE, PASSPHRASE, {
+        salt: new Uint8Array(8),
+      }),
+    ).toThrow(/salt must be 16 bytes/);
+    expect(() =>
+      encodeAppDataArchive(provider, cookbook, PASSPHRASE, PASSPHRASE, {
+        nonces: [new Uint8Array(4)],
+      }),
+    ).toThrow(/nonce must be 12 bytes/);
+  });
+
+  it("spans multiple chunks and rejects a version mismatch as MAGIC", () => {
+    const bulky = snapshot([
+      record("miniapp-kv:hello:blob", "x".repeat(5000)),
+    ]);
+    const bytes = encodeAppDataArchive(
+      provider,
+      bulky,
+      PASSPHRASE,
+      PASSPHRASE,
+    );
+    const restored = decodeAppDataArchive(bytes, PASSPHRASE);
+    expect(new TextDecoder().decode(restored.records[0]?.value).length).toBe(
+      5000,
+    );
+    const mutated = bytes.slice();
+    mutated[8] = 2;
+    expect(() => decodeAppDataArchive(mutated, PASSPHRASE)).toThrow(
+      expect.objectContaining({ code: "MAGIC" }),
+    );
+  });
+
   it("rejects truncated, tampered, and wrong-passphrase archives with pinned codes", () => {
     const bytes = encodeAppDataArchive(
       provider,

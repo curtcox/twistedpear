@@ -115,6 +115,10 @@ export async function runApp(ctx: CommandContext): Promise<number> {
     const { runAppExport } = await import("./app-data-commands.js");
     return runAppExport({ ...ctx, args: ctx.args.slice(1) });
   }
+  if (sub === "restore") {
+    const { runAppRestore } = await import("./app-data-commands.js");
+    return runAppRestore({ ...ctx, args: ctx.args.slice(1) });
+  }
   printHelp("app");
   return 1;
 }

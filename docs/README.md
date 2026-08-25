@@ -41,6 +41,7 @@ When they disagree, the `live` document wins — including against its own plan.
 | Static analysis                   | [static-analysis.md](static-analysis.md), [coverage policy](coverage-policy.md), [browser quality](browser-quality.md) | [static-analysis-plan.md](static-analysis-plan.md)                                                                            |
 | Observability / drop census       | [observability.md](observability.md)                                                                                   | _(executed — [archived plan](../archive/design/observability-plan.md))_                                                       |
 | Guida authoring                   | [guida-ui.md](guida-ui.md)                                                                                             | _(executed — [archived plan](../archive/design/guida-ui-plan.md))_                                                            |
+| Mini-app data export and restore  | [app-data-portability.md](app-data-portability.md)                                                                      | [app-data-portability-plan.md](app-data-portability-plan.md)                                                                  |
 
 The rule is enforced by `npm run test:doc-audit`: a missing or invalid `tp-doc` header, a
 `historical` document outside `archive/`, a non-historical document inside it, or a
@@ -101,7 +102,8 @@ feature-status appendices already track. Four of its items are developed in full
 ([plan](miniapp-record-replay-plan.md)),
 [accessibility in the widget model](widget-accessibility.md)
 ([plan](widget-accessibility-plan.md)),
-[app data export, backup, restore, and migration](app-data-portability-plan.md), and
+[app data export and restore](app-data-portability.md)
+([plan](app-data-portability-plan.md)), and
 [replicated shared state](replicated-state.md)
 ([plan](replicated-state-plan.md)).
 

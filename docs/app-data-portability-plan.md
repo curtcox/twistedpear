@@ -2,16 +2,15 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-24
+audited: 2026-08-25
 register: software
+counterpart: docs/app-data-portability.md
 -->
 
-**This document describes proposed work, not current behaviour.** Nothing here ships, and
-nothing here gates the release. What ships today is three local, per-app storage surfaces
-with no backup and no portability, described in
-[Storage and files](../authors/06-storage-and-files.md) and rated per host in
-[Platform capabilities status](platform-capabilities-status.md); the installation-scoped
-boundary this plan must not cross is in
+**This document describes proposed work, not current behaviour.** Export and restore
+already ship; see [Mini-app data export and restore](app-data-portability.md). What remains
+is host chrome, signed `dataVersion` migrations, and recovery-word presentation of the
+archive key. The installation-scoped boundary this plan must not cross is in
 [Device identity and user identity](linked-devices.md).
 
 The proposal: let a user carry **their own data** off a device onto a new one, and let
@@ -229,14 +228,13 @@ informative.
 | 4     | `dataVersion` in the signed manifest and the pre-launch migration seam              | An app ships v1→v2 with a real shape change; failure lands in `crashed` |
 | 5     | Recovery-word presentation of the archive key                                       | The same two-group format `tp identity recovery show` prints            |
 
-Phase 1 alone answers "the device is about to die"; phase 2 answers "the device died";
-phase 4 is independent of both and can slip without stranding them.
+Phases 1 and 2 ship today, described in
+[Mini-app data export and restore](app-data-portability.md). Phase 4 is independent of
+chrome and can slip without stranding them.
 
-The remaining five phases are tracked as `DATA-1-ARCHIVE`, `DATA-2-RESTORE`,
-`DATA-3-CHROME`, `DATA-4-MIGRATION`, and `DATA-5-RECOVERY` in the
-[software backlog](../STATUS-SOFTWARE.md). Archive and restore are sequential;
-`DATA-4-MIGRATION` remains independent as the table requires, while recovery-word
-presentation waits only for the archive format.
+The remaining work is `DATA-3-CHROME`, `DATA-4-MIGRATION`, and `DATA-5-RECOVERY` in the
+[software backlog](../STATUS-SOFTWARE.md). `DATA-4-MIGRATION` remains independent as the
+table requires, while recovery-word presentation waits only for the archive format.
 
 ## 10. What this deliberately does not do
 
