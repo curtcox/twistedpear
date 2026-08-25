@@ -1,0 +1,309 @@
+{
+  "schema": "twistedpear.policy-v1",
+  "machine": "policy-evaluate",
+  "generatedBy": "scripts/vectors-generate-policy.mjs",
+  "kleene": [
+    {
+      "id": "all-false-false",
+      "op": "all",
+      "args": [
+        "false",
+        "false"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "any-false-false",
+      "op": "any",
+      "args": [
+        "false",
+        "false"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "all-false-unknown",
+      "op": "all",
+      "args": [
+        "false",
+        "unknown"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "any-false-unknown",
+      "op": "any",
+      "args": [
+        "false",
+        "unknown"
+      ],
+      "expected": "unknown"
+    },
+    {
+      "id": "all-false-true",
+      "op": "all",
+      "args": [
+        "false",
+        "true"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "any-false-true",
+      "op": "any",
+      "args": [
+        "false",
+        "true"
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "all-unknown-false",
+      "op": "all",
+      "args": [
+        "unknown",
+        "false"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "any-unknown-false",
+      "op": "any",
+      "args": [
+        "unknown",
+        "false"
+      ],
+      "expected": "unknown"
+    },
+    {
+      "id": "all-unknown-unknown",
+      "op": "all",
+      "args": [
+        "unknown",
+        "unknown"
+      ],
+      "expected": "unknown"
+    },
+    {
+      "id": "any-unknown-unknown",
+      "op": "any",
+      "args": [
+        "unknown",
+        "unknown"
+      ],
+      "expected": "unknown"
+    },
+    {
+      "id": "all-unknown-true",
+      "op": "all",
+      "args": [
+        "unknown",
+        "true"
+      ],
+      "expected": "unknown"
+    },
+    {
+      "id": "any-unknown-true",
+      "op": "any",
+      "args": [
+        "unknown",
+        "true"
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "all-true-false",
+      "op": "all",
+      "args": [
+        "true",
+        "false"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "any-true-false",
+      "op": "any",
+      "args": [
+        "true",
+        "false"
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "all-true-unknown",
+      "op": "all",
+      "args": [
+        "true",
+        "unknown"
+      ],
+      "expected": "unknown"
+    },
+    {
+      "id": "any-true-unknown",
+      "op": "any",
+      "args": [
+        "true",
+        "unknown"
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "all-true-true",
+      "op": "all",
+      "args": [
+        "true",
+        "true"
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "any-true-true",
+      "op": "any",
+      "args": [
+        "true",
+        "true"
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "not-false",
+      "op": "not",
+      "args": [
+        "false"
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "known-false",
+      "op": "known",
+      "args": [
+        "false"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "assume-true-false",
+      "op": "assume",
+      "args": [
+        "false",
+        true
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "not-unknown",
+      "op": "not",
+      "args": [
+        "unknown"
+      ],
+      "expected": "unknown"
+    },
+    {
+      "id": "known-unknown",
+      "op": "known",
+      "args": [
+        "unknown"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "assume-true-unknown",
+      "op": "assume",
+      "args": [
+        "unknown",
+        true
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "not-true",
+      "op": "not",
+      "args": [
+        "true"
+      ],
+      "expected": "false"
+    },
+    {
+      "id": "known-true",
+      "op": "known",
+      "args": [
+        "true"
+      ],
+      "expected": "true"
+    },
+    {
+      "id": "assume-true-true",
+      "op": "assume",
+      "args": [
+        "true",
+        true
+      ],
+      "expected": "true"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "base-when-unmatched",
+      "query": {
+        "subject": "app:launch"
+      },
+      "evidence": {},
+      "expected": {
+        "kind": "deny",
+        "source": "base"
+      }
+    },
+    {
+      "id": "needs-place",
+      "query": {
+        "subject": "app:install"
+      },
+      "evidence": {},
+      "expected": {
+        "kind": "needs",
+        "predicates": [
+          "app.usesNetwork",
+          "place.is:home"
+        ]
+      }
+    },
+    {
+      "id": "deny-overrides-allow",
+      "query": {
+        "subject": "app:install"
+      },
+      "evidence": {
+        "predicates": {
+          "place.is:home": "true",
+          "app.usesNetwork": "true"
+        }
+      },
+      "expected": {
+        "kind": "deny",
+        "source": "rule",
+        "ruleIds": [
+          "deny-network"
+        ]
+      }
+    },
+    {
+      "id": "allow-offline-at-home",
+      "query": {
+        "subject": "app:install"
+      },
+      "evidence": {
+        "predicates": {
+          "place.is:home": "true",
+          "app.usesNetwork": "false"
+        }
+      },
+      "expected": {
+        "kind": "allow",
+        "source": "rule",
+        "ruleIds": [
+          "home-install"
+        ]
+      }
+    }
+  ]
+}

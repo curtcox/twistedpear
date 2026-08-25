@@ -2,15 +2,15 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-24
+audited: 2026-08-25
 register: software
+counterpart: docs/user-policy.md
 -->
 
-**This is a plan, not a description of current behaviour.** Nothing described here is
-implemented. What ships today is
-[app approval risk](app-approval-risk.md) and
-[capability scoping](capability-scoping.md); those live documents win against this one
-until the work lands. The normative artifacts this plan produces are specified in
+**This is a plan, not a description of current behaviour.** The Sans-IO evaluator
+now lives in [user-policy.md](user-policy.md); that live file wins against this one.
+What still does not ship is amendment, sealing, evidence adapters, preview, and
+chrome. The normative artifacts this plan produces are specified in
 [SPEC-POLICY](../specs/spec-policy/spec.md).
 
 A plan for letting the user state, in a form the host actually enforces, what may happen
@@ -83,71 +83,21 @@ Absent entirely:
 
 ## 3. The policy document
 
-A policy is an unordered set of **rules** plus a **base posture** per subject. Order is
-not semantics (§9, P5) — a rule cannot be shadowed by a later one, so re-ordering is not
-an attack surface.
+Implemented by POL-1-EVAL. The live description of subjects, predicates, Kleene
+combinators, unknown collapse, and deny-overrides is
+[user-policy.md](user-policy.md). The schema remains
+[policy-document.schema.json](../specs/spec-policy/schema/policy-document.schema.json).
+Order is not semantics (§9, P5) — a rule cannot be shadowed by a later one, so
+re-ordering is not an attack surface.
 
-### 3.1 Subjects
+`policy:amend` and `policy:seal` are ordinary subjects so that policy governs the
+setting of policy (§4). The evaluator already treats them as subjects; the
+amendment machine and seal commit do not exist yet.
 
-The action classes a rule can gate. The set is closed and versioned; an unknown subject
-in a policy document blocks load rather than being ignored (a policy the host does not
-fully understand must never be treated as satisfied).
-
-`app:install` · `app:launch` · `grant:request` (keyed by capability and risk class) ·
-`interface:enable` · `identity:link` · `identity:export` · `apps:publish` ·
-**`policy:amend`** · **`policy:seal`**
-
-The last two are the point of §4: policy governs the setting of policy.
-
-### 3.2 Predicates
-
-Every predicate evaluates to `true`, `false`, or `unknown`. Three-valued is not a
-convenience — "my mother is unreachable" is a distinct state from "my mother said no",
-and collapsing them silently is how a policy comes to mean something the user did not
-write.
-
-| Family        | Examples                                                                                                                              | Resolvability                                                          |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Artifact      | `app.capabilities ⊆ S`, `app.usesNetwork`, `app.sourceBytes < 5000`, `app.riskTier ≤ t`, `package.hash ∈ H`, `app.firstSeenBefore(d)` | Always decidable from the package; never `unknown`                     |
-| Environmental | `time.localHourIn(9, 20)`, `place.is("home")`, `user.awake`, `power.charging`                                                         | `unknown` whenever the evidence source is absent, stale, or unattested |
-| Interactive   | `user.voiceAuthorized`, `user.passphrase`, `user.typedPhrase(p)`                                                                      | `unknown` on timeout; `false` on an explicit refusal                   |
-| Third-party   | `approval.by("spouse")`, `approval.by("mother")`, `approval.byOrg("employer")`                                                        | `unknown` until an attestation arrives; `false` on a signed denial     |
-| Installation  | `host.class`, `policy.sealedSince(d)`, `sibling.count`                                                                                | Always decidable locally                                               |
-
-Predicate resolution is **evidence gathering, not evaluation**: the Sans-IO evaluator
-returns the set of predicates it needs, the host adapter obtains them, and the evaluator
-is re-entered with the answers. This keeps `packages/protocol` free of I/O and makes every
-predicate independently substitutable in tests.
-
-### 3.3 Combinators and the unknown collapse
-
-Strong Kleene logic, with the collapse always written by the policy author:
-
-- `all` — `false` if any operand is `false`; else `unknown` if any is `unknown`; else `true`.
-- `any` — `true` if any operand is `true`; else `unknown` if any is `unknown`; else `false`.
-- `not` — maps `unknown` to `unknown`.
-- `known(x)` — `true` only if `x` is `true`; `unknown` becomes `false`. The "must be
-  demonstrated" combinator.
-- `assume(x, v)` — collapses `unknown` to the literal `v`. Writing `assume(x, true)` is
-  the only way to say "treat unverifiable as satisfied", and it is visible in the
-  document, in the preview, and in the seal commit.
-
-Every rule carries a mandatory `onUnknown: "deny" | "allow" | "ask"` terminal collapse.
-There is no default: a policy that does not say what an unresolved condition means does
-not load. `"ask"` escalates to a host-chrome prompt and records the answer as the
-predicate value for that decision only.
-
-### 3.4 Decision
-
-Deny-overrides, evaluated over all rules matching the subject:
-
-1. Any rule yielding `deny` → **deny**.
-2. Otherwise any rule yielding `allow` → **allow**.
-3. Otherwise the subject's base posture.
-
-The consequence worth stating: **adding a `deny` rule can never widen a decision, and
-removing an `allow` rule can never widen a decision.** That is the syntactic handle §4
-needs.
+The syntactic handle §4 needs: **adding a `deny` rule can never widen a decision,
+and removing an `allow` rule can never widen a decision.** That is deny-overrides
+as implemented. `"ask"` is an evaluator outcome; host chrome that prompts and
+records the answer is still planned.
 
 ## 4. Amendment — policy governing policy
 

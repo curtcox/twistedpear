@@ -2,6 +2,8 @@ export * from "./index/peer.js";
 export type * from "./index/peer.js";
 export * from "./index/capability.js";
 export type * from "./index/capability.js";
+export * from "./index/policy.js";
+export type * from "./index/policy.js";
 export * from "./index/device.js";
 export type * from "./index/device.js";
 export * from "./index/link.js";

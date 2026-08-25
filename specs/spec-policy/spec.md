@@ -8,8 +8,10 @@ register: none
 
 **Group:** C (platform) · **Status:** stub (informative) · **Migration phase:** 4
 
-Nothing in this spec is implemented. Everything below is informative until its first
-machine-checkable artifact lands; the design rationale and delivery sequence are in
+The schema and the Sans-IO evaluator in `packages/protocol` now exist; see
+[user-policy.md](../../docs/user-policy.md). Amendment, sealing, the TLA+ twin, and
+the bypass suite do not. Everything below stays informative until those artifacts
+cross-check; the delivery sequence is in
 [docs/user-policy-plan.md](../../docs/user-policy-plan.md).
 
 ## Scope
@@ -95,8 +97,13 @@ cases cite the rule they exercise.
 
 ## Existing assets
 
-None. This spec has no current implementation, no vectors, and no model; the mechanisms
-it is built from do exist —
+- **Schema.** [schema/policy-document.schema.json](schema/policy-document.schema.json).
+- **Evaluator.** `loadPolicy` and `evaluatePolicy` in `packages/protocol`, with
+  exhaustive Kleene tables and decision cells in
+  [conformance/vectors/policy.json](../../conformance/vectors/policy.json).
+- **Not yet.** Amendment machine, TLA+ twin, bypass suite.
+
+The mechanisms the remaining work is built from also exist —
 [`grants.ts`](../../packages/protocol/src/grants.ts),
 [`approval-evaluate.ts`](../../packages/protocol/src/approval-evaluate.ts),
 [`sibling-decisions.ts`](../../packages/host-core/src/sibling-decisions.ts),

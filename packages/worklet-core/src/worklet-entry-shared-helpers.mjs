@@ -127,6 +127,7 @@ export function createRuntimeKeyValueStore(runtime, runtimeStoreKeys) {
               throw new AggregateError(
                 [error, rollbackError],
                 "Runtime store write and index rollback failed",
+                { cause: rollbackError },
               );
             }
           }

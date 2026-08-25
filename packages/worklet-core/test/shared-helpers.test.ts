@@ -146,6 +146,48 @@ describe("createRuntimeKeyValueStore", () => {
     await expect(store.list()).resolves.toEqual(["app:a", "app:b", "other"]);
     await expect(store.list("app:")).resolves.toEqual(["app:a", "app:b"]);
   });
+
+  it("preserves both failures when a new-key write and its index rollback fail", async () => {
+    const values = new Map<string, unknown>();
+    const keys = new Set<string>();
+    const writeError = new Error("value write failed");
+    const rollbackError = new Error("index rollback failed");
+    let persistAttempts = 0;
+    const runtime = {
+      store: {
+        get: async (key: string) => values.get(key),
+        set: async (key: string, value: unknown) => {
+          if (key.startsWith("twistedpear:runtime-store-index:")) {
+            persistAttempts += 1;
+            if (persistAttempts >= 2) throw rollbackError;
+            values.set(key, value);
+            return;
+          }
+          throw writeError;
+        },
+        delete: async (key: string) => {
+          values.delete(key);
+        },
+      },
+    };
+    const store = createRuntimeKeyValueStore(runtime, keys);
+
+    const failure = await store.set("a", 1).then(
+      () => {
+        throw new Error("expected the dual failure");
+      },
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBeInstanceOf(AggregateError);
+    const combined = failure as AggregateError;
+    expect(combined.message).toBe(
+      "Runtime store write and index rollback failed",
+    );
+    expect(combined.errors).toEqual([writeError, rollbackError]);
+    expect(combined.cause).toBe(rollbackError);
+    expect([...keys]).toEqual([]);
+  });
 });
 
 const MANAGER_CALLS = {

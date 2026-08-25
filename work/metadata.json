@@ -1570,6 +1570,16 @@
       "requires": [],
       "verify": "npm test -- packages/protocol/test/policy-evaluate.test.ts",
       "added": "2026-08-23",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/protocol/src/policy-evaluate.ts",
+        "packages/protocol/src/policy-load.ts",
+        "packages/protocol/src/policy-kleene.ts",
+        "packages/protocol/src/policy-vocabulary.ts",
+        "packages/protocol/test/policy-evaluate.test.ts",
+        "conformance/vectors/policy.json",
+        "docs/user-policy.md"
+      ],
       "notes": "Sans-IO. Deny-overrides over an unordered rule set; strong Kleene combinators; mandatory per-rule unknown collapse; exhaustive truth-table vectors. P-R1..P-R3."
     },
     "POL-2-AMEND": {

@@ -5,7 +5,7 @@
   "entries": {
     "protocol.api.md": {
       "package": "packages/protocol",
-      "sha256": "71e7bc1d7b6fb983ce60dd6877c8ff8b7505a5a2c6116127776065157995df5b"
+      "sha256": "c4ef6d62843ee55418f654696011bfb2a3ce90d58cc638405871e152f11a45c2"
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
