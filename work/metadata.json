@@ -471,6 +471,11 @@
       "requires": [],
       "verify": "npx vitest run packages/worklet-core/test/runtime-key-value-store.test.ts packages/miniapp-runtime/test/storage-kv.test.ts",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/worklet-core/test/runtime-key-value-store.test.ts",
+        "packages/miniapp-runtime/test/storage-kv.test.ts"
+      ],
       "notes": "docs/app-data-portability-plan.md Phase 0. Export must enumerate durable desktop/mobile keys after restart, and quota accounting must not reset with the process."
     },
     "DATA-1-ARCHIVE": {

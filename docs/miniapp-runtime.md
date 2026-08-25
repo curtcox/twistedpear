@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-21
+audited: 2026-08-24
 register: none
 -->
 
@@ -141,6 +141,10 @@ Message rate and KV quota apply immediately to the next call; `memoryBytes` maps
 worker spawn limits and applies at the next launch (`memoryPendingRestart` in the
 snapshot). Limits are host-initiated only — there is deliberately no broker method a
 mini-app could call to change them.
+
+Desktop and mobile worklet stores persist a versioned internal key index. Key enumeration
+and the KV byte total therefore survive a host restart; a corrupt index rejects enumeration
+instead of being treated as an empty store. The web host enumerates IndexedDB directly.
 
 ## Lifecycle
 

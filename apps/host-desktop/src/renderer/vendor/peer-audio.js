@@ -36,6 +36,7 @@ var TwistedPearPeerAudio = (() => {
       this.code = code;
       this.name = "PeerAudioFskError";
     }
+    code;
   };
   function crc32(bytes) {
     let crc = 4294967295;

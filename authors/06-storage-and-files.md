@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-20
+audited: 2026-08-24
 register: none
 -->
 
@@ -36,6 +36,11 @@ StorageKv.delete "last-peer" GotDeleted
 
 Values are bytes, not strings — encode and decode yourself, as the `chat` example does. A
 missing key returns `null`; it does not throw.
+
+Desktop and mobile hosts keep a durable internal key index beside the values. The index is
+not exposed to mini-apps, but it lets the host enumerate an app's complete key set after a
+restart. KV quota checks re-read those durable keys and values on every write, so restarting
+the host does not reset the bytes already charged to an app.
 
 This is the right place for anything you would put in `localStorage`: the last peer, a UI
 preference, a sync cursor. It is the wrong place for a growing collection, because there is

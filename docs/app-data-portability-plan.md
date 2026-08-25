@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-23
+audited: 2026-08-24
 register: software
 -->
 
@@ -19,7 +19,7 @@ version two of an app open version one's bytes on purpose rather than by luck. T
 data and the publisher's app are different things with different owners; the point of the
 feature is that the first outlives the second. This extends §3 of
 [the platform facilities survey](platform-facilities-plan.md), which argued the gap — here
-is the shape, plus four corrections to that survey's assumptions about what exists.
+is the shape, plus three corrections to that survey's assumptions about what exists.
 
 ## 1. What ships today — verified, with corrections
 
@@ -39,30 +39,7 @@ r=8, p=3) to a 32-byte key, AES-256-GCM with the header as associated data — p
 labelled 24-word BIP-39 groups at
 [identity-backup.ts:202](../packages/host-core/src/identity-backup.ts).
 
-**Correction 1 — key enumeration does not survive a host restart on desktop or mobile.**
-`MiniappKvStoreBackend`
-([storage-kv.ts:8](../packages/miniapp-runtime/src/services/storage-kv.ts)) is implemented
-in `packages/` only by `MemoryKvStoreBackend`
-([loopback.ts:21](../packages/miniapp-runtime/src/services/loopback.ts)) and the simulation
-adapter's `MemoryBackend`
-([simulation-adapter.ts:279](../packages/miniapp-runtime/src/simulation-adapter.ts)). The
-durable store shipping hosts use comes from the worklet entries — one KV per host serving
-grants, CAS, Hyperbee, mini-app KV, workspace, and LXMF mailboxes alike
-([miniapp-host.mjs:209](../packages/worklet-core/src/miniapp-host.mjs)). On desktop and
-mobile that is `createRuntimeKeyValueStore`
-([worklet-entry-shared-helpers.mjs:28](../packages/worklet-core/src/worklet-entry-shared-helpers.mjs)),
-whose `get` reads durably but whose **`list(prefix)` filters an in-process `Set` of keys
-written since the process started**, never hydrated from the store. On the web host, `list`
-is a real `getAllKeys()` over IndexedDB
-([web-entry-part-2.mjs:122](../apps/harness-mobile/worklet/web-entry-part-2.mjs)).
-
-Export is enumeration. So on the two hosts with the better durability story, an export run
-after a restart finds nothing, while the host [LIMITATIONS §8](../LIMITATIONS.md) warns is
-evictable works. The same defect already understates quota — `NamespacedKvService.set` sums
-`list()` results ([storage-kv.ts:27](../packages/miniapp-runtime/src/services/storage-kv.ts)).
-A prerequisite, not a footnote.
-
-**Correction 2 — Hyperbee history is not a question yet.** The backend wired into both
+**Correction 1 — Hyperbee history is not a question yet.** The backend wired into both
 worklet hosts is `KvStorageBeeBackend`
 ([storage-bee-kv.ts:30](../packages/miniapp-runtime/src/services/storage-bee-kv.ts)), a
 flat-KV emulation whose `seq` is a per-key counter incremented on `put`
@@ -74,7 +51,7 @@ history to compact away today: a snapshot is the current key/value set plus each
 counter. The format should say so, so that adopting Corestore later is a deliberate decision
 rather than a silent change of meaning.
 
-**Correction 3 — the migration precedent is a canonicalisation, not a schema migration.**
+**Correction 2 — the migration precedent is a canonicalisation, not a schema migration.**
 `migrateLegacyGrantRecord`
 ([grant-storage-migration.ts:4](../packages/protocol/src/grant-storage-migration.ts))
 re-serialises a grant record into canonical field order; it carries no version field and
@@ -87,7 +64,7 @@ lazily only when the original failed strict decode
 which stamps `version: 1` and throws on anything else. Two stored-record policies already
 coexist — migrate-on-read and refuse — and a data version must pick one per case.
 
-**Correction 4 — escrow and recovery quorum are bookkeeping, not secret sharing.**
+**Correction 3 — escrow and recovery quorum are bookkeeping, not secret sharing.**
 [SPEC-AUTHORITY](../specs/spec-authority/spec.md) puts "the cryptography of shares and
 signatures" out of scope, and `collectShare`
 ([escrow-recovery.ts:232](../packages/host-core/src/escrow-recovery.ts)) records _which
@@ -179,7 +156,7 @@ Two rejected alternatives. _Encrypting to the user's identity key_ needs no new 
 [key rotation and revocation do not exist](../authors/03-hello-world-with-the-cli.md), so an
 archive encrypted to a key the user later loses is an archive nobody can read — and a backup
 whose job is outliving the device cannot depend on that device's key. A passphrase can be
-written down. _Encrypting to a guardian quorum_ is out per Correction 4.
+written down. _Encrypting to a guardian quorum_ is out per Correction 3.
 
 The recovery-words ritual is worth reusing for the passphrase rather than the data: the
 archive key can be shown as two labelled 24-word groups in the format
@@ -244,21 +221,18 @@ informative.
 
 ## 9. Sequencing — each phase is useful shipped alone
 
-| Phase | Deliverable                                                                           | Gate                                                                     |
-| ----- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 0     | Durable key enumeration in the worklet KV store (Correction 1); quota stops resetting | A restarted desktop host lists an app's keys; quota survives the restart |
-| 1     | Archive format, chunked AEAD framing, `tp app export`; nothing reads an archive yet   | Golden and hostile vectors; a cookbook app round-trips to bytes          |
-| 2     | `tp app restore` and the restore flow, including the §3 address warning               | Every §7 row has a test; hostile archives reject with the pinned code    |
-| 3     | Desktop, mobile, and web export/restore chrome                                        | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) R4/R5/R6    |
-| 4     | `dataVersion` in the signed manifest and the pre-launch migration seam                | An app ships v1→v2 with a real shape change; failure lands in `crashed`  |
-| 5     | Recovery-word presentation of the archive key                                         | The same two-group format `tp identity recovery show` prints             |
+| Phase | Deliverable                                                                         | Gate                                                                    |
+| ----- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 1     | Archive format, chunked AEAD framing, `tp app export`; nothing reads an archive yet | Golden and hostile vectors; a cookbook app round-trips to bytes         |
+| 2     | `tp app restore` and the restore flow, including the §3 address warning             | Every §7 row has a test; hostile archives reject with the pinned code   |
+| 3     | Desktop, mobile, and web export/restore chrome                                      | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) R4/R5/R6   |
+| 4     | `dataVersion` in the signed manifest and the pre-launch migration seam              | An app ships v1→v2 with a real shape change; failure lands in `crashed` |
+| 5     | Recovery-word presentation of the archive key                                       | The same two-group format `tp identity recovery show` prints            |
 
-Phase 0 is neither optional nor cosmetic: without it, export on desktop and mobile silently
-produces an empty archive — the worst failure a backup feature can have. Phase 1 alone
-answers "the device is about to die"; phase 2 answers "the device died"; phase 4 is
-independent of both and can slip without stranding them.
+Phase 1 alone answers "the device is about to die"; phase 2 answers "the device died";
+phase 4 is independent of both and can slip without stranding them.
 
-The six phases are tracked as `DATA-0-KEYS`, `DATA-1-ARCHIVE`, `DATA-2-RESTORE`,
+The remaining five phases are tracked as `DATA-1-ARCHIVE`, `DATA-2-RESTORE`,
 `DATA-3-CHROME`, `DATA-4-MIGRATION`, and `DATA-5-RECOVERY` in the
 [software backlog](../STATUS-SOFTWARE.md). Archive and restore are sequential;
 `DATA-4-MIGRATION` remains independent as the table requires, while recovery-word

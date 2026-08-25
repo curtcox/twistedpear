@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-23
+audited: 2026-08-24
 register: software
 -->
 
@@ -211,7 +211,7 @@ be designed together or not at all.
 ## Registration
 
 The detailed plans carry phase-sized rows: `SYNC-1-SPEC` through `SYNC-6-COOKBOOK` (§1),
-`AX-1-RENDERERS` through `AX-6-FOCUS` (§2), `DATA-0-KEYS` through
+`AX-1-RENDERERS` through `AX-6-FOCUS` (§2), `DATA-1-ARCHIVE` through
 `DATA-5-RECOVERY` (§3), and `TRACE-1-FORMAT` through `TRACE-6-CHROME` (§7).
 
 The remaining proposals are tracked as `FAC-LAUNCH-TRIGGERS`, `FAC-SHARED-LIBS`,
