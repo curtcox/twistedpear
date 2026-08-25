@@ -201,6 +201,71 @@ for (const type of domTypes) {
 console.log("widget-parity: golden fixtures + DOM whitelist coverage passed");
 
 // ---------------------------------------------------------------------------
+// Existing accessibility props: every renderer must carry them. The two oracles
+// compare node-for-node; RN and the desktop DOM are checked by contract so a
+// dropped accessibilityLabel or alt fails this same command.
+// ---------------------------------------------------------------------------
+const labeledTree = validateWidgetTree({
+  root: {
+    id: "root",
+    type: "view",
+    props: { accessibilityLabel: "Panel" },
+    children: [
+      {
+        id: "hero",
+        type: "image",
+        props: { asset: "pear.png", alt: "A pear" },
+      },
+    ],
+  },
+});
+const labeledModel = {
+  component: "View",
+  id: "root",
+  props: { accessibilityLabel: "Panel" },
+  children: [
+    {
+      component: "Image",
+      id: "hero",
+      props: { asset: "pear.png", alt: "A pear" },
+    },
+  ],
+};
+assertEqual(
+  describeWidgetTree(labeledTree),
+  labeledModel,
+  "canonical model existing a11y props",
+);
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
+function assertRendererHonours(relative, pattern, label) {
+  const source = readFileSync(join(repoRoot, relative), "utf8");
+  if (!pattern.test(source)) {
+    throw new Error(`${label} dropped from ${relative}`);
+  }
+}
+assertRendererHonours(
+  "packages/widget-renderer-rn/src/MiniappWidgetTree.tsx",
+  /view:\s*\(n\)\s*=>\s*\(\s*<View[\s\S]{0,400}viewAccessibilityLabel/,
+  "RN view.accessibilityLabel",
+);
+assertRendererHonours(
+  "packages/widget-renderer-rn/src/MiniappWidgetTree.tsx",
+  /accessibilityLabel=\{alt\}/,
+  "RN image.alt",
+);
+assertRendererHonours(
+  "apps/host-desktop/src/renderer/widgets.js",
+  /function renderViewNode[\s\S]*?applyAriaLabel\(element, node\)/,
+  "DOM view.accessibilityLabel",
+);
+assertRendererHonours(
+  "apps/host-desktop/src/renderer/widgets.js",
+  /element\.alt = alt/,
+  "DOM image.alt",
+);
+
+// ---------------------------------------------------------------------------
 // SPEC-WIDGET: recorded golden streams drive every renderer implementation.
 // ---------------------------------------------------------------------------
 const { readdirSync } = await import("node:fs");
@@ -213,6 +278,11 @@ const {
   renderHeadlessSnapshot,
   renderHeadlessTree,
 } = await import("../../packages/widget-renderer-headless/dist/index.js");
+assertEqual(
+  renderHeadlessTree(labeledTree),
+  labeledModel,
+  "headless existing a11y props",
+);
 const { createValidator } = await import("../tools/mini-json-schema.mjs");
 const { generateWidgetSchema } =
   await import("../../scripts/generate-widget-schema.mjs");

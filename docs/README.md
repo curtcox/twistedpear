@@ -29,6 +29,7 @@ When they disagree, the `live` document wins — including against its own plan.
 
 | Topic                             | Current implementation                                                                                                 | Plan                                                                                                                          |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Widget accessibility              | [widget-accessibility.md](widget-accessibility.md)                                                                     | [widget-accessibility-plan.md](widget-accessibility-plan.md)                                                                  |
 | Mobile lifecycle constraint       | [mobile-lifecycle.md](mobile-lifecycle.md)                                                                             | [mobile-lifecycle-plan.md](mobile-lifecycle-plan.md)                                                                          |
 | Freenet integration               | [freenet.md](freenet.md)                                                                                               | [freenet-plan.md](freenet-plan.md), sequenced by [freenet-simulator-first-work-plan.md](freenet-simulator-first-work-plan.md) |
 | Device I/O                        | [device-io.md](device-io.md)                                                                                           | [device-io-plan.md](device-io-plan.md)                                                                                        |
@@ -96,7 +97,8 @@ running and developing mini-apps that the platform does not offer. Its proposals
 ordinary software-backlog IDs, but nothing in it gates the release, and it excludes gaps the
 feature-status appendices already track. Four of its items are developed in full:
 [mini-app record and replay](miniapp-record-replay-plan.md),
-[accessibility in the widget model](widget-accessibility-plan.md),
+[accessibility in the widget model](widget-accessibility.md)
+([plan](widget-accessibility-plan.md)),
 [app data export, backup, restore, and migration](app-data-portability-plan.md), and
 [replicated shared state](replicated-state-plan.md).
 

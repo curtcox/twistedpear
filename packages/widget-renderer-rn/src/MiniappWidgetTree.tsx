@@ -227,6 +227,13 @@ function SelectWidget({
   );
 }
 
+function viewAccessibilityLabel(node: WidgetNode): {
+  readonly accessibilityLabel?: string;
+} {
+  const value = node.props?.accessibilityLabel;
+  return typeof value === "string" ? { accessibilityLabel: value } : {};
+}
+
 function WidgetNodeView({
   node,
   onEvent,
@@ -245,7 +252,7 @@ function WidgetNodeView({
 
   return visitWidget(node, {
     view: (n) => (
-      <View style={style} testID={n.id}>
+      <View style={style} testID={n.id} {...viewAccessibilityLabel(n)}>
         {n.children?.map((child) => (
           <WidgetNodeView key={child.id} node={child} {...childProps} />
         ))}
@@ -397,7 +404,11 @@ function ImageWidget({
     );
   }
   return (
-    <Text testID={node.id} style={[styles.text, style]}>
+    <Text
+      testID={node.id}
+      style={[styles.text, style]}
+      accessibilityLabel={alt}
+    >
       image:{assetName}
     </Text>
   );

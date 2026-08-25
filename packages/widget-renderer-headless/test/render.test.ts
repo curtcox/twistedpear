@@ -300,6 +300,34 @@ describe("renderHeadlessTree leaf widgets", () => {
     });
   });
 
+  it("carries view.accessibilityLabel and image.alt", () => {
+    expect(
+      rendered({
+        id: "root",
+        type: "view",
+        props: { accessibilityLabel: "Panel" },
+        children: [
+          {
+            id: "hero",
+            type: "image",
+            props: { asset: "pear.png", alt: "A pear" },
+          },
+        ],
+      }),
+    ).toEqual({
+      id: "root",
+      component: "View",
+      props: { accessibilityLabel: "Panel" },
+      children: [
+        {
+          id: "hero",
+          component: "Image",
+          props: { asset: "pear.png", alt: "A pear" },
+        },
+      ],
+    });
+  });
+
   it("renders qr codes with optional size and caption", () => {
     expect(
       rendered({ id: "q", type: "qr-code", props: { value: "x" } }),

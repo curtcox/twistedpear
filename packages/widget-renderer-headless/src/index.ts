@@ -149,7 +149,15 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
   const withChildren = children.length === 0 ? {} : { children };
 
   return visitWidget(node, {
-    view: () => ({ ...base, component: "View", ...withChildren }),
+    view: (n) => {
+      const props = optionalStringProp(n.props, "accessibilityLabel");
+      return {
+        ...base,
+        component: "View",
+        ...(Object.keys(props).length === 0 ? {} : { props }),
+        ...withChildren,
+      };
+    },
     scroll: () => ({ ...base, component: "ScrollView", ...withChildren }),
     text: (n) => ({
       ...base,
@@ -202,7 +210,10 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
     image: (n) => ({
       ...base,
       component: "Image",
-      props: { asset: asString(n.props?.asset, "") },
+      props: {
+        asset: asString(n.props?.asset, ""),
+        ...optionalStringProp(n.props, "alt"),
+      },
     }),
     "code-editor": (n) => renderCodeEditor(base, n),
     "qr-code": (n) => renderQrCode(base, n),

@@ -56,11 +56,13 @@ function describeWithChildren(
   base: WidgetNodeBase,
   component: string,
   node: WidgetNode,
+  extraProps: Record<string, unknown> = {},
 ): RenderedWidgetNode {
   const children = describeChildren(node);
   return {
     ...base,
     component,
+    ...(Object.keys(extraProps).length === 0 ? {} : { props: extraProps }),
     ...(children === undefined ? {} : { children }),
   };
 }
@@ -156,7 +158,13 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
   };
 
   return visitWidget(node, {
-    view: (n) => describeWithChildren(base, "View", n),
+    view: (n) =>
+      describeWithChildren(
+        base,
+        "View",
+        n,
+        optionalStringProp(n.props, "accessibilityLabel"),
+      ),
     text: (n) => ({
       ...base,
       component: "Text",
@@ -216,7 +224,10 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
     image: (n) => ({
       ...base,
       component: "Image",
-      props: { asset: String(n.props?.asset ?? "") },
+      props: {
+        asset: String(n.props?.asset ?? ""),
+        ...optionalStringProp(n.props, "alt"),
+      },
     }),
     "code-editor": (n) => describeCodeEditor(base, n),
     "qr-code": (n) => describeQrCode(base, n),

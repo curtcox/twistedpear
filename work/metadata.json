@@ -197,6 +197,16 @@
       "requires": [],
       "verify": "npm run test:widget-parity",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/miniapp-runtime/src/ui/describe.ts",
+        "packages/widget-renderer-headless/src/index.ts",
+        "packages/widget-renderer-rn/src/MiniappWidgetTree.tsx",
+        "apps/host-desktop/src/renderer/widgets.js",
+        "conformance/widget-parity/run.mjs",
+        "specs/spec-widget/streams/a11y-existing.json",
+        "docs/widget-accessibility.md"
+      ],
       "notes": "docs/widget-accessibility-plan.md Phase 1. RN/web, desktop DOM, headless, and describe.ts must carry accessibilityLabel and image alt; parity must catch a dropped prop."
     },
     "AX-2-SCHEMA": {

@@ -50,8 +50,9 @@ policy. The largest item in this document.
 
 ### 2. Accessibility in the widget model
 
-**Missing.** `WIDGET_PROP_KEYS` in `packages/miniapp-runtime/src/ui/schema.ts` gives `view`
-an `accessibilityLabel` and `image` an `alt`. That is the entire accessibility surface.
+**Mostly missing.** The two existing props (`view.accessibilityLabel`, `image.alt`) now
+pass through every renderer — see [widget-accessibility.md](widget-accessibility.md).
+`WIDGET_PROP_KEYS` in `packages/miniapp-runtime/src/ui/schema.ts` still has nothing else.
 There is no label association for `text-input`, `switch`, `slider`, or `select`; no heading
 level on `text`; no live-region announcement when content changes; no focus order; no
 accessibility hint distinct from a visible label.

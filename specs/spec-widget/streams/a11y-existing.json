@@ -1,0 +1,31 @@
+{
+  "spec": "SPEC-WIDGET",
+  "app": "a11y-existing",
+  "description": "Existing view.accessibilityLabel and image.alt must survive every renderer.",
+  "events": [],
+  "frames": [
+    {
+      "tree": {
+        "root": {
+          "id": "root",
+          "type": "view",
+          "props": {
+            "accessibilityLabel": "Panel"
+          },
+          "children": [
+            {
+              "id": "hero",
+              "type": "image",
+              "props": {
+                "asset": "pear.png",
+                "alt": "A pear"
+              }
+            }
+          ]
+        }
+      },
+      "snapshot": "View#root {\"accessibilityLabel\":\"Panel\"}\n  Image#hero {\"alt\":\"A pear\",\"asset\":\"pear.png\"}"
+    }
+  ],
+  "patches": []
+}

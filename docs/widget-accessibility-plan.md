@@ -2,50 +2,27 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-23
+audited: 2026-08-25
 register: software
+counterpart: docs/widget-accessibility.md
 -->
 
-**This document describes planned work, not current behaviour.** Nothing here ships yet,
-and it does not gate the release. What ships today is the closed
-widget vocabulary defined by [SPEC-WIDGET](../specs/spec-widget/spec.md), laid out under
-[SPEC-PRESENT](../specs/spec-present/spec.md), refused by the host under the rules of
-[SPEC-CHROME](../specs/spec-chrome/spec.md), and measured — for host chrome only — by the
-axe-core ratchet described in [Static analysis](static-analysis.md). This plan develops §2 of
-the [platform facilities survey](platform-facilities-plan.md) rather than repeating it.
+**This is a plan, not a description of current behaviour.** The two existing props
+(`view.accessibilityLabel`, `image.alt`) now pass through every renderer; that lives in
+[widget-accessibility.md](widget-accessibility.md). That live file wins against this one.
+Nothing here gates the release. This plan develops §2 of the
+[platform facilities survey](platform-facilities-plan.md) rather than repeating it.
 
 The proposal: give the widget vocabulary enough accessibility data that the **host** can
 guarantee a mini-app is usable with a screen reader, and make that guarantee checkable in CI
 from the widget tree alone — no browser, no human.
 
-## 1. What the vocabulary can say today, and what it cannot
+## 1. What still cannot be said
 
-Two props exist across all 21 widget types
-([schema.ts:96, :98](../packages/miniapp-runtime/src/ui/schema.ts)): `view` accepts
-`accessibilityLabel` and `image` accepts `alt`. Everything else is absent from the schema —
-no label for `text-input`, `switch`, `slider`, `select`, or `date`; no heading level on
-`text`; no live region; no hint distinct from a name. The two that do exist fare worse than
-the survey suggests, and **each fails differently** — the distinction this plan turns on:
-
-| Prop                      | Canonical model                | Headless oracle             | React Native                              | Desktop DOM                    |
-| ------------------------- | ------------------------------ | --------------------------- | ----------------------------------------- | ------------------------------ |
-| `view.accessibilityLabel` | dropped ([describe.ts:165][d]) | dropped ([index.ts:161][h]) | dropped ([MiniappWidgetTree.tsx:245][r])  | dropped ([widgets.js:13][w])   |
-| `image.alt`               | dropped ([describe.ts:224][d]) | dropped ([index.ts:213][h]) | honoured ([MiniappWidgetTree.tsx:386][r]) | honoured ([widgets.js:205][w]) |
-
-[d]: ../packages/miniapp-runtime/src/ui/describe.ts
-[h]: ../packages/widget-renderer-headless/src/index.ts
-[r]: ../packages/widget-renderer-rn/src/MiniappWidgetTree.tsx
-[w]: ../apps/host-desktop/src/renderer/widgets.js
-
-So `accessibilityLabel` is expressible and honoured by nothing at all, and `alt` is honoured
-by both real renderers but invisible to both conformance oracles — so no parity test can
-catch a renderer that stops honouring it. One is a schema gap plus a renderer gap; the other
-is a renderer gap only, and they need different fixes.
-
-There are three renderer implementations, not four: the web host renders through the same
-`packages/widget-renderer-rn` under react-native-web (`scripts/site/editor/entry.tsx:6`;
-`apps/harness-mobile/host/miniapp-renderer.tsx:1` re-exports it), so the work is RN, DOM,
-and headless.
+The closed vocabulary in [SPEC-WIDGET](../specs/spec-widget/spec.md) still has no label
+for `text-input`, `switch`, `slider`, `select`, or `date`; no heading level on `text`; no
+live region; no hint distinct from a name. There are three renderer implementations, not
+four: the web host renders through `packages/widget-renderer-rn` under react-native-web.
 
 ## 2. Why this platform is the unusual case — checked, and narrower than it sounds
 
@@ -130,17 +107,18 @@ An advisory check already exists, pointed at the wrong type: `collectAccessibili
 either: `runDoctor` prints findings and returns 0
 ([inspect-commands.ts:98](../packages/cli/src/commands/inspect-commands.ts)).
 
-## 5. What each renderer must do
+## 5. What each renderer must still do
 
-| Renderer                            | Work                                                                                                                                                                                                                                                                      |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `widget-renderer-rn` (RN + web)     | pass `accessibilityLabel` / `accessibilityHint` through on every accepting type — including `view`, which it drops today; `accessibilityRole="header"` + `aria-level` for `heading`; `accessibilityLiveRegion` for `live`; `accessibilityElementsHidden` for `decorative` |
-| Desktop DOM (`renderer/widgets.js`) | `aria-label` / `aria-describedby`; `<h1>`–`<h6>` for `heading`; `aria-live`; `aria-hidden`; and a real `<label>` association for the four bare controls above                                                                                                             |
-| `widget-renderer-headless`          | carry every prop into `RenderedWidgetNode`, and emit the accessibility tree of §6                                                                                                                                                                                         |
-| `describe.ts` (canonical model)     | carry every prop, including `alt`, which it drops today — otherwise parity tests stay blind to renderer regressions                                                                                                                                                       |
+`view.accessibilityLabel` and `image.alt` already pass through; see
+[widget-accessibility.md](widget-accessibility.md). Remaining renderer work is the §3
+prop set and the accessibility tree:
 
-For `alt` and `accessibilityLabel` these are pure renderer gaps, fixable today with no
-schema change; that half should land first.
+| Renderer                            | Remaining work                                                                                                                                                                  |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `widget-renderer-rn` (RN + web)     | `accessibilityHint` on interactive types; `accessibilityRole="header"` + `aria-level` for `heading`; `accessibilityLiveRegion` for `live`; `accessibilityElementsHidden` for `decorative` |
+| Desktop DOM (`renderer/widgets.js`) | `aria-describedby`; `<h1>`–`<h6>` for `heading`; `aria-live`; `aria-hidden`; and a real `<label>` association for the four bare controls above                                  |
+| `widget-renderer-headless`          | carry every new prop into `RenderedWidgetNode`, and emit the accessibility tree of §6                                                                                           |
+| `describe.ts` (canonical model)     | carry every new prop — otherwise parity tests stay blind to renderer regressions                                                                                                |
 
 ## 6. The accessibility tree as a golden artifact
 
@@ -238,19 +216,17 @@ finished.
 
 | Phase | Deliverable                                                                                | Gate                                                       |
 | ----- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| 1     | Renderers honour the two props that already exist; `describe.ts` and headless carry them   | Parity test fails if a renderer drops `alt`                |
 | 2     | §3 prop set in `ui/schema.ts`, regenerated JSON Schema, semantics written into SPEC-WIDGET | `npm run test:widget-parity`                               |
 | 3     | Accessibility-tree projection and `ax` strings in the golden streams                       | Pinned per stream                                          |
 | 4     | `validate.ts` rejection tier behind `minHostApi >= 0.21.0`; `doctor.ts` retargeted         | Hostile-app fixture cannot bypass; 3 switch sites migrated |
 | 5     | Cookbook accessibility ratchet at measured floors                                          | New app cannot enter above its floor                       |
 | 6     | Focus order derived into the SPEC-PRESENT layout vectors                                   | Vectors regenerate identically                             |
 
-Phase 1 is useful alone and changes no schema. Phase 4 is the only one that can break a
-shipped app, and the `minHostApi` gate is what stops it.
+Phase 4 is the only one that can break a shipped app, and the `minHostApi` gate is what
+stops it.
 
-The phases are tracked as `AX-1-RENDERERS`, `AX-2-SCHEMA`, `AX-3-TREE`,
-`AX-4-VALIDATE`, `AX-5-RATCHET`, and `AX-6-FOCUS` in the
-[software backlog](../STATUS-SOFTWARE.md), chained in the same order as the table.
+The remaining phases are tracked as `AX-2-SCHEMA`, `AX-3-TREE`, `AX-4-VALIDATE`,
+`AX-5-RATCHET`, and `AX-6-FOCUS` in the [software backlog](../STATUS-SOFTWARE.md).
 
 ## 11. Open questions
 

@@ -10,10 +10,18 @@ export function renderWidgetTree(root, container, onEvent, options = {}) {
   container.appendChild(renderNode(root.root, onEvent, options));
 }
 
+function applyAriaLabel(element, node) {
+  const label = node.props?.accessibilityLabel;
+  if (typeof label === "string") {
+    element.setAttribute("aria-label", label);
+  }
+}
+
 function renderViewNode(node, onEvent, options, style) {
   const element = document.createElement("div");
   element.className = "widget-view";
   applyStyle(element, style);
+  applyAriaLabel(element, node);
   for (const child of node.children ?? []) {
     element.appendChild(renderNode(child, onEvent, options));
   }
@@ -211,6 +219,7 @@ function renderImageNode(node, onEvent, options, style) {
   const element = document.createElement("p");
   element.className = "widget-muted";
   element.textContent = `Image: ${assetName}`;
+  element.setAttribute("aria-label", alt);
   return element;
 }
 

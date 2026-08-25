@@ -176,4 +176,34 @@ describe("widget tree golden render model", () => {
     });
     expect(describeWidgetTree(tree)).toEqual(loadFixture("controls"));
   });
+
+  it("carries view.accessibilityLabel and image.alt into the render model", () => {
+    const tree = validateWidgetTree({
+      root: {
+        id: "root",
+        type: "view",
+        props: { accessibilityLabel: "Panel" },
+        children: [
+          {
+            id: "hero",
+            type: "image",
+            props: { asset: "pear.png", alt: "A pear" },
+          },
+        ],
+      },
+    });
+
+    expect(describeWidgetTree(tree)).toEqual({
+      component: "View",
+      id: "root",
+      props: { accessibilityLabel: "Panel" },
+      children: [
+        {
+          component: "Image",
+          id: "hero",
+          props: { asset: "pear.png", alt: "A pear" },
+        },
+      ],
+    });
+  });
 });
