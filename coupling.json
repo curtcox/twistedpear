@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1354,
+  "modules": 1366,
   "components": 26,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 278,
+      "modules": 279,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,
@@ -39,7 +39,7 @@
     },
     {
       "id": "scripts",
-      "modules": 217,
+      "modules": 218,
       "ca": 1,
       "ce": 11,
       "instability": 0.92,
@@ -59,7 +59,7 @@
     },
     {
       "id": "packages/protocol",
-      "modules": 205,
+      "modules": 212,
       "ca": 12,
       "ce": 1,
       "instability": 0.08,
@@ -69,7 +69,7 @@
     },
     {
       "id": "packages/miniapp-runtime",
-      "modules": 102,
+      "modules": 104,
       "ca": 13,
       "ce": 3,
       "instability": 0.19,
@@ -173,7 +173,7 @@
     },
     {
       "id": "apps/handbook",
-      "modules": 32,
+      "modules": 33,
       "ca": 0,
       "ce": 3,
       "instability": 1,

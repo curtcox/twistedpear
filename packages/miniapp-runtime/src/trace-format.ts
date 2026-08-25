@@ -1,4 +1,4 @@
-import { canonicalJson } from "@twistedpear/effects";
+import { canonicalJson, fnv1a64Hex } from "@twistedpear/effects";
 
 export const APP_TRACE_FORMAT = 1 as const;
 export const APP_TRACE_KIND = "miniapp-session" as const;
@@ -53,12 +53,7 @@ export interface AppTraceHost {
 }
 
 export type AppTraceInboundKind =
-  | "ui"
-  | "lxmf"
-  | "device"
-  | "channel"
-  | "resume"
-  | "lifecycle";
+  "ui" | "lxmf" | "device" | "channel" | "resume" | "lifecycle";
 
 export type AppTraceEntry =
   | { readonly t: "clock"; readonly at: number }
@@ -134,14 +129,7 @@ export function serializeAppTrace(trace: AppTrace): string {
 }
 
 export function hashAppTrace(trace: AppTrace): string {
-  const text = serializeAppTrace(trace);
-  let h = 0xcbf29ce484222325n;
-  const prime = 0x100000001b3n;
-  for (let i = 0; i < text.length; i += 1) {
-    h ^= BigInt(text.charCodeAt(i));
-    h = (h * prime) & 0xffffffffffffffffn;
-  }
-  return h.toString(16).padStart(16, "0");
+  return fnv1a64Hex(serializeAppTrace(trace));
 }
 
 function parseIdentity(input: unknown): AppTraceIdentity {
@@ -163,6 +151,82 @@ function parseHost(input: unknown): AppTraceHost {
   };
 }
 
+function parseGrantEntry(
+  row: Record<string, unknown>,
+  at: number,
+  path: string,
+): AppTraceEntry {
+  const change = asNonempty(row.change, `${path}.change`);
+  if (!GRANT_CHANGES.has(change)) {
+    throw new AppTraceFormatError(`${path}.change is not a grant change`);
+  }
+  return {
+    t: "grant",
+    at,
+    capability: asNonempty(row.capability, `${path}.capability`),
+    change: change as "grant" | "revoke" | "deny",
+  };
+}
+
+function parseBrokerEntry(
+  row: Record<string, unknown>,
+  at: number,
+  path: string,
+): AppTraceEntry {
+  const outcome = asNonempty(row.outcome, `${path}.outcome`);
+  if (!BROKER_OUTCOMES.has(outcome)) {
+    throw new AppTraceFormatError(`${path}.outcome is not a broker outcome`);
+  }
+  return {
+    t: "broker",
+    at,
+    namespace: asNonempty(row.namespace, `${path}.namespace`),
+    method: asNonempty(row.method, `${path}.method`),
+    capability:
+      row.capability === null
+        ? null
+        : asNonempty(row.capability, `${path}.capability`),
+    outcome: outcome as "allowed" | "denied" | "failed",
+  };
+}
+
+function parseInboundEntry(
+  row: Record<string, unknown>,
+  at: number,
+  path: string,
+): AppTraceEntry {
+  const kind = asNonempty(row.kind, `${path}.kind`);
+  if (!INBOUND_KINDS.has(kind)) {
+    throw new AppTraceFormatError(`${path}.kind is not an inbound kind`);
+  }
+  return {
+    t: "inbound",
+    at,
+    kind: kind as AppTraceInboundKind,
+    name: asNonempty(row.name, `${path}.name`),
+  };
+}
+
+function parseAssertEntry(
+  row: Record<string, unknown>,
+  at: number,
+  path: string,
+): AppTraceEntry {
+  const kind = asNonempty(row.kind, `${path}.kind`);
+  if (!ASSERT_KINDS.has(kind)) {
+    throw new AppTraceFormatError(`${path}.kind is not an assert kind`);
+  }
+  if (kind === "widget") {
+    return {
+      t: "assert",
+      at,
+      kind: "widget",
+      nodes: asTime(row.nodes, `${path}.nodes`),
+    };
+  }
+  return { t: "assert", at, kind: "call" };
+}
+
 function parseEntry(input: unknown, path: string): AppTraceEntry {
   const row = asRecord(input, path);
   const t = asNonempty(row.t, `${path}.t`);
@@ -172,62 +236,14 @@ function parseEntry(input: unknown, path: string): AppTraceEntry {
       return { t, at };
     case "entropy":
       return { t, at, byteCount: asTime(row.byteCount, `${path}.byteCount`) };
-    case "grant": {
-      const change = asNonempty(row.change, `${path}.change`);
-      if (!GRANT_CHANGES.has(change)) {
-        throw new AppTraceFormatError(`${path}.change is not a grant change`);
-      }
-      return {
-        t,
-        at,
-        capability: asNonempty(row.capability, `${path}.capability`),
-        change: change as "grant" | "revoke" | "deny",
-      };
-    }
-    case "broker": {
-      const outcome = asNonempty(row.outcome, `${path}.outcome`);
-      if (!BROKER_OUTCOMES.has(outcome)) {
-        throw new AppTraceFormatError(`${path}.outcome is not a broker outcome`);
-      }
-      return {
-        t,
-        at,
-        namespace: asNonempty(row.namespace, `${path}.namespace`),
-        method: asNonempty(row.method, `${path}.method`),
-        capability:
-          row.capability === null
-            ? null
-            : asNonempty(row.capability, `${path}.capability`),
-        outcome: outcome as "allowed" | "denied" | "failed",
-      };
-    }
-    case "inbound": {
-      const kind = asNonempty(row.kind, `${path}.kind`);
-      if (!INBOUND_KINDS.has(kind)) {
-        throw new AppTraceFormatError(`${path}.kind is not an inbound kind`);
-      }
-      return {
-        t,
-        at,
-        kind: kind as AppTraceInboundKind,
-        name: asNonempty(row.name, `${path}.name`),
-      };
-    }
-    case "assert": {
-      const kind = asNonempty(row.kind, `${path}.kind`);
-      if (!ASSERT_KINDS.has(kind)) {
-        throw new AppTraceFormatError(`${path}.kind is not an assert kind`);
-      }
-      if (kind === "widget") {
-        return {
-          t,
-          at,
-          kind: "widget",
-          nodes: asTime(row.nodes, `${path}.nodes`),
-        };
-      }
-      return { t, at, kind: "call" };
-    }
+    case "grant":
+      return parseGrantEntry(row, at, path);
+    case "broker":
+      return parseBrokerEntry(row, at, path);
+    case "inbound":
+      return parseInboundEntry(row, at, path);
+    case "assert":
+      return parseAssertEntry(row, at, path);
     default:
       throw new AppTraceFormatError(`${path}.t is not a known entry type`);
   }
@@ -281,7 +297,9 @@ function asNonempty(value: unknown, path: string): string {
 function asHex64(value: unknown, path: string): string {
   const text = asNonempty(value, path);
   if (!HEX64.test(text)) {
-    throw new AppTraceFormatError(`${path} must be 64 lowercase hex characters`);
+    throw new AppTraceFormatError(
+      `${path} must be 64 lowercase hex characters`,
+    );
   }
   return text;
 }

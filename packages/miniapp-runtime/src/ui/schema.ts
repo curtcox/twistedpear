@@ -278,11 +278,7 @@ function withAccessibilitySchemas(
     "accessibilityLabel",
     ACCESSIBILITY_LABEL_SCHEMA,
   );
-  add(
-    ACCESSIBILITY_HINT_TYPES,
-    "accessibilityHint",
-    ACCESSIBILITY_HINT_SCHEMA,
-  );
+  add(ACCESSIBILITY_HINT_TYPES, "accessibilityHint", ACCESSIBILITY_HINT_SCHEMA);
   add(ACCESSIBILITY_HEADING_TYPES, "heading", ACCESSIBILITY_HEADING_SCHEMA);
   add(ACCESSIBILITY_LIVE_TYPES, "live", ACCESSIBILITY_LIVE_SCHEMA);
   add(

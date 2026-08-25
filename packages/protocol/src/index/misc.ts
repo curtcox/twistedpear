@@ -51,24 +51,6 @@ export {
   type StreamState,
 } from "../stream-machine.js";
 export {
-  capReplicaLogs,
-  DEFAULT_REPLICA_AUTHOR_CAP,
-  mergeReplicaLogs,
-  replicaEntryId,
-  replicaLwwView,
-  replicaVersionVector,
-  replicaVisibleView,
-  type ReplicaEntry,
-} from "../replica-merge.js";
-export {
-  initialReplicaState,
-  replicaMachine,
-  stepReplica,
-  type ReplicaEvent,
-  type ReplicaPhase,
-  type ReplicaState,
-} from "../replica-machine.js";
-export {
   escrowMachine,
   escrowSafetyViolation,
   initialEscrowState,

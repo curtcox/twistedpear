@@ -1,0 +1,14 @@
+{
+  "id": "storage-sync",
+  "group": "storage",
+  "title": "Topic log round-trip",
+  "capabilities": ["storage:sync"],
+  "surfaces": ["storage.sync.open", "storage.sync.append", "storage.sync.view"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

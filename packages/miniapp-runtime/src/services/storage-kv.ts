@@ -63,3 +63,6 @@ export class NamespacedKvService {
     return `miniapp-kv:${this.appId}:`;
   }
 }
+
+export { ReplicaCapError, TopicLogStore } from "./storage-sync.js";
+export type { TopicLogOptions } from "./storage-sync.js";

@@ -88,6 +88,11 @@
           "file": "part-3-sdk/storage-hyperbee.md"
         },
         {
+          "id": "sdk-storage-sync",
+          "title": "Replicated topic log",
+          "file": "part-3-sdk/storage-sync.md"
+        },
+        {
           "id": "sdk-lxmf",
           "title": "LXMF messaging",
           "file": "part-3-sdk/lxmf.md"

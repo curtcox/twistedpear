@@ -59,7 +59,9 @@ describe("bounded accessibility prop set", () => {
       validateWidgetTree(
         root({
           type: "view",
-          props: { accessibilityLabel: "x".repeat(MAX_ACCESSIBILITY_TEXT_LENGTH) },
+          props: {
+            accessibilityLabel: "x".repeat(MAX_ACCESSIBILITY_TEXT_LENGTH),
+          },
         }),
       ),
     ).not.toThrow();
@@ -67,7 +69,9 @@ describe("bounded accessibility prop set", () => {
 
   it("rejects an empty or oversized accessibilityLabel", () => {
     expect(() =>
-      validateWidgetTree(root({ type: "view", props: { accessibilityLabel: "" } })),
+      validateWidgetTree(
+        root({ type: "view", props: { accessibilityLabel: "" } }),
+      ),
     ).toThrow(/accessibilityLabel/);
     expect(() =>
       validateWidgetTree(
@@ -114,9 +118,7 @@ describe("bounded accessibility prop set", () => {
       ),
     ).toThrow(/heading/);
     expect(() =>
-      validateWidgetTree(
-        root({ type: "view", props: { live: "rude" } }),
-      ),
+      validateWidgetTree(root({ type: "view", props: { live: "rude" } })),
     ).toThrow(/live/);
   });
 

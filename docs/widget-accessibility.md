@@ -22,9 +22,9 @@ oracle yet.
 
 ### Renderer-honoured today
 
-| Prop                      | Canonical model (`describe.ts`) | Headless oracle | React Native / web | Desktop DOM                          |
-| ------------------------- | ------------------------------- | --------------- | ------------------ | ------------------------------------ |
-| `view.accessibilityLabel` | carried                         | carried         | `accessibilityLabel` | `aria-label`                         |
+| Prop                      | Canonical model (`describe.ts`) | Headless oracle | React Native / web   | Desktop DOM                                 |
+| ------------------------- | ------------------------------- | --------------- | -------------------- | ------------------------------------------- |
+| `view.accessibilityLabel` | carried                         | carried         | `accessibilityLabel` | `aria-label`                                |
 | `image.alt`               | carried                         | carried         | `accessibilityLabel` | `<img alt>` (placeholder uses `aria-label`) |
 
 `button.label` was already the accessible name for buttons and is unchanged.
@@ -33,13 +33,13 @@ oracle yet.
 
 Normative meaning is in [SPEC-WIDGET — Accessibility](../specs/spec-widget/spec.md#accessibility).
 
-| Prop                 | Domain                      | Accepted on |
-| -------------------- | --------------------------- | ----------- |
+| Prop                 | Domain                      | Accepted on                                                                                                                          |
+| -------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `accessibilityLabel` | string, 1–128 chars         | `view`, `scroll`, `list`, `progress`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor`, `qr-code`, preview surfaces |
-| `accessibilityHint`  | string, 1–128 chars         | `button`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor` |
-| `heading`            | integer 1–6                 | `text` |
-| `live`               | `"polite"` \| `"assertive"` | `text`, `view` |
-| `decorative`         | `true`                      | `image`, `view` |
+| `accessibilityHint`  | string, 1–128 chars         | `button`, `text-input`, `switch`, `slider`, `select`, `date`, `code-editor`                                                          |
+| `heading`            | integer 1–6                 | `text`                                                                                                                               |
+| `live`               | `"polite"` \| `"assertive"` | `text`, `view`                                                                                                                       |
+| `decorative`         | `true`                      | `image`, `view`                                                                                                                      |
 
 `npm run test:widget-parity` fails if the JSON Schema drifts from `ui/schema.ts`, and it
 fails if host validation and the schema disagree on the trees above. The `a11y-existing`

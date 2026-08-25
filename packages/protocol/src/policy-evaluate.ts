@@ -27,11 +27,7 @@ export type PolicyQuery = {
 };
 
 export type PolicyTermValue =
-  | string
-  | number
-  | boolean
-  | readonly string[]
-  | readonly number[];
+  string | number | boolean | readonly string[] | readonly number[];
 
 export type PolicyEvidence = {
   readonly predicates?: Readonly<Record<string, Trit>>;
@@ -69,6 +65,109 @@ function matchingRules(
   });
 }
 
+function needPredicate(
+  needed: Set<string>,
+  evidence: PolicyEvidence,
+  key: string,
+): void {
+  if (evidence.predicates?.[key] === undefined) needed.add(key);
+}
+
+function collectListNeeds(
+  items: readonly PolicyExpression[],
+  evidence: PolicyEvidence,
+  needed: Set<string>,
+): void {
+  for (const item of items) collectNeeds(item, evidence, needed);
+}
+
+function parameterizedNeed(
+  needed: Set<string>,
+  evidence: PolicyEvidence,
+  name:
+    | "place.is"
+    | "time.localHourIn"
+    | "approval.by"
+    | "approval.byOrg"
+    | "user.typedPhrase",
+  argument: string | readonly [number, number],
+): void {
+  needPredicate(needed, evidence, parameterizedPredicateKey(name, argument));
+}
+
+function collectCombinatorNeeds(
+  expr: PolicyExpression,
+  evidence: PolicyEvidence,
+  needed: Set<string>,
+): boolean {
+  if (typeof expr === "boolean" || typeof expr === "string") return false;
+  if ("all" in expr) {
+    collectListNeeds(expr.all, evidence, needed);
+    return true;
+  }
+  if ("any" in expr) {
+    collectListNeeds(expr.any, evidence, needed);
+    return true;
+  }
+  if ("not" in expr) {
+    collectNeeds(expr.not, evidence, needed);
+    return true;
+  }
+  if ("known" in expr) {
+    collectNeeds(expr.known, evidence, needed);
+    return true;
+  }
+  if ("assume" in expr) {
+    collectNeeds(expr.assume[0], evidence, needed);
+    return true;
+  }
+  return false;
+}
+
+function collectParameterizedNeeds(
+  expr: PolicyExpression,
+  evidence: PolicyEvidence,
+  needed: Set<string>,
+): boolean {
+  if (typeof expr === "boolean" || typeof expr === "string") return false;
+  if ("place.is" in expr) {
+    parameterizedNeed(needed, evidence, "place.is", expr["place.is"]);
+    return true;
+  }
+  if ("time.localHourIn" in expr) {
+    parameterizedNeed(
+      needed,
+      evidence,
+      "time.localHourIn",
+      expr["time.localHourIn"],
+    );
+    return true;
+  }
+  if ("approval.by" in expr) {
+    parameterizedNeed(needed, evidence, "approval.by", expr["approval.by"]);
+    return true;
+  }
+  if ("approval.byOrg" in expr) {
+    parameterizedNeed(
+      needed,
+      evidence,
+      "approval.byOrg",
+      expr["approval.byOrg"],
+    );
+    return true;
+  }
+  if ("user.typedPhrase" in expr) {
+    parameterizedNeed(
+      needed,
+      evidence,
+      "user.typedPhrase",
+      expr["user.typedPhrase"],
+    );
+    return true;
+  }
+  return false;
+}
+
 function collectNeeds(
   expr: PolicyExpression,
   evidence: PolicyEvidence,
@@ -76,63 +175,11 @@ function collectNeeds(
 ): void {
   if (typeof expr === "boolean") return;
   if (typeof expr === "string") {
-    if (evidence.predicates?.[expr] === undefined) needed.add(expr);
+    needPredicate(needed, evidence, expr);
     return;
   }
-  if ("all" in expr) {
-    for (const item of expr.all) collectNeeds(item, evidence, needed);
-    return;
-  }
-  if ("any" in expr) {
-    for (const item of expr.any) collectNeeds(item, evidence, needed);
-    return;
-  }
-  if ("not" in expr) {
-    collectNeeds(expr.not, evidence, needed);
-    return;
-  }
-  if ("known" in expr) {
-    collectNeeds(expr.known, evidence, needed);
-    return;
-  }
-  if ("assume" in expr) {
-    collectNeeds(expr.assume[0], evidence, needed);
-    return;
-  }
-  if ("place.is" in expr) {
-    const key = parameterizedPredicateKey("place.is", expr["place.is"]);
-    if (evidence.predicates?.[key] === undefined) needed.add(key);
-    return;
-  }
-  if ("time.localHourIn" in expr) {
-    const key = parameterizedPredicateKey(
-      "time.localHourIn",
-      expr["time.localHourIn"],
-    );
-    if (evidence.predicates?.[key] === undefined) needed.add(key);
-    return;
-  }
-  if ("approval.by" in expr) {
-    const key = parameterizedPredicateKey("approval.by", expr["approval.by"]);
-    if (evidence.predicates?.[key] === undefined) needed.add(key);
-    return;
-  }
-  if ("approval.byOrg" in expr) {
-    const key = parameterizedPredicateKey(
-      "approval.byOrg",
-      expr["approval.byOrg"],
-    );
-    if (evidence.predicates?.[key] === undefined) needed.add(key);
-    return;
-  }
-  if ("user.typedPhrase" in expr) {
-    const key = parameterizedPredicateKey(
-      "user.typedPhrase",
-      expr["user.typedPhrase"],
-    );
-    if (evidence.predicates?.[key] === undefined) needed.add(key);
-    return;
-  }
+  if (collectCombinatorNeeds(expr, evidence, needed)) return;
+  if (collectParameterizedNeeds(expr, evidence, needed)) return;
   const term = comparisonTerm(expr);
   if (evidence.terms?.[term] === undefined) needed.add(termNeedKey(term));
 }
@@ -151,11 +198,15 @@ function comparisonTerm(expr: PolicyExpression): PolicyTerm {
   throw new Error("comparisonTerm: not a comparison");
 }
 
-function evalExpression(expr: PolicyExpression, evidence: PolicyEvidence): Trit {
-  if (typeof expr === "boolean") return tritFromBoolean(expr);
-  if (typeof expr === "string") {
-    return evidence.predicates?.[expr] ?? "unknown";
-  }
+function predicateTrit(evidence: PolicyEvidence, key: string): Trit {
+  return evidence.predicates?.[key] ?? "unknown";
+}
+
+function evalCombinator(
+  expr: PolicyExpression,
+  evidence: PolicyEvidence,
+): Trit | undefined {
+  if (typeof expr === "boolean" || typeof expr === "string") return undefined;
   if ("all" in expr) {
     return kleeneAll(expr.all.map((item) => evalExpression(item, evidence)));
   }
@@ -170,58 +221,64 @@ function evalExpression(expr: PolicyExpression, evidence: PolicyEvidence): Trit 
       expr.assume[1],
     );
   }
+  return undefined;
+}
+
+function evalParameterized(
+  expr: PolicyExpression,
+  evidence: PolicyEvidence,
+): Trit | undefined {
+  if (typeof expr === "boolean" || typeof expr === "string") return undefined;
   if ("place.is" in expr) {
-    return (
-      evidence.predicates?.[
-        parameterizedPredicateKey("place.is", expr["place.is"])
-      ] ?? "unknown"
+    return predicateTrit(
+      evidence,
+      parameterizedPredicateKey("place.is", expr["place.is"]),
     );
   }
   if ("time.localHourIn" in expr) {
-    return (
-      evidence.predicates?.[
-        parameterizedPredicateKey("time.localHourIn", expr["time.localHourIn"])
-      ] ?? "unknown"
+    return predicateTrit(
+      evidence,
+      parameterizedPredicateKey("time.localHourIn", expr["time.localHourIn"]),
     );
   }
   if ("approval.by" in expr) {
-    return (
-      evidence.predicates?.[
-        parameterizedPredicateKey("approval.by", expr["approval.by"])
-      ] ?? "unknown"
+    return predicateTrit(
+      evidence,
+      parameterizedPredicateKey("approval.by", expr["approval.by"]),
     );
   }
   if ("approval.byOrg" in expr) {
-    return (
-      evidence.predicates?.[
-        parameterizedPredicateKey("approval.byOrg", expr["approval.byOrg"])
-      ] ?? "unknown"
+    return predicateTrit(
+      evidence,
+      parameterizedPredicateKey("approval.byOrg", expr["approval.byOrg"]),
     );
   }
   if ("user.typedPhrase" in expr) {
-    return (
-      evidence.predicates?.[
-        parameterizedPredicateKey("user.typedPhrase", expr["user.typedPhrase"])
-      ] ?? "unknown"
+    return predicateTrit(
+      evidence,
+      parameterizedPredicateKey("user.typedPhrase", expr["user.typedPhrase"]),
     );
   }
+  return undefined;
+}
+
+function evalExpression(
+  expr: PolicyExpression,
+  evidence: PolicyEvidence,
+): Trit {
+  if (typeof expr === "boolean") return tritFromBoolean(expr);
+  if (typeof expr === "string") return predicateTrit(evidence, expr);
+  const combinator = evalCombinator(expr, evidence);
+  if (combinator !== undefined) return combinator;
+  const parameterized = evalParameterized(expr, evidence);
+  if (parameterized !== undefined) return parameterized;
   return evalComparison(expr, evidence);
 }
 
-function evalComparison(expr: PolicyExpression, evidence: PolicyEvidence): Trit {
-  const term = comparisonTerm(expr);
-  const left = evidence.terms?.[term];
-  if (left === undefined) return "unknown";
+function evalMembership(left: PolicyTermValue, expr: PolicyExpression): Trit {
   if (typeof expr === "boolean" || typeof expr === "string") return "unknown";
-  if ("lt" in expr) return numericCompare(left, expr.lt[1], (a, b) => a < b);
-  if ("lte" in expr) return numericCompare(left, expr.lte[1], (a, b) => a <= b);
-  if ("gt" in expr) return numericCompare(left, expr.gt[1], (a, b) => a > b);
-  if ("gte" in expr) return numericCompare(left, expr.gte[1], (a, b) => a >= b);
-  if ("eq" in expr) return tritFromBoolean(Object.is(left, expr.eq[1]));
   if ("in" in expr) {
-    if (typeof left !== "string" && typeof left !== "number") {
-      return "false";
-    }
+    if (typeof left !== "string" && typeof left !== "number") return "false";
     return tritFromBoolean(expr.in[1].some((item) => Object.is(item, left)));
   }
   if ("subsetOf" in expr) {
@@ -232,6 +289,22 @@ function evalComparison(expr: PolicyExpression, evidence: PolicyEvidence): Trit 
     return tritFromBoolean(left.every((item) => allowed.has(item)));
   }
   return "unknown";
+}
+
+function evalComparison(
+  expr: PolicyExpression,
+  evidence: PolicyEvidence,
+): Trit {
+  const term = comparisonTerm(expr);
+  const left = evidence.terms?.[term];
+  if (left === undefined) return "unknown";
+  if (typeof expr === "boolean" || typeof expr === "string") return "unknown";
+  if ("lt" in expr) return numericCompare(left, expr.lt[1], (a, b) => a < b);
+  if ("lte" in expr) return numericCompare(left, expr.lte[1], (a, b) => a <= b);
+  if ("gt" in expr) return numericCompare(left, expr.gt[1], (a, b) => a > b);
+  if ("gte" in expr) return numericCompare(left, expr.gte[1], (a, b) => a >= b);
+  if ("eq" in expr) return tritFromBoolean(Object.is(left, expr.eq[1]));
+  return evalMembership(left, expr);
 }
 
 function numericCompare(

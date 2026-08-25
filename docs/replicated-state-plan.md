@@ -231,13 +231,13 @@ it is what testing misses. The model should assert:
 
 ## 11. Sequencing
 
-| Phase | Deliverable                                                                  | Gate                                                                       |
-| ----- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 2     | Loopback replication between two sandboxes on one host                       | Convergence campaign under `drop`, `delay`, `reorder`, `duplicate`         |
-| 3     | Version-vector digest and reconcile over the LXMF plane, offer-bound         | `assertEgressAllowed` refuses an un-offered round; the ledger meters bytes |
-| 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder         | Two-host convergence in the multipeer harness                              |
-| 5     | Retention, tombstones, per-author caps, byzantine-peer adversary             | No hostile-peer scenario lands UNCONTROLLED                                |
-| 6     | Cookbook migration; delete "merge is your problem"                           | `roll-call` and `neighborhood-board` rebuilt on `storage:sync`             |
+| Phase | Deliverable                                                          | Gate                                                                       |
+| ----- | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 2     | Loopback replication between two sandboxes on one host               | Convergence campaign under `drop`, `delay`, `reorder`, `duplicate`         |
+| 3     | Version-vector digest and reconcile over the LXMF plane, offer-bound | `assertEgressAllowed` refuses an un-offered round; the ledger meters bytes |
+| 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder | Two-host convergence in the multipeer harness                              |
+| 5     | Retention, tombstones, per-author caps, byzantine-peer adversary     | No hostile-peer scenario lands UNCONTROLLED                                |
+| 6     | Cookbook migration; delete "merge is your problem"                   | `roll-call` and `neighborhood-board` rebuilt on `storage:sync`             |
 
 Phase 1 is independently useful and carries none of the risk: a specified entry format, a
 checked merge function, and a version vector give the five Cookbook apps a canonical shape for

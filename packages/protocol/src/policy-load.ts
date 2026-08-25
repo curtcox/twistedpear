@@ -162,13 +162,10 @@ function parseRules(value: unknown): PolicyRule[] {
   });
 }
 
-function parseRule(value: unknown, path: string): PolicyRule {
-  const rule = expectRecord(value, path);
-  for (const key of Object.keys(rule)) {
-    if (!RULE_KEYS.has(key)) {
-      fail("invalid-shape", `${path} has unknown field ${key}`);
-    }
-  }
+function parseRuleIdentity(
+  rule: Record<string, unknown>,
+  path: string,
+): { id: string; subject: PolicySubject } {
   if (typeof rule.id !== "string" || !RULE_ID.test(rule.id)) {
     fail("invalid-shape", `${path}.id is not a valid rule id`);
   }
@@ -178,6 +175,13 @@ function parseRule(value: unknown, path: string): PolicyRule {
   if (!isPolicySubject(rule.subject)) {
     fail("unknown-subject", `${path}.subject is unknown: ${rule.subject}`);
   }
+  return { id: rule.id, subject: rule.subject };
+}
+
+function parseRuleEffect(
+  rule: Record<string, unknown>,
+  path: string,
+): { effect: PolicyEffect; onUnknown: PolicyUnknownCollapse } {
   if (typeof rule.effect !== "string" || !isPolicyEffect(rule.effect)) {
     fail("invalid-shape", `${path}.effect must be allow or deny`);
   }
@@ -190,6 +194,13 @@ function parseRule(value: unknown, path: string): PolicyRule {
   ) {
     fail("invalid-shape", `${path}.onUnknown must be deny, allow, or ask`);
   }
+  return { effect: rule.effect, onUnknown: rule.onUnknown };
+}
+
+function parseRuleOptionals(
+  rule: Record<string, unknown>,
+  path: string,
+): Pick<PolicyRule, "capability" | "sealed" | "note"> {
   if (rule.capability !== undefined && typeof rule.capability !== "string") {
     fail("invalid-shape", `${path}.capability must be a string`);
   }
@@ -199,18 +210,29 @@ function parseRule(value: unknown, path: string): PolicyRule {
   if (rule.note !== undefined && typeof rule.note !== "string") {
     fail("invalid-shape", `${path}.note must be a string`);
   }
-  const parsed: PolicyRule = {
-    id: rule.id,
-    subject: rule.subject,
-    effect: rule.effect,
-    when: parseExpression(rule.when, `${path}.when`),
-    onUnknown: rule.onUnknown,
-  };
   return {
-    ...parsed,
-    ...(typeof rule.capability === "string" ? { capability: rule.capability } : {}),
+    ...(typeof rule.capability === "string"
+      ? { capability: rule.capability }
+      : {}),
     ...(rule.sealed !== undefined ? { sealed: rule.sealed } : {}),
     ...(typeof rule.note === "string" ? { note: rule.note } : {}),
+  };
+}
+
+function parseRule(value: unknown, path: string): PolicyRule {
+  const rule = expectRecord(value, path);
+  for (const key of Object.keys(rule)) {
+    if (!RULE_KEYS.has(key)) {
+      fail("invalid-shape", `${path} has unknown field ${key}`);
+    }
+  }
+  const identity = parseRuleIdentity(rule, path);
+  const effect = parseRuleEffect(rule, path);
+  return {
+    ...identity,
+    ...effect,
+    when: parseExpression(rule.when, `${path}.when`),
+    ...parseRuleOptionals(rule, path),
   };
 }
 
@@ -239,6 +261,19 @@ function parseExpression(value: unknown, path: string): PolicyExpression {
   fail("unknown-combinator", `${path} unknown combinator ${key}`);
 }
 
+function parseAssume(value: unknown, path: string): PolicyExpression {
+  if (
+    !Array.isArray(value) ||
+    value.length !== 2 ||
+    typeof value[1] !== "boolean"
+  ) {
+    fail("invalid-shape", `${path}.assume must be [expression, boolean]`);
+  }
+  return {
+    assume: [parseExpression(value[0], `${path}.assume[0]`), value[1]],
+  };
+}
+
 function parseCombinator(
   key: "all" | "any" | "not" | "known" | "assume",
   value: unknown,
@@ -257,16 +292,26 @@ function parseCombinator(
   if (key === "known") {
     return { known: parseExpression(value, `${path}.known`) };
   }
+  return parseAssume(value, path);
+}
+
+function parseLocalHourIn(value: unknown, path: string): PolicyExpression {
   if (
     !Array.isArray(value) ||
     value.length !== 2 ||
-    typeof value[1] !== "boolean"
+    !Number.isInteger(value[0]) ||
+    !Number.isInteger(value[1]) ||
+    Number(value[0]) < 0 ||
+    Number(value[0]) > 24 ||
+    Number(value[1]) < 0 ||
+    Number(value[1]) > 24
   ) {
-    fail("invalid-shape", `${path}.assume must be [expression, boolean]`);
+    fail(
+      "invalid-shape",
+      `${path}.time.localHourIn must be [hour, hour] in 0..24`,
+    );
   }
-  return {
-    assume: [parseExpression(value[0], `${path}.assume[0]`), value[1]],
-  };
+  return { "time.localHourIn": [value[0], value[1]] };
 }
 
 function parseParameterized(
@@ -279,21 +324,7 @@ function parseParameterized(
   value: unknown,
   path: string,
 ): PolicyExpression {
-  if (key === "time.localHourIn") {
-    if (
-      !Array.isArray(value) ||
-      value.length !== 2 ||
-      !Number.isInteger(value[0]) ||
-      !Number.isInteger(value[1]) ||
-      Number(value[0]) < 0 ||
-      Number(value[0]) > 24 ||
-      Number(value[1]) < 0 ||
-      Number(value[1]) > 24
-    ) {
-      fail("invalid-shape", `${path}.time.localHourIn must be [hour, hour] in 0..24`);
-    }
-    return { "time.localHourIn": [value[0], value[1]] };
-  }
+  if (key === "time.localHourIn") return parseLocalHourIn(value, path);
   if (typeof value !== "string") {
     fail("invalid-shape", `${path}.${key} must be a string`);
   }
@@ -303,11 +334,58 @@ function parseParameterized(
   return { "user.typedPhrase": value };
 }
 
-function parseComparison(
-  key: "lt" | "lte" | "gt" | "gte" | "eq" | "in" | "subsetOf",
-  value: unknown,
+function parseNumericComparison(
+  key: "lt" | "lte" | "gt" | "gte",
+  term: PolicyTerm,
+  right: unknown,
   path: string,
 ): PolicyExpression {
+  if (typeof right !== "number") {
+    fail("invalid-shape", `${path}.${key}[1] must be a number`);
+  }
+  if (key === "lt") return { lt: [term, right] };
+  if (key === "lte") return { lte: [term, right] };
+  if (key === "gt") return { gt: [term, right] };
+  return { gte: [term, right] };
+}
+
+function parseEq(
+  term: PolicyTerm,
+  right: unknown,
+  path: string,
+): PolicyExpression {
+  if (
+    typeof right !== "string" &&
+    typeof right !== "number" &&
+    typeof right !== "boolean"
+  ) {
+    fail("invalid-shape", `${path}.eq[1] must be a string, number, or boolean`);
+  }
+  return { eq: [term, right] };
+}
+
+function parseIn(
+  term: PolicyTerm,
+  right: unknown,
+  path: string,
+): PolicyExpression {
+  if (
+    !Array.isArray(right) ||
+    right.some((item) => typeof item !== "string" && typeof item !== "number")
+  ) {
+    fail(
+      "invalid-shape",
+      `${path}.in[1] must be an array of strings or numbers`,
+    );
+  }
+  return { in: [term, right] };
+}
+
+function comparisonOperands(
+  key: string,
+  value: unknown,
+  path: string,
+): [PolicyTerm, unknown] {
   if (!Array.isArray(value) || value.length !== 2) {
     fail("invalid-shape", `${path}.${key} must be a two-element tuple`);
   }
@@ -318,36 +396,37 @@ function parseComparison(
   if (!isPolicyTerm(term)) {
     fail("unknown-predicate", `${path}.${key} unknown term ${term}`);
   }
-  if (key === "lt" || key === "lte" || key === "gt" || key === "gte") {
-    if (typeof right !== "number") {
-      fail("invalid-shape", `${path}.${key}[1] must be a number`);
-    }
-    if (key === "lt") return { lt: [term, right] };
-    if (key === "lte") return { lte: [term, right] };
-    if (key === "gt") return { gt: [term, right] };
-    return { gte: [term, right] };
-  }
-  if (key === "eq") {
-    if (
-      typeof right !== "string" &&
-      typeof right !== "number" &&
-      typeof right !== "boolean"
-    ) {
-      fail("invalid-shape", `${path}.eq[1] must be a string, number, or boolean`);
-    }
-    return { eq: [term, right] };
-  }
-  if (key === "in") {
-    if (
-      !Array.isArray(right) ||
-      right.some((item) => typeof item !== "string" && typeof item !== "number")
-    ) {
-      fail("invalid-shape", `${path}.in[1] must be an array of strings or numbers`);
-    }
-    return { in: [term, right] };
-  }
+  return [term, right];
+}
+
+function parseSubsetOf(
+  term: PolicyTerm,
+  right: unknown,
+  path: string,
+): PolicyExpression {
   if (!Array.isArray(right) || right.some((item) => typeof item !== "string")) {
     fail("invalid-shape", `${path}.subsetOf[1] must be an array of strings`);
   }
   return { subsetOf: [term, right] };
+}
+
+function parseComparison(
+  key: "lt" | "lte" | "gt" | "gte" | "eq" | "in" | "subsetOf",
+  value: unknown,
+  path: string,
+): PolicyExpression {
+  const [term, right] = comparisonOperands(key, value, path);
+  switch (key) {
+    case "lt":
+    case "lte":
+    case "gt":
+    case "gte":
+      return parseNumericComparison(key, term, right, path);
+    case "eq":
+      return parseEq(term, right, path);
+    case "in":
+      return parseIn(term, right, path);
+    default:
+      return parseSubsetOf(term, right, path);
+  }
 }

@@ -189,9 +189,7 @@ export function assertStreamProperties() {
 export function assertReplicaProperties() {
   const a = [{ authorId: "a", seq: 1, at: 1, payload: 1 }];
   const b = [{ authorId: "b", seq: 1, at: 2, payload: 2 }];
-  const c = [
-    { authorId: "a", seq: 2, at: 3, key: "k", payload: "x" },
-  ];
+  const c = [{ authorId: "a", seq: 2, at: 3, key: "k", payload: "x" }];
   const ab = mergeReplicaLogs(a, b);
   const ba = mergeReplicaLogs(b, a);
   if (JSON.stringify(ab) !== JSON.stringify(ba)) {
@@ -209,7 +207,14 @@ export function assertReplicaProperties() {
   const tombstoned = mergeReplicaLogs(
     [
       { authorId: "a", seq: 1, at: 1, key: "k", payload: "old" },
-      { authorId: "a", seq: 2, at: 2, key: "k", tombstone: true, payload: null },
+      {
+        authorId: "a",
+        seq: 2,
+        at: 2,
+        key: "k",
+        tombstone: true,
+        payload: null,
+      },
     ],
     [{ authorId: "b", seq: 1, at: 1, key: "k", payload: "stale" }],
   );

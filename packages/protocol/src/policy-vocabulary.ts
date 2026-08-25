@@ -104,9 +104,7 @@ export function isPolicyNullaryPredicate(
 export function isPolicyParameterizedPredicate(
   value: string,
 ): value is PolicyParameterizedPredicate {
-  return (POLICY_PARAMETERIZED_PREDICATES as readonly string[]).includes(
-    value,
-  );
+  return (POLICY_PARAMETERIZED_PREDICATES as readonly string[]).includes(value);
 }
 
 export function isPolicyTerm(value: string): value is PolicyTerm {

@@ -14,27 +14,27 @@ duplicate ids, or oversized trees are rejected.
 
 ## Components
 
-- **`audio-meter`** — props: `session`
-- **`button`** — props: `event`, `label`
-- **`camera-preview`** — props: `aspectRatio`, `session`
-- **`code-editor`** — props: `documentId`, `event`, `language`, `readOnly`
-- **`date`** — props: `event`, `value`
+- **`audio-meter`** — props: `accessibilityLabel`, `session`
+- **`button`** — props: `accessibilityHint`, `event`, `label`
+- **`camera-preview`** — props: `accessibilityLabel`, `aspectRatio`, `session`
+- **`code-editor`** — props: `accessibilityHint`, `accessibilityLabel`, `documentId`, `event`, `language`, `readOnly`
+- **`date`** — props: `accessibilityHint`, `accessibilityLabel`, `event`, `value`
 - **`divider`** — props: none
-- **`image`** — props: `alt`, `asset`
-- **`list`** — props: `event`, `items`
-- **`map-preview`** — props: `session`, `zoom`
-- **`progress`** — props: `max`, `value`
-- **`qr-code`** — props: `caption`, `size`, `value`
-- **`remote-video`** — props: `peer`, `session`
-- **`scroll`** — props: `event`, `scrollOffset`
-- **`select`** — props: `event`, `options`, `value`
-- **`slider`** — props: `event`, `max`, `min`, `step`, `value`
+- **`image`** — props: `alt`, `asset`, `decorative`
+- **`list`** — props: `accessibilityLabel`, `event`, `items`
+- **`map-preview`** — props: `accessibilityLabel`, `session`, `zoom`
+- **`progress`** — props: `accessibilityLabel`, `max`, `value`
+- **`qr-code`** — props: `accessibilityLabel`, `caption`, `size`, `value`
+- **`remote-video`** — props: `accessibilityLabel`, `peer`, `session`
+- **`scroll`** — props: `accessibilityLabel`, `event`, `scrollOffset`
+- **`select`** — props: `accessibilityHint`, `accessibilityLabel`, `event`, `options`, `value`
+- **`slider`** — props: `accessibilityHint`, `accessibilityLabel`, `event`, `max`, `min`, `step`, `value`
 - **`spacer`** — props: `size`
-- **`switch`** — props: `event`, `value`
-- **`text`** — props: `value`
-- **`text-input`** — props: `event`, `keyboard`, `multiline`, `placeholder`, `secure`, `value`
-- **`view`** — props: `accessibilityLabel`
-- **`waveform`** — props: `session`
+- **`switch`** — props: `accessibilityHint`, `accessibilityLabel`, `event`, `value`
+- **`text`** — props: `heading`, `live`, `value`
+- **`text-input`** — props: `accessibilityHint`, `accessibilityLabel`, `event`, `keyboard`, `multiline`, `placeholder`, `secure`, `value`
+- **`view`** — props: `accessibilityLabel`, `decorative`, `live`
+- **`waveform`** — props: `accessibilityLabel`, `session`
 
 ## Styles
 

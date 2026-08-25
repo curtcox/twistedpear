@@ -56,3 +56,21 @@ export {
   type PolicyResult,
   type PolicyTermValue,
 } from "../policy-evaluate.js";
+export {
+  capReplicaLogs,
+  DEFAULT_REPLICA_AUTHOR_CAP,
+  mergeReplicaLogs,
+  replicaEntryId,
+  replicaLwwView,
+  replicaVersionVector,
+  replicaVisibleView,
+  type ReplicaEntry,
+} from "../replica-merge.js";
+export {
+  initialReplicaState,
+  replicaMachine,
+  stepReplica,
+  type ReplicaEvent,
+  type ReplicaPhase,
+  type ReplicaState,
+} from "../replica-machine.js";

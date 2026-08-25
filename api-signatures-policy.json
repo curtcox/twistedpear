@@ -5,11 +5,11 @@
   "entries": {
     "protocol.api.md": {
       "package": "packages/protocol",
-      "sha256": "c4ef6d62843ee55418f654696011bfb2a3ce90d58cc638405871e152f11a45c2"
+      "sha256": "ca630e46b6f49cd22271df8afd29b7db44479505532a89d99d2ed47a928ca9c1"
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "8558472319cdeb13593c5b4864fe9fb511a2f68aa45bc26a0a925f45bc552d62"
+      "sha256": "7219e7e879104752800f2292edccb61ef639c982451cfb829542da32ee246bba"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
@@ -25,7 +25,7 @@
     },
     "miniapp-sdk.api.md": {
       "package": "packages/miniapp-sdk",
-      "sha256": "13b7841005454e2f191542a2cb10644eb73add152458fa311732e67cc2888f95"
+      "sha256": "e1a80ef4890453bade6e106375944021698d03ed77e4e4b4470629a0b9e1e3f8"
     },
     "reticulum-interfaces.api.md": {
       "package": "packages/reticulum-interfaces",
@@ -33,7 +33,7 @@
     },
     "miniapp-runtime-worklet.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "83a2e14e77568a7ca0469f4114f79e911ad66503accd17bb38ca7e0ca39eac97"
+      "sha256": "76a4910b24563f07df35f72e2f325013219be1c091a63bf5f9211ad6fdf4181a"
     },
     "app-registry.api.md": {
       "package": "packages/app-registry",
@@ -57,7 +57,7 @@
     },
     "effects.api.md": {
       "package": "packages/effects",
-      "sha256": "88b02630bc0dbeddf10248c6b996e76294f9c5e8491931d5ac5c37adfa850aa5"
+      "sha256": "411214e1c5ecedf103609833feff1e8770cd4afa8f2680fb6e1bc5c445a9e578"
     },
     "lxmf-ts.api.md": {
       "package": "packages/lxmf-ts",

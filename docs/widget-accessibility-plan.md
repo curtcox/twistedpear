@@ -19,8 +19,8 @@ from the widget tree alone — no browser, no human.
 
 ## 1. What still cannot be said
 
-The closed vocabulary now *accepts* labels, hints, heading, live, and decorative — see
-[widget-accessibility.md](widget-accessibility.md). What still cannot be *checked* is an
+The closed vocabulary now _accepts_ labels, hints, heading, live, and decorative — see
+[widget-accessibility.md](widget-accessibility.md). What still cannot be _checked_ is an
 accessibility tree, unnamed-control rejection, a Cookbook floor, or derived focus order.
 There are three renderer implementations, not four: the web host renders through
 `packages/widget-renderer-rn` under react-native-web. Most of the new props are not yet
@@ -104,12 +104,12 @@ either: `runDoctor` prints findings and returns 0
 [widget-accessibility.md](widget-accessibility.md). Remaining renderer work is the §3
 prop set and the accessibility tree:
 
-| Renderer                            | Remaining work                                                                                                                                                                  |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Renderer                            | Remaining work                                                                                                                                                                            |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `widget-renderer-rn` (RN + web)     | `accessibilityHint` on interactive types; `accessibilityRole="header"` + `aria-level` for `heading`; `accessibilityLiveRegion` for `live`; `accessibilityElementsHidden` for `decorative` |
-| Desktop DOM (`renderer/widgets.js`) | `aria-describedby`; `<h1>`–`<h6>` for `heading`; `aria-live`; `aria-hidden`; and a real `<label>` association for the four bare controls above                                  |
-| `widget-renderer-headless`          | carry every new prop into `RenderedWidgetNode`, and emit the accessibility tree of §6                                                                                           |
-| `describe.ts` (canonical model)     | carry every new prop — otherwise parity tests stay blind to renderer regressions                                                                                                |
+| Desktop DOM (`renderer/widgets.js`) | `aria-describedby`; `<h1>`–`<h6>` for `heading`; `aria-live`; `aria-hidden`; and a real `<label>` association for the four bare controls above                                            |
+| `widget-renderer-headless`          | carry every new prop into `RenderedWidgetNode`, and emit the accessibility tree of §6                                                                                                     |
+| `describe.ts` (canonical model)     | carry every new prop — otherwise parity tests stay blind to renderer regressions                                                                                                          |
 
 ## 6. The accessibility tree as a golden artifact
 
@@ -205,12 +205,12 @@ finished.
 
 ## 10. Sequencing
 
-| Phase | Deliverable                                                                                | Gate                                                       |
-| ----- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| 3     | Accessibility-tree projection and `ax` strings in the golden streams                       | Pinned per stream                                          |
-| 4     | `validate.ts` rejection tier behind `minHostApi >= 0.21.0`; `doctor.ts` retargeted         | Hostile-app fixture cannot bypass; 3 switch sites migrated |
-| 5     | Cookbook accessibility ratchet at measured floors                                          | New app cannot enter above its floor                       |
-| 6     | Focus order derived into the SPEC-PRESENT layout vectors                                   | Vectors regenerate identically                             |
+| Phase | Deliverable                                                                        | Gate                                                       |
+| ----- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 3     | Accessibility-tree projection and `ax` strings in the golden streams               | Pinned per stream                                          |
+| 4     | `validate.ts` rejection tier behind `minHostApi >= 0.21.0`; `doctor.ts` retargeted | Hostile-app fixture cannot bypass; 3 switch sites migrated |
+| 5     | Cookbook accessibility ratchet at measured floors                                  | New app cannot enter above its floor                       |
+| 6     | Focus order derived into the SPEC-PRESENT layout vectors                           | Vectors regenerate identically                             |
 
 Phase 4 is the only one that can break a shipped app, and the `minHostApi` gate is what
 stops it.

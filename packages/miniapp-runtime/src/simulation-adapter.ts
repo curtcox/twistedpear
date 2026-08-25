@@ -246,6 +246,12 @@ const SIMULATED_OPERATIONS: Partial<
     payload: { key: "sim", value: new Uint8Array([1]) },
     handler: "MiniappHost.storage.kv.set",
   }),
+  "storage:sync": () => ({
+    namespace: "storage.sync",
+    method: "append",
+    payload: { topic: "sim", payload: { n: 1 }, key: "sim" },
+    handler: "MiniappHost.storage.sync.append",
+  }),
   "resource:fetch": () => ({
     namespace: "resource",
     method: "fetch",

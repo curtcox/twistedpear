@@ -6,238 +6,163 @@
     {
       "id": "all-false-false",
       "op": "all",
-      "args": [
-        "false",
-        "false"
-      ],
+      "args": ["false", "false"],
       "expected": "false"
     },
     {
       "id": "any-false-false",
       "op": "any",
-      "args": [
-        "false",
-        "false"
-      ],
+      "args": ["false", "false"],
       "expected": "false"
     },
     {
       "id": "all-false-unknown",
       "op": "all",
-      "args": [
-        "false",
-        "unknown"
-      ],
+      "args": ["false", "unknown"],
       "expected": "false"
     },
     {
       "id": "any-false-unknown",
       "op": "any",
-      "args": [
-        "false",
-        "unknown"
-      ],
+      "args": ["false", "unknown"],
       "expected": "unknown"
     },
     {
       "id": "all-false-true",
       "op": "all",
-      "args": [
-        "false",
-        "true"
-      ],
+      "args": ["false", "true"],
       "expected": "false"
     },
     {
       "id": "any-false-true",
       "op": "any",
-      "args": [
-        "false",
-        "true"
-      ],
+      "args": ["false", "true"],
       "expected": "true"
     },
     {
       "id": "all-unknown-false",
       "op": "all",
-      "args": [
-        "unknown",
-        "false"
-      ],
+      "args": ["unknown", "false"],
       "expected": "false"
     },
     {
       "id": "any-unknown-false",
       "op": "any",
-      "args": [
-        "unknown",
-        "false"
-      ],
+      "args": ["unknown", "false"],
       "expected": "unknown"
     },
     {
       "id": "all-unknown-unknown",
       "op": "all",
-      "args": [
-        "unknown",
-        "unknown"
-      ],
+      "args": ["unknown", "unknown"],
       "expected": "unknown"
     },
     {
       "id": "any-unknown-unknown",
       "op": "any",
-      "args": [
-        "unknown",
-        "unknown"
-      ],
+      "args": ["unknown", "unknown"],
       "expected": "unknown"
     },
     {
       "id": "all-unknown-true",
       "op": "all",
-      "args": [
-        "unknown",
-        "true"
-      ],
+      "args": ["unknown", "true"],
       "expected": "unknown"
     },
     {
       "id": "any-unknown-true",
       "op": "any",
-      "args": [
-        "unknown",
-        "true"
-      ],
+      "args": ["unknown", "true"],
       "expected": "true"
     },
     {
       "id": "all-true-false",
       "op": "all",
-      "args": [
-        "true",
-        "false"
-      ],
+      "args": ["true", "false"],
       "expected": "false"
     },
     {
       "id": "any-true-false",
       "op": "any",
-      "args": [
-        "true",
-        "false"
-      ],
+      "args": ["true", "false"],
       "expected": "true"
     },
     {
       "id": "all-true-unknown",
       "op": "all",
-      "args": [
-        "true",
-        "unknown"
-      ],
+      "args": ["true", "unknown"],
       "expected": "unknown"
     },
     {
       "id": "any-true-unknown",
       "op": "any",
-      "args": [
-        "true",
-        "unknown"
-      ],
+      "args": ["true", "unknown"],
       "expected": "true"
     },
     {
       "id": "all-true-true",
       "op": "all",
-      "args": [
-        "true",
-        "true"
-      ],
+      "args": ["true", "true"],
       "expected": "true"
     },
     {
       "id": "any-true-true",
       "op": "any",
-      "args": [
-        "true",
-        "true"
-      ],
+      "args": ["true", "true"],
       "expected": "true"
     },
     {
       "id": "not-false",
       "op": "not",
-      "args": [
-        "false"
-      ],
+      "args": ["false"],
       "expected": "true"
     },
     {
       "id": "known-false",
       "op": "known",
-      "args": [
-        "false"
-      ],
+      "args": ["false"],
       "expected": "false"
     },
     {
       "id": "assume-true-false",
       "op": "assume",
-      "args": [
-        "false",
-        true
-      ],
+      "args": ["false", true],
       "expected": "false"
     },
     {
       "id": "not-unknown",
       "op": "not",
-      "args": [
-        "unknown"
-      ],
+      "args": ["unknown"],
       "expected": "unknown"
     },
     {
       "id": "known-unknown",
       "op": "known",
-      "args": [
-        "unknown"
-      ],
+      "args": ["unknown"],
       "expected": "false"
     },
     {
       "id": "assume-true-unknown",
       "op": "assume",
-      "args": [
-        "unknown",
-        true
-      ],
+      "args": ["unknown", true],
       "expected": "true"
     },
     {
       "id": "not-true",
       "op": "not",
-      "args": [
-        "true"
-      ],
+      "args": ["true"],
       "expected": "false"
     },
     {
       "id": "known-true",
       "op": "known",
-      "args": [
-        "true"
-      ],
+      "args": ["true"],
       "expected": "true"
     },
     {
       "id": "assume-true-true",
       "op": "assume",
-      "args": [
-        "true",
-        true
-      ],
+      "args": ["true", true],
       "expected": "true"
     }
   ],
@@ -261,10 +186,7 @@
       "evidence": {},
       "expected": {
         "kind": "needs",
-        "predicates": [
-          "app.usesNetwork",
-          "place.is:home"
-        ]
+        "predicates": ["app.usesNetwork", "place.is:home"]
       }
     },
     {
@@ -281,9 +203,7 @@
       "expected": {
         "kind": "deny",
         "source": "rule",
-        "ruleIds": [
-          "deny-network"
-        ]
+        "ruleIds": ["deny-network"]
       }
     },
     {
@@ -300,9 +220,7 @@
       "expected": {
         "kind": "allow",
         "source": "rule",
-        "ruleIds": [
-          "home-install"
-        ]
+        "ruleIds": ["home-install"]
       }
     }
   ]

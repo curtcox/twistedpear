@@ -18,6 +18,7 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`lxmf:receive`** — Receive LXMF messages for the app destination.
 - **`storage:kv`** — Store local key/value data for this app.
 - **`storage:hyperbee`** — Store ordered local Hyperbee data for this app.
+- **`storage:sync`** — Store a host-merged topic log for this app. Replication is host-owned.
 - **`resource:fetch`** — Fetch package resources through host budget rules.
 - **`workspace`** — Read and write project source files in this app's private workspace.
 - **`ai:chat`** — Send prompts to the host-configured AI service; prompts may include workspace content.

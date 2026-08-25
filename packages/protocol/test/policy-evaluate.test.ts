@@ -43,9 +43,9 @@ function allowWhen(when: unknown, extra: Record<string, unknown> = {}) {
 
 describe("loadPolicy P-R1 / P-R2", () => {
   it("rejects an unknown language version", () => {
-    expect(() => loadPolicy({ version: 2, base: DENY_BASE, rules: [] })).toThrow(
-      PolicyLoadError,
-    );
+    expect(() =>
+      loadPolicy({ version: 2, base: DENY_BASE, rules: [] }),
+    ).toThrow(PolicyLoadError);
     try {
       loadPolicy({ version: 2, base: DENY_BASE, rules: [] });
     } catch (error) {

@@ -33,7 +33,12 @@ for (const left of TRITS) {
   }
 }
 for (const value of TRITS) {
-  kleene.push({ id: `not-${value}`, op: "not", args: [value], expected: kleeneNot(value) });
+  kleene.push({
+    id: `not-${value}`,
+    op: "not",
+    args: [value],
+    expected: kleeneNot(value),
+  });
   kleene.push({
     id: `known-${value}`,
     op: "known",

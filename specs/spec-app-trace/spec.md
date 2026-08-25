@@ -23,16 +23,16 @@ they are later phases of the
 
 A session is one JSON object:
 
-| Field             | Meaning                                                                 |
-| ----------------- | ----------------------------------------------------------------------- |
-| `format`          | `1`                                                                     |
-| `kind`            | `miniapp-session`                                                      |
-| `mode`            | `shape` (the only legal value in format 1)                             |
-| `hostApiVersion`  | Host API the session ran against                                         |
-| `identity`        | `appId`, `version`, 32-byte `publisherKey`, 32-byte `packageHash`       |
-| `host`            | `platform`, `hostVersion`, `hostApiVersion`                            |
-| `grants`          | Capability names held at session start                                 |
-| `entries`         | Ordered causal tape                                                    |
+| Field            | Meaning                                                           |
+| ---------------- | ----------------------------------------------------------------- |
+| `format`         | `1`                                                               |
+| `kind`           | `miniapp-session`                                                 |
+| `mode`           | `shape` (the only legal value in format 1)                        |
+| `hostApiVersion` | Host API the session ran against                                  |
+| `identity`       | `appId`, `version`, 32-byte `publisherKey`, 32-byte `packageHash` |
+| `host`           | `platform`, `hostVersion`, `hostApiVersion`                       |
+| `grants`         | Capability names held at session start                            |
+| `entries`        | Ordered causal tape                                               |
 
 Entry tags: `clock`, `entropy` (`byteCount` only), `grant`, `broker`, `inbound`,
 `assert`. `assert` records output checks (widget node counts, call shapes), not

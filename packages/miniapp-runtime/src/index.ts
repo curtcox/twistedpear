@@ -138,11 +138,8 @@ export {
   MiniappKvQuotaError,
 } from "./services/storage-kv.js";
 export type { MiniappKvStoreBackend } from "./services/storage-kv.js";
-export {
-  ReplicaCapError,
-  TopicLogStore,
-} from "./services/storage-sync.js";
-export type { TopicLogOptions } from "./services/storage-sync.js";
+export { ReplicaCapError, TopicLogStore } from "./services/storage-kv.js";
+export type { TopicLogOptions } from "./services/storage-kv.js";
 export { CorestoreBeeBackend } from "./services/storage-bee-corestore.js";
 export { KvStorageBeeBackend } from "./services/storage-bee-kv.js";
 export {
@@ -452,11 +449,11 @@ export {
   hashAppTrace,
   parseAppTrace,
   serializeAppTrace,
-} from "./trace-format.js";
+} from "./diagnostics.js";
 export type {
   AppTrace,
   AppTraceEntry,
   AppTraceHost,
   AppTraceIdentity,
   AppTraceInboundKind,
-} from "./trace-format.js";
+} from "./diagnostics.js";

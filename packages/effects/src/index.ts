@@ -24,7 +24,12 @@ export {
   uninstallTripwire,
   isTripwireInstalled,
 } from "./tripwire.js";
-export { canonicalJson, hashTrace, serializeTrace } from "./trace.js";
+export {
+  canonicalJson,
+  fnv1a64Hex,
+  hashTrace,
+  serializeTrace,
+} from "./trace.js";
 export {
   AmbiguousTransitionError,
   enumerateCells,

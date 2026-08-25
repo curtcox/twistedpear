@@ -59,9 +59,8 @@ export function serializeTrace(entries: readonly TraceEntry[]): string {
   return canonicalJson(entries);
 }
 
-/** FNV-1a 64-bit over the UTF-16 code units of the canonical form, as 16 hex digits. */
-export function hashTrace(entries: readonly TraceEntry[]): string {
-  const text = serializeTrace(entries);
+/** FNV-1a 64-bit over UTF-16 code units, as 16 hex digits. */
+export function fnv1a64Hex(text: string): string {
   let h = 0xcbf29ce484222325n;
   const prime = 0x100000001b3n;
   for (let i = 0; i < text.length; i += 1) {
@@ -69,4 +68,9 @@ export function hashTrace(entries: readonly TraceEntry[]): string {
     h = (h * prime) & 0xffffffffffffffffn;
   }
   return h.toString(16).padStart(16, "0");
+}
+
+/** FNV-1a 64-bit over the UTF-16 code units of the canonical form, as 16 hex digits. */
+export function hashTrace(entries: readonly TraceEntry[]): string {
+  return fnv1a64Hex(serializeTrace(entries));
 }

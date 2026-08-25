@@ -87,3 +87,21 @@ function truncateUtf8(value: string, maxBytes: number): string {
     encoded.slice(0, maxBytes),
   );
 }
+
+export {
+  APP_TRACE_FORMAT,
+  APP_TRACE_KIND,
+  APP_TRACE_MODE_SHAPE,
+  APP_TRACE_SHAPE_FORBIDDEN_KEYS,
+  AppTraceFormatError,
+  hashAppTrace,
+  parseAppTrace,
+  serializeAppTrace,
+} from "./trace-format.js";
+export type {
+  AppTrace,
+  AppTraceEntry,
+  AppTraceHost,
+  AppTraceIdentity,
+  AppTraceInboundKind,
+} from "./trace-format.js";

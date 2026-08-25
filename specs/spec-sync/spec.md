@@ -33,13 +33,13 @@ amendment.
 
 ## Representations
 
-| Representation   | Artifact                                                                                      |
-| ---------------- | --------------------------------------------------------------------------------------------- |
-| Formal relation  | [`model/replica.tla`](model/replica.tla)                                                     |
-| Checked traces   | [`model/replica-conformance-traces.json`](model/replica-conformance-traces.json)             |
+| Representation   | Artifact                                                                                  |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| Formal relation  | [`model/replica.tla`](model/replica.tla)                                                  |
+| Checked traces   | [`model/replica-conformance-traces.json`](model/replica-conformance-traces.json)          |
 | Executable table | `replicaMachine` in [`packages/protocol`](../../packages/protocol/src/replica-machine.ts) |
-| Layer-3 vector    | [`conformance/vectors/replica.json`](../../conformance/vectors/replica.json)                 |
-| Entry schema     | [`schema/entry.schema.json`](schema/entry.schema.json)                                       |
+| Layer-3 vector   | [`conformance/vectors/replica.json`](../../conformance/vectors/replica.json)              |
+| Entry schema     | [`schema/entry.schema.json`](schema/entry.schema.json)                                    |
 
 Merge and the LWW view are executable in `replica-merge.ts`. The four transition
 representations are cross-checked with:

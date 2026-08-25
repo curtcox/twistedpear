@@ -168,31 +168,40 @@ function validateBoundedA11yString(node: WidgetNode, key: string): void {
   }
 }
 
-function validateAccessibilityProps(node: WidgetNode): void {
-  validateBoundedA11yString(node, "accessibilityLabel");
-  validateBoundedA11yString(node, "accessibilityHint");
+function validateHeading(node: WidgetNode): void {
   const heading = node.props?.heading;
-  if (heading !== undefined) {
-    if (
-      typeof heading !== "number" ||
-      !Number.isInteger(heading) ||
-      heading < 1 ||
-      heading > 6
-    ) {
-      invalidWidget(`${node.type}.heading must be an integer 1-6`);
-    }
-  }
-  const live = node.props?.live;
+  if (heading === undefined) return;
   if (
-    live !== undefined &&
-    (typeof live !== "string" || !ACCESSIBILITY_LIVE_REGIONS.has(live))
+    typeof heading !== "number" ||
+    !Number.isInteger(heading) ||
+    heading < 1 ||
+    heading > 6
   ) {
+    invalidWidget(`${node.type}.heading must be an integer 1-6`);
+  }
+}
+
+function validateLive(node: WidgetNode): void {
+  const live = node.props?.live;
+  if (live === undefined) return;
+  if (typeof live !== "string" || !ACCESSIBILITY_LIVE_REGIONS.has(live)) {
     invalidWidget(`${node.type}.live must be "polite" or "assertive"`);
   }
+}
+
+function validateDecorative(node: WidgetNode): void {
   const decorative = node.props?.decorative;
   if (decorative !== undefined && decorative !== true) {
     invalidWidget(`${node.type}.decorative must be true`);
   }
+}
+
+function validateAccessibilityProps(node: WidgetNode): void {
+  validateBoundedA11yString(node, "accessibilityLabel");
+  validateBoundedA11yString(node, "accessibilityHint");
+  validateHeading(node);
+  validateLive(node);
+  validateDecorative(node);
 }
 
 function validateNode(node: WidgetNode, ids: Set<string>): void {

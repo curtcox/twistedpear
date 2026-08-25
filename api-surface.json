@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "total": 8173,
-  "cap": 8173,
+  "total": 8261,
+  "cap": 8261,
   "packages": 21,
   "entryPoints": 47,
   "unresolved": 0,
@@ -10,9 +10,9 @@
     {
       "name": "protocol",
       "entryPoints": {
-        ".": 5926
+        ".": 5990
       },
-      "total": 5926
+      "total": 5990
     },
     {
       "name": "reticulum-ts",
@@ -26,12 +26,12 @@
     {
       "name": "miniapp-runtime",
       "entryPoints": {
-        ".": 348,
+        ".": 371,
         "./worklet": 108,
         "./sandbox/web": 2,
         "./ui": 13
       },
-      "total": 471
+      "total": 494
     },
     {
       "name": "host-core",
@@ -46,12 +46,12 @@
     {
       "name": "effects",
       "entryPoints": {
-        ".": 62,
+        ".": 63,
         "./adapters/real": 4,
         "./adapters/sim": 85,
         "./tripwire": 4
       },
-      "total": 155
+      "total": 156
     },
     {
       "name": "reticulum-interfaces",

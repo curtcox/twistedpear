@@ -75,7 +75,7 @@ The last command is the one that makes this more than a debugger. A trace that b
 
 Format 1, the shape-only document, identity, entry tags, and hash rules now live in
 [mini-app record and replay](miniapp-record-replay.md) and
-[SPEC-APP-TRACE](../specs/spec-app-trace/spec.md). Later phases still have to *fill*
+[SPEC-APP-TRACE](../specs/spec-app-trace/spec.md). Later phases still have to _fill_
 that document from a live session.
 
 ## 5. Where it plugs in

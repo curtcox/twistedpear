@@ -38,7 +38,7 @@ describe("specification evidence traceability", () => {
     // SPEC-MEDIA delegates to six per-medium profiles beside its own page, four
     // of which carry subset tables. Reading only `spec.md` measured none of
     // them, so the profile count is what proves the whole directory is read.
-    expect(result.stdout).toMatch(/21 spec\(s\), 7 profile\(s\)/);
+    expect(result.stdout).toMatch(/23 spec\(s\), 7 profile\(s\)/);
   });
 
   it("reads a subset row's Pinned by cell", () => {

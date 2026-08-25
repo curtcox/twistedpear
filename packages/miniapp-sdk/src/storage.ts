@@ -56,3 +56,33 @@ export const bee = {
     )) as ReadonlyArray<StorageBeeEntry>;
   },
 };
+
+export const sync = {
+  async open(topic: string): Promise<void> {
+    await callHost("storage.sync", "open", { topic }, "storage:sync");
+  },
+  async append(
+    topic: string,
+    payload: unknown,
+    extra: { readonly key?: string } = {},
+  ): Promise<void> {
+    await callHost(
+      "storage.sync",
+      "append",
+      { topic, payload, ...extra },
+      "storage:sync",
+    );
+  },
+  async view(
+    topic: string,
+  ): Promise<
+    ReadonlyArray<{ readonly key: string; readonly payload: unknown }>
+  > {
+    return (await callHost(
+      "storage.sync",
+      "view",
+      { topic },
+      "storage:sync",
+    )) as ReadonlyArray<{ readonly key: string; readonly payload: unknown }>;
+  },
+};

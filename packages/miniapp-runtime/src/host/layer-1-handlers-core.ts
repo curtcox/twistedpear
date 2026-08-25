@@ -1,4 +1,5 @@
 import { NamespacedKvService } from "../services/storage-kv.js";
+import { TopicLogStore } from "../services/storage-sync.js";
 import {
   boundAnnounceAppData,
   resolveAnnounceNamespace,
@@ -14,6 +15,7 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
   protected registerCoreHandlers(): void {
     this.registerUiIdentityHandlers();
     this.registerKvBeeHandlers();
+    this.registerSyncHandlers();
     this.registerLxmfAnnounceHandlers();
     this.registerWorkspaceHandlers();
   }
@@ -206,6 +208,60 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         );
       });
     }
+  }
+
+  private readonly topicLogs = new Map<string, TopicLogStore>();
+
+  private topicLog(appId: string): TopicLogStore {
+    const existing = this.topicLogs.get(appId);
+    if (existing !== undefined) return existing;
+    const store = new TopicLogStore({ authorId: appId });
+    this.topicLogs.set(appId, store);
+    return store;
+  }
+
+  private registerSyncHandlers(): void {
+    this.broker.register(
+      "storage.sync",
+      "open",
+      "storage:sync",
+      (request, context) => {
+        const topic = (request.payload as { topic: string }).topic;
+        this.topicLog(context.appId).open(topic);
+        return Promise.resolve({ ok: true });
+      },
+    );
+    this.broker.register(
+      "storage.sync",
+      "append",
+      "storage:sync",
+      (request, context) => {
+        const { topic, payload, key } = request.payload as {
+          topic: string;
+          payload: unknown;
+          key?: string;
+        };
+        const store = this.topicLog(context.appId);
+        if (typeof key === "string") store.set(topic, key, payload);
+        else store.append(topic, payload);
+        return Promise.resolve({ ok: true });
+      },
+    );
+    this.broker.register(
+      "storage.sync",
+      "view",
+      "storage:sync",
+      (request, context) => {
+        const topic = (request.payload as { topic: string }).topic;
+        const view = this.topicLog(context.appId).view(topic);
+        return Promise.resolve(
+          [...view.entries()].map(([key, entry]) => ({
+            key,
+            payload: entry.payload,
+          })),
+        );
+      },
+    );
   }
 
   private registerLxmfAnnounceHandlers(): void {

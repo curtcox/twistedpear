@@ -376,9 +376,7 @@ for (const bad of a11yBadTrees) {
   }
   try {
     validateWidgetTree(bad);
-    throw new Error(
-      `host accepted illegal a11y tree: ${JSON.stringify(bad)}`,
-    );
+    throw new Error(`host accepted illegal a11y tree: ${JSON.stringify(bad)}`);
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("host accepted")) {
       throw error;
