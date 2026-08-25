@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-18
+audited: 2026-08-24
 register: software
 counterpart: docs/app-approval-risk.md
 -->
@@ -280,6 +280,47 @@ into the gate:
 This is where HA-03 (the "paste this identity string" lure) stops being a coin flip: a lure
 can reach `imported`, and cannot reach `direct`.
 
+### 5.4 Source in the package
+
+**The rule: an app ships its full source, always, inside the signed package.** Not a link to
+source, not a promise of source, not source published elsewhere and hashed — the source
+travels in `files`, covered by the same per-file `sha256` and the same publisher signature as
+everything else, and a package without it does not install.
+
+This is the precondition for §5.2 rather than an addition to it. `ReviewBasis` already offers
+`"source-read"` ([review-attestation.ts:16](../packages/app-registry/src/review-attestation.ts)),
+but nothing today tells a verifier _what source was read_: `AppManifest`
+([manifest.ts:30](../packages/app-registry/src/manifest.ts)) carries `entry`, `files`,
+`driveKey`, `publisherPublicKey`, and `signature`, and no source field of any kind. A
+reviewer's claim to have read the source is therefore unverifiable, which makes the strongest
+basis in the enum the weakest evidence in practice. Shipping source in the package fixes that
+without a central archive, a build service, or an external fetch: the artifact under review
+and the source under review are the same signed object, so a `packageHash` names both.
+
+It also removes the reason review is hard to delegate. A user who wants a stricter bar than
+their own reading can supply — §5.2's whole purpose — can only recruit reviewers who can
+obtain the thing to review, over the same BLE and LoRa paths the app arrived on. Source that
+lives at a URL is not available to a peer on a mesh.
+
+Two things this deliberately does not solve, both worth stating rather than discovering:
+
+- **Correspondence for compiled authoring paths.** `tp app build` compiles Guida to a bundle,
+  and the reference apps carry both — `src/Main.elm` beside `bundle.js`, with the manifest's
+  `entry` naming the compiled file. Shipping both puts the source in the reviewer's hands; it
+  does not by itself prove the bundle was built from it. That is the reproducible-builds
+  problem named in [prior-art.md](prior-art.md) §4, and it is a separate item. The honest
+  interim position is that a reviewer can rebuild and diff, and that `basis` should record
+  whether they did.
+- **Whether anyone reads it.** Same limit as §11: this makes review _possible_ and
+  _verifiable_, not _performed_.
+
+**Cost.** Small in the format — a validation rule in `package.ts` and a new `PackageError`
+code beside `FILE_HASH_MISMATCH`. Larger in the size budgets (§6 of
+[package-format.md](package-format.md)), which is the real argument against and the reason
+this needs a decision rather than an assumption.
+
+Filed as `APPR-SOURCE-IN-PACKAGE` (§10).
+
 ## 6. Where the decision lives
 
 `APPR-EVALUATE` landed in [app approval risk](app-approval-risk.md):
@@ -369,8 +410,8 @@ Freenet reads all refuse.
 
 ## 10. Registering this work
 
-All fourteen IDs above are filed as rows in the **Backlog** table of
-`STATUS-SOFTWARE.md`, with the types and `--requires` chains the Phase tables state
+The fourteen IDs in the Phase tables are filed as rows in the **Backlog** table of
+`STATUS-SOFTWARE.md`, with the types and `--requires` chains those tables state
 (`APPR-OPTIONAL-CAPS` additionally requires `CAP-MANIFEST-V2`, since both ride the same
 `formatVersion: 2` change). `npm run work:next` walks them in that order; close each with
 `npm run work:done` ([work tracking](work-tracking.md)). Rows land via `work:add`, never by
@@ -380,14 +421,49 @@ Verify commands name the test that will prove the item, whether or not that test
 yet. The Phase 0 and Phase 2 `bug` rows outrank every open `quality` item, so filing them
 changed what the queue proposes; that ordering is the intent, not a side effect.
 
+§5.4 is filed separately as `APPR-SOURCE-IN-PACKAGE` (`feature`, no prerequisites), verified
+by `packages/app-registry/test/package-source.test.ts` — a file that does not exist yet, which
+is the point: `work:done` cannot close the row until the rule is enforced and tested. It has
+no `--requires` chain because nothing gates it; it is the phase tables' quiet precondition
+rather than one of their steps, since every `review` requirement in §4 assumes a reviewer can
+obtain what they claim to have read.
+
+### Documents to update when the user-facing bar lands
+
+The evidence machinery ships ahead of any way for a user to touch it: `ApprovalThresholds`
+is a parameter type with no construction site outside `packages/protocol`, `evaluateApproval`
+has no caller in any shipping host, and the word "reviewer" does not appear anywhere in
+`guide/`. Until that closes, every user-facing statement that the bar is yours is a promise.
+Closing it is not done when the control renders; it is done when these agree with it.
+
+| Document                                                                | What changes                                                                                                            |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| [app-approval-risk.md](app-approval-risk.md)                            | The live half. Replace "T₁…T₄ and _K_ are arguments … a product call" with where the values come from and who sets them |
+| [FAQ.md](FAQ.md)                                                        | "If no one reviews apps, how is that safe?" carries a ⏳ note pointing here. Drop it                                    |
+| [guide/05](../guide/05-finding-and-installing-apps.md)                  | Extend "Trusted publishers" to reviewers: what a reviewer is, and that trusting one is not trusting an author           |
+| [guide/08](../guide/08-trust-privacy-safety.md)                         | The chapter the FAQ sends people to for the limits. It currently does not mention review evidence at all                |
+| [guide/glossary.md](../guide/glossary.md)                               | Add _Reviewer_ and _Review attestation_ beside _Trusted publisher_                                                      |
+| [glossary.md](glossary.md)                                              | Same two terms, at the repository's level of detail                                                                     |
+| [guide/appendix-feature-status.md](../guide/appendix-feature-status.md) | Move review evidence out of ⏳, with the limit stated precisely ([reader-guide-plan.md](reader-guide-plan.md))          |
+| [LIMITATIONS.md](../LIMITATIONS.md) §7                                  | The residual after the gate runs — §11's reviewer-bootstrapping problem does not go away                                |
+
+The bootstrapping limit in §11 must survive this edit rather than be quietly dropped: a user
+with no trusted reviewers gains nothing from a threshold control, and saying so is part of
+the feature.
+
 ## 11. What this plan will not settle
 
 - **Whether the risk classes are right.** §3.1 is an argued assignment, not a measured one.
   The adversarial simulation ([abuse-resistance-loop.md](abuse-resistance-loop.md)) is where
   it gets tested, and the registry exists so that revising it is a data change.
-- **Bootstrapping a reviewer set.** A user with no trusted reviewers gets no benefit from
-  Phase 4, and the obvious fixes — a shipped default list, a well-known key — are precisely
-  the central authority this platform does not have. Open.
+- **Bootstrapping a reviewer set.** A user with no trusted reviewers still has options: they
+  may enrol their own key and review what they install, trust a reviewer they acquire later,
+  or decline the app. What they cannot do is delegate to someone they have not chosen — and
+  the obvious fixes for that, a shipped default list or a well-known key, are precisely the
+  central authority this platform does not have. The user _is_ the central authority here;
+  the open question is not who decides but how much a user who wants to delegate can, before
+  they have anyone to delegate to. Self-review is an option, never an obligation: a user is
+  not forced to trust themselves, and a bar they cannot currently meet is a bar they set.
 - **Whether a real human reads any of this.** As in the hostile-author plan, every oracle
   here asks whether the system disclosed, not whether the person understood.
 - **Thresholds.** _T_ᵢ and _K_ are product decisions; this plan states where they plug in.

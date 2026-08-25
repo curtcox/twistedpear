@@ -208,6 +208,93 @@ be designed together or not at all.
 
 **Cost.** Small once §7's privacy model exists; unwise before it does.
 
+## Reconsidered refusals
+
+### 12. App-rendered UI behind a hard-to-obtain capability
+
+**Missing, and deliberately so today.** No row in
+[`specs/spec-cap/registry/capability-risk.json`](../specs/spec-cap/registry/capability-risk.json)
+grants an app a drawing surface. `ui.render` accepts a validated widget tree and nothing else;
+the closed component and style allowlists in
+[`ui/schema.ts`](../packages/miniapp-runtime/src/ui/schema.ts) are the enforcement, and
+[SPEC-CHROME](../specs/spec-chrome/spec.md) R7–R9 are written against a tree the host can read.
+
+**Why this is a reconsidered refusal rather than a missing facility.** Every other authority
+the platform withholds is withheld _by degree_ — declared in a manifest, granted by the user,
+scoped, revocable, priced by risk class. Drawing is the one thing an app cannot ask for at any
+price. That is defensible as a v1 simplification and weak as a permanent rule: it is why there
+is no React binding, no visualisation the allowlist did not anticipate, and no place for an app
+category that genuinely needs pixels. The claim worth testing is not "apps should draw" but
+"the platform should be able to _price_ drawing the way it prices everything else."
+
+**Shape, at proposal strength only.** A capability — `ui:surface` is the natural spelling —
+floored at `critical` in the risk registry, so "not easily obtained" is a property of the
+approval gate that already exists rather than a new mechanism: `direct` publisher trust, age,
+artifact stability, and ≥ _K_ review attestations ([app-approval-risk.md](app-approval-risk.md)).
+
+**"Not easily obtained" means expensive, not forbidden, and that is correct.** `evaluateApproval`
+returns `overridable: true` unconditionally
+([approval-evaluate.ts:142](../packages/protocol/src/approval-evaluate.ts)); an unmet
+requirement is "could not verify", never a refusal; and
+[user-policy-plan.md](user-policy-plan.md) states the principle as _warn comprehensively,
+refuse nothing_. A platform-level refusal here would put the decision somewhere other than
+the user, which is the arrangement this project exists to avoid. There is a final authority
+and it is the user. So the gate's job is to make a surface grant costly, legible, and
+deliberate — and a user who wants the grant unobtainable on their installation has the
+stronger instrument anyway: seal it in policy ([user-policy-plan.md](user-policy-plan.md) §5),
+which binds a later self in a way no platform rule can.
+
+**The precondition is source in the package.** §12 is only reviewable if the thing to review
+travels with the app. That is [app-approval-risk-plan.md](app-approval-risk-plan.md) §5.4, and
+it should land first: a drawing surface makes _runtime_ behaviour opaque, and the answer to
+that is static review of source that is bound to the same `packageHash` — not a better
+runtime oracle. With source shipped, "an app that draws pixels cannot be audited" is false, and
+most of the intuitive objection to this item goes with it.
+
+**What survives all of that, and is the one genuinely open problem.** Review binds source, not
+behaviour. HA-36 — benign until a remote flag arrives, marked **"Not preventable"** and one of
+two load-bearing scenarios in [hostile-author-plan.md](hostile-author-plan.md) §6 — has a
+containment story that is egress scoping, and drawing is not egress. It is local deception. So
+a surface grant plus a bait-and-switch yields a fake grant screen that an informed user, fully
+shipped source, a diligent reviewer, and a sealed policy all fail to prevent, because the
+source was honest when it was read. Nothing in the current defence survives this: CHROME-R8's
+reserved lexicon and the R8 layout oracle both work by reading the tree, and against pixels
+there is nothing to read.
+
+That makes the requirement precise rather than vague. **The host indicator that distinguishes
+chrome from app surface must be unforgeable by construction, not by inspection.** Candidates —
+an out-of-process chrome layer the sandbox cannot address, a persistent host-owned region
+outside the app's compositing tree, a render oracle over rasterised output
+([hostile-author-plan.md](hostile-author-plan.md) §5) — are each a plan of their own, and none
+is written. This is the piece to write before anything else in §12 is worth scheduling.
+
+**Cost.** Large, and concentrated in the part the platform is most careful about. This item is
+listed to make the refusal explicit and revisable, not because it is ready to schedule.
+
+**What must be re-derived before this could land.** Each of these currently states the refusal
+as settled. None is merely a wording change: the first two rows are the ones that decide
+whether the rest are true.
+
+| Document                                                                                                                                             | What it asserts today                                                   | What landing this requires                                                                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [app-approval-risk-plan.md](app-approval-risk-plan.md) §5.4                                                                                          | Source in the package is proposed, not required                         | Landed first; without it a drawn surface genuinely cannot be reviewed                                    |
+| [SPEC-CHROME](../specs/spec-chrome/spec.md)                                                                                                          | R7–R9 read app widget text                                              | Rules that hold against pixels, or an explicit statement that they do not apply to a surface-holding app |
+| [hostile-author-plan.md](hostile-author-plan.md) §6                                                                                                  | HA-20…HA-24 BLOCKED                                                     | Re-derived verdicts; the BLOCKED column is conditioned on data-only trees                                |
+| [architecture.md](architecture.md) §7                                                                                                                | "a mini-app cannot draw a fake grant screen over a real one"            | Restate as a property of the default, not of the platform                                                |
+| [miniapp-runtime.md](miniapp-runtime.md)                                                                                                             | "Data-only widget trees (host renders; no arbitrary UI code)"           | Name the capability-gated exception in the guarantees list                                               |
+| [authors/01](../authors/01-what-you-are-building.md)                                                                                                 | "You do not render"; "You cannot ship CSS, fonts, or arbitrary drawing" | Qualify both, and say what the grant costs an author                                                     |
+| [devstudio.md](devstudio.md)                                                                                                                         | "Mini-apps cannot draw over or acknowledge these dialogs"               | Hold or restate under a surface grant                                                                    |
+| [web-host.md](web-host.md)                                                                                                                           | Mini-app UI is "validated data, never code"                             | Restate per host; the browser case is the hardest                                                        |
+| [device-io-plan.md](device-io-plan.md)                                                                                                               | "Indicators must be unforgeable. Host chrome only"                      | Unchanged in intent, but its mechanism must survive                                                      |
+| [glossary.md](glossary.md)                                                                                                                           | "the host renders it, which is why apps cannot fake system prompts"     | Rewrite the _Widget / widget tree_ entry                                                                 |
+| [freenet.md](freenet.md)                                                                                                                             | DOM UIs "directly conflict with host-rendered widgets"                  | Re-evaluate; this proposal narrows that conflict                                                         |
+| [LIMITATIONS.md](../LIMITATIONS.md) §7                                                                                                               | Mini-apps are not native apps                                           | Add or remove the drawing limit as the outcome dictates                                                  |
+| [FAQ.md](FAQ.md)                                                                                                                                     | Carries the ⏳ note that points here                                    | Drop the note; state the shipped rule                                                                    |
+| [authors/appendix-feature-status.md](../authors/appendix-feature-status.md), [guide/appendix-feature-status.md](../guide/appendix-feature-status.md) | Silent                                                                  | Add a row, in whichever status the outcome earns                                                         |
+
+**Unregistered by design.** There is no `FAC-` row for this and there should not be one until
+open question 4 is answered; filing it would assert a decision that has not been taken.
+
 ## Registration
 
 The detailed plans carry phase-sized rows: `SYNC-1-SPEC` through `SYNC-6-COOKBOOK` (§1),
@@ -236,3 +323,10 @@ reports wait for the sealed-trace privacy model. All rows live in the
    accessibility gap is harder to fix once a Cookbook's worth of apps have set the pattern.
 3. Do §5 and §1 conflict? Both add manifest surface and both change what a host must fetch
    and verify; sequencing them independently may cost a second format migration.
+4. Is §12 wanted at all? It is the only item here that trades away a security property rather
+   than adding a capability, and the honest answer may be "no". Deciding it either way is
+   worth more than leaving it implicit: today the refusal is stated as settled in a dozen
+   documents and argued for in none of them. The decidable sub-question, and the one to answer
+   first, is narrower: can a host indicator be made unforgeable by construction beside an
+   app-drawn surface? If not, §12 fails on its own terms and the refusal should be restated as
+   a conclusion rather than left as an assumption.

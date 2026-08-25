@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-18
+audited: 2026-08-24
 register: software
 counterpart: conformance/hostile-authors/README.md
 -->
@@ -287,6 +287,15 @@ The suite is not done when it runs. It is done when the repo knows about it.
 P1 registered. P2–P4 executed: SPEC-CHROME is fully normative, Surface 3 is BLOCKED,
 F4/F9 and LIMITATIONS §7 name the enumerated residual. Rung 4 (generated/colluding
 authors) remains the sim-campaign hook.
+
+**Surface 3's verdicts are conditional, and the condition is not stated in the table.**
+HA-20–HA-24 are BLOCKED because the host reads the widget tree: CHROME-R8's reserved lexicon
+and the R8 layout oracle both operate on data. Against an app holding its own drawing surface
+they have nothing to read, so every BLOCKED in that block would have to be re-derived rather
+than inherited. That is the first row of the re-derivation table in
+[platform-facilities-plan.md](platform-facilities-plan.md) §12, which proposes exactly such a
+surface behind a `critical`-floored capability. If that proposal is ever taken up, this
+section and §6 are prerequisites for it, not consumers of it.
 
 ## 10. What this plan will not settle
 

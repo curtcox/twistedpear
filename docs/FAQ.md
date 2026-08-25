@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-04
+audited: 2026-08-24
 register: none
 -->
 
@@ -144,11 +144,28 @@ asking permission to do before anything is installed. See
 
 ### If no one reviews apps, how is that safe?
 
-It is safe by construction rather than by screening. An app must publish source, must carry
-a verified author signature, must declare its capabilities in that signed manifest, and
-must be granted them by you — either half alone is not enough. It runs in a sandbox with no
+It is safe by construction rather than by screening. An app must ship its full source inside
+the signed package, must carry a verified author signature, must declare its capabilities in
+that signed manifest, and must be granted them by you — either half alone is not enough. It runs in a sandbox with no
 ambient access to your files, your network, or another app's data, and you can withhold or
-revoke any capability later. The honest limits of that story are in
+revoke any capability later. As the user, you get to decide who needs to review an app
+before it is considered safe. You can set that bar as high as you want: the reviewer list is
+yours, an attestation signed by a key you do not trust is data to display rather than
+evidence to count, and the evidence each risk tier demands is a threshold rather than a
+platform constant. What ships today is [app-approval-risk.md](app-approval-risk.md).
+
+> **⏳ Not yet available — setting the bar yourself, and the source rule.** The decision
+> function (`evaluateApproval`), the reviewer store, and the signed attestation format ship.
+> The control that lets you choose the thresholds does not, and no shipping host runs the
+> gate at install time yet, so today the bar is whatever the host supplies rather than what
+> you chose. Nor does anything yet _enforce_ the source rule: `AppManifest` has no source
+> field and `package.ts` will pack a bundle without one, so "ships its full source" is the
+> rule this platform is built around and not yet a thing a host checks. The planned end
+> state — including a policy you can seal so that a later you cannot quietly lower it — is
+> [app-approval-risk-plan.md](app-approval-risk-plan.md) §4–§5.4 and
+> [user-policy-plan.md](user-policy-plan.md).
+
+The honest limits of that story are in
 [Chapter 8](../guide/08-trust-privacy-safety.md) and [security-review.md](security-review.md);
 community-side tools are [local-moderation.md](local-moderation.md).
 
@@ -218,9 +235,21 @@ is no filesystem, no socket, no `require`, no `fetch` — not discouraged, absen
 ### Why can't I render my own UI, or use React, or add npm dependencies at runtime?
 
 Because a mini-app that could draw pixels could draw a convincing fake grant screen over a
-real one. Host-rendered UI is what makes the consent chrome trustworthy; the rules are
-[SPEC-CHROME](../specs/spec-chrome/spec.md). You bundle your own build-time dependencies
-into the single file, but everything that reaches outside the sandbox crosses the broker.
+real one. Host-rendered UI is the default for that reason, and it is what makes the consent
+chrome trustworthy; the rules are [SPEC-CHROME](../specs/spec-chrome/spec.md). Today the
+widget tree is the only way an app reaches the screen. You bundle your own build-time
+dependencies into the single file, but everything that reaches outside the sandbox crosses
+the broker.
+
+> **⏳ Not yet available — app-rendered UI.** The intended end state is that apps _can_
+> render their own UI, but that doing so creates security risks the widget model exists to
+> avoid, so the ability requires special permissions that aren't easily obtained. Nothing
+> implements it: no capability in the risk registry grants a drawing surface, and the
+> consent-chrome defences in [hostile-author-plan.md](hostile-author-plan.md) §6 are marked
+> BLOCKED _because_ the tree is data rather than code. The proposal, and the list of what
+> must be re-derived before it could land, is
+> [platform-facilities-plan.md](platform-facilities-plan.md) §12.
+
 The widget model and SDK surface are [miniapp-sdk.md](miniapp-sdk.md) and
 [authors/04](../authors/04-building-the-ui.md).
 

@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-23
+audited: 2026-08-24
 register: software
 -->
 
@@ -53,7 +53,7 @@ reinstall would destroy. Then it does what the user asked.
 
 ## 2. What exists today, and what does not
 
-Grounded in code reads; §11 says how to re-derive them.
+Grounded in code reads; §12 says how to re-derive them.
 
 Present and reusable:
 
@@ -428,7 +428,28 @@ Open, and deliberately not decided here:
   only always-resolvable artifact predicates plus approvals, with sensor predicates
   expressible but permanently `unknown` on every current host.
 
-## 11. Re-deriving §2
+## 11. Documents to update when policy ships
+
+A policy the user can state and seal changes what several current statements mean, so
+landing the mechanism is not the end of the item. `SPEC-POLICY` is the normative record;
+these are the documents that describe the platform to a person.
+
+| Document                                                                                                                                             | What changes                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A new `docs/user-policy.md`                                                                                                                          | The live half of this pair, per the live/planned rule in [docs/README.md](README.md). It does not exist yet because nothing ships                                                                                                            |
+| [FAQ.md](FAQ.md)                                                                                                                                     | "If no one reviews apps, how is that safe?" tells the reader they can set the bar as high as they want, under a ⏳ note pointing here and at [app-approval-risk-plan.md](app-approval-risk-plan.md). Drop the note when both halves are true |
+| [guide/08](../guide/08-trust-privacy-safety.md)                                                                                                      | Where a user learns that a self-imposed restriction is available, and what sealing costs them                                                                                                                                                |
+| [guide/appendix-feature-status.md](../guide/appendix-feature-status.md), [authors/appendix-feature-status.md](../authors/appendix-feature-status.md) | A row each; an author needs to know an app can be refused by a policy rather than by a grant                                                                                                                                                 |
+| [guide/glossary.md](../guide/glossary.md), [glossary.md](glossary.md)                                                                                | _Policy_, _Amendment_, _Sealing_                                                                                                                                                                                                             |
+| [app-approval-risk.md](app-approval-risk.md)                                                                                                         | Thresholds stop being host-supplied constants once a policy can name them                                                                                                                                                                    |
+| [LIMITATIONS.md](../LIMITATIONS.md)                                                                                                                  | I-1's honest edge: an installation hardened into uselessness is a supported outcome, and the document that catalogues costs should say so                                                                                                    |
+| [identity-backup.md](identity-backup.md)                                                                                                             | §5 sealing is key-bound, so what a reinstall costs is now also what escaping a seal costs                                                                                                                                                    |
+
+The two claims most at risk of drifting apart are §10's open items and any user-facing
+copy written before they close: nothing here should read as "you are protected" when the
+mechanism only guarantees "you were warned".
+
+## 12. Re-deriving §2
 
 ```sh
 rg -n "RelayPolicyMatrix|security-policies" packages/ --type ts

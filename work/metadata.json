@@ -133,6 +133,13 @@
       ],
       "notes": "app-approval-risk-plan.md Phase 1, finding A-2. specs/spec-cap/registry/capability-risk.json plus generator and capability-risk.gen.ts, the same shape and discipline as device-classes.json, so revising the assignment is a data change. The four-class assignment in §3.1 is argued, not measured, and is reviewed as part of this item."
     },
+    "APPR-SOURCE-IN-PACKAGE": {
+      "type": "feature",
+      "requires": [],
+      "verify": "npx vitest run packages/app-registry/test/package-source.test.ts",
+      "added": "2026-08-25",
+      "notes": "app-approval-risk-plan.md 5.4. Source travels in files, covered by the same per-file sha256 and publisher signature, so a packageHash names the artifact and the reviewable source as one object. Makes ReviewBasis source-read verifiable. New PackageError code beside FILE_HASH_MISMATCH; size budgets in package-format.md 6 are the real cost."
+    },
     "APPR-SPEC-RISK": {
       "type": "docs",
       "requires": ["APPR-REVIEWER-SET"],

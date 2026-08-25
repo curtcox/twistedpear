@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-08-18
+audited: 2026-08-24
 register: none
 -->
 
@@ -134,3 +134,7 @@ Format and flow: [256t-distribution.md](256t-distribution.md); implementation:
 - Publisher key rotation with signed succession statements
 - Revocation lists (Autobase feeds)
 - Delta updates (Hyperdrive dedupe softens IP-path updates today)
+- Requiring full source in `files`, so that a `packageHash` names the artifact and the
+  reviewable source as one signed object
+  ([app-approval-risk-plan.md](app-approval-risk-plan.md) §5.4). Nothing in the manifest
+  or in `package.ts` requires source today
