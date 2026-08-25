@@ -10,7 +10,10 @@
   },
   "warnRatio": 1.05,
   "census": {
-    "roots": ["apps", "packages"],
+    "roots": [
+      "apps",
+      "packages"
+    ],
     "thresholdBytes": 131072,
     "note": "Any tracked file under these roots at or above the threshold must be budgeted or excluded below. Without this rule the list is one somebody has to remember to extend, and the next large artifact simply is not covered."
   },
@@ -18,13 +21,13 @@
     {
       "path": "apps/host-desktop/worklet/worklet.bundle",
       "budgetBytes": 12582912,
-      "bytes": 11450576,
+      "bytes": 11450618,
       "note": "Electron host worklet. The largest file in the repository and, until this gate, measured by nothing."
     },
     {
       "path": "apps/harness-mobile/worklet/worklet.bundle.mjs",
       "budgetBytes": 12582912,
-      "bytes": 11007858,
+      "bytes": 11007901,
       "note": "Expo host worklet, shipped into the mobile app. Carries the compiled wasm contracts inline, which is why it tracks the desktop bundle's size."
     },
     {
