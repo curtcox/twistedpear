@@ -100,6 +100,41 @@ export class TopicLogStore {
   }
 }
 
+export function missingReplicaEntries(
+  log: ReadonlyArray<ReplicaEntry>,
+  remote: Readonly<Record<string, number>>,
+): ReplicaEntry[] {
+  return log.filter((entry) => entry.seq > (remote[entry.authorId] ?? 0));
+}
+
+export function replicaStoreFingerprint(
+  store: TopicLogStore,
+  topic: string,
+): string {
+  const vector = store.vector(topic);
+  const clock = Object.keys(vector)
+    .sort()
+    .map((author) => `${author}:${vector[author]}`)
+    .join(",");
+  const view = [...store.view(topic).entries()]
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    .map(([key, entry]) => `${key}:${entry.authorId}:${entry.seq}`);
+  return `${clock}|${view.join(",")}`;
+}
+
+export function replicaConvergeSteps(
+  step: () => void,
+  done: () => boolean,
+  max: number,
+  label: string,
+): number {
+  for (let i = 0; i < max; i++) {
+    step();
+    if (done()) return i + 1;
+  }
+  throw new Error(`${label} did not converge in ${max} steps`);
+}
+
 function nextSeq(log: ReadonlyArray<ReplicaEntry>, authorId: string): number {
   let max = 0;
   for (const entry of log) {

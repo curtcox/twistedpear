@@ -1,10 +1,14 @@
-import type { ReplicaEntry } from "@twistedpear/protocol";
 import type { EgressOffer, EgressTargetKind } from "@twistedpear/protocol";
 import {
   assertEgressAllowed,
   type EgressBudgetLedger,
 } from "../egress-enforcement.js";
-import { TopicLogStore } from "./storage-sync.js";
+import {
+  missingReplicaEntries,
+  replicaConvergeSteps,
+  replicaStoreFingerprint,
+  TopicLogStore,
+} from "./storage-sync.js";
 
 const CAPABILITY = "storage:sync";
 
@@ -16,13 +20,6 @@ export type ReplicaEgressAuth = {
   readonly at: () => number;
   readonly ledger: EgressBudgetLedger;
 };
-
-function missingEntries(
-  log: ReadonlyArray<ReplicaEntry>,
-  remote: Readonly<Record<string, number>>,
-): ReplicaEntry[] {
-  return log.filter((entry) => entry.seq > (remote[entry.authorId] ?? 0));
-}
 
 function encodedBytes(body: unknown): number {
   return new TextEncoder().encode(JSON.stringify(body)).length;
@@ -41,18 +38,6 @@ function emit(auth: ReplicaEgressAuth, body: unknown): number {
     ledger: auth.ledger,
   });
   return bytes;
-}
-
-function fingerprint(store: TopicLogStore, topic: string): string {
-  const vector = store.vector(topic);
-  const clock = Object.keys(vector)
-    .sort()
-    .map((author) => `${author}:${vector[author]}`)
-    .join(",");
-  const view = [...store.view(topic).entries()]
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-    .map(([key, entry]) => `${key}:${entry.authorId}:${entry.seq}`);
-  return `${clock}|${view.join(",")}`;
 }
 
 /**
@@ -80,17 +65,18 @@ export class LxmfReplicaLink {
   }
 
   converge(maxRounds = 8): number {
-    for (let i = 0; i < maxRounds; i++) {
-      this.round();
-      if (this.converged()) return i + 1;
-    }
-    throw new Error(`lxmf replica did not converge in ${maxRounds} rounds`);
+    return replicaConvergeSteps(
+      () => this.round(),
+      () => this.converged(),
+      maxRounds,
+      "lxmf replica",
+    );
   }
 
   converged(): boolean {
     return (
-      fingerprint(this.local, this.topic) ===
-      fingerprint(this.remote, this.topic)
+      replicaStoreFingerprint(this.local, this.topic) ===
+      replicaStoreFingerprint(this.remote, this.topic)
     );
   }
 
@@ -104,7 +90,7 @@ export class LxmfReplicaLink {
       topic: this.topic,
       vector: from.vector(this.topic),
     });
-    const missing = missingEntries(
+    const missing = missingReplicaEntries(
       from.entries(this.topic),
       to.vector(this.topic),
     );

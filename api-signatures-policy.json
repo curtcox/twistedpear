@@ -9,11 +9,11 @@
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "126886cc54218faba3bcb30a5d0df06bfef3383d953df71dec3dcf7d2d453e05"
+      "sha256": "6616bf545c8e3ae8c34e010715ac3e72ff1e9fee89fcc4f4dd7f99a21425a348"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
-      "sha256": "18d5be209a3447779d9afe132c1763bdf177da7e5944c59d10654f2be3aa192a"
+      "sha256": "ba5c1117cd637943424f474d5297e2f764cb011f2c930580a1536a767df20ce5"
     },
     "reticulum-ts.api.md": {
       "package": "packages/reticulum-ts",

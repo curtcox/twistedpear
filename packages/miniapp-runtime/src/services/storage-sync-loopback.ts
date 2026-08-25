@@ -1,16 +1,14 @@
 import type { ReplicaEntry } from "@twistedpear/protocol";
-import { TopicLogStore } from "./storage-sync.js";
+import {
+  missingReplicaEntries,
+  replicaConvergeSteps,
+  replicaStoreFingerprint,
+  TopicLogStore,
+} from "./storage-sync.js";
 
 /** Deterministic wire faults. Partition is toggled with `partition()` / `heal()`. */
 export type LoopbackFault =
   "none" | "drop-first" | "delay" | "reorder" | "duplicate";
-
-function missingEntries(
-  log: ReadonlyArray<ReplicaEntry>,
-  remote: Readonly<Record<string, number>>,
-): ReplicaEntry[] {
-  return log.filter((entry) => entry.seq > (remote[entry.authorId] ?? 0));
-}
 
 class Direction {
   private held: ReplicaEntry[] | undefined;
@@ -81,15 +79,19 @@ export class LoopbackReplicaLink {
   }
 
   converge(maxTicks = 24): number {
-    for (let i = 0; i < maxTicks; i++) {
-      this.tick();
-      if (this.converged()) return i + 1;
-    }
-    throw new Error(`loopback replica did not converge in ${maxTicks} ticks`);
+    return replicaConvergeSteps(
+      () => this.tick(),
+      () => this.converged(),
+      maxTicks,
+      "loopback replica",
+    );
   }
 
   converged(): boolean {
-    return snapshot(this.left, this.topic) === snapshot(this.right, this.topic);
+    return (
+      replicaStoreFingerprint(this.left, this.topic) ===
+      replicaStoreFingerprint(this.right, this.topic)
+    );
   }
 
   private pump(
@@ -98,7 +100,7 @@ export class LoopbackReplicaLink {
     direction: Direction,
   ): void {
     for (const batch of direction.flush()) to.ingest(this.topic, batch);
-    const missing = missingEntries(
+    const missing = missingReplicaEntries(
       from.entries(this.topic),
       to.vector(this.topic),
     );
@@ -106,16 +108,4 @@ export class LoopbackReplicaLink {
       to.ingest(this.topic, batch);
     }
   }
-}
-
-function snapshot(store: TopicLogStore, topic: string): string {
-  const vector = store.vector(topic);
-  const clock = Object.keys(vector)
-    .sort()
-    .map((author) => `${author}:${vector[author]}`)
-    .join(",");
-  const view = [...store.view(topic).entries()]
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-    .map(([key, entry]) => `${key}:${entry.authorId}:${entry.seq}`);
-  return `${clock}|${view.join(",")}`;
 }

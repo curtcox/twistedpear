@@ -20,7 +20,7 @@ The probe lives in `scripts/checks/headroom.mjs`. Limits:
 | Cost  | Refuse when                                      |
 | ----- | ------------------------------------------------ |
 | Heavy | swap used > 2 GiB, or Gradle/JDT heaps on <32 GB |
-| Light | swap used > 4 GiB, or < 1 GiB free while swapped   |
+| Light | swap used > 4 GiB, or < 1 GiB free while swapped |
 
 Heavy: unit suite, coverage, type-coverage, typed-lint, complexity, mutation,
 Rust/Swift/Kotlin coverage. Light: everything else, including documentation
@@ -40,7 +40,7 @@ On this host that loop often cannot close:
 2. **Light gates can pass and still not record.** `checks:status --only=doc-audit`
    still goes through the same light-swap cap. A green local run that is not
    written leaves `GATE-DOC-AUDIT` derived from the last CI import.
-3. **`GATE-UNVERIFIED` is by design.** An imported CI *pass* records the
+3. **`GATE-UNVERIFIED` is by design.** An imported CI _pass_ records the
    measured commit, not this tree. Until a local `checks:status` succeeds,
    the queue keeps one unverified item behind every known-red gate.
 4. **`work:done` refuses `GATE-*`.** The only way to retire a derived item is
@@ -62,16 +62,16 @@ Session: unblocked software work on `main` (DATA-2 type fix already on HEAD,
 then SYNC-3-LXMF). No kernel panic. Host snapshot via
 `scripts/checks/headroom.mjs`:
 
-| Field                         | Value |
-| ----------------------------- | ----- |
-| Advertised RAM                | 16 GiB |
-| Free RAM                    | 0.12 GiB |
-| Swap used                   | 4.92 GiB |
-| Load (1 min) / CPUs         | 3.4 / 8 |
-| Process count               | 661 |
-| Heavy verdict               | refuse — swap 4.9 GiB (limit 2.0) |
-| Light verdict               | refuse — swap 4.9 GiB (limit 4.0) |
-| Gradle / kotlin / jdt.ls   | not resident |
+| Field                    | Value                             |
+| ------------------------ | --------------------------------- |
+| Advertised RAM           | 16 GiB                            |
+| Free RAM                 | 0.12 GiB                          |
+| Swap used                | 4.92 GiB                          |
+| Load (1 min) / CPUs      | 3.4 / 8                           |
+| Process count            | 661                               |
+| Heavy verdict            | refuse — swap 4.9 GiB (limit 2.0) |
+| Light verdict            | refuse — swap 4.9 GiB (limit 4.0) |
+| Gradle / kotlin / jdt.ls | not resident                      |
 
 Largest RSS at that sample (MiB): unlabeled 688, unlabeled 439, Codex 434,
 Chrome 330, unlabeled 300. The light cap (4 GiB swap) was already exceeded by
@@ -135,14 +135,14 @@ with `work:add` if they should compete with other work.
 1. **Record a single light gate without a full `checks:status`.**
    `test:doc-audit` can pass while `checks:status --only=doc-audit` still
    refuses to write `checks.json`. A write path that only needs the light
-   probe *after* the tests, or that accepts an already-green log plus a
+   probe _after_ the tests, or that accepts an already-green log plus a
    digest, would let `GATE-DOC-AUDIT` clear without 4 GiB of free swap.
 2. **Package-scoped coverage that still feeds the ratchet.** Recovering
    `protocol` and `widget-renderer-headless` does not need the whole
    workspace suite. A `--packages=…` mode that writes enough
    `coverage-summary.json` to judge those floors (and only those) would
    make `GATE-COVERAGE` actionable on this host.
-3. **Light-swap cap versus idle IDE load.** 4 GiB used swap is the *idle*
+3. **Light-swap cap versus idle IDE load.** 4 GiB used swap is the _idle_
    state with Cursor, Codex, and Chrome. Either the light cap is
    unreachable while agents are attached, or light recording should
    tolerate a higher stale-swap ceiling when free RAM is not the constraint
@@ -150,7 +150,7 @@ with `work:add` if they should compete with other work.
    hard free-RAM floor, not a higher swap number alone.
 4. **Do not start soaks or coverage from `work:next` while light recording
    is also refused.** The queue already ranks gates first. Agents still
-   spend the session *almost* running coverage. A `work:next` note that
+   spend the session _almost_ running coverage. A `work:next` note that
    names "this host is above both caps; import or stop" would save a
    round trip.
 5. **`gh` auth on this account.** Live Actions logs were unavailable. Import
