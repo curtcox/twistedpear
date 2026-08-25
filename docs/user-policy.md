@@ -10,8 +10,9 @@ counterpart: docs/user-policy-plan.md
 **This describes the implementation as it exists now.** Remaining phases live in the
 [user policy plan](user-policy-plan.md). Where the two disagree, this file wins.
 
-The host can load a user-authored policy document and decide a closed set of
-subjects. It cannot yet amend, seal, gather evidence, or preview consequences.
+The host can load a user-authored policy document, decide a closed set of
+subjects, and apply an amendment. It cannot yet seal, gather evidence, or
+preview consequences.
 
 ## Evaluator
 
@@ -45,6 +46,33 @@ decision; cited rule ids are sorted.
 `grant:request` rules may name a `capability`; a query without that capability
 does not match that rule.
 
+## Amendment
+
+[`applyAmendment`](../packages/protocol/src/policy-amend.ts) is Sans-IO and
+atomic: `(current, proposed, evidence) → proposed | reject`. The proposed
+document is accepted whole or not at all (A-2, P-R5). Authorization always
+runs `evaluatePolicy(current, { subject: "policy:amend" }, evidence)` — the
+new document never participates in its own authorization (A-1, P-R4).
+
+Certified tightening applies without that gate (A-3): add only `deny` rules
+(with `onUnknown: deny` and no `assume(x, true)`), remove only `allow` rules,
+do not move any `base` from `deny` to `allow`, and do not touch a sealed rule.
+Anything else is a **relaxation** and needs the pre-amendment `policy:amend`
+gate.
+
+An amendment that could starve `place.is` — by adding a `deny` on
+`grant:request` for `device:location`, removing a matching `allow`, or moving
+that subject's base to `deny` — while a surviving rule collapses that unknown to
+something other than `deny` is classified as a relaxation, whatever its shape
+(A-4, P-R6). Newly sealing a rule, or editing a sealed one, is refused until
+[sealing](user-policy-plan.md)
+exists.
+
+[`seededUserPolicy`](../packages/protocol/src/policy-amend.ts) is deny-by-default
+with `policy:amend` allowed iff `user.passphrase`. A policy whose amend gate
+is unsatisfiable is a legal, tested outcome (B14); the machine does not refuse
+self-lockout.
+
 ## Vectors
 
 [`conformance/vectors/policy.json`](../conformance/vectors/policy.json) holds the
@@ -53,6 +81,5 @@ exhaustive Kleene tables and a few document-level decisions
 
 ## Not in this drop
 
-Amendment, certified tightening, sealing, evidence adapters, consequence
-preview, host chrome for `ask`, and the bypass catalogue remain in the
-[plan](user-policy-plan.md) (§4 onward).
+Sealing, evidence adapters, consequence preview, host chrome for `ask`, and
+the bypass catalogue remain in the [plan](user-policy-plan.md) (§5 onward).

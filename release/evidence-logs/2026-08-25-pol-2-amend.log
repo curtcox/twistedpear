@@ -1,0 +1,13 @@
+
+> twistedpear@0.0.0 test
+> vitest run packages/protocol/test/policy-amend.test.ts
+
+
+ RUN  v4.1.11 /Users/curt/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  12:30:15
+   Duration  899ms (transform 613ms, setup 32ms, import 755ms, tests 12ms, environment 0ms)
+

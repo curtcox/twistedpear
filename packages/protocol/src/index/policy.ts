@@ -57,6 +57,13 @@ export {
   type PolicyTermValue,
 } from "../policy-evaluate.js";
 export {
+  applyAmendment,
+  classifyAmendment,
+  seededUserPolicy,
+  type AmendmentClass,
+  type AmendmentOutcome,
+} from "../policy-amend.js";
+export {
   capReplicaLogs,
   DEFAULT_REPLICA_AUTHOR_CAP,
   mergeReplicaLogs,

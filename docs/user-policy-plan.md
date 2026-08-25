@@ -8,10 +8,10 @@ counterpart: docs/user-policy.md
 -->
 
 **This is a plan, not a description of current behaviour.** The Sans-IO evaluator
-now lives in [user-policy.md](user-policy.md); that live file wins against this one.
-What still does not ship is amendment, sealing, evidence adapters, preview, and
-chrome. The normative artifacts this plan produces are specified in
-[SPEC-POLICY](../specs/spec-policy/spec.md).
+and amendment machine now live in [user-policy.md](user-policy.md); that live
+file wins against this one. What still does not ship is sealing, evidence
+adapters, preview, and chrome. The normative artifacts this plan produces are
+specified in [SPEC-POLICY](../specs/spec-policy/spec.md).
 
 A plan for letting the user state, in a form the host actually enforces, what may happen
 on this installation — and to make some of those statements permanent. The design premise
@@ -91,8 +91,8 @@ Order is not semantics (§9, P5) — a rule cannot be shadowed by a later one, s
 re-ordering is not an attack surface.
 
 `policy:amend` and `policy:seal` are ordinary subjects so that policy governs the
-setting of policy (§4). The evaluator already treats them as subjects; the
-amendment machine and seal commit do not exist yet.
+setting of policy (§4). The amendment machine now lives in
+[user-policy.md](user-policy.md); the seal commit does not exist yet.
 
 The syntactic handle §4 needs: **adding a `deny` rule can never widen a decision,
 and removing an `allow` rule can never widen a decision.** That is deny-overrides
@@ -101,50 +101,11 @@ records the answer is still planned.
 
 ## 4. Amendment — policy governing policy
 
-Changing the policy is the subject `policy:amend`, and it is gated by the policy like
-anything else. This is what makes "the ability to set policy is guarded by policy" real,
-and it is also where every interesting bypass lives.
-
-### 4.1 The four rules that make meta-circularity safe
-
-**A-1 — An amendment is evaluated against the pre-amendment policy.** Always. Otherwise
-the universal bypass is one transaction that removes the gate, after which the gate no
-longer applies to its own removal. The evaluator is handed the old document and the
-proposed diff; the new document never participates in its own authorization.
-
-**A-2 — An amendment is one atomic transaction.** A diff is accepted or rejected whole.
-No partially applied amendment, and no observable intermediate document another amendment
-could be evaluated against.
-
-**A-3 — Certified tightening needs no gate; everything else does.** An amendment is
-_certified tightening_ iff, syntactically: it only adds `deny` rules, only removes `allow`
-rules, does not move any base posture from `deny` to `allow`, does not weaken any
-`onUnknown` from `deny` toward `allow`, introduces no `assume(x, true)`, and touches no
-sealed rule. Anything else is a **relaxation** and must satisfy the pre-amendment
-`policy:amend` gate.
-
-**A-4 — Evidence-dependency is part of tightening.** A-3 is unsound on its own. Adding a
-`deny` rule for `grant:request` on the location capability starves `place.is("home")`,
-turning it `unknown`; a rule collapsing `unknown` to `allow` then flips from deny to
-allow, so a purely-additive `deny` amendment has widened a decision. Therefore each rule
-carries its computed predicate-dependency set, and an amendment that could change the
-resolvability of any predicate used by a rule whose collapse is not `deny` is classified
-as a relaxation regardless of its shape. This is bypass B3 in §9 and the single most
-important property to test.
-
-### 4.2 Bootstrap
-
-Before any policy exists, the only authority that exists is control of the installation
-identity, so the seeded default is: `policy:amend` base posture `allow`, gated on
-`user.passphrase` (the identity vault passphrase, already required to open the
-installation). The first amendment may relax that gate to nothing — expressiveness wins —
-but the shipped default is not "whoever picks up the unlocked phone".
-
-### 4.3 Self-lockout is a supported outcome
-
-A policy whose `policy:amend` gate is unsatisfiable is terminal: the installation's rules
-are now fixed for its lifetime. This is a legal, warned, tested outcome (§9, B14), not an
-error. The preview says so in those words; the platform does not decline.
+The amendment machine is in [user-policy.md](user-policy.md). A-1 through A-4,
+bootstrap (`seededUserPolicy`), and self-lockout (B14) are implemented there.
+What this section still owns is the surrounding work: the consequence preview
+that must warn before a terminal policy is sealed (§6), and the bypass catalogue
+that tries to talk the machine out of A-1 through A-4 (§9).
 
 ## 5. Sealing — what "no takesie backsies" compiles to
 

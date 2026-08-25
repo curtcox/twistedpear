@@ -8,10 +8,10 @@ register: none
 
 **Group:** C (platform) · **Status:** stub (informative) · **Migration phase:** 4
 
-The schema and the Sans-IO evaluator in `packages/protocol` now exist; see
-[user-policy.md](../../docs/user-policy.md). Amendment, sealing, the TLA+ twin, and
-the bypass suite do not. Everything below stays informative until those artifacts
-cross-check; the delivery sequence is in
+The schema, the Sans-IO evaluator, and the amendment machine in `packages/protocol`
+now exist; see [user-policy.md](../../docs/user-policy.md). Sealing, the TLA+
+twin, and the bypass suite do not. Everything below stays informative until those
+artifacts cross-check; the delivery sequence is in
 [docs/user-policy-plan.md](../../docs/user-policy-plan.md).
 
 ## Scope

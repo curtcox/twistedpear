@@ -1607,6 +1607,13 @@
       "requires": ["POL-1-EVAL"],
       "verify": "npm test -- packages/protocol/test/policy-amend.test.ts",
       "added": "2026-08-23",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/protocol/src/policy-amend.ts",
+        "packages/protocol/src/policy-amend-inspect.ts",
+        "packages/protocol/test/policy-amend.test.ts",
+        "docs/user-policy.md"
+      ],
       "notes": "Policy governs policy:amend. A-1 pre-amendment evaluation, A-2 atomicity, A-3 syntactic tightening, A-4 evidence-dependency. Properties P1, P2, P4, P5. P-R4..P-R6."
     },
     "POL-3-SEAL": {
