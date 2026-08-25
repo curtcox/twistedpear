@@ -24,7 +24,8 @@
           ]
         }
       },
-      "snapshot": "View#root {\"accessibilityLabel\":\"Panel\"}\n  Image#hero {\"alt\":\"A pear\",\"asset\":\"pear.png\"}"
+      "snapshot": "View#root {\"accessibilityLabel\":\"Panel\"}\n  Image#hero {\"alt\":\"A pear\",\"asset\":\"pear.png\"}",
+      "ax": "group \"Panel\"\n  image \"A pear\""
     }
   ],
   "patches": []

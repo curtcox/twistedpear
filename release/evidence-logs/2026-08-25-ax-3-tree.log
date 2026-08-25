@@ -1,0 +1,15 @@
+
+> twistedpear@0.0.0 test:widget-parity
+> npm run build && node conformance/widget-parity/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+widget-parity: golden fixtures + DOM whitelist coverage passed
+widget-parity: stream a11y-existing (1 frames) passed
+widget-parity: stream board (3 frames) passed
+widget-parity: stream chat (4 frames) passed
+widget-parity: stream file-drop (3 frames) passed
+widget-parity: recorded golden streams drive schema, differ, and headless renderer
+widget-parity: 16 SPEC-PRESENT layout vectors reproduced exactly

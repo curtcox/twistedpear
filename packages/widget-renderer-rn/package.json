@@ -16,7 +16,7 @@
     "react-native": ">=0.76.0"
   },
   "dependencies": {
-    "@twistedpear/miniapp-runtime": "0.1.9"
+    "@twistedpear/miniapp-runtime": "0.1.10"
   },
   "scripts": {
     "build": "tsc -b"

@@ -50,7 +50,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Tap fetch to load offer:demo through host budget checks.\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Tap fetch to load offer:demo through host budget checks.\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}",
+      "ax": "text \"File Drop\"\ntext \"Tap fetch to load offer:demo through host budget checks.\"\nbutton \"Fetch offer\""
     },
     {
       "tree": {
@@ -91,7 +92,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Fetched 2048 bytes for offer:demo\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Fetched 2048 bytes for offer:demo\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}",
+      "ax": "text \"File Drop\"\ntext \"Fetched 2048 bytes for offer:demo\"\nbutton \"Fetch offer\""
     },
     {
       "tree": {
@@ -132,7 +134,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Budget exceeded for offer:demo\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"File Drop\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Budget exceeded for offer:demo\"}\n  Button#fetch {\"event\":\"resource.fetch\",\"label\":\"Fetch offer\"}",
+      "ax": "text \"File Drop\"\ntext \"Budget exceeded for offer:demo\"\nbutton \"Fetch offer\""
     }
   ],
   "patches": [

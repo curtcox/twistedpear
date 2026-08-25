@@ -68,11 +68,7 @@ export function applyAmendment(
   if (classification === "certified-tightening") {
     return { ok: true, classification, policy: proposed };
   }
-  const result = evaluatePolicy(
-    current,
-    { subject: "policy:amend" },
-    evidence,
-  );
+  const result = evaluatePolicy(current, { subject: "policy:amend" }, evidence);
   if (result.kind === "allow") {
     return { ok: true, classification: "relaxation", policy: proposed };
   }

@@ -5,11 +5,11 @@
   "entries": {
     "protocol.api.md": {
       "package": "packages/protocol",
-      "sha256": "ca630e46b6f49cd22271df8afd29b7db44479505532a89d99d2ed47a928ca9c1"
+      "sha256": "8c663dd0e48c34ed9175e7a70a4251f99ebeb3b2122faa40a1ef8082f6b9f12f"
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "7219e7e879104752800f2292edccb61ef639c982451cfb829542da32ee246bba"
+      "sha256": "126886cc54218faba3bcb30a5d0df06bfef3383d953df71dec3dcf7d2d453e05"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
@@ -33,7 +33,7 @@
     },
     "miniapp-runtime-worklet.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "76a4910b24563f07df35f72e2f325013219be1c091a63bf5f9211ad6fdf4181a"
+      "sha256": "501c9a512c61ee097e070cdef8bf9aae1ea1c9e0d92be85362d9031af1e48f2d"
     },
     "app-registry.api.md": {
       "package": "packages/app-registry",
@@ -111,13 +111,13 @@
       "package": "packages/host-core",
       "sha256": "0e378f59f08ca42d50a7f912cbb54601b7961ab6ca8f882ed978201b71f56126"
     },
+    "widget-renderer-headless.api.md": {
+      "package": "packages/widget-renderer-headless",
+      "sha256": "4ccb3bdd573843a1ebe95af1cfc5abf8f700a61b73947bf2769b061304d2c6f3"
+    },
     "reticulum-interfaces-policy.api.md": {
       "package": "packages/reticulum-interfaces",
       "sha256": "ef7bda454cdb6c5961788487d16a7144225243930c40bef20ee5c533e814974e"
-    },
-    "widget-renderer-headless.api.md": {
-      "package": "packages/widget-renderer-headless",
-      "sha256": "f3fc7be4838bd0dd94a7d76510bbf66d65541033d625478d1f89c054ba5b6226"
     },
     "bridge-hyper-resource-server.api.md": {
       "package": "packages/bridge-hyper",

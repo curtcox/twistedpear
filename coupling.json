@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1366,
+  "modules": 1372,
   "components": 26,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -59,7 +59,7 @@
     },
     {
       "id": "packages/protocol",
-      "modules": 212,
+      "modules": 214,
       "ca": 12,
       "ce": 1,
       "instability": 0.08,
@@ -69,7 +69,7 @@
     },
     {
       "id": "packages/miniapp-runtime",
-      "modules": 104,
+      "modules": 107,
       "ca": 13,
       "ce": 3,
       "instability": 0.19,
@@ -319,6 +319,16 @@
       ]
     },
     {
+      "id": "packages/widget-renderer-headless",
+      "modules": 5,
+      "ca": 2,
+      "ce": 1,
+      "instability": 0.33,
+      "dependsOn": [
+        "packages/miniapp-runtime"
+      ]
+    },
+    {
       "id": "packages/cas-256t",
       "modules": 4,
       "ca": 9,
@@ -339,16 +349,6 @@
       ]
     },
     {
-      "id": "packages/widget-renderer-headless",
-      "modules": 4,
-      "ca": 2,
-      "ce": 1,
-      "instability": 0.33,
-      "dependsOn": [
-        "packages/miniapp-runtime"
-      ]
-    },
-    {
       "id": "packages/widget-renderer-rn",
       "modules": 2,
       "ca": 3,
@@ -361,11 +361,6 @@
   ],
   "findings": {
     "fanOut": [
-      {
-        "key": "packages/miniapp-runtime/src/index.ts",
-        "value": 49,
-        "limit": 40
-      },
       {
         "key": "packages/reticulum-ts/src/worklet.ts",
         "value": 34,

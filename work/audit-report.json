@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-25T13:32:51.552Z",
-  "commit": "98923e0c982c5de23f1c4e36ea3f770315761d9e",
+  "generatedAt": "2026-08-25T18:38:32.259Z",
+  "commit": "b03b99b230adf8415b417ba11ad3eb8f8d8a3e34",
   "counts": {
-    "total": 31,
+    "total": 47,
     "high": 0,
-    "medium": 29,
+    "medium": 45,
     "low": 2
   },
   "ratchets": {
@@ -19,10 +19,58 @@
   "findings": [
     {
       "family": "gates",
+      "check": "red",
+      "severity": "medium",
+      "where": "GATE-API-SIGNATURES",
+      "summary": "api-signatures has been red since today: failed in CI",
+      "ask": "Fix api-signatures before picking up anything else: `npm run api-signatures:check`."
+    },
+    {
+      "family": "gates",
+      "check": "red",
+      "severity": "medium",
+      "where": "GATE-API-SURFACE",
+      "summary": "api-surface has been red since today: failed in CI — Public symbols: 8269 · Packages: 21 · Entry points: 47",
+      "ask": "Fix api-surface before picking up anything else: `npm run api:check`."
+    },
+    {
+      "family": "gates",
+      "check": "red",
+      "severity": "medium",
+      "where": "GATE-COUPLING",
+      "summary": "coupling has been red since today: failed in CI — Modules: 1368 · Components: 26 · Cycles: 4",
+      "ask": "Fix coupling before picking up anything else: `npm run coupling:check`."
+    },
+    {
+      "family": "gates",
+      "check": "red",
+      "severity": "medium",
+      "where": "GATE-FORMAT",
+      "summary": "format has been red since today: failed in CI — Files needing formatting: 1",
+      "ask": "Fix format before picking up anything else: `npm run format:check`."
+    },
+    {
+      "family": "gates",
+      "check": "red",
+      "severity": "medium",
+      "where": "GATE-GENERATED-FRESHNESS",
+      "summary": "generated-freshness has been red since today: failed in CI",
+      "ask": "Fix generated-freshness before picking up anything else: `npm run generated:check`."
+    },
+    {
+      "family": "gates",
+      "check": "red",
+      "severity": "medium",
+      "where": "GATE-TYPED-LINT",
+      "summary": "typed-lint has been red since today: failed in CI — Findings: 2",
+      "ask": "Fix typed-lint before picking up anything else: `npm run lint:typed`."
+    },
+    {
+      "family": "gates",
       "check": "unverified-record",
       "severity": "medium",
       "where": "checks.json",
-      "summary": "70 gate result(s) were measured at c094fef71114, not at HEAD",
+      "summary": "71 gate result(s) were measured at c094fef71114, not at HEAD",
       "ask": "Re-run `npm run checks:status`, or import what CI already measured with `npm run checks:status:import`. A green recorded against another commit is not evidence about this one."
     },
     {
@@ -173,9 +221,89 @@
       "family": "closed",
       "check": "evidence-drift",
       "severity": "medium",
+      "where": "packages/miniapp-runtime/src/capabilities.ts",
+      "summary": "APPR-RISK-CLASS closed 2026-08-18, but its evidence packages/miniapp-runtime/src/capabilities.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/protocol/test/capability-risk.test.ts` still pass? Re-run it if packages/miniapp-runtime/src/capabilities.ts carries the behaviour APPR-RISK-CLASS claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/src/capabilities.ts",
+      "summary": "CAP-GRANT-STALE closed 2026-08-18, but its evidence packages/miniapp-runtime/src/capabilities.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts` still pass? Re-run it if packages/miniapp-runtime/src/capabilities.ts carries the behaviour CAP-GRANT-STALE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/src/capabilities.ts",
+      "summary": "CAP-SPEC-SCOPE closed 2026-08-18, but its evidence packages/miniapp-runtime/src/capabilities.ts changed on 2026-08-25",
+      "ask": "Would `npm run test:doc-audit && npm run test:formal` still pass? Re-run it if packages/miniapp-runtime/src/capabilities.ts carries the behaviour CAP-SPEC-SCOPE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/src/grant-ttl.ts",
+      "summary": "CAP-TTL closed 2026-08-18, but its evidence packages/miniapp-runtime/src/grant-ttl.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/grant-ttl.test.ts` still pass? Re-run it if packages/miniapp-runtime/src/grant-ttl.ts carries the behaviour CAP-TTL claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/src/host/layer-2.ts",
+      "summary": "MINIAPP-CONCURRENT closed 2026-08-17, but its evidence packages/miniapp-runtime/src/host/layer-2.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/concurrent-apps.test.ts` still pass? Re-run it if packages/miniapp-runtime/src/host/layer-2.ts carries the behaviour MINIAPP-CONCURRENT claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/src/ui/chrome-lexicon.ts",
+      "summary": "HA-P2-RENDER-ORACLE closed 2026-08-18, but its evidence packages/miniapp-runtime/src/ui/chrome-lexicon.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts && npm run test:chrome` still pass? Re-run it if packages/miniapp-runtime/src/ui/chrome-lexicon.ts carries the behaviour HA-P2-RENDER-ORACLE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
       "where": "packages/miniapp-runtime/test/grant-installation-scope.test.ts",
       "summary": "ID-APPSCOPE closed 2026-08-10, but its evidence packages/miniapp-runtime/test/grant-installation-scope.test.ts changed on 2026-08-17",
       "ask": "Would `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` still pass? Re-run it if packages/miniapp-runtime/test/grant-installation-scope.test.ts carries the behaviour ID-APPSCOPE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts",
+      "summary": "HA-P2-RENDER-ORACLE closed 2026-08-18, but its evidence packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts && npm run test:chrome` still pass? Re-run it if packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts carries the behaviour HA-P2-RENDER-ORACLE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/protocol/src/capability-risk.gen.ts",
+      "summary": "APPR-RISK-CLASS closed 2026-08-18, but its evidence packages/protocol/src/capability-risk.gen.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/protocol/test/capability-risk.test.ts` still pass? Re-run it if packages/protocol/src/capability-risk.gen.ts carries the behaviour APPR-RISK-CLASS claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/protocol/test/capability-risk.test.ts",
+      "summary": "APPR-RISK-CLASS closed 2026-08-18, but its evidence packages/protocol/test/capability-risk.test.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/protocol/test/capability-risk.test.ts` still pass? Re-run it if packages/protocol/test/capability-risk.test.ts carries the behaviour APPR-RISK-CLASS claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "specs/spec-cap/registry/capability-risk.json",
+      "summary": "APPR-RISK-CLASS closed 2026-08-18, but its evidence specs/spec-cap/registry/capability-risk.json changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/protocol/test/capability-risk.test.ts` still pass? Re-run it if specs/spec-cap/registry/capability-risk.json carries the behaviour APPR-RISK-CLASS claimed."
     },
     {
       "family": "closed",
@@ -190,7 +318,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "APPR-UPDATE-DELTA",
-      "summary": "APPR-UPDATE-DELTA (bug) closed 6 day(s) ago on a verification that ran in 600ms: `npx vitest run packages/app-registry/test/update-delta.test.ts`",
+      "summary": "APPR-UPDATE-DELTA (bug) closed 7 day(s) ago on a verification that ran in 600ms: `npx vitest run packages/app-registry/test/update-delta.test.ts`",
       "ask": "Did `npx vitest run packages/app-registry/test/update-delta.test.ts` actually exercise APPR-UPDATE-DELTA, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -198,7 +326,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "BUG-REACT-DOM-MISMATCH",
-      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 12 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
+      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 13 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
       "ask": "Did `npm run test:web-widget-renderer` actually exercise BUG-REACT-DOM-MISMATCH, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -246,7 +374,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "ID-APPSCOPE",
-      "summary": "ID-APPSCOPE (bug) closed 14 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
+      "summary": "ID-APPSCOPE (bug) closed 15 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
       "ask": "Did `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` actually exercise ID-APPSCOPE, or did it no-op? A check that cannot fail is not evidence."
     },
     {

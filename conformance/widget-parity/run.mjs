@@ -275,6 +275,7 @@ const {
   UnappliablePatchError,
   applyWidgetPatches,
   containsId,
+  renderHeadlessAxSnapshot,
   renderHeadlessSnapshot,
   renderHeadlessTree,
 } = await import("../../packages/widget-renderer-headless/dist/index.js");
@@ -419,6 +420,12 @@ for (const file of streamFiles) {
     if (snapshot !== frame.snapshot) {
       throw new Error(
         `${where} headless snapshot drifted:\n--- pinned\n${frame.snapshot}\n--- got\n${snapshot}`,
+      );
+    }
+    const ax = renderHeadlessAxSnapshot(frame.tree);
+    if (ax !== (frame.ax ?? "")) {
+      throw new Error(
+        `${where} headless ax snapshot drifted:\n--- pinned\n${frame.ax ?? ""}\n--- got\n${ax}`,
       );
     }
   }

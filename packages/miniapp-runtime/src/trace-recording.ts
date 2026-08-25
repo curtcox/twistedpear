@@ -145,12 +145,9 @@ export class SessionRecorder {
       this.recordClock();
       return true;
     }
-    if (message.type === "trace-entropy") {
-      this.noteClockShim(true);
-      this.recordEntropy(message.byteCount);
-      return true;
-    }
-    return false;
+    this.noteClockShim(true);
+    this.recordEntropy(message.byteCount);
+    return true;
   }
 
   snapshot(): AppTrace {

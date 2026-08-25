@@ -161,12 +161,12 @@ Nothing in this plan is claimed until these run:
 
 ## 9. Sequencing
 
-| Phase | Deliverable                                                             | Gate                                                         |
-| ----- | ----------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 3     | `tp trace replay` and `tp trace step` over `widget-renderer-headless`   | Cookbook corpus replays identically                          |
-| 4     | Payload recording, redaction, and sealed traces                         | Security review of §6 signed off                             |
-| 5     | `tp trace shrink` and `tp trace test`                                   | A found bug becomes a checked-in regression                  |
-| 6     | Desktop **Record session** chrome and the recording indicator           | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) |
+| Phase | Deliverable                                                           | Gate                                                         |
+| ----- | --------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 3     | `tp trace replay` and `tp trace step` over `widget-renderer-headless` | Cookbook corpus replays identically                          |
+| 4     | Payload recording, redaction, and sealed traces                       | Security review of §6 signed off                             |
+| 5     | `tp trace shrink` and `tp trace test`                                 | A found bug becomes a checked-in regression                  |
+| 6     | Desktop **Record session** chrome and the recording indicator         | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) |
 
 Phase 2 (recording at the audit seam, sandbox clock/entropy shims, negative
 control) now lives in [mini-app record and replay](miniapp-record-replay.md).

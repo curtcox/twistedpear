@@ -51,9 +51,7 @@ describe("classifyAmendment A-3 / A-4", () => {
   it("classifies adding a deny rule as certified tightening", () => {
     const current = policy([]);
     const proposed = policy([denyInstall("no-install")]);
-    expect(classifyAmendment(current, proposed)).toBe(
-      "certified-tightening",
-    );
+    expect(classifyAmendment(current, proposed)).toBe("certified-tightening");
   });
 
   it("classifies removing an allow rule as certified tightening", () => {
@@ -264,7 +262,8 @@ describe("amendment properties P1 P2 P4 P5", () => {
         );
         const before = rank(evaluatePolicy(current, { subject }, evidence));
         const after = rank(evaluatePolicy(proposed, { subject }, evidence));
-        if (before >= 0 && after >= 0) expect(after).toBeLessThanOrEqual(before);
+        if (before >= 0 && after >= 0)
+          expect(after).toBeLessThanOrEqual(before);
       }),
       { numRuns: RUNS },
     );

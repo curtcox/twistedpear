@@ -78,7 +78,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Chat\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#me {\"value\":\"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"}\n  TextInput#peer-input {\"event\":\"chat.peer\",\"placeholder\":\"Peer app id\",\"value\":\"\"}\n  Button#send {\"event\":\"chat.send\",\"label\":\"Send hello\"}\n  Button#refresh {\"event\":\"chat.refresh\",\"label\":\"Check inbox\"}\n  Text#inbox {\"value\":\"No messages yet\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Chat\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#me {\"value\":\"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"}\n  TextInput#peer-input {\"event\":\"chat.peer\",\"placeholder\":\"Peer app id\",\"value\":\"\"}\n  Button#send {\"event\":\"chat.send\",\"label\":\"Send hello\"}\n  Button#refresh {\"event\":\"chat.refresh\",\"label\":\"Check inbox\"}\n  Text#inbox {\"value\":\"No messages yet\"}",
+      "ax": "text \"Chat\"\ntext \"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"\ntextbox value=\"\"\nbutton \"Send hello\"\nbutton \"Check inbox\"\ntext \"No messages yet\""
     },
     {
       "tree": {
@@ -143,7 +144,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Chat\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#me {\"value\":\"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"}\n  TextInput#peer-input {\"event\":\"chat.peer\",\"placeholder\":\"Peer app id\",\"value\":\"peer-42\"}\n  Button#send {\"event\":\"chat.send\",\"label\":\"Send hello\"}\n  Button#refresh {\"event\":\"chat.refresh\",\"label\":\"Check inbox\"}\n  Text#inbox {\"value\":\"No messages yet\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Chat\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#me {\"value\":\"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"}\n  TextInput#peer-input {\"event\":\"chat.peer\",\"placeholder\":\"Peer app id\",\"value\":\"peer-42\"}\n  Button#send {\"event\":\"chat.send\",\"label\":\"Send hello\"}\n  Button#refresh {\"event\":\"chat.refresh\",\"label\":\"Check inbox\"}\n  Text#inbox {\"value\":\"No messages yet\"}",
+      "ax": "text \"Chat\"\ntext \"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"\ntextbox value=\"peer-42\"\nbutton \"Send hello\"\nbutton \"Check inbox\"\ntext \"No messages yet\""
     },
     {
       "tree": {
@@ -208,7 +210,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Chat\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#me {\"value\":\"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"}\n  TextInput#peer-input {\"event\":\"chat.peer\",\"placeholder\":\"Peer app id\",\"value\":\"peer-42\"}\n  Button#send {\"event\":\"chat.send\",\"label\":\"Send hello\"}\n  Button#refresh {\"event\":\"chat.refresh\",\"label\":\"Check inbox\"}\n  Text#inbox {\"value\":\"Sent hello to peer-42\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Chat\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#me {\"value\":\"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"}\n  TextInput#peer-input {\"event\":\"chat.peer\",\"placeholder\":\"Peer app id\",\"value\":\"peer-42\"}\n  Button#send {\"event\":\"chat.send\",\"label\":\"Send hello\"}\n  Button#refresh {\"event\":\"chat.refresh\",\"label\":\"Check inbox\"}\n  Text#inbox {\"value\":\"Sent hello to peer-42\"}",
+      "ax": "text \"Chat\"\ntext \"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"\ntextbox value=\"peer-42\"\nbutton \"Send hello\"\nbutton \"Check inbox\"\ntext \"Sent hello to peer-42\""
     },
     {
       "tree": {
@@ -273,7 +276,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Chat\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#me {\"value\":\"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"}\n  TextInput#peer-input {\"event\":\"chat.peer\",\"placeholder\":\"Peer app id\",\"value\":\"peer-42\"}\n  Button#send {\"event\":\"chat.send\",\"label\":\"Send hello\"}\n  Button#refresh {\"event\":\"chat.refresh\",\"label\":\"Check inbox\"}\n  Text#inbox {\"value\":\"peer-42: hello back\\npeer-77: second message\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Chat\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#me {\"value\":\"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"}\n  TextInput#peer-input {\"event\":\"chat.peer\",\"placeholder\":\"Peer app id\",\"value\":\"peer-42\"}\n  Button#send {\"event\":\"chat.send\",\"label\":\"Send hello\"}\n  Button#refresh {\"event\":\"chat.refresh\",\"label\":\"Check inbox\"}\n  Text#inbox {\"value\":\"peer-42: hello back\\npeer-77: second message\"}",
+      "ax": "text \"Chat\"\ntext \"Me: d3adbeefd3adbeefd3adbeefd3adbeef\"\ntextbox value=\"peer-42\"\nbutton \"Send hello\"\nbutton \"Check inbox\"\ntext \"peer-42: hello back\\npeer-77: second message\""
     }
   ],
   "patches": [

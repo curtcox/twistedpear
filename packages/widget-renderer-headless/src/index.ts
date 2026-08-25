@@ -22,6 +22,7 @@ export {
   type Box,
   type Viewport,
 } from "./geometry.js";
+export { renderHeadlessAxSnapshot, type AxNode } from "./ax.js";
 
 // ---------------------------------------------------------------------------
 // Interpretation (SPEC-WIDGET): tree -> rendered model
@@ -148,81 +149,103 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
   const children = (node.children ?? []).map(renderNode);
   const withChildren = children.length === 0 ? {} : { children };
 
-  return visitWidget(node, {
-    view: (n) => {
-      const props = optionalStringProp(n.props, "accessibilityLabel");
-      return {
+  return withA11y(
+    node,
+    visitWidget(node, {
+      view: (n) => {
+        const props = optionalStringProp(n.props, "accessibilityLabel");
+        return {
+          ...base,
+          component: "View",
+          ...(Object.keys(props).length === 0 ? {} : { props }),
+          ...withChildren,
+        };
+      },
+      scroll: () => ({ ...base, component: "ScrollView", ...withChildren }),
+      text: (n) => ({
         ...base,
-        component: "View",
-        ...(Object.keys(props).length === 0 ? {} : { props }),
-        ...withChildren,
-      };
-    },
-    scroll: () => ({ ...base, component: "ScrollView", ...withChildren }),
-    text: (n) => ({
-      ...base,
-      component: "Text",
-      props: { value: asString(n.props?.value, "") },
+        component: "Text",
+        props: { value: asString(n.props?.value, "") },
+      }),
+      button: (n) => ({
+        ...base,
+        component: "Button",
+        props: {
+          label: asString(n.props?.label, "Button"),
+          ...optionalStringProp(n.props, "event"),
+        },
+      }),
+      "text-input": (n) => renderTextInput(base, n),
+      select: (n) => ({
+        ...base,
+        component: "Select",
+        props: {
+          value: asString(n.props?.value, ""),
+          options: Array.isArray(n.props?.options) ? n.props.options : [],
+          ...optionalStringProp(n.props, "event"),
+        },
+      }),
+      slider: (n) => renderSlider(base, n),
+      date: (n) => ({
+        ...base,
+        component: "Date",
+        props: {
+          value: asString(n.props?.value, ""),
+          ...optionalStringProp(n.props, "event"),
+        },
+      }),
+      switch: (n) => ({
+        ...base,
+        component: "Switch",
+        props: {
+          value: Boolean(n.props?.value),
+          ...optionalStringProp(n.props, "event"),
+        },
+      }),
+      divider: () => ({ ...base, component: "Divider" }),
+      spacer: () => ({ ...base, component: "Spacer", props: { height: 8 } }),
+      progress: (n) => ({
+        ...base,
+        component: "Progress",
+        props: { value: n.props?.value ?? 0 },
+      }),
+      list: (n) => renderList(base, n),
+      image: (n) => ({
+        ...base,
+        component: "Image",
+        props: {
+          asset: asString(n.props?.asset, ""),
+          ...optionalStringProp(n.props, "alt"),
+        },
+      }),
+      "code-editor": (n) => renderCodeEditor(base, n),
+      "qr-code": (n) => renderQrCode(base, n),
+      "camera-preview": (n) => previewSurface(base, n),
+      "audio-meter": (n) => previewSurface(base, n),
+      waveform: (n) => previewSurface(base, n),
+      "map-preview": (n) => previewSurface(base, n),
+      "remote-video": (n) => previewSurface(base, n),
     }),
-    button: (n) => ({
-      ...base,
-      component: "Button",
-      props: {
-        label: asString(n.props?.label, "Button"),
-        ...optionalStringProp(n.props, "event"),
-      },
-    }),
-    "text-input": (n) => renderTextInput(base, n),
-    select: (n) => ({
-      ...base,
-      component: "Select",
-      props: {
-        value: asString(n.props?.value, ""),
-        options: Array.isArray(n.props?.options) ? n.props.options : [],
-        ...optionalStringProp(n.props, "event"),
-      },
-    }),
-    slider: (n) => renderSlider(base, n),
-    date: (n) => ({
-      ...base,
-      component: "Date",
-      props: {
-        value: asString(n.props?.value, ""),
-        ...optionalStringProp(n.props, "event"),
-      },
-    }),
-    switch: (n) => ({
-      ...base,
-      component: "Switch",
-      props: {
-        value: Boolean(n.props?.value),
-        ...optionalStringProp(n.props, "event"),
-      },
-    }),
-    divider: () => ({ ...base, component: "Divider" }),
-    spacer: () => ({ ...base, component: "Spacer", props: { height: 8 } }),
-    progress: (n) => ({
-      ...base,
-      component: "Progress",
-      props: { value: n.props?.value ?? 0 },
-    }),
-    list: (n) => renderList(base, n),
-    image: (n) => ({
-      ...base,
-      component: "Image",
-      props: {
-        asset: asString(n.props?.asset, ""),
-        ...optionalStringProp(n.props, "alt"),
-      },
-    }),
-    "code-editor": (n) => renderCodeEditor(base, n),
-    "qr-code": (n) => renderQrCode(base, n),
-    "camera-preview": (n) => previewSurface(base, n),
-    "audio-meter": (n) => previewSurface(base, n),
-    waveform: (n) => previewSurface(base, n),
-    "map-preview": (n) => previewSurface(base, n),
-    "remote-video": (n) => previewSurface(base, n),
-  });
+  );
+}
+
+function a11yExtras(props: WidgetNode["props"]): Record<string, unknown> {
+  return {
+    ...optionalStringProp(props, "accessibilityLabel"),
+    ...optionalStringProp(props, "accessibilityHint"),
+    ...optionalNumberProp(props, "heading"),
+    ...optionalStringProp(props, "live"),
+    ...optionalTrueProp(props, "decorative"),
+  };
+}
+
+function withA11y(
+  node: WidgetNode,
+  rendered: RenderedWidgetNode,
+): RenderedWidgetNode {
+  const extra = a11yExtras(node.props);
+  if (Object.keys(extra).length === 0) return rendered;
+  return { ...rendered, props: { ...rendered.props, ...extra } };
 }
 
 function previewSurface(

@@ -43,15 +43,24 @@ Normative meaning is in [SPEC-WIDGET — Accessibility](../specs/spec-widget/spe
 
 `npm run test:widget-parity` fails if the JSON Schema drifts from `ui/schema.ts`, and it
 fails if host validation and the schema disagree on the trees above. The `a11y-existing`
-golden stream still pins the two renderer-honoured props.
+golden stream pins the two renderer-honoured props and the projected `ax` string.
 
 The web host still renders through `packages/widget-renderer-rn` under react-native-web,
 so RN and web stay one implementation.
 
 CHROME-R8 / CHROME-R9 scan `accessibilityHint` as well as `accessibilityLabel`.
 
+## Accessibility tree oracle
+
+`renderHeadlessAxSnapshot` in `packages/widget-renderer-headless` projects a
+widget tree to a deterministic accessibility tree: a closed role map of widget
+type, a name from `accessibilityLabel` / `alt` / `label` / visible text, and
+flattening of unnamed groups, spacers, and `decorative` nodes. Golden streams
+in `specs/spec-widget/streams/` pin an `ax` string beside each frame's visual
+`snapshot`. `npm run test:widget-parity` checks both.
+
 ## Not in this drop
 
-Renderer mapping for `accessibilityHint`, `heading`, `live`, and `decorative`; the
-accessibility-tree projection; version-gated unnamed-control rejection; the Cookbook
-ratchet; and derived focus order remain in the [plan](widget-accessibility-plan.md).
+Renderer mapping for `accessibilityHint`, `heading`, `live`, and `decorative`;
+version-gated unnamed-control rejection; the Cookbook ratchet; and derived focus
+order remain in the [plan](widget-accessibility-plan.md).

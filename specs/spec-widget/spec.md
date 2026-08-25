@@ -56,8 +56,8 @@ closed per-type set — see [Accessibility](#accessibility).
 - `npm run test:widget-parity` drives everything from the recorded streams:
   schema + host validation of every frame, node-for-node parity between the
   headless renderer and the canonical host render model, pinned snapshots,
-  pinned diffs, and patch-stream reconstruction where the stream contains no
-  structural inserts.
+  pinned diffs, pinned accessibility-tree (`ax`) snapshots, and patch-stream
+  reconstruction where the stream contains no structural inserts.
 
 ### Update-stream semantics (recorded decision)
 
@@ -122,9 +122,13 @@ Accepted on:
 Preview surfaces may carry `accessibilityLabel` as a name for the region. They still
 must not carry sample or pixel props; the live output is not in the widget tree.
 
-Unnamed-control rejection, the accessibility-tree projection, and derived focus order
-are specified in later amendments; this section only defines the vocabulary and its
-meaning.
+The headless renderer projects an accessibility tree from this vocabulary:
+`renderHeadlessAxSnapshot(tree)` in
+[packages/widget-renderer-headless](../../packages/widget-renderer-headless/).
+Golden streams pin the result as an `ax` string beside each frame `snapshot`.
+A node with no exposed role and no name flattens into its parent; `decorative`
+nodes are omitted. Unnamed-control rejection and derived focus order remain later
+amendments.
 
 ## To finish this spec
 

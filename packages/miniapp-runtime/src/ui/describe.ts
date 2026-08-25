@@ -157,86 +157,108 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
     ...(style === undefined ? {} : { style }),
   };
 
-  return visitWidget(node, {
-    view: (n) =>
-      describeWithChildren(
-        base,
-        "View",
-        n,
-        optionalStringProp(n.props, "accessibilityLabel"),
-      ),
-    text: (n) => ({
-      ...base,
-      component: "Text",
-      props: { value: String(n.props?.value ?? "") },
+  return withA11y(
+    node,
+    visitWidget(node, {
+      view: (n) =>
+        describeWithChildren(
+          base,
+          "View",
+          n,
+          optionalStringProp(n.props, "accessibilityLabel"),
+        ),
+      text: (n) => ({
+        ...base,
+        component: "Text",
+        props: { value: String(n.props?.value ?? "") },
+      }),
+      button: (n) => ({
+        ...base,
+        component: "Button",
+        props: {
+          label: String(n.props?.label ?? "Button"),
+          ...optionalStringProp(n.props, "event"),
+        },
+      }),
+      "text-input": (n) => describeTextInput(base, n),
+      select: (n) => ({
+        ...base,
+        component: "Select",
+        props: {
+          value: String(n.props?.value ?? ""),
+          options: Array.isArray(n.props?.options) ? n.props.options : [],
+          ...optionalStringProp(n.props, "event"),
+        },
+      }),
+      slider: (n) => describeSlider(base, n),
+      date: (n) => ({
+        ...base,
+        component: "Date",
+        props: {
+          value: String(n.props?.value ?? ""),
+          ...optionalStringProp(n.props, "event"),
+        },
+      }),
+      switch: (n) => ({
+        ...base,
+        component: "Switch",
+        props: {
+          value: Boolean(n.props?.value),
+          ...optionalStringProp(n.props, "event"),
+        },
+      }),
+      scroll: (n) => describeWithChildren(base, "ScrollView", n),
+      divider: () => ({
+        ...base,
+        component: "Divider",
+      }),
+      spacer: () => ({
+        ...base,
+        component: "Spacer",
+        props: { height: 8 },
+      }),
+      progress: (n) => ({
+        ...base,
+        component: "Progress",
+        props: { value: n.props?.value ?? 0 },
+      }),
+      list: (n) => describeList(base, n),
+      image: (n) => ({
+        ...base,
+        component: "Image",
+        props: {
+          asset: String(n.props?.asset ?? ""),
+          ...optionalStringProp(n.props, "alt"),
+        },
+      }),
+      "code-editor": (n) => describeCodeEditor(base, n),
+      "qr-code": (n) => describeQrCode(base, n),
+      "camera-preview": (n) => describePreview(base, n),
+      "audio-meter": (n) => describePreview(base, n),
+      waveform: (n) => describePreview(base, n),
+      "map-preview": (n) => describePreview(base, n),
+      "remote-video": (n) => describePreview(base, n),
     }),
-    button: (n) => ({
-      ...base,
-      component: "Button",
-      props: {
-        label: String(n.props?.label ?? "Button"),
-        ...optionalStringProp(n.props, "event"),
-      },
-    }),
-    "text-input": (n) => describeTextInput(base, n),
-    select: (n) => ({
-      ...base,
-      component: "Select",
-      props: {
-        value: String(n.props?.value ?? ""),
-        options: Array.isArray(n.props?.options) ? n.props.options : [],
-        ...optionalStringProp(n.props, "event"),
-      },
-    }),
-    slider: (n) => describeSlider(base, n),
-    date: (n) => ({
-      ...base,
-      component: "Date",
-      props: {
-        value: String(n.props?.value ?? ""),
-        ...optionalStringProp(n.props, "event"),
-      },
-    }),
-    switch: (n) => ({
-      ...base,
-      component: "Switch",
-      props: {
-        value: Boolean(n.props?.value),
-        ...optionalStringProp(n.props, "event"),
-      },
-    }),
-    scroll: (n) => describeWithChildren(base, "ScrollView", n),
-    divider: () => ({
-      ...base,
-      component: "Divider",
-    }),
-    spacer: () => ({
-      ...base,
-      component: "Spacer",
-      props: { height: 8 },
-    }),
-    progress: (n) => ({
-      ...base,
-      component: "Progress",
-      props: { value: n.props?.value ?? 0 },
-    }),
-    list: (n) => describeList(base, n),
-    image: (n) => ({
-      ...base,
-      component: "Image",
-      props: {
-        asset: String(n.props?.asset ?? ""),
-        ...optionalStringProp(n.props, "alt"),
-      },
-    }),
-    "code-editor": (n) => describeCodeEditor(base, n),
-    "qr-code": (n) => describeQrCode(base, n),
-    "camera-preview": (n) => describePreview(base, n),
-    "audio-meter": (n) => describePreview(base, n),
-    waveform: (n) => describePreview(base, n),
-    "map-preview": (n) => describePreview(base, n),
-    "remote-video": (n) => describePreview(base, n),
-  });
+  );
+}
+
+function a11yExtras(props: NodeProps): Record<string, unknown> {
+  return {
+    ...optionalStringProp(props, "accessibilityLabel"),
+    ...optionalStringProp(props, "accessibilityHint"),
+    ...optionalNumberProp(props, "heading"),
+    ...optionalStringProp(props, "live"),
+    ...optionalTrueProp(props, "decorative"),
+  };
+}
+
+function withA11y(
+  node: WidgetNode,
+  rendered: RenderedWidgetNode,
+): RenderedWidgetNode {
+  const extra = a11yExtras(node.props);
+  if (Object.keys(extra).length === 0) return rendered;
+  return { ...rendered, props: { ...rendered.props, ...extra } };
 }
 
 function describePreview(

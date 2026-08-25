@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "total": 8261,
-  "cap": 8261,
+  "total": 8276,
+  "cap": 8276,
   "packages": 21,
   "entryPoints": 47,
   "unresolved": 0,
@@ -10,9 +10,19 @@
     {
       "name": "protocol",
       "entryPoints": {
-        ".": 5990
+        ".": 5995
       },
-      "total": 5990
+      "total": 5995
+    },
+    {
+      "name": "miniapp-runtime",
+      "entryPoints": {
+        ".": 379,
+        "./worklet": 108,
+        "./sandbox/web": 2,
+        "./ui": 13
+      },
+      "total": 502
     },
     {
       "name": "reticulum-ts",
@@ -22,16 +32,6 @@
         "./worklet": 198
       },
       "total": 500
-    },
-    {
-      "name": "miniapp-runtime",
-      "entryPoints": {
-        ".": 371,
-        "./worklet": 108,
-        "./sandbox/web": 2,
-        "./ui": 13
-      },
-      "total": 494
     },
     {
       "name": "host-core",
@@ -162,9 +162,9 @@
     {
       "name": "widget-renderer-headless",
       "entryPoints": {
-        ".": 9
+        ".": 11
       },
-      "total": 9
+      "total": 11
     },
     {
       "name": "cli",

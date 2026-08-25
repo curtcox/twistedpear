@@ -58,7 +58,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Board\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Publish a post to the board namespace.\"}\n  Button#publish {\"event\":\"board.publish\",\"label\":\"Publish post\"}\n  Button#refresh {\"event\":\"board.refresh\",\"label\":\"Refresh board\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Board\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Publish a post to the board namespace.\"}\n  Button#publish {\"event\":\"board.publish\",\"label\":\"Publish post\"}\n  Button#refresh {\"event\":\"board.refresh\",\"label\":\"Refresh board\"}",
+      "ax": "text \"Board\"\ntext \"Publish a post to the board namespace.\"\nbutton \"Publish post\"\nbutton \"Refresh board\""
     },
     {
       "tree": {
@@ -107,7 +108,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Board\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Published 1 post(s) locally\"}\n  Button#publish {\"event\":\"board.publish\",\"label\":\"Publish post\"}\n  Button#refresh {\"event\":\"board.refresh\",\"label\":\"Refresh board\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Board\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"Published 1 post(s) locally\"}\n  Button#publish {\"event\":\"board.publish\",\"label\":\"Publish post\"}\n  Button#refresh {\"event\":\"board.refresh\",\"label\":\"Refresh board\"}",
+      "ax": "text \"Board\"\ntext \"Published 1 post(s) locally\"\nbutton \"Publish post\"\nbutton \"Refresh board\""
     },
     {
       "tree": {
@@ -156,7 +158,8 @@
           ]
         }
       },
-      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Board\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"1 local post(s), 1 announce(s) on board\"}\n  Button#publish {\"event\":\"board.publish\",\"label\":\"Publish post\"}\n  Button#refresh {\"event\":\"board.refresh\",\"label\":\"Refresh board\"}"
+      "snapshot": "View#root style={\"gap\":12,\"padding\":16}\n  Text#title {\"value\":\"Board\"} style={\"fontSize\":20,\"fontWeight\":\"700\"}\n  Text#body {\"value\":\"1 local post(s), 1 announce(s) on board\"}\n  Button#publish {\"event\":\"board.publish\",\"label\":\"Publish post\"}\n  Button#refresh {\"event\":\"board.refresh\",\"label\":\"Refresh board\"}",
+      "ax": "text \"Board\"\ntext \"1 local post(s), 1 announce(s) on board\"\nbutton \"Publish post\"\nbutton \"Refresh board\""
     }
   ],
   "patches": [

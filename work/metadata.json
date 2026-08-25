@@ -231,6 +231,13 @@
       "requires": ["AX-2-SCHEMA"],
       "verify": "npm run test:widget-parity",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/widget-renderer-headless/src/ax.ts",
+        "packages/widget-renderer-headless/test/ax.test.ts",
+        "specs/spec-widget/streams/a11y-existing.json",
+        "docs/widget-accessibility.md"
+      ],
       "notes": "docs/widget-accessibility-plan.md Phase 3. Project AxNode trees and pin ax strings beside existing SPEC-WIDGET golden streams."
     },
     "AX-4-VALIDATE": {

@@ -20,8 +20,10 @@ from the widget tree alone — no browser, no human.
 ## 1. What still cannot be said
 
 The closed vocabulary now _accepts_ labels, hints, heading, live, and decorative — see
-[widget-accessibility.md](widget-accessibility.md). What still cannot be _checked_ is an
-accessibility tree, unnamed-control rejection, a Cookbook floor, or derived focus order.
+[widget-accessibility.md](widget-accessibility.md). The accessibility tree is
+checkable via `renderHeadlessAxSnapshot` and the `ax` golden strings. What still
+cannot be checked is unnamed-control rejection, a Cookbook floor, or derived focus
+order.
 There are three renderer implementations, not four: the web host renders through
 `packages/widget-renderer-rn` under react-native-web. Most of the new props are not yet
 honoured by those renderers.
@@ -51,8 +53,9 @@ from `"input"`. Enforcement must stop where proof stops.
 The closed prop set, value domains, and per-type acceptance now live in
 [widget-accessibility.md](widget-accessibility.md) and
 [SPEC-WIDGET — Accessibility](../specs/spec-widget/spec.md#accessibility). Phase 2 landed
-them in `ui/schema.ts` and the generated JSON Schema. Remaining work is honouring them in
-the renderers (§5), projecting an accessibility tree (§6), and the rejection / ratchet /
+them in `ui/schema.ts` and the generated JSON Schema. Phase 3 landed the headless
+accessibility-tree oracle and `ax` strings on the golden streams. Remaining work is
+honouring the new props in the visual renderers (§5), and the rejection / ratchet /
 focus-order phases.
 
 **Focus order is not here, because it is presentation.** It is a function of laid-out reading
@@ -207,7 +210,7 @@ finished.
 
 | Phase | Deliverable                                                                        | Gate                                                       |
 | ----- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 3     | Accessibility-tree projection and `ax` strings in the golden streams               | Pinned per stream                                          |
+| 3     | Accessibility-tree projection and `ax` strings in the golden streams               | Done — `renderHeadlessAxSnapshot` + `ax` on every stream   |
 | 4     | `validate.ts` rejection tier behind `minHostApi >= 0.21.0`; `doctor.ts` retargeted | Hostile-app fixture cannot bypass; 3 switch sites migrated |
 | 5     | Cookbook accessibility ratchet at measured floors                                  | New app cannot enter above its floor                       |
 | 6     | Focus order derived into the SPEC-PRESENT layout vectors                           | Vectors regenerate identically                             |
@@ -215,8 +218,9 @@ finished.
 Phase 4 is the only one that can break a shipped app, and the `minHostApi` gate is what
 stops it.
 
-The remaining phases are tracked as `AX-3-TREE`, `AX-4-VALIDATE`, `AX-5-RATCHET`, and
-`AX-6-FOCUS` in the [software backlog](../STATUS-SOFTWARE.md).
+The remaining phases are tracked as `AX-4-VALIDATE`, `AX-5-RATCHET`, and
+`AX-6-FOCUS` in the [software backlog](../STATUS-SOFTWARE.md). Phase 3 is
+`AX-3-TREE` and is implemented.
 
 ## 11. Open questions
 

@@ -108,11 +108,15 @@ export function couldStarvePlaceIs(
     (rule) => rule.onUnknown !== "deny" && usesPlaceIs(rule.when),
   );
   if (!vulnerable) return false;
-  if (diff.added.some((rule) => rule.effect === "deny" && isLocationGrant(rule))) {
+  if (
+    diff.added.some((rule) => rule.effect === "deny" && isLocationGrant(rule))
+  ) {
     return true;
   }
   if (
-    diff.removed.some((rule) => rule.effect === "allow" && isLocationGrant(rule))
+    diff.removed.some(
+      (rule) => rule.effect === "allow" && isLocationGrant(rule),
+    )
   ) {
     return true;
   }
@@ -127,7 +131,10 @@ export function baseWidens(
   proposed: PolicyDocument,
 ): boolean {
   for (const subject of Object.keys(current.base) as PolicySubject[]) {
-    if (current.base[subject] === "deny" && proposed.base[subject] === "allow") {
+    if (
+      current.base[subject] === "deny" &&
+      proposed.base[subject] === "allow"
+    ) {
       return true;
     }
   }

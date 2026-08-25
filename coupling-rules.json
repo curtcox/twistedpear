@@ -58,7 +58,6 @@
   },
   "sdpTolerance": 0.17,
   "fanOutExemptions": {
-    "packages/miniapp-runtime/src/index.ts": 49,
     "packages/miniapp-runtime/src/worklet.ts": 19,
     "packages/protocol/src/index/link.ts": 17,
     "packages/protocol/src/index/misc.ts": 26,

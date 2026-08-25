@@ -13,7 +13,10 @@ import {
   diffWidgetTrees,
   validateWidgetTree,
 } from "../packages/miniapp-runtime/dist/index.js";
-import { renderHeadlessSnapshot } from "../packages/widget-renderer-headless/dist/index.js";
+import {
+  renderHeadlessAxSnapshot,
+  renderHeadlessSnapshot,
+} from "../packages/widget-renderer-headless/dist/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..");
@@ -98,7 +101,11 @@ async function recordApp(name) {
 
   const frames = state.frames.map((tree) => {
     validateWidgetTree(tree);
-    return { tree, snapshot: renderHeadlessSnapshot(tree) };
+    return {
+      tree,
+      snapshot: renderHeadlessSnapshot(tree),
+      ax: renderHeadlessAxSnapshot(tree),
+    };
   });
   const patches = [];
   for (let i = 1; i < frames.length; i += 1) {

@@ -32,7 +32,7 @@ export function installTimeShims(
 ): TimeShimHandle {
   const nativeNow = target.Date.now.bind(target.Date);
   const nativeRandom = target.Math.random.bind(target.Math);
-  const nativeFill = target.crypto?.getRandomValues?.bind(target.crypto);
+  const nativeFill = target.crypto?.getRandomValues.bind(target.crypto);
 
   const shimNow = () => {
     options.recordClock?.();
