@@ -70,6 +70,36 @@ describe("renderHeadlessAxSnapshot", () => {
     ).toBe('heading "Title" level=1');
   });
 
+  it("records text-input value and slider value", () => {
+    expect(
+      renderHeadlessAxSnapshot(
+        tree({
+          id: "root",
+          type: "view",
+          props: { accessibilityLabel: "Form" },
+          children: [
+            {
+              id: "name",
+              type: "text-input",
+              props: { value: "Ada", accessibilityLabel: "Name" },
+            },
+            {
+              id: "vol",
+              type: "slider",
+              props: { value: 7, accessibilityLabel: "Volume" },
+            },
+          ],
+        }),
+      ),
+    ).toBe(
+      [
+        'group "Form"',
+        '  textbox "Name" value="Ada"',
+        '  slider "Volume" value="7"',
+      ].join("\n"),
+    );
+  });
+
   it("records switch state and list items", () => {
     expect(
       renderHeadlessAxSnapshot(

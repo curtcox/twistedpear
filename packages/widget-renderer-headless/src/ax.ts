@@ -20,6 +20,15 @@ export interface AxNode {
   readonly children?: ReadonlyArray<AxNode>;
 }
 
+const VALUE_WIDGETS = new Set<WidgetNode["type"]>([
+  "text-input",
+  "select",
+  "slider",
+  "date",
+  "progress",
+  "code-editor",
+]);
+
 function stringProp(
   props: WidgetNode["props"],
   key: string,
@@ -74,18 +83,9 @@ function nameOf(node: WidgetNode): string | undefined {
 }
 
 function valueOf(node: WidgetNode): string | undefined {
-  if (
-    node.type !== "text-input" &&
-    node.type !== "select" &&
-    node.type !== "slider" &&
-    node.type !== "date" &&
-    node.type !== "progress" &&
-    node.type !== "code-editor"
-  ) {
-    return undefined;
-  }
+  if (!VALUE_WIDGETS.has(node.type)) return undefined;
   const value = node.props?.value;
-  if (value === undefined || value === null) return undefined;
+  if (value == null) return undefined;
   return typeof value === "string" ? value : String(value);
 }
 
@@ -103,6 +103,35 @@ function listItems(node: WidgetNode): AxNode[] {
   }));
 }
 
+function withField<K extends string, T>(
+  key: K,
+  value: T | undefined,
+): {} | Record<K, T> {
+  return value === undefined ? {} : ({ [key]: value } as Record<K, T>);
+}
+
+function unnamedContainer(role: string, name: string | undefined): boolean {
+  return name === undefined && (role === "group" || role === "generic");
+}
+
+function toAxNode(
+  node: WidgetNode,
+  role: string,
+  name: string | undefined,
+  children: AxNode[],
+): AxNode {
+  const level =
+    node.type === "text" ? numberProp(node.props, "heading") : undefined;
+  return {
+    role,
+    ...withField("name", name),
+    ...withField("level", level),
+    ...withField("value", valueOf(node)),
+    ...withField("state", stateOf(node)),
+    ...withField("children", children.length === 0 ? undefined : children),
+  };
+}
+
 function projectNode(node: WidgetNode): AxNode[] {
   if (node.props?.decorative === true) return [];
   const projectedChildren = [
@@ -111,25 +140,8 @@ function projectNode(node: WidgetNode): AxNode[] {
   ];
   const role = roleOf(node);
   const name = nameOf(node);
-  if (
-    role === null ||
-    ((role === "group" || role === "generic") && name === undefined)
-  ) {
-    return projectedChildren;
-  }
-  const level =
-    node.type === "text" ? numberProp(node.props, "heading") : undefined;
-  const value = valueOf(node);
-  const state = stateOf(node);
-  const ax: AxNode = {
-    role,
-    ...(name === undefined ? {} : { name }),
-    ...(level === undefined ? {} : { level }),
-    ...(value === undefined ? {} : { value }),
-    ...(state === undefined ? {} : { state }),
-    ...(projectedChildren.length === 0 ? {} : { children: projectedChildren }),
-  };
-  return [ax];
+  if (role === null || unnamedContainer(role, name)) return projectedChildren;
+  return [toAxNode(node, role, name, projectedChildren)];
 }
 
 function projectAxTree(tree: WidgetTree): AxNode[] {
