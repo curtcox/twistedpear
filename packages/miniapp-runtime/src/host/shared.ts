@@ -31,6 +31,7 @@ import {
 } from "../services/relay.js";
 import { type FreenetContractBackend } from "../services/freenet.js";
 import type { DeviceManager } from "../device-manager.js";
+import type { SessionRecorder } from "../trace-recording.js";
 import type { HostPlatformId } from "../services/host-info.js";
 import { type InboundMediaBackend } from "../media-stream.js";
 import type {
@@ -142,6 +143,10 @@ export interface MiniappHostOptions {
   readonly brokerAudit?: (
     entry: import("../broker.js").BrokerAuditEntry,
   ) => void;
+  /** Host-owned TRACE-2 session recorder; apps cannot observe or request it. */
+  readonly sessionRecorder?: SessionRecorder;
+  /** When false, sandbox Date.now stays native (TRACE-2 negative control). */
+  readonly shimClock?: boolean;
   /** Negative-control hook used to prove campaign sensitivity to broker policy drift. */
   readonly enforceBrokerCapabilities?: boolean;
   /** Broker RPC payload cap. Handbook trees exceed the 256 KiB default. */

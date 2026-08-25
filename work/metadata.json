@@ -2084,6 +2084,13 @@
       "requires": ["TRACE-1-FORMAT"],
       "verify": "npx vitest run packages/miniapp-runtime/test/trace-recording.test.ts",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/miniapp-runtime/src/trace-recording.ts",
+        "packages/miniapp-runtime/src/time-shims.ts",
+        "packages/miniapp-runtime/test/trace-recording.test.ts",
+        "docs/miniapp-record-replay.md"
+      ],
       "notes": "docs/miniapp-record-replay-plan.md Phase 2. Record at the audit seam; a deliberately nondeterministic negative control must fail replay loudly."
     },
     "TRACE-3-REPLAY": {

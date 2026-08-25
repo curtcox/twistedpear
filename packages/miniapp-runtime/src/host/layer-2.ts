@@ -119,6 +119,10 @@ export abstract class MiniappHostLayer2 extends MiniappHostLayer1 {
         entryPath: manifest.entry,
         bundle,
         ...(memoryBytes !== null ? { limits: { memoryBytes } } : {}),
+        clockMs: this.now(),
+        shimClock: this.options.shimClock !== false,
+        onTraceEvent: (event) =>
+          this.options.sessionRecorder?.consumeSandboxEvent(event),
         brokerEndpoint: {
           request: (request: BrokerRequest) =>
             this.dispatch(request, manifest, grantedCapabilities),

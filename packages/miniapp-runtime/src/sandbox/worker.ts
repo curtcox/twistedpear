@@ -9,6 +9,7 @@ import {
   forbiddenGlobalsFragment,
   pushHandlerFragment,
 } from "./bootstrap-fragments.js";
+import { timeShimsFragment } from "../time-shims.js";
 import { handleSandboxAppMessage, sandboxLogHandlers } from "./app-messages.js";
 import type { AppErrorReport } from "../diagnostics.js";
 import type {
@@ -186,6 +187,7 @@ let uiEventHandler = null;
 ${appErrorFragment("self.postMessage")}
 ${consoleShimFragment("self.postMessage")}
 ${forbiddenGlobalsFragment()}
+${timeShimsFragment("self.postMessage")}
 ${pushHandlerFragment()}
 ${lifecycleWorkerFragment("self.postMessage")}
 function callHost(namespace, method, payload, capability) {
@@ -258,6 +260,7 @@ self.onmessage = (event) => {
     alive = false;
     self.close();
   }
+  if (__tpHandleTimeShimMessage(message)) return;
   if (handleLifecycleMessage(message)) return;
   if (dispatchPush(message)) return;
   dispatchUiEvent(message);

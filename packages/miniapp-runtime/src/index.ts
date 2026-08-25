@@ -457,3 +457,14 @@ export type {
   AppTraceIdentity,
   AppTraceInboundKind,
 } from "./diagnostics.js";
+export {
+  SessionRecorder,
+  UnshimmedClockError,
+  countWidgetNodes,
+} from "./trace-recording.js";
+export { installTimeShims, isNativeDateNow } from "./time-shims.js";
+export type {
+  TimeShimGlobal,
+  TimeShimHandle,
+  TimeShimOptions,
+} from "./time-shims.js";

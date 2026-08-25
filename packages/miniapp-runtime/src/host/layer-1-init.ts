@@ -45,6 +45,7 @@ export function createHostBroker(
       ? {}
       : { maxMessageBytes: options.maxMessageBytes }),
     audit: (entry) => {
+      options.sessionRecorder?.recordBrokerAudit(entry);
       options.brokerAudit?.(entry);
       // A refused capability and a backend that threw are different faults
       // and must not read the same in the log.

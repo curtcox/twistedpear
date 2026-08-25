@@ -16,6 +16,11 @@ export interface SandboxSpawnOptions {
   /** Host-owned; must not travel the broker request path. */
   readonly onAppError?: (report: AppErrorReport) => void;
   readonly onAppLog?: (level: DiagnosticsLevel, message: string) => void;
+  /** Virtual clock injected into Date.now inside the sandbox. */
+  readonly clockMs?: number;
+  /** When false, Date.now stays native (negative control for TRACE-2). */
+  readonly shimClock?: boolean;
+  readonly onTraceEvent?: (event: unknown) => void;
 }
 
 export interface SandboxInstance {

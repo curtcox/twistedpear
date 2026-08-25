@@ -9,6 +9,7 @@ import {
   forbiddenGlobalsFragment,
   pushHandlerFragment,
 } from "./bootstrap-fragments.js";
+import { timeShimsFragment } from "../time-shims.js";
 
 export function createBrowserWorkerBootstrapSource(): string {
   return `
@@ -20,6 +21,7 @@ let bundleSource = null;
 ${appErrorFragment("self.postMessage")}
 ${consoleShimFragment("self.postMessage")}
 ${forbiddenGlobalsFragment()}
+${timeShimsFragment("self.postMessage")}
 ${pushHandlerFragment()}
 ${lifecycleWorkerFragment("self.postMessage")}
 function callHost(namespace, method, payload, capability) {
@@ -127,6 +129,7 @@ self.onmessage = (event) => {
     return;
   }
 
+  if (__tpHandleTimeShimMessage(message)) return;
   if (handleLifecycleMessage(message)) return;
   if (dispatchPush(message)) return;
   dispatchUiEvent(message);

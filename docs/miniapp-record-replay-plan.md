@@ -163,13 +163,14 @@ Nothing in this plan is claimed until these run:
 
 | Phase | Deliverable                                                             | Gate                                                         |
 | ----- | ----------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 2     | Recording behind the existing `audit` seam; sandbox clock/entropy shims | Negative control fails as designed                           |
 | 3     | `tp trace replay` and `tp trace step` over `widget-renderer-headless`   | Cookbook corpus replays identically                          |
 | 4     | Payload recording, redaction, and sealed traces                         | Security review of §6 signed off                             |
 | 5     | `tp trace shrink` and `tp trace test`                                   | A found bug becomes a checked-in regression                  |
 | 6     | Desktop **Record session** chrome and the recording indicator           | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) |
 
-Phases 2–3 are useful on their own: shape-only traces with no payload recording already
+Phase 2 (recording at the audit seam, sandbox clock/entropy shims, negative
+control) now lives in [mini-app record and replay](miniapp-record-replay.md).
+Phases 3–4 remain useful on their own: shape-only traces with no payload recording already
 solve mishandled denials, render loops, and quota branches, and they carry none of §6's
 risk. Phase 4 is where the review gate belongs.
 

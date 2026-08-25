@@ -10,6 +10,7 @@ import {
   forbiddenGlobalsFragment,
   pushHandlerFragment,
 } from "./bootstrap-fragments.js";
+import { isSandboxTraceMessage, timeShimsFragment } from "../time-shims.js";
 import { handleSandboxAppMessage, sandboxLogHandlers } from "./app-messages.js";
 import type { AppErrorReport } from "../diagnostics.js";
 import type {
@@ -27,6 +28,7 @@ let uiEventHandler = null;
 ${appErrorFragment("parentPort.postMessage")}
 ${consoleShimFragment("parentPort.postMessage")}
 ${forbiddenGlobalsFragment()}
+${timeShimsFragment("parentPort.postMessage")}
 ${pushHandlerFragment()}
 ${lifecycleWorkerFragment("parentPort.postMessage")}
 function callHost(namespace, method, payload, capability) {
@@ -96,6 +98,7 @@ parentPort.on("message", (message) => {
     alive = false;
     sandboxExit(0);
   }
+  if (__tpHandleTimeShimMessage(message)) return;
   if (handleLifecycleMessage(message)) return;
   if (dispatchPush(message)) return;
   dispatchUiEvent(message);
@@ -127,6 +130,8 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
       workerData: {
         appId: options.appId,
         bundleSource: source,
+        clockMs: options.clockMs ?? 0,
+        shimClock: options.shimClock !== false,
       },
       resourceLimits,
     });
@@ -147,6 +152,10 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
       pings.dispose();
     });
     worker.on("message", (message: BrokerWireMessage) => {
+      if (isSandboxTraceMessage(message)) {
+        options.onTraceEvent?.(message);
+        return;
+      }
       if (checkpoints.handleMessage(message)) {
         return;
       }

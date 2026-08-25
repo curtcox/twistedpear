@@ -7,7 +7,7 @@ register: software
 counterpart: docs/miniapp-record-replay-plan.md
 -->
 
-**This describes the implementation as it exists now.** Recording, replay, shrinking,
+**This describes the implementation as it exists now.** Replay, shrinking,
 and host chrome remain in the
 [record-and-replay plan](miniapp-record-replay-plan.md). Where the two disagree, this
 file wins.
@@ -33,8 +33,26 @@ the TypeScript parser live under [SPEC-APP-TRACE](../specs/spec-app-trace/spec.m
 and `packages/miniapp-runtime/src/trace-format.ts`. Round-trip is
 `npx vitest run packages/miniapp-runtime/test/trace-format.test.ts`.
 
+## Recording
+
+A host that constructs a `SessionRecorder` and passes it as
+`MiniappHostOptions.sessionRecorder` writes Format 1 traces from a live
+session. The recorder sits on the existing broker `audit` callback: it copies
+namespace, method, capability, and outcome, and never copies payloads or
+results. Widget renders contribute `assert` rows (node counts only). UI events
+contribute `inbound` rows (kind and name).
+
+The three sandbox bootstraps (node worker, Bare worker, browser worker) replace
+`Date.now`, `Math.random`, and `crypto.getRandomValues` with host-injected
+sources. Clock and entropy draws become tape entries. An app cannot start,
+observe, or impersonate recording. Passing `shimClock: false` is a negative
+control: `SessionRecorder.snapshot()` throws `UnshimmedClockError` rather than
+emitting a trace that would silently fail replay.
+
+Focused tests: `npx vitest run packages/miniapp-runtime/test/trace-recording.test.ts`.
+
 ## Not in this drop
 
-No host writes a trace yet. `tp trace record` / `replay` / `step` / `shrink` do
-not exist. The sandbox clock and entropy are not shimmed. Desktop has no Record
-session control. Payload recording and sealed traces are later plan phases.
+`tp trace record` / `replay` / `step` / `shrink` do not exist. Desktop has no
+Record session control. Payload recording and sealed traces are later plan
+phases.

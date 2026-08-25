@@ -7,6 +7,7 @@ import {
 import type { LxmfSendRequest } from "../services/lxmf.js";
 import { diffWidgetTrees, type WidgetPatch } from "../ui/diff.js";
 import { validateWidgetTree } from "../ui/validate.js";
+import { countWidgetNodes } from "../trace-recording.js";
 import type { WidgetTree } from "../ui/schema.js";
 import { findWidgetNode } from "./shared.js";
 import { MiniappHostLayer1Base } from "./layer-1-base.js";
@@ -24,6 +25,7 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
     this.broker.register("ui", "render", null, (request, context) => {
       const tree = (request.payload as { tree: WidgetTree }).tree;
       validateWidgetTree(tree);
+      this.options.sessionRecorder?.recordAssertWidget(countWidgetNodes(tree));
       const app = this.appByIdentity(context.appId, context.publisherPublicKey);
       let patches: ReadonlyArray<WidgetPatch> = [];
       if (app !== undefined) {
@@ -63,6 +65,7 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
         throw new Error(`Unknown widget node: ${payload.nodeId}`);
       }
 
+      this.options.sessionRecorder?.recordInbound("ui", payload.event);
       await app.lifecycle.deliverUiEvent(payload);
       return { delivered: true };
     });
