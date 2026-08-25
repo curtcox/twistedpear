@@ -16,7 +16,7 @@ export type RuleDiff = {
   readonly modified: readonly PolicyRule[];
 };
 
-export function ruleFingerprint(rule: PolicyRule): string {
+function ruleFingerprint(rule: PolicyRule): string {
   return JSON.stringify({
     id: rule.id,
     subject: rule.subject,
@@ -79,7 +79,7 @@ function childExpressions(expr: PolicyExpression): readonly PolicyExpression[] {
   return [];
 }
 
-export function assumesTrue(expr: PolicyExpression): boolean {
+function assumesTrue(expr: PolicyExpression): boolean {
   if (typeof expr === "object" && "assume" in expr && expr.assume[1] === true) {
     return true;
   }
@@ -126,7 +126,7 @@ export function couldStarvePlaceIs(
   );
 }
 
-export function baseWidens(
+function baseWidens(
   current: PolicyDocument,
   proposed: PolicyDocument,
 ): boolean {

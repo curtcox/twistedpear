@@ -132,7 +132,7 @@ function projectNode(node: WidgetNode): AxNode[] {
   return [ax];
 }
 
-export function projectAxTree(tree: WidgetTree): AxNode[] {
+function projectAxTree(tree: WidgetTree): AxNode[] {
   return projectNode(tree.root);
 }
 
