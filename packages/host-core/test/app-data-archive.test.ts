@@ -112,6 +112,18 @@ describe("app data archive", () => {
     ).toThrow(AppDataArchiveError);
   });
 
+  it("throws FORBIDDEN when a prefix list returns a grant key", async () => {
+    const store = new MemoryStore(
+      new Map([
+        ["miniapp-grants:publisher:hello", { seq: 1, value: utf8("grant") }],
+      ]),
+    );
+    store.list = async () => ["miniapp-grants:publisher:hello"];
+    await expect(
+      snapshotAppData(store, "hello", { hostApi: "0.20.0" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("snapshots bee and workspace keys, skips holes, and ignores non-matching list rows", async () => {
     const store = new MemoryStore(
       new Map([

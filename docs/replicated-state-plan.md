@@ -233,14 +233,15 @@ it is what testing misses. The model should assert:
 
 | Phase | Deliverable                                                          | Gate                                                                       |
 | ----- | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 3     | Version-vector digest and reconcile over the LXMF plane, offer-bound | `assertEgressAllowed` refuses an un-offered round; the ledger meters bytes |
+| 3     | Version-vector digest and reconcile over the LXMF plane, offer-bound | `assertEgressAllowed` refuses an un-offered round; the ledger meters bytes — now in [replicated shared state](replicated-state.md) |
 | 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder | Two-host convergence in the multipeer harness                              |
 | 5     | Retention, tombstones, per-author caps, byzantine-peer adversary     | No hostile-peer scenario lands UNCONTROLLED                                |
 | 6     | Cookbook migration; delete "merge is your problem"                   | `roll-call` and `neighborhood-board` rebuilt on `storage:sync`             |
 
-Phase 2 (in-process loopback under drop/delay/reorder/duplicate/partition) now lives
-in [replicated shared state](replicated-state.md). The egress review gate belongs
-at Phase 3, the §9 security review at Phase 5.
+Phase 2 (in-process loopback under drop/delay/reorder/duplicate/partition) and
+Phase 3 (offer-bound LXMF reconcile) now live in
+[replicated shared state](replicated-state.md). The §9 security review belongs
+at Phase 5.
 
 The phases are tracked as `SYNC-2-LOOPBACK`, `SYNC-3-LXMF`,
 `SYNC-4-PLANES`, `SYNC-5-HOSTILE`, and `SYNC-6-COOKBOOK` in the

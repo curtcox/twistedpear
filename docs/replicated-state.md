@@ -12,9 +12,10 @@ counterpart: docs/replicated-state-plan.md
 file wins.
 
 Shipping storage is still per-app and per-device: `storage:kv` and `storage:hyperbee`.
-On top of that, the host now has a **local** topic log whose merge is specified and
-checked, plus in-process loopback replication between two logs. Nothing is sent
-on the radio yet.
+On top of that, the host has a **local** topic log whose merge is specified and
+checked, in-process loopback replication, and an offer-bound LXMF round that
+exchanges version-vector digests and missing entries. Apps still cannot name a
+peer or force a round.
 
 ## What ships
 
@@ -28,11 +29,14 @@ on the radio yet.
 - `LoopbackReplicaLink` exchanges version-vector diffs between two local logs.
   Tests prove convergence under drop, delay, reorder, duplicate, partition, and
   retry. The link is host-owned: apps still cannot name a peer or force a round.
-
-`storage:sync` is declared as a capability so a later phase can grant it. It is not
-bound to egress and no broker method replicates.
+- `LxmfReplicaLink` runs the same digest/missing-entry exchange as LXMF frames.
+  Each frame calls `assertEgressAllowed` for `storage:sync` and the ledger
+  meters every emitted byte. An un-offered or over-budget round is refused and
+  the remote log is unchanged. Offers bind at `targetKind: "peer"` or `"group"`.
+  `storage:sync` is listed in `EGRESS_OFFER_CAPABILITIES`; local
+  open/append/view still do not require an offer.
 
 ## Not in this drop
 
-LXMF reconcile, SPEC-STREAM plane selection, hostile-peer retention, and Cookbook
-migration remain in the [plan](replicated-state-plan.md).
+SPEC-STREAM plane selection, hostile-peer retention, and Cookbook migration
+remain in the [plan](replicated-state-plan.md).

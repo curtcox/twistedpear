@@ -68,11 +68,15 @@ class MemoryStore implements AppDataMutableStore {
   }
 
   throwOnPutOnce(predicate: (key: string) => boolean): void {
+    this.throwOnPutTimes(1, predicate);
+  }
+
+  throwOnPutTimes(times: number, predicate: (key: string) => boolean): void {
     const original = this.put.bind(this);
-    let thrown = false;
+    let remaining = times;
     this.put = async (key, value, seq) => {
-      if (!thrown && predicate(key)) {
-        thrown = true;
+      if (remaining > 0 && predicate(key)) {
+        remaining -= 1;
         throw new Error("injected put failure");
       }
       await original(key, value, seq);
@@ -153,6 +157,35 @@ describe("restoreAppData", () => {
     expect(
       await snapshotAppData(store, "hello", { hostApi: "0.20.0" }),
     ).toEqual(cookbook);
+  });
+
+  it("counts remaining keys against quota when replacing", async () => {
+    const store = new MemoryStore(
+      new Map([
+        ["miniapp-kv:hello:greeting", { seq: 1, value: utf8("old") }],
+        ["miniapp-kv:other:x", { seq: 1, value: utf8("keep-this-row") }],
+      ]),
+    );
+    await expect(
+      restoreAppData(store, cookbook, {
+        collision: "replace",
+        quotaBytes: 40,
+      }),
+    ).rejects.toMatchObject({ code: "QUOTA" });
+    expect(
+      new TextDecoder().decode(await store.get("miniapp-kv:hello:greeting")),
+    ).toBe("old");
+  });
+
+  it("stops rollback when a put fails while copying staging back", async () => {
+    const store = new MemoryStore(
+      new Map([["miniapp-kv:hello:greeting", { seq: 1, value: utf8("old") }]]),
+    );
+    store.throwOnPutTimes(2, (key) => key === "miniapp-kv:hello:greeting");
+    await expect(
+      restoreAppData(store, cookbook, { collision: "replace" }),
+    ).rejects.toThrow(/injected put failure/);
+    expect(await store.list("__tp-restore:")).toEqual([]);
   });
 
   it("rejects a snapshot that smuggles a grant row", async () => {

@@ -44,6 +44,7 @@ describe("assertEgressAllowed", () => {
       "lxmf:send",
       "link:probe",
       "device:stream",
+      "storage:sync",
     ]);
   });
 

@@ -48,7 +48,7 @@ describe("tp app export", () => {
     }
   }, 120_000);
 
-  it("prints help when the app id is missing and refuses to overwrite without --force", async () => {
+  it("prints help when the app id is missing, refuses overwrite, and requires --force", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "tp-cli-app-data-"));
     mkdirSync(join(cwd, ".tp"));
     writeFileSync(join(cwd, ".tp", "miniapp-kv.json"), "{}");
@@ -126,6 +126,29 @@ describe("tp app restore", () => {
       rmSync(cwd, { recursive: true, force: true });
     }
   }, 120_000);
+
+  it("prints restore help, refuses a missing archive, and honours --quota-bytes", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "tp-cli-app-restore-flags-"));
+    mkdirSync(join(cwd, ".tp"));
+    writeFileSync(join(cwd, ".tp", "miniapp-kv.json"), "{}");
+    const help = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      expect(
+        await runApp({ cwd, args: ["restore"], readSecret: vi.fn() }),
+      ).toBe(1);
+      expect(help.mock.calls.join("\n")).toMatch(/tp app restore/);
+      await expect(
+        runApp({
+          cwd,
+          args: ["restore", "missing.tpappdata"],
+          readSecret: vi.fn(async () => PASSPHRASE),
+        }),
+      ).rejects.toThrow(/No app data archive/);
+    } finally {
+      help.mockRestore();
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
 
   it("writes nothing when the archive is damaged", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "tp-cli-app-restore-bad-"));

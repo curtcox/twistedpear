@@ -33,7 +33,8 @@ StorageSync.append "board" payload (Just "item-1") GotAppended
 StorageSync.view "board" GotView
 ```
 
-Replication, if any, is host-owned. The sandbox sees only the merged view.
+Replication is host-owned. An LXMF round needs a live egress offer and is
+metered by the daily budget. The sandbox sees only the merged view.
 
 ## Outcomes
 

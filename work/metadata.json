@@ -2073,6 +2073,13 @@
       "requires": ["SYNC-2-LOOPBACK", "CAP-EGRESS-WIRING"],
       "verify": "npx vitest run packages/miniapp-runtime/test/storage-sync-lxmf.test.ts",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/miniapp-runtime/src/services/storage-sync-lxmf.ts",
+        "packages/miniapp-runtime/test/storage-sync-lxmf.test.ts",
+        "packages/miniapp-runtime/src/egress-enforcement.ts",
+        "docs/replicated-state.md"
+      ],
       "notes": "docs/replicated-state-plan.md Phase 3. Exchange version-vector digests and missing entries only after an EgressOffer; meter every emitted byte."
     },
     "SYNC-4-PLANES": {

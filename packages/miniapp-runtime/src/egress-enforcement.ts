@@ -11,11 +11,14 @@ import {
  * host-authored offer. Announce stays on own-namespace (Phase 0). share:cas is
  * content-addressed. peer:connect is already authored in host chrome.
  * freenet:contract keeps confirmation plus the read allowlist.
+ * storage:sync local open/append/view stay on-device; only a replicate round
+ * is offer-bound.
  */
 export const EGRESS_OFFER_CAPABILITIES = [
   "lxmf:send",
   "link:probe",
   "device:stream",
+  "storage:sync",
 ] as const;
 
 export class EgressDeniedError extends Error {
