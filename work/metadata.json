@@ -2107,7 +2107,7 @@
       "completed": "2026-08-25",
       "evidence": [
         "packages/miniapp-runtime/src/trace-recording.ts",
-        "packages/miniapp-runtime/src/time-shims.ts",
+        "packages/miniapp-runtime/src/sandbox/time-shims.ts",
         "packages/miniapp-runtime/test/trace-recording.test.ts",
         "docs/miniapp-record-replay.md"
       ],
