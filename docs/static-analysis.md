@@ -39,7 +39,9 @@ Guida parity, properties, and fuzz files because dedicated gates cover them. Hea
 above 4 GiB or below that free-memory floor. Swap-only pressure gets at most seven
 samples over 60 seconds while improving; load and rival heaps refuse immediately. The
 artifact includes bounded host diagnostics and the `checks:status:import` hint.
-`--force-headroom` and `--keep-going` are unsafe on a 16 GB host. CI skips the probe.
+`--force-headroom` and `--keep-going` are unsafe on a 16 GB host. CI skips the
+probe. What that refusal does to `GATE-*` items on the 16 GB Mac mini is
+logged in [16 GB host gate-run constraints](macos-dev-host-constraints.md).
 
 `npm run check:ci-base` remains the Node-only PR alias used by existing runbooks. CI
 surfaces every registry gate separately and writes a step summary plus

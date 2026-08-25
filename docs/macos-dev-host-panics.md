@@ -9,8 +9,10 @@ register: none
 How to collect evidence when the local 16 GB Mac mini kernel-panics during
 TwistedPear work, and how to change the load so the next panic is actually
 informative. Companion to [single-Mac validation](mac-validation.md),
-[iOS simulator conformance](../conformance/ios-sim/README.md), and the 16 GB
-headroom rule in [static analysis](static-analysis.md).
+[iOS simulator conformance](../conformance/ios-sim/README.md), the 16 GB
+headroom rule in [static analysis](static-analysis.md), and [gate-run
+constraints](macos-dev-host-constraints.md) when the host refuses coverage
+or `checks:status` without panicking.
 
 This is a host-machine runbook. A panic here is an Apple kernel failure, not a
 TwistedPear test failure, and it does not move a `STATUS-*.md` row.

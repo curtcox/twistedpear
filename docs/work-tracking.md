@@ -127,6 +127,8 @@ Three things close that:
   failed somewhere is a real failure until shown otherwise, while a CI **pass**
   imports only its commit — a run on another commit cannot show this tree is
   green, and `GATE-UNVERIFIED` keeps saying so until the gates run here.
+  On the 16 GB Mac mini that local write is often refused; see
+  [16 GB host gate-run constraints](macos-dev-host-constraints.md).
 - **The Pages workflow runs that import itself** and commits the record to
   `main`, so the pull is a convenience rather than the only channel. See
   [The Pages workflow records its own results](#the-pages-workflow-records-its-own-results)

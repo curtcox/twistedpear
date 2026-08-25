@@ -111,7 +111,9 @@ means import what CI already measured (`npm run checks:status:import`) or rerun
 `--only=<id>` with other IDEs closed — not `--force-headroom` while Devin
 and VS Code still hold Gradle daemons. Kernel panics on that Mac are a host
 failure, not a suite result — see `docs/macos-dev-host-panics.md` before
-stacking iOS Simulator on top of Freenet and the IDE.
+stacking iOS Simulator on top of Freenet and the IDE. What a headroom
+refusal does to `GATE-*` work on that Mac is
+`docs/macos-dev-host-constraints.md`.
 
 For one test file:
 
