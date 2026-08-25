@@ -2047,6 +2047,12 @@
       "requires": ["SYNC-1-SPEC"],
       "verify": "npx vitest run packages/miniapp-runtime/test/storage-sync-loopback.test.ts",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/miniapp-runtime/src/services/storage-sync-loopback.ts",
+        "packages/miniapp-runtime/test/storage-sync-loopback.test.ts",
+        "docs/replicated-state.md"
+      ],
       "notes": "docs/replicated-state-plan.md Phase 2. Prove convergence under drop, delay, reorder, duplicate, partition, and retry without using a radio."
     },
     "SYNC-3-LXMF": {

@@ -13,7 +13,8 @@ file wins.
 
 Shipping storage is still per-app and per-device: `storage:kv` and `storage:hyperbee`.
 On top of that, the host now has a **local** topic log whose merge is specified and
-checked. Nothing is sent on the radio yet.
+checked, plus in-process loopback replication between two logs. Nothing is sent
+on the radio yet.
 
 ## What ships
 
@@ -23,12 +24,15 @@ checked. Nothing is sent on the radio yet.
   table. Four representations are cross-checked by `npm run formal:all`.
 - `TopicLogStore` in `@twistedpear/miniapp-runtime` is an in-memory topic log: `open`,
   `append`, `set`, `tombstone`, `ingest`, `view`, `vector`. Author id and sequence are
-  host-assigned. There is no peer exchange.
+  host-assigned.
+- `LoopbackReplicaLink` exchanges version-vector diffs between two local logs.
+  Tests prove convergence under drop, delay, reorder, duplicate, partition, and
+  retry. The link is host-owned: apps still cannot name a peer or force a round.
 
 `storage:sync` is declared as a capability so a later phase can grant it. It is not
 bound to egress and no broker method replicates.
 
 ## Not in this drop
 
-Loopback replication, LXMF reconcile, SPEC-STREAM plane selection, hostile-peer
-retention, and Cookbook migration remain in the [plan](replicated-state-plan.md).
+LXMF reconcile, SPEC-STREAM plane selection, hostile-peer retention, and Cookbook
+migration remain in the [plan](replicated-state-plan.md).

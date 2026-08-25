@@ -9,7 +9,7 @@ import {
   forbiddenGlobalsFragment,
   pushHandlerFragment,
 } from "./bootstrap-fragments.js";
-import { timeShimsFragment } from "../time-shims.js";
+import { timeShimsFragment } from "./time-shims.js";
 
 export function createBrowserWorkerBootstrapSource(): string {
   return `

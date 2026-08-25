@@ -145,7 +145,7 @@ export interface MiniappHostOptions {
   ) => void;
   /** Host-owned TRACE-2 session recorder; apps cannot observe or request it. */
   readonly sessionRecorder?: SessionRecorder;
-  /** When false, sandbox Date.now stays native (TRACE-2 negative control). */
+  /** When false, the sandbox clock stays native (TRACE-2 negative control). */
   readonly shimClock?: boolean;
   /** Negative-control hook used to prove campaign sensitivity to broker policy drift. */
   readonly enforceBrokerCapabilities?: boolean;

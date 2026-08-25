@@ -8,9 +8,9 @@ counterpart: docs/replicated-state.md
 -->
 
 **This document describes planned work, not current behaviour.** The local topic log,
-union-merge, and SPEC-SYNC entry format now ship — see
-[replicated shared state](replicated-state.md). That live file wins against this one.
-What still does not exist is replication. What already shipped for local storage is
+union-merge, SPEC-SYNC entry format, and in-process loopback replication now ship —
+see [replicated shared state](replicated-state.md). That live file wins against this
+one. What still does not exist is radio replication. What already shipped for local storage is
 `storage:kv` and `storage:hyperbee`, described in
 [the mini-app SDK reference](miniapp-sdk.md) and bounded by
 [capability scoping](capability-scoping.md). The survey entry this develops is §1 of
@@ -233,15 +233,13 @@ it is what testing misses. The model should assert:
 
 | Phase | Deliverable                                                          | Gate                                                                       |
 | ----- | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 2     | Loopback replication between two sandboxes on one host               | Convergence campaign under `drop`, `delay`, `reorder`, `duplicate`         |
 | 3     | Version-vector digest and reconcile over the LXMF plane, offer-bound | `assertEgressAllowed` refuses an un-offered round; the ledger meters bytes |
 | 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder | Two-host convergence in the multipeer harness                              |
 | 5     | Retention, tombstones, per-author caps, byzantine-peer adversary     | No hostile-peer scenario lands UNCONTROLLED                                |
 | 6     | Cookbook migration; delete "merge is your problem"                   | `roll-call` and `neighborhood-board` rebuilt on `storage:sync`             |
 
-Phase 1 is independently useful and carries none of the risk: a specified entry format, a
-checked merge function, and a version vector give the five Cookbook apps a canonical shape for
-the replication they hand-roll today. Phase 2 needs no radio. The egress review gate belongs
+Phase 2 (in-process loopback under drop/delay/reorder/duplicate/partition) now lives
+in [replicated shared state](replicated-state.md). The egress review gate belongs
 at Phase 3, the §9 security review at Phase 5.
 
 The phases are tracked as `SYNC-2-LOOPBACK`, `SYNC-3-LXMF`,

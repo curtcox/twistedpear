@@ -15,7 +15,10 @@ import {
   UnshimmedClockError,
   countWidgetNodes,
 } from "../src/trace-recording.js";
-import { installTimeShims, isNativeDateNow } from "../src/time-shims.js";
+import {
+  installTimeShims,
+  isNativeDateNow,
+} from "../src/sandbox/time-shims.js";
 
 const IDENTITY = {
   appId: "dice-table",

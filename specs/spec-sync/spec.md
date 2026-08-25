@@ -13,9 +13,9 @@ register: none
 The entry format, merge relation, digest, and retention window of a
 host-owned, topic-scoped store that the same mini-app may later replicate across
 devices. This spec does **not** own capability strings ([SPEC-CAP](../spec-cap/spec.md)),
-call names ([SPEC-SDK](../spec-sdk/spec.md)), or the LXMF/offer transport used
-to move entries. Phase 1 ships the local store only; replication is a later
-amendment.
+call names ([SPEC-SDK](../spec-sdk/spec.md)), or the transport used to move
+entries. Host-local loopback exchange is an adapter, not a spec transport.
+Offer-bound LXMF replication is a later amendment.
 
 ## Required properties
 

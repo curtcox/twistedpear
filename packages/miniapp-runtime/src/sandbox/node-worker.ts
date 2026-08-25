@@ -10,7 +10,7 @@ import {
   forbiddenGlobalsFragment,
   pushHandlerFragment,
 } from "./bootstrap-fragments.js";
-import { isSandboxTraceMessage, timeShimsFragment } from "../time-shims.js";
+import { isSandboxTraceMessage, timeShimsFragment } from "./time-shims.js";
 import { handleSandboxAppMessage, sandboxLogHandlers } from "./app-messages.js";
 import type { AppErrorReport } from "../diagnostics.js";
 import type {

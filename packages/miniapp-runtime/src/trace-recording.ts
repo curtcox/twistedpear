@@ -6,7 +6,7 @@ import {
   type AppTraceHost,
   type AppTraceIdentity,
 } from "./trace-format.js";
-import { isSandboxTraceMessage } from "./time-shims.js";
+import { isSandboxTraceMessage } from "./sandbox/time-shims.js";
 
 export class UnshimmedClockError extends Error {
   constructor(message = "sandbox clock shim is not installed") {

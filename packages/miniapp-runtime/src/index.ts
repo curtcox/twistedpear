@@ -296,9 +296,9 @@ export {
   UnshimmedClockError,
   countWidgetNodes,
 } from "./trace-recording.js";
-export { installTimeShims, isNativeDateNow } from "./time-shims.js";
+export { installTimeShims, isNativeDateNow } from "./sandbox/time-shims.js";
 export type {
   TimeShimGlobal,
   TimeShimHandle,
   TimeShimOptions,
-} from "./time-shims.js";
+} from "./sandbox/time-shims.js";
