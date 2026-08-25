@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://twistedpear.dev/specs/spec-app-trace/schema/app-session.schema.json",
+  "title": "SPEC-APP-TRACE mini-app session (shape-only)",
+  "description": "Interoperable mini-app session trace. Format 1 records causal input shape only: no broker payloads, results, or user content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "kind",
+    "mode",
+    "hostApiVersion",
+    "identity",
+    "host",
+    "grants",
+    "entries"
+  ],
+  "properties": {
+    "format": { "const": 1 },
+    "kind": { "const": "miniapp-session" },
+    "mode": { "const": "shape" },
+    "hostApiVersion": { "type": "string", "minLength": 1 },
+    "identity": { "$ref": "#/$defs/identity" },
+    "host": { "$ref": "#/$defs/host" },
+    "grants": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appId", "version", "publisherKey", "packageHash"],
+      "properties": {
+        "appId": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "publisherKey": { "$ref": "#/$defs/hex64" },
+        "packageHash": { "$ref": "#/$defs/hex64" }
+      }
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "hostVersion", "hostApiVersion"],
+      "properties": {
+        "platform": { "type": "string", "minLength": 1 },
+        "hostVersion": { "type": "string", "minLength": 1 },
+        "hostApiVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "entry": {
+      "oneOf": [
+        { "$ref": "#/$defs/clock" },
+        { "$ref": "#/$defs/entropy" },
+        { "$ref": "#/$defs/grant" },
+        { "$ref": "#/$defs/broker" },
+        { "$ref": "#/$defs/inbound" },
+        { "$ref": "#/$defs/assert" }
+      ]
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["t", "at"],
+      "properties": {
+        "t": { "const": "clock" },
+        "at": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "entropy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["t", "at", "byteCount"],
+      "properties": {
+        "t": { "const": "entropy" },
+        "at": { "type": "integer", "minimum": 0 },
+        "byteCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["t", "at", "capability", "change"],
+      "properties": {
+        "t": { "const": "grant" },
+        "at": { "type": "integer", "minimum": 0 },
+        "capability": { "type": "string", "minLength": 1 },
+        "change": { "enum": ["grant", "revoke", "deny"] }
+      }
+    },
+    "broker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["t", "at", "namespace", "method", "capability", "outcome"],
+      "properties": {
+        "t": { "const": "broker" },
+        "at": { "type": "integer", "minimum": 0 },
+        "namespace": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 },
+        "capability": { "type": ["string", "null"] },
+        "outcome": { "enum": ["allowed", "denied", "failed"] }
+      }
+    },
+    "inbound": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["t", "at", "kind", "name"],
+      "properties": {
+        "t": { "const": "inbound" },
+        "at": { "type": "integer", "minimum": 0 },
+        "kind": {
+          "enum": ["ui", "lxmf", "device", "channel", "resume", "lifecycle"]
+        },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "assert": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["t", "at", "kind", "nodes"],
+          "properties": {
+            "t": { "const": "assert" },
+            "at": { "type": "integer", "minimum": 0 },
+            "kind": { "const": "widget" },
+            "nodes": { "type": "integer", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["t", "at", "kind"],
+          "properties": {
+            "t": { "const": "assert" },
+            "at": { "type": "integer", "minimum": 0 },
+            "kind": { "const": "call" }
+          }
+        }
+      ]
+    }
+  }
+}

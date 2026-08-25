@@ -88,6 +88,7 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 | [SPEC-AUTHORITY](spec-authority/spec.md)         | Escrow and recovery-quorum authority machines                              | **normative**            |
 | [SPEC-SDK](spec-sdk/spec.md)                     | Broker call semantics: namespaces, errors, quotas                          | **normative**            |
 | [SPEC-WIDGET](spec-widget/spec.md)               | Widget tree vocabulary and update/diff stream                              | **normative**            |
+| [SPEC-APP-TRACE](spec-app-trace/spec.md)       | Mini-app session trace, shape-only canonical form                            | **normative**            |
 | [SPEC-PRESENT](spec-present/spec.md)             | Layout and styling semantics, separate from vocabulary                     | stub                     |
 | [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding                                        | **normative**            |
 | [SPEC-CHROME](spec-chrome/spec.md)               | Host confirmations, grant screens, draw-over rules                         | **normative**            |

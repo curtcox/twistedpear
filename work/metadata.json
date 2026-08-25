@@ -2045,6 +2045,15 @@
       "requires": [],
       "verify": "npx vitest run packages/miniapp-runtime/test/trace-format.test.ts",
       "added": "2026-08-24",
+      "completed": "2026-08-25",
+      "evidence": [
+        "packages/miniapp-runtime/src/trace-format.ts",
+        "packages/miniapp-runtime/test/trace-format.test.ts",
+        "specs/spec-app-trace/spec.md",
+        "specs/spec-app-trace/schema/app-session.schema.json",
+        "specs/spec-app-trace/vectors/app-session.json",
+        "docs/miniapp-record-replay.md"
+      ],
       "notes": "docs/miniapp-record-replay-plan.md Phase 1. Define the interoperable trace unit and prove format-vector round trips on three example apps without recording payloads."
     },
     "TRACE-2-RECORD": {

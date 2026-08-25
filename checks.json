@@ -305,11 +305,9 @@
     "lint-all": {
       "title": "Repository lint coverage",
       "command": "npm run lint:all",
-      "ok": false,
-      "at": "2026-08-25T04:00:25.630Z",
-      "commit": "fa38a3172294b8c7307cf100c4657ccf06171717",
-      "detail": "failed in CI — Findings: 1",
-      "since": "2026-08-25",
+      "ok": true,
+      "at": "2026-08-25T13:23:15.646Z",
+      "commit": "98923e0c982c5de23f1c4e36ea3f770315761d9e",
       "tier": "pr"
     },
     "miniapp-benchmark": {

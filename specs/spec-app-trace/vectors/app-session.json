@@ -1,0 +1,104 @@
+{
+  "description": "Shape-only mini-app session traces for TRACE-1-FORMAT. Hashes are FNV-1a 64-bit over canonical JSON.",
+  "vectors": [
+    {
+      "name": "dice-table-shape",
+      "hash": "e9492c13734de731",
+      "trace": {
+        "format": 1,
+        "kind": "miniapp-session",
+        "mode": "shape",
+        "hostApiVersion": "0.20.0",
+        "identity": {
+          "appId": "dice-table",
+          "version": "1.0.0",
+          "publisherKey": "1111111111111111111111111111111111111111111111111111111111111111",
+          "packageHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "host": {
+          "platform": "node",
+          "hostVersion": "0.0.0",
+          "hostApiVersion": "0.20.0"
+        },
+        "grants": [],
+        "entries": [
+          { "t": "clock", "at": 0 },
+          { "t": "inbound", "at": 1, "kind": "ui", "name": "press" },
+          { "t": "entropy", "at": 2, "byteCount": 4 },
+          { "t": "assert", "at": 3, "kind": "widget", "nodes": 5 }
+        ]
+      }
+    },
+    {
+      "name": "pocket-notes-shape",
+      "hash": "6e75294ef20d2f8d",
+      "trace": {
+        "format": 1,
+        "kind": "miniapp-session",
+        "mode": "shape",
+        "hostApiVersion": "0.20.0",
+        "identity": {
+          "appId": "pocket-notes",
+          "version": "1.0.0",
+          "publisherKey": "2222222222222222222222222222222222222222222222222222222222222222",
+          "packageHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "host": {
+          "platform": "node",
+          "hostVersion": "0.0.0",
+          "hostApiVersion": "0.20.0"
+        },
+        "grants": ["storage:kv"],
+        "entries": [
+          { "t": "clock", "at": 0 },
+          {
+            "t": "broker",
+            "at": 1,
+            "namespace": "storage",
+            "method": "get",
+            "capability": "storage:kv",
+            "outcome": "allowed"
+          },
+          { "t": "inbound", "at": 2, "kind": "ui", "name": "press" },
+          {
+            "t": "broker",
+            "at": 3,
+            "namespace": "storage",
+            "method": "set",
+            "capability": "storage:kv",
+            "outcome": "allowed"
+          },
+          { "t": "assert", "at": 4, "kind": "widget", "nodes": 6 }
+        ]
+      }
+    },
+    {
+      "name": "unit-converter-shape",
+      "hash": "018414c4f0c6b016",
+      "trace": {
+        "format": 1,
+        "kind": "miniapp-session",
+        "mode": "shape",
+        "hostApiVersion": "0.20.0",
+        "identity": {
+          "appId": "unit-converter",
+          "version": "1.0.0",
+          "publisherKey": "3333333333333333333333333333333333333333333333333333333333333333",
+          "packageHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "host": {
+          "platform": "node",
+          "hostVersion": "0.0.0",
+          "hostApiVersion": "0.20.0"
+        },
+        "grants": [],
+        "entries": [
+          { "t": "clock", "at": 0 },
+          { "t": "inbound", "at": 1, "kind": "ui", "name": "change" },
+          { "t": "inbound", "at": 2, "kind": "ui", "name": "input" },
+          { "t": "assert", "at": 3, "kind": "widget", "nodes": 8 }
+        ]
+      }
+    }
+  ]
+}

@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-24T00:42:44.395Z",
-  "commit": "eba027d2e3341ee3f004b1de1256034441b8a3c2",
+  "generatedAt": "2026-08-25T13:32:51.552Z",
+  "commit": "98923e0c982c5de23f1c4e36ea3f770315761d9e",
   "counts": {
-    "total": 39,
-    "high": 1,
-    "medium": 36,
+    "total": 31,
+    "high": 0,
+    "medium": 29,
     "low": 2
   },
   "ratchets": {
@@ -19,106 +19,10 @@
   "findings": [
     {
       "family": "gates",
-      "check": "long-red",
-      "severity": "high",
-      "where": "GATE-VISUAL-REGRESSION",
-      "summary": "visual-regression has been red 2 day(s): failed in CI",
-      "ask": "visual-regression has blocked the queue for 2 day(s). Fix it, or decide out loud that it cannot be fixed now and record a bounded waiver — a gate nobody intends to fix should not keep preempting every other item."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-API-SIGNATURES",
-      "summary": "api-signatures has been red 1 day(s): failed in CI",
-      "ask": "Fix api-signatures before picking up anything else: `npm run api-signatures:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-AST-GREP",
-      "summary": "ast-grep has been red 1 day(s): failed in CI",
-      "ask": "Fix ast-grep before picking up anything else: `npm run ast-grep:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-COGNITIVE-COMPLEXITY",
-      "summary": "cognitive-complexity has been red 1 day(s): failed in CI — Functions scored: 7154 · Max score: 168 · Median score: 2 · Over 15: 94 · Baseline entries: 148",
-      "ask": "Fix cognitive-complexity before picking up anything else: `npm run cognitive-complexity:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-COMPLEXITY-MULTILANG",
-      "summary": "complexity-multilang has been red 1 day(s): failed in CI — Functions: 7794 · Exemptions: 87",
-      "ask": "Fix complexity-multilang before picking up anything else: `npm run complexity:multilang`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-COVERAGE",
-      "summary": "coverage has been red 1 day(s): failed in CI — Workspaces ratcheted: 22 · Packages ratcheted: 19 · Apps ratcheted: 3",
-      "ask": "Fix coverage before picking up anything else: `npm run coverage:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-FORMAT",
-      "summary": "format has been red 1 day(s): failed in CI — Files needing formatting: 15",
-      "ask": "Fix format before picking up anything else: `npm run format:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-GENERATED-FRESHNESS",
-      "summary": "generated-freshness has been red 1 day(s): failed in CI",
-      "ask": "Fix generated-freshness before picking up anything else: `npm run generated:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-LINT-ALL",
-      "summary": "lint-all has been red 1 day(s): failed in CI — Findings: 16",
-      "ask": "Fix lint-all before picking up anything else: `npm run lint:all`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-SPEC-TRACEABILITY",
-      "summary": "spec-traceability has been red 1 day(s): failed in CI",
-      "ask": "Fix spec-traceability before picking up anything else: `npm run spec-traceability:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-UI-INVARIANTS",
-      "summary": "ui-invariants has been red 1 day(s): failed in CI",
-      "ask": "Fix ui-invariants before picking up anything else: `npm run test:ui-invariants`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-UNIT-TESTS",
-      "summary": "unit-tests has been red 1 day(s): failed in CI",
-      "ask": "Fix unit-tests before picking up anything else: `npm run test`."
-    },
-    {
-      "family": "gates",
       "check": "unverified-record",
       "severity": "medium",
       "where": "checks.json",
-      "summary": "71 gate result(s) were measured at 57501bc294ac, not at HEAD",
+      "summary": "70 gate result(s) were measured at c094fef71114, not at HEAD",
       "ask": "Re-run `npm run checks:status`, or import what CI already measured with `npm run checks:status:import`. A green recorded against another commit is not evidence about this one."
     },
     {
@@ -126,15 +30,23 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "STATUS-SOFTWARE.md",
-      "summary": "DOC-OPTIONAL-BACKLOG closed 2026-08-14, but its evidence STATUS-SOFTWARE.md changed on 2026-08-23",
+      "summary": "DOC-OPTIONAL-BACKLOG closed 2026-08-14, but its evidence STATUS-SOFTWARE.md changed on 2026-08-25",
       "ask": "Would `npm run work:check` still pass? Re-run it if STATUS-SOFTWARE.md carries the behaviour DOC-OPTIONAL-BACKLOG claimed."
     },
     {
       "family": "closed",
       "check": "evidence-drift",
       "severity": "medium",
+      "where": "api-signatures-policy.json",
+      "summary": "QL-ASSURANCE-GAPS closed 2026-08-16, but its evidence api-signatures-policy.json changed on 2026-08-25",
+      "ask": "Would `npm run check:ci-base` still pass? Re-run it if api-signatures-policy.json carries the behaviour QL-ASSURANCE-GAPS claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
       "where": "apps/harness-mobile/package.json",
-      "summary": "BUG-REACT-DOM-MISMATCH closed 2026-08-12, but its evidence apps/harness-mobile/package.json changed on 2026-08-23",
+      "summary": "BUG-REACT-DOM-MISMATCH closed 2026-08-12, but its evidence apps/harness-mobile/package.json changed on 2026-08-25",
       "ask": "Would `npm run test:web-widget-renderer` still pass? Re-run it if apps/harness-mobile/package.json carries the behaviour BUG-REACT-DOM-MISMATCH claimed."
     },
     {
@@ -150,7 +62,7 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "apps/harness-mobile/worklet/worklet.bundle.mjs",
-      "summary": "BUG-WORKLET-BARE-PACK-HOST closed 2026-08-12, but its evidence apps/harness-mobile/worklet/worklet.bundle.mjs changed on 2026-08-22",
+      "summary": "BUG-WORKLET-BARE-PACK-HOST closed 2026-08-12, but its evidence apps/harness-mobile/worklet/worklet.bundle.mjs changed on 2026-08-25",
       "ask": "Would `npm run build:worklet && npm run build --workspace=host-desktop` still pass? Re-run it if apps/harness-mobile/worklet/worklet.bundle.mjs carries the behaviour BUG-WORKLET-BARE-PACK-HOST claimed."
     },
     {
@@ -182,7 +94,7 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "apps/host-desktop/worklet/worklet.bundle",
-      "summary": "BUG-WORKLET-BARE-PACK-HOST closed 2026-08-12, but its evidence apps/host-desktop/worklet/worklet.bundle changed on 2026-08-22",
+      "summary": "BUG-WORKLET-BARE-PACK-HOST closed 2026-08-12, but its evidence apps/host-desktop/worklet/worklet.bundle changed on 2026-08-25",
       "ask": "Would `npm run build:worklet && npm run build --workspace=host-desktop` still pass? Re-run it if apps/host-desktop/worklet/worklet.bundle carries the behaviour BUG-WORKLET-BARE-PACK-HOST claimed."
     },
     {
@@ -198,7 +110,7 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "docs/static-analysis.md",
-      "summary": "QL-HARNESS-MOBILE-TYPECHECK closed 2026-08-11, but its evidence docs/static-analysis.md changed on 2026-08-23",
+      "summary": "QL-HARNESS-MOBILE-TYPECHECK closed 2026-08-11, but its evidence docs/static-analysis.md changed on 2026-08-24",
       "ask": "Would `npm run harness-mobile:typecheck` still pass? Re-run it if docs/static-analysis.md carries the behaviour QL-HARNESS-MOBILE-TYPECHECK claimed."
     },
     {
@@ -206,15 +118,23 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "docs/work-tracking.md",
-      "summary": "WORK-EFFORT closed 2026-08-14, but its evidence docs/work-tracking.md changed on 2026-08-21",
+      "summary": "WORK-EFFORT closed 2026-08-14, but its evidence docs/work-tracking.md changed on 2026-08-24",
       "ask": "Would `npx vitest run conformance/doc-audit/work-ranking.test.mjs` still pass? Re-run it if docs/work-tracking.md carries the behaviour WORK-EFFORT claimed."
     },
     {
       "family": "closed",
       "check": "evidence-drift",
       "severity": "medium",
+      "where": "docs/work-tracking.md",
+      "summary": "WORK-UNATTENDED closed 2026-08-17, but its evidence docs/work-tracking.md changed on 2026-08-24",
+      "ask": "Would `npx vitest run conformance/doc-audit/work-ranking.test.mjs` still pass? Re-run it if docs/work-tracking.md carries the behaviour WORK-UNATTENDED claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
       "where": "package-lock.json",
-      "summary": "BUG-REACT-DOM-MISMATCH closed 2026-08-12, but its evidence package-lock.json changed on 2026-08-23",
+      "summary": "BUG-REACT-DOM-MISMATCH closed 2026-08-12, but its evidence package-lock.json changed on 2026-08-25",
       "ask": "Would `npm run test:web-widget-renderer` still pass? Re-run it if package-lock.json carries the behaviour BUG-REACT-DOM-MISMATCH claimed."
     },
     {
@@ -222,7 +142,7 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "package.json",
-      "summary": "BUG-ELECTRON-BUILDER-VERSION closed 2026-08-12, but its evidence package.json changed on 2026-08-23",
+      "summary": "BUG-ELECTRON-BUILDER-VERSION closed 2026-08-12, but its evidence package.json changed on 2026-08-25",
       "ask": "Would `npm run desktop:pack` still pass? Re-run it if package.json carries the behaviour BUG-ELECTRON-BUILDER-VERSION claimed."
     },
     {
@@ -259,10 +179,18 @@
     },
     {
       "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "work/metadata.json",
+      "summary": "WORK-UNATTENDED closed 2026-08-17, but its evidence work/metadata.json changed on 2026-08-25",
+      "ask": "Would `npx vitest run conformance/doc-audit/work-ranking.test.mjs` still pass? Re-run it if work/metadata.json carries the behaviour WORK-UNATTENDED claimed."
+    },
+    {
+      "family": "closed",
       "check": "instant-verification",
       "severity": "medium",
       "where": "APPR-UPDATE-DELTA",
-      "summary": "APPR-UPDATE-DELTA (bug) closed 5 day(s) ago on a verification that ran in 600ms: `npx vitest run packages/app-registry/test/update-delta.test.ts`",
+      "summary": "APPR-UPDATE-DELTA (bug) closed 6 day(s) ago on a verification that ran in 600ms: `npx vitest run packages/app-registry/test/update-delta.test.ts`",
       "ask": "Did `npx vitest run packages/app-registry/test/update-delta.test.ts` actually exercise APPR-UPDATE-DELTA, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -270,7 +198,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "BUG-REACT-DOM-MISMATCH",
-      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 11 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
+      "summary": "BUG-REACT-DOM-MISMATCH (bug) closed 12 day(s) ago on a verification that ran in 1421ms: `npm run test:web-widget-renderer`",
       "ask": "Did `npm run test:web-widget-renderer` actually exercise BUG-REACT-DOM-MISMATCH, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -278,7 +206,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "CAP-ANNOUNCE-SCOPE",
-      "summary": "CAP-ANNOUNCE-SCOPE (bug) closed 5 day(s) ago on a verification that ran in 1891ms: `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts`",
+      "summary": "CAP-ANNOUNCE-SCOPE (bug) closed 7 day(s) ago on a verification that ran in 1891ms: `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts`",
       "ask": "Did `npx vitest run packages/miniapp-runtime/test/announce-scope.test.ts` actually exercise CAP-ANNOUNCE-SCOPE, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -286,7 +214,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "CAP-DEVICE-FAILCLOSED",
-      "summary": "CAP-DEVICE-FAILCLOSED (bug) closed 5 day(s) ago on a verification that ran in 1528ms: `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts`",
+      "summary": "CAP-DEVICE-FAILCLOSED (bug) closed 7 day(s) ago on a verification that ran in 1528ms: `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts`",
       "ask": "Did `npx vitest run packages/miniapp-runtime/test/device-confirm-failclosed.test.ts` actually exercise CAP-DEVICE-FAILCLOSED, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -294,7 +222,7 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "CAP-FREENET-READ",
-      "summary": "CAP-FREENET-READ (bug) closed 5 day(s) ago on a verification that ran in 1504ms: `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts`",
+      "summary": "CAP-FREENET-READ (bug) closed 7 day(s) ago on a verification that ran in 1504ms: `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts`",
       "ask": "Did `npx vitest run packages/miniapp-runtime/test/freenet-read-scope.test.ts` actually exercise CAP-FREENET-READ, or did it no-op? A check that cannot fail is not evidence."
     },
     {
@@ -302,15 +230,23 @@
       "check": "instant-verification",
       "severity": "medium",
       "where": "CAP-GRANT-STALE",
-      "summary": "CAP-GRANT-STALE (bug) closed 5 day(s) ago on a verification that ran in 1816ms: `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts`",
+      "summary": "CAP-GRANT-STALE (bug) closed 7 day(s) ago on a verification that ran in 1816ms: `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts`",
       "ask": "Did `npx vitest run packages/miniapp-runtime/test/grant-stale-launch.test.ts` actually exercise CAP-GRANT-STALE, or did it no-op? A check that cannot fail is not evidence."
     },
     {
       "family": "closed",
       "check": "instant-verification",
       "severity": "medium",
+      "where": "DATA-0-KEYS",
+      "summary": "DATA-0-KEYS (bug) closed 0 day(s) ago on a verification that ran in 795ms: `npx vitest run packages/worklet-core/test/runtime-key-value-store.test.ts packages/miniapp-runtime/test/storage-kv.test.ts`",
+      "ask": "Did `npx vitest run packages/worklet-core/test/runtime-key-value-store.test.ts packages/miniapp-runtime/test/storage-kv.test.ts` actually exercise DATA-0-KEYS, or did it no-op? A check that cannot fail is not evidence."
+    },
+    {
+      "family": "closed",
+      "check": "instant-verification",
+      "severity": "medium",
       "where": "ID-APPSCOPE",
-      "summary": "ID-APPSCOPE (bug) closed 13 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
+      "summary": "ID-APPSCOPE (bug) closed 14 day(s) ago on a verification that ran in 1576ms: `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts`",
       "ask": "Did `npx vitest run packages/host-core/test/app-scoped-identity.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts packages/host-core/test/linked-installation.test.ts` actually exercise ID-APPSCOPE, or did it no-op? A check that cannot fail is not evidence."
     },
     {

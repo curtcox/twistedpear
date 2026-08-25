@@ -431,3 +431,20 @@ export { diffWidgetTrees } from "./ui/diff.js";
 export type { WidgetPatch } from "./ui/diff.js";
 export { describeWidgetTree } from "./ui/describe.js";
 export type { RenderedWidgetNode } from "./ui/describe.js";
+export {
+  APP_TRACE_FORMAT,
+  APP_TRACE_KIND,
+  APP_TRACE_MODE_SHAPE,
+  APP_TRACE_SHAPE_FORBIDDEN_KEYS,
+  AppTraceFormatError,
+  hashAppTrace,
+  parseAppTrace,
+  serializeAppTrace,
+} from "./trace-format.js";
+export type {
+  AppTrace,
+  AppTraceEntry,
+  AppTraceHost,
+  AppTraceIdentity,
+  AppTraceInboundKind,
+} from "./trace-format.js";

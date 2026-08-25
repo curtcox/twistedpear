@@ -2,12 +2,16 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-23
+audited: 2026-08-25
 register: software
+counterpart: docs/miniapp-record-replay.md
 -->
 
-**This document describes intended work, not current behaviour.** Nothing here ships. What
-ships today for debugging a mini-app is a console shim and a diagnostics ring, described in
+**This document describes intended work, not current behaviour.** The shape-only
+session format that already ships is in
+[mini-app record and replay](miniapp-record-replay.md). What still does not exist
+is recording, replay, shrinking, and host chrome. What already existed for debugging
+a mini-app is a console shim and a diagnostics ring, described in
 [Testing and debugging](../authors/11-testing-and-debugging.md) and
 [the mini-app runtime reference](miniapp-runtime.md); the deterministic kernel this plan
 builds on is described in [Deterministic abuse simulation](simulation.md), and the drop
@@ -69,27 +73,10 @@ The last command is the one that makes this more than a debugger. A trace that b
 
 ## 4. What a trace is
 
-A trace is the app's whole causal input, and nothing else. The app is already a function of
-these, because the sandbox gives it nothing else:
-
-1. **Bundle identity** — `appId`, `version`, publisher key, the package 256t.
-2. **Grant state at start**, plus every grant change during the session.
-3. **Every broker response** — the `BrokerResponse` for each `BrokerRequest`, including
-   denials, rate limits, and quota failures.
-4. **Every inbound event** — UI events, `lxmf.onMessage` deliveries, device samples,
-   `apps:channel` messages, resume blobs.
-5. **Every clock read and entropy draw** the sandbox made.
-6. **Host facts** — `HostInfo`, quotas, platform, the values that make an app take a
-   different branch on mobile than on desktop.
-
-Recording the _responses_ rather than the world is what keeps a trace small and portable.
-Replay never opens a socket, never touches the CAS, and never needs the peer that was
-there — it answers each call from the tape. That is the same inversion the Sans-IO boundary
-already makes at the protocol layer, applied one layer up.
-
-Outputs — the widget trees the app rendered, the calls it made — are recorded too, but as
-**assertions**, not inputs. A replay that produces a different widget patch stream than the
-recording has found either a nondeterminism or the fix you were looking for.
+Format 1, the shape-only document, identity, entry tags, and hash rules now live in
+[mini-app record and replay](miniapp-record-replay.md) and
+[SPEC-APP-TRACE](../specs/spec-app-trace/spec.md). Later phases still have to *fill*
+that document from a live session.
 
 ## 5. Where it plugs in
 
@@ -176,14 +163,13 @@ Nothing in this plan is claimed until these run:
 
 | Phase | Deliverable                                                             | Gate                                                         |
 | ----- | ----------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 1     | Trace format and its spec unit; recorded shape only, no payloads        | Format vectors; round-trip on three example apps             |
 | 2     | Recording behind the existing `audit` seam; sandbox clock/entropy shims | Negative control fails as designed                           |
 | 3     | `tp trace replay` and `tp trace step` over `widget-renderer-headless`   | Cookbook corpus replays identically                          |
 | 4     | Payload recording, redaction, and sealed traces                         | Security review of §6 signed off                             |
 | 5     | `tp trace shrink` and `tp trace test`                                   | A found bug becomes a checked-in regression                  |
 | 6     | Desktop **Record session** chrome and the recording indicator           | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) |
 
-Phases 1–3 are useful on their own: shape-only traces with no payload recording already
+Phases 2–3 are useful on their own: shape-only traces with no payload recording already
 solve mishandled denials, render loops, and quota branches, and they carry none of §6's
 risk. Phase 4 is where the review gate belongs.
 
@@ -195,19 +181,16 @@ recording mode early.
 
 ## 10. Open questions
 
-1. **Is a trace a spec unit?** The format is an interoperability surface between hosts and
-   the CLI, which argues for a Group C spec with vectors. It is also purely diagnostic,
-   which argues against spending a formal model on it.
-2. **Should replay run the real sandbox or a lighter harness?** The real sandbox is the
+1. **Should replay run the real sandbox or a lighter harness?** The real sandbox is the
    honest answer and matches the `sim-campaign` precedent of testing shipping code. A
    lighter harness would replay faster and step more smoothly.
-3. **Does a sealed trace need publisher-key infrastructure that does not exist?** Key
+2. **Does a sealed trace need publisher-key infrastructure that does not exist?** Key
    rotation and revocation are already open, and a trace encrypted to a key the author later
    loses is a trace nobody can read.
-4. **How large is a real trace?** A trace containing every broker payload from a chat
+3. **How large is a real trace?** A trace containing every broker payload from a chat
    session may be far larger than the app. Bounds and a ring-buffer mode need measuring, not
    guessing, before §3's CLI is designed.
-5. **Does this belong in DevStudio as well as the CLI?** DevStudio has a `code-editor`
+4. **Does this belong in DevStudio as well as the CLI?** DevStudio has a `code-editor`
    widget and a preview slot but no stepping UI, and the widget vocabulary would need a
    timeline surface it does not have.
 
