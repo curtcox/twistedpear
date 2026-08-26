@@ -17,6 +17,8 @@ const outDir = process.env.CI_TELEMETRY_DIR
 const interval = process.env.CI_TELEMETRY_INTERVAL_MS ?? "5000";
 const label = process.env.CI_TELEMETRY_LABEL || process.env.GITHUB_JOB || "job";
 
+let startFailure = null;
+
 try {
   fs.mkdirSync(outDir, { recursive: true });
   fs.rmSync(path.join(outDir, "stop"), { force: true });
@@ -48,5 +50,21 @@ try {
     `Sampling job resources every ${interval} ms into ${outDir} (pid ${child.pid})`,
   );
 } catch (error) {
-  console.warn(`Job telemetry did not start: ${error.message}`);
+  // Never fails the job — but the absence has to be visible. Without this
+  // marker a job whose sampler never started is indistinguishable in the
+  // report from a job that was never instrumented at all.
+  startFailure = error;
+}
+
+if (startFailure) {
+  console.warn(`Job telemetry did not start: ${startFailure.message}`);
+  try {
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(outDir, "start-error.txt"),
+      `${startFailure.stack ?? startFailure.message}\n`,
+    );
+  } catch {
+    console.warn("Could not record the telemetry start failure either.");
+  }
 }

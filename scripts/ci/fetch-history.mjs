@@ -53,8 +53,17 @@ function main() {
   console.log(`Fetched ${runs} recorded run(s) from ${BRANCH} into ${into}`);
 }
 
+let failure = null;
 try {
   main();
 } catch (error) {
-  console.warn(`Could not fetch the CI telemetry history: ${error.message}`);
+  failure = error;
+}
+
+if (failure) {
+  // Exits 0 regardless: the CI cost report renders its placeholder when the
+  // store is absent, and a site publish must not fail because a measurement
+  // could not be fetched. The reason still belongs in the build log.
+  console.warn(`Could not fetch the CI telemetry history: ${failure.message}`);
+  process.exitCode = 0;
 }

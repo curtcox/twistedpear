@@ -51,6 +51,12 @@ export function memory() {
   };
 }
 
+/**
+ * Paths already reported as unreadable, so a volume that cannot be measured is
+ * mentioned once rather than on every sample or — worse — not at all.
+ */
+const unreadablePaths = new Set();
+
 /** Free/total space on the paths the job actually writes to. */
 export function disk(paths) {
   const out = {};
@@ -69,9 +75,16 @@ export function disk(paths) {
             ? round(((totalBytes - freeBytes) / totalBytes) * 100, 2)
             : null,
       };
-    } catch {
+    } catch (error) {
       // A path that does not exist yet (RUNNER_TEMP before first use) is not
-      // an error worth reporting on every sample.
+      // worth reporting on every sample — but reporting it on none of them
+      // makes a missing series look like a measurement of zero.
+      if (!unreadablePaths.has(label)) {
+        unreadablePaths.add(label);
+        console.warn(
+          `sampler: cannot measure ${label} (${target}): ${error.message}`,
+        );
+      }
     }
   }
   return Object.keys(out).length > 0 ? out : null;

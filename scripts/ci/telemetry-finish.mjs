@@ -28,7 +28,7 @@ const summaryFile = path.join(outDir, "summary.json");
 
 async function main() {
   fs.mkdirSync(stageDir, { recursive: true });
-  stopSampler();
+  const stopError = stopSampler();
   const summary = await waitForSummary();
   const context = await jobContext();
   const key = `${context.workflowSlug}--${context.jobId ?? context.job}`;
@@ -36,6 +36,7 @@ async function main() {
     schema: 1,
     ...context,
     resources: summary,
+    ...(stopError ? { stopError } : {}),
   };
   fs.writeFileSync(
     path.join(stageDir, `${key}.json`),
@@ -58,12 +59,20 @@ function pct(value) {
   return value == null ? "unknown" : `${value}%`;
 }
 
+/**
+ * @returns {string | null} why the stop signal could not be written, so the
+ *   staged record says the sampler was never asked to stop rather than
+ *   implying it was asked and declined.
+ */
 function stopSampler() {
   try {
     fs.mkdirSync(outDir, { recursive: true });
     fs.writeFileSync(path.join(outDir, "stop"), "");
+    return null;
   } catch (error) {
-    console.warn(`Could not signal the sampler to stop: ${error.message}`);
+    const reason = `could not signal the sampler to stop: ${error.message}`;
+    console.warn(reason);
+    return reason;
   }
 }
 
@@ -71,18 +80,24 @@ async function waitForSummary() {
   // The sampler writes the summary on its next tick. Give it a generous
   // multiple of the sampling interval rather than racing it.
   const deadline = Date.now() + 30_000;
+  let lastParseError = null;
   while (Date.now() < deadline) {
     if (fs.existsSync(summaryFile)) {
       try {
         return JSON.parse(fs.readFileSync(summaryFile, "utf8"));
-      } catch {
-        // Half-written; try again on the next pass.
+      } catch (error) {
+        // Half-written on this pass. Keep the reason: a summary that is
+        // *always* unparseable is a bug in the sampler, and looks identical
+        // to a timeout unless the last error is reported.
+        lastParseError = error;
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   console.warn(
-    "Sampler produced no summary; recording timings without resource data.",
+    lastParseError
+      ? `Sampler summary never parsed (${lastParseError.message}); recording timings without resource data.`
+      : "Sampler produced no summary; recording timings without resource data.",
   );
   return null;
 }

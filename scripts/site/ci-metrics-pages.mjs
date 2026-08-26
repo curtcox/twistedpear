@@ -203,16 +203,23 @@ function readSeries(dir, job) {
     const lines = fs.readFileSync(path.join(dir, name), "utf8").split("\n").filter(Boolean);
     const cpu = [];
     const mem = [];
+    let skipped = 0;
     for (const line of lines) {
       try {
         const sample = JSON.parse(line);
         if (typeof sample.cpuPct === "number") cpu.push({ x: sample.t, y: sample.cpuPct });
         if (typeof sample.mem?.usedPct === "number") mem.push({ x: sample.t, y: sample.mem.usedPct });
       } catch {
-        // A truncated final line is expected when a job is cancelled mid-sample.
+        // A truncated final line is expected when a job is cancelled
+        // mid-sample. Silently thinning a series is not: count them, so a
+        // trace drawn from half its samples says so.
+        skipped += 1;
       }
     }
-    return cpu.length || mem.length ? { cpu, mem } : null;
+    if (skipped > 0) {
+      console.warn(`${name}: skipped ${skipped} unreadable sample line(s)`);
+    }
+    return cpu.length || mem.length ? { cpu, mem, skipped } : null;
   }
   return null;
 }
