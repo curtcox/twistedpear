@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-26T14:28:50.082Z",
+  "generatedAt": "2026-08-26T14:29:13.768Z",
   "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
   "digest": "d0f6268903c3f09983228c2626dfd82ef865f1eecd261e256d5f684050da4ab2",
   "treeDigest": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
@@ -473,7 +473,7 @@
       "title": "GitHub Pages site integrity",
       "command": "npm run site:verify",
       "ok": true,
-      "at": "2026-08-26T14:27:58.081Z",
+      "at": "2026-08-26T14:10:14.076Z",
       "commit": "f50308a6932f8b847e08ac85ec0bf393c85901c7",
       "tier": "pr"
     },
