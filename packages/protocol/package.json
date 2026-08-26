@@ -1,6 +1,6 @@
 {
   "name": "@twistedpear/protocol",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

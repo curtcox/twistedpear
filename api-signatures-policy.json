@@ -5,15 +5,15 @@
   "entries": {
     "protocol.api.md": {
       "package": "packages/protocol",
-      "sha256": "8c663dd0e48c34ed9175e7a70a4251f99ebeb3b2122faa40a1ef8082f6b9f12f"
+      "sha256": "cef2ed3014aa67e09eb3959df1a1354863e314f14bb86be645e213667d02141b"
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "4ea1d7b1e11d0ae111ba0674706a8dff9eb9d648ce289aa8cf2f115650b61c83"
+      "sha256": "8349866ead3bd1c388254b36a4c57edcfc4b3a92b0422f81738510e35152be55"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
-      "sha256": "ba5c1117cd637943424f474d5297e2f764cb011f2c930580a1536a767df20ce5"
+      "sha256": "a4f56d171767d4e70f74cf6beaa7982f8f27dafd9ec318377633547092b7865e"
     },
     "reticulum-ts.api.md": {
       "package": "packages/reticulum-ts",
@@ -33,7 +33,7 @@
     },
     "miniapp-runtime-worklet.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "501c9a512c61ee097e070cdef8bf9aae1ea1c9e0d92be85362d9031af1e48f2d"
+      "sha256": "831a55659656e4687226f672f67792894cb85328dae494ccbf80d093cffc3237"
     },
     "app-registry.api.md": {
       "package": "packages/app-registry",
@@ -81,7 +81,7 @@
     },
     "sim-adversaries.api.md": {
       "package": "packages/sim-adversaries",
-      "sha256": "723df17088d4e90b9d5253c0678ba36b2d21849c177eb3e54aab28d13835852c"
+      "sha256": "4316653285ffc34170cb8a152e6634c152d212c3a71e4f1370b37ab7dd3a27e5"
     },
     "guida-twistedpear.api.md": {
       "package": "packages/guida-twistedpear",
@@ -105,7 +105,7 @@
     },
     "miniapp-runtime-ui.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "b52bebdb75ad0a5761e2d993d068a5280a09014d83755e95c29f642e8c5eeab1"
+      "sha256": "17dd772a8c2b9212adc2f937377f734086b0f5afdfc8766d8383527297ad2705"
     },
     "host-core-protocol.api.md": {
       "package": "packages/host-core",
