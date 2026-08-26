@@ -11,10 +11,12 @@
  * network it never got bandwidth from.
  *
  *   node scripts/ci/sampler.mjs --out=<dir> [--interval=5000] [--label=<name>]
+ *     [--max-lifetime=21600000]
  *
  * Writes `<dir>/samples.ndjson` as it goes and `<dir>/summary.json` on exit.
  * Stops when `<dir>/stop` appears (a file, not a signal: Windows runners kill
- * without running handlers, so a signal-only stop loses the summary).
+ * without running handlers, so a signal-only stop loses the summary), or when
+ * it outlives any plausible job.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -41,6 +43,16 @@ const args = new Map(
 const outDir = path.resolve(args.get("out") ?? ".ci-telemetry");
 const intervalMs = Number(args.get("interval") ?? 5000);
 const label = args.get("label") ?? process.env.GITHUB_JOB ?? "job";
+/**
+ * Hard ceiling on the sampler's own life.
+ *
+ * On a hosted runner an orphaned sampler dies with the VM, so this never
+ * matters. The emulator lab is self-hosted: a job killed hard enough that
+ * `telemetry-finish` never runs would otherwise leave this process ticking on
+ * a machine that outlives it, appending to a file nobody will read. Six hours
+ * is comfortably past GitHub's own job timeout.
+ */
+const maxLifetimeMs = Number(args.get("max-lifetime") ?? 6 * 60 * 60 * 1000);
 const stopFile = path.join(outDir, "stop");
 const samplesFile = path.join(outDir, "samples.ndjson");
 
@@ -187,7 +199,7 @@ collect();
 const timer = setInterval(
   () => {
     collect();
-    if (fs.existsSync(stopFile)) {
+    if (fs.existsSync(stopFile) || Date.now() - startedAt >= maxLifetimeMs) {
       clearInterval(timer);
       finish();
     }
