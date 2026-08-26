@@ -7,6 +7,22 @@ import { withMermaid } from "vitepress-plugin-mermaid";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "src");
 
+// File extensions VitePress must treat as downloadable assets rather than as
+// pages. Anything outside its built-in list gets `.html` appended to the link
+// — so `raw/artifacts/logs/unit-tests.log` published as `unit-tests.log.html`
+// and 404'd, and so did every `.ndjson` link on the CI cost report. The file
+// itself is published correctly at its real path; only the link was wrong.
+// `VITE_EXTRA_EXTENSIONS` is the supported way to extend that list, read once
+// on the first link transform, which is why it is set here rather than passed
+// to a single command.
+const RAW_DOWNLOAD_EXTENSIONS = ["ndjson", "log"];
+process.env.VITE_EXTRA_EXTENSIONS = [
+  process.env.VITE_EXTRA_EXTENSIONS,
+  ...RAW_DOWNLOAD_EXTENSIONS,
+]
+  .filter(Boolean)
+  .join(",");
+
 function loadSidebar() {
   const p = path.join(SRC, ".sidebar.json");
   if (!fs.existsSync(p)) {
