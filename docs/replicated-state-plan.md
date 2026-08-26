@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-08-25
+audited: 2026-08-26
 register: software
 counterpart: docs/replicated-state.md
 -->
@@ -234,12 +234,13 @@ it is what testing misses. The model should assert:
 | Phase | Deliverable                                                          | Gate                                                                                                                               |
 | ----- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | 3     | Version-vector digest and reconcile over the LXMF plane, offer-bound | `assertEgressAllowed` refuses an un-offered round; the ledger meters bytes — now in [replicated shared state](replicated-state.md) |
-| 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder | Two-host convergence in the multipeer harness                                                                                      |
+| 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder | Two-host convergence in the multipeer harness — now in [replicated shared state](replicated-state.md)                         |
 | 5     | Retention, tombstones, per-author caps, byzantine-peer adversary     | No hostile-peer scenario lands UNCONTROLLED                                                                                        |
 | 6     | Cookbook migration; delete "merge is your problem"                   | `roll-call` and `neighborhood-board` rebuilt on `storage:sync`                                                                     |
 
-Phase 2 (in-process loopback under drop/delay/reorder/duplicate/partition) and
-Phase 3 (offer-bound LXMF reconcile) now live in
+Phase 2 (in-process loopback under drop/delay/reorder/duplicate/partition),
+Phase 3 (offer-bound LXMF reconcile), and Phase 4 (SPEC-STREAM plane selection
+with `bulk` reservation) now live in
 [replicated shared state](replicated-state.md). The §9 security review belongs
 at Phase 5.
 

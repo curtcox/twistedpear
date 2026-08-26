@@ -1,0 +1,59 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 test:local-multipeer
+> node conformance/local-multipeer/run.mjs
+
+
+== Local multi-peer matrix: hub, node2 ==
+  · hub: tp node pid 59070
+  · hub started
+  · node2: tp node pid 59071
+  · node2 started
+
+== Attach ==
+  · hub attached (tp-node, lxmf f50bb867aa13…)
+  · node2 attached (tp-node, lxmf 7d4624a8836c…)
+
+== Discovery ==
+  · hub → discovered node2 (10049ms)
+  · node2 → discovered hub (0ms)
+  · node2→hub announce-burst sent=16 failed=0
+  · hub recorded 4 rate-limited announce drop(s) (distinguishes late/rate-limited from absent)
+
+== Communication ==
+  · hub → node2 → hub round-trip (30ms)
+  · node2 → hub → node2 round-trip (25ms)
+
+== Peer media readiness exchange ==
+  · hub → node2 readiness audio/ask (546ms)
+  · node2 → hub readiness audio/ask (556ms)
+
+== Active link probe ==
+  · hub → node2 probe 1024 bytes, rtt 224ms
+  · node2 → hub probe 1024 bytes, rtt 226ms
+
+== Inbound session invite ==
+  · hub → node2 invite microphone as "peer 7ff43d6d" (17ms)
+  · node2 → hub invite microphone as "peer 78423d2b" (16ms)
+
+== Post-accept call media ==
+  · node2 accepted → hub call media (724 bytes, 602ms)
+  · hub accepted → node2 call media (724 bytes, 598ms)
+
+== Realtime media carrier ==
+  · hub → node2 → hub derived carrier (141 bytes, 532ms)
+  · hub → node2 → hub pcm carrier (1360 bytes, 680ms)
+  · node2 → hub → node2 derived carrier (141 bytes, 38ms)
+  · node2 → hub → node2 pcm carrier (1360 bytes, 677ms)
+
+== Replica plane selection ==
+  · replica plane reticulum reserved bulk, converged in 1 round(s)
+
+== Result ==
+  · 2 peers, 2 discovery pairs, 2 message round-trips, 2 readiness exchanges, 2 measured probes, 2 delivered session invites, 2 post-accept call round-trips, 4 realtime carrier round-trips, 1 replica plane proof(s)
+  · proof: /Users/curtcox/me/twistedpear/.tmp/local-peers/multipeer-proof.json
+
+== Teardown ==
+  · node2: stopped
+  · hub: stopped
+PASS

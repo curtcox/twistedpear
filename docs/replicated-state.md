@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-25
+audited: 2026-08-26
 register: software
 counterpart: docs/replicated-state-plan.md
 -->
@@ -35,8 +35,12 @@ peer or force a round.
   the remote log is unchanged. Offers bind at `targetKind: "peer"` or `"group"`.
   `storage:sync` is listed in `EGRESS_OFFER_CAPABILITIES`; local
   open/append/view still do not require an offer.
+- `PlaneReplicaLink` selects a plane with `selectPlane` across the SPEC-STREAM
+  ladder (`webrtc`, `pears-bulk`, `reticulum`, `lxmf`, `cas`), then reserves
+  `bulk` airtime on the shared limiter — never `realtime`. Two-host convergence
+  is proven in `npm run test:local-multipeer`.
 
 ## Not in this drop
 
-SPEC-STREAM plane selection, hostile-peer retention, and Cookbook migration
-remain in the [plan](replicated-state-plan.md).
+Hostile-peer retention and Cookbook migration remain in the
+[plan](replicated-state-plan.md).

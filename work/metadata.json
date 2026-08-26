@@ -2108,6 +2108,14 @@
       "requires": ["SYNC-3-LXMF"],
       "verify": "npm run test:local-multipeer",
       "added": "2026-08-24",
+      "completed": "2026-08-26",
+      "evidence": [
+        "packages/miniapp-runtime/src/services/storage-sync-planes.ts",
+        "packages/miniapp-runtime/test/storage-sync-planes.test.ts",
+        "conformance/local-multipeer/replica-planes.mjs",
+        "conformance/local-multipeer/run.mjs",
+        "docs/replicated-state.md"
+      ],
       "notes": "docs/replicated-state-plan.md Phase 4. Select across the SPEC-STREAM ladder, reserve bulk budget, and prove two-host convergence in the multipeer harness."
     },
     "SYNC-5-HOSTILE": {

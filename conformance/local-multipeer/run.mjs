@@ -43,6 +43,8 @@ import {
   recordPeer,
   stateRoot,
 } from "../../scripts/peers/state.mjs";
+import { bytesHex, encodeMediaFrame } from "./media-frames.mjs";
+import { proveReplicaPlanes } from "./replica-planes.mjs";
 
 const args = process.argv.slice(2);
 const attach = args.includes("--attach");
@@ -206,6 +208,7 @@ await runMain(async () => {
       realtime: [],
       invites: [],
       calls: [],
+      replica: [],
     };
 
     section("Attach");
@@ -673,6 +676,9 @@ await runMain(async () => {
       }
     }
 
+    section("Replica plane selection");
+    results.replica.push(proveReplicaPlanes({ assert, step }));
+
     if (required) {
       section("Required GUI peer evidence");
       for (const id of wanted.filter((peerId) =>
@@ -730,7 +736,7 @@ await runMain(async () => {
 
     section("Result");
     step(
-      `${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.readiness.length} readiness exchanges, ${results.probes.length} measured probes, ${results.invites.length} delivered session invites, ${results.calls.length} post-accept call round-trips, ${results.realtime.length} realtime carrier round-trips`,
+      `${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.readiness.length} readiness exchanges, ${results.probes.length} measured probes, ${results.invites.length} delivered session invites, ${results.calls.length} post-accept call round-trips, ${results.realtime.length} realtime carrier round-trips, ${results.replica.length} replica plane proof(s)`,
     );
     step(`proof: ${proofPath}`);
   } finally {
@@ -741,26 +747,3 @@ await runMain(async () => {
     }
   }
 });
-
-function encodeMediaFrame(idText, frame) {
-  const id = new TextEncoder().encode(idText);
-  const chunk = new Uint8Array(8 + frame.length);
-  new DataView(chunk.buffer).setUint32(0, 0, false);
-  new DataView(chunk.buffer).setUint16(4, 0, false);
-  new DataView(chunk.buffer).setUint16(6, 1, false);
-  chunk.set(frame, 8);
-  const out = new Uint8Array(8 + id.length + chunk.length);
-  out.set([0x54, 0x50, 0x4d, 0x31]);
-  out[4] = 2;
-  out[5] = id.length;
-  new DataView(out.buffer).setUint16(6, chunk.length, false);
-  out.set(id, 8);
-  out.set(chunk, 8 + id.length);
-  return out;
-}
-
-function bytesHex(bytes) {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(
-    "",
-  );
-}
