@@ -37,8 +37,13 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - id: matrix
         run: echo "matrix=$(npm run --silent checks:matrix -- --tier=nightly)" >> "$GITHUB_OUTPUT"
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   static-analysis-nightly:
     needs: static-analysis-plan
@@ -57,6 +62,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - name: Build workspace packages required by the gate
         if: matrix.id == 'mutation'
@@ -98,6 +105,9 @@ jobs:
             artifacts/rust-fuzz/rust-fuzz.json
             artifacts/security/codeql-alerts.json
           if-no-files-found: warn
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   property-campaign:
     runs-on: ubuntu-latest
@@ -107,11 +117,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: node scripts/checks/run.mjs --tier=pr --only=properties
         env:
           PROPERTY_RUNS: "2000"
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   # cross-device-dev-matrix lives in emulator.yml, not here. It needs the
   # self-hosted Mac lab, and no such runner is registered; on a schedule the job
@@ -127,6 +142,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run test:sim-campaign
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -135,6 +152,9 @@ jobs:
           name: simulation-campaign
           path: conformance/sim-campaign/artifacts
           if-no-files-found: error
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   # The soak jobs below take their duration from a workflow_dispatch input whose
   # plan-level targets run to 72 h, and their timeouts were written to match
@@ -152,11 +172,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: npm run test:dist-soak
         env:
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   phase3-demo:
     runs-on: ubuntu-latest
@@ -166,8 +191,13 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run demo:phase3
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   phase4-demo:
     runs-on: ubuntu-latest
@@ -177,8 +207,13 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run demo:phase4
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   examples:
     runs-on: ubuntu-latest
@@ -188,8 +223,13 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run test:examples
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   miniapp-soak:
     runs-on: ubuntu-latest
@@ -200,10 +240,15 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run test:miniapp-soak
         env:
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   web-soak:
     runs-on: ubuntu-latest
@@ -214,11 +259,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npx playwright install chromium --with-deps
       - run: npm run test:web-soak
         env:
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   harness-install:
     runs-on: ubuntu-latest
@@ -228,9 +278,14 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: npm run test:harness-install
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   lan-mirror:
     runs-on: ubuntu-latest
@@ -241,9 +296,14 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: npm run test:lan-mirror
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   integration-soak:
     runs-on: ubuntu-latest
@@ -254,11 +314,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: npm run test:integration-soak
         env:
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   mixed-network-soak:
     runs-on: ubuntu-latest
@@ -269,11 +334,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: npm run test:mixed-network-soak
         env:
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   ios-sim:
     runs-on: macos-15
@@ -284,6 +354,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
@@ -293,6 +365,9 @@ jobs:
         env:
           IOS_SIM_TCP_REQUIRED: "1"
           IOS_LIFECYCLE_CYCLES: "100"
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   upstream-interop:
     runs-on: ubuntu-latest
@@ -303,12 +378,17 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: docker compose -f conformance/docker/docker-compose.yml build --build-arg UNPINNED=1 leaf-echo lxmf-echo link-echo udp-echo resource-echo propagation-lxmd
       - run: INTEROP=1 npm run test:interop
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   ios-soak:
     runs-on: macos-15
@@ -321,6 +401,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
@@ -330,6 +412,9 @@ jobs:
         env:
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
           IOS_LIFECYCLE_CYCLES: "100"
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   desktop-soak:
     runs-on: ubuntu-latest
@@ -340,12 +425,17 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: npm run test:desktop-soak
         env:
           DESKTOP_SOAK_CYCLES: ${{ github.event.inputs.desktop_soak_cycles || '5' }}
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   desktop-macos:
     runs-on: macos-15
@@ -356,10 +446,15 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: npm run test:desktop
       - run: npm run test:widget-parity
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   resource-interop-100mb:
     runs-on: ubuntu-latest
@@ -370,6 +465,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: docker compose -f conformance/docker/docker-compose.yml up -d --build resource-echo
@@ -378,6 +475,9 @@ jobs:
           RESOURCE_INTEROP_SIZES: "104857600"
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   link-soak:
     runs-on: ubuntu-latest
@@ -388,11 +488,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: INTEROP=1 npm run test:link-soak
         env:
           LINK_SOAK_DURATION_MS: ${{ github.event.inputs.link_soak_duration_ms || '300000' }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   transport-node-soak:
     runs-on: ubuntu-latest
@@ -403,11 +508,16 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: INTEROP=1 npm run test:transport-node-soak
         env:
           TRANSPORT_SOAK_DURATION_MS: ${{ github.event.inputs.transport_soak_duration_ms || '300000' }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   electron-pack-macos:
     runs-on: macos-15
@@ -418,6 +528,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: npm run dist --workspace=host-desktop
@@ -428,6 +540,9 @@ jobs:
           name: host-desktop-macos
           path: apps/host-desktop/release
           if-no-files-found: error
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   sansio-determinism:
     strategy:
@@ -440,10 +555,15 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/protocol
       - run: npm run sansio:determinism
       - run: npm run sansio:canary
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   freenet-local-network:
     runs-on: ubuntu-latest
@@ -454,6 +574,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - name: Download pinned Freenet node
         run: |
@@ -473,3 +595,6 @@ jobs:
           name: freenet-measured-roundtrip
           path: .tmp/freenet-roundtrip-local-3-node.json
           if-no-files-found: error
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish

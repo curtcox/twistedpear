@@ -133,18 +133,35 @@ function referenceSidebar() {
   return [{ text: "Reference", items }];
 }
 
+/**
+ * Two groups under /results/: the per-gate quality pages, and the CI cost
+ * report. They answer different questions — "is the tree healthy" and "what is
+ * CI costing" — and interleaving `ci-nightly` alphabetically among the gate
+ * names made both lists harder to scan.
+ */
 function resultsSidebar() {
   const resultsDir = path.join(SITE_SRC, "results");
   if (!fs.existsSync(resultsDir)) {
     return [{ text: "Quality results", items: [{ text: "Index", link: "/results/" }] }];
   }
-  const items = [{ text: "Index", link: "/results/" }];
+  const gates = [{ text: "Index", link: "/results/" }];
+  const cost = [];
   for (const name of fs.readdirSync(resultsDir).sort()) {
     if (!name.endsWith(".md") || name === "index.md") continue;
     const stem = name.replace(/\.md$/, "");
-    items.push({ text: stem, link: `/results/${stem}` });
+    const link = `/results/${stem}`;
+    if (stem === "ci") {
+      cost.unshift({ text: "Overview", link });
+    } else if (stem.startsWith("ci-")) {
+      // "CI cost — Nightly" reads as "Nightly" once the group heading says cost.
+      cost.push({ text: headingOf(path.join(resultsDir, name), stem).replace(/^CI cost — /, ""), link });
+    } else {
+      gates.push({ text: stem, link });
+    }
   }
-  return [{ text: "Quality results", items }];
+  const groups = [{ text: "Quality results", items: gates }];
+  if (cost.length > 0) groups.push({ text: "CI cost", items: cost });
+  return groups;
 }
 
 function main() {

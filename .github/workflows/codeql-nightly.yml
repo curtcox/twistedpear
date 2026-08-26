@@ -45,6 +45,8 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           languages: ${{ matrix.language }}
@@ -53,3 +55,6 @@ jobs:
       - uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           category: /language:${{ matrix.language }}
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish

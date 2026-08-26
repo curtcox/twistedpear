@@ -47,6 +47,8 @@ jobs:
         if: steps.fetch.outcome == 'success' || steps.fetch-retry.outcome == 'success'
         with:
           node-version: "22"
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - name: Fail if reported checks failed
         if: steps.fetch.outcome == 'success' || steps.fetch-retry.outcome == 'success'
         run: |
@@ -64,3 +66,6 @@ jobs:
           console.error('Reported checks failed:', (summary.failed || []).join(', '));
           process.exit(1);
           "
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish

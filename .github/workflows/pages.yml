@@ -36,8 +36,13 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "22"
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - id: plan
         run: node scripts/checks/pages-plan.mjs >> "$GITHUB_OUTPUT"
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   static-analysis-evidence:
     needs: static-analysis-plan
@@ -56,6 +61,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - name: Install Chromium
         if: matrix.id == 'visual-regression'
@@ -94,6 +101,9 @@ jobs:
           name: page-metric-${{ matrix.id }}
           path: page-metric-evidence
           if-no-files-found: warn
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   static-analysis-evidence-java:
     needs: static-analysis-plan
@@ -112,6 +122,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -148,6 +160,9 @@ jobs:
           name: page-metric-${{ matrix.id }}
           path: page-metric-evidence
           if-no-files-found: warn
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   build:
     needs:
@@ -168,6 +183,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -204,6 +221,14 @@ jobs:
           # here so generated output from an earlier gate cannot greenwash a
           # later one (see scripts/site/isolate-worktree.mjs).
           SITE_REPORT_ISOLATE: "1"
+      - name: Fetch the CI telemetry history
+        # Best-effort: the CI cost report renders a placeholder when the
+        # ci-metrics branch does not exist yet, and a publish must never fail
+        # because a measurement store is empty.
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run ci:telemetry-history
       - name: Build documentation site
         run: npm run site:build
       - name: Verify the generated site, including screenshots
@@ -217,6 +242,9 @@ jobs:
           name: site-results
           path: site-results
           if-no-files-found: warn
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   deploy:
     needs: [build, freshness]
@@ -289,8 +317,13 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "22"
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - name: Verify published analysis provenance
         run: node scripts/site/verify-publication.mjs "https://curtcox.github.io/twistedpear/results/raw/summary.json?sha=${GITHUB_SHA}" "${GITHUB_SHA}"
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   record-gate-results:
     # The reverse channel for the work queue. Every gate this run measured is
@@ -319,6 +352,8 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "22"
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - id: fetch
         continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -372,3 +407,6 @@ jobs:
           git commit --message "Record ${red} red gate(s) measured at ${COMMIT:0:12}" \
             --message "Imported from the published run summary by the Pages workflow. Red PR-tier gates derive GATE-* broken-gate items, so work:next now returns them ahead of every other kind of work. ${RUN_URL}"
           git push origin HEAD:main
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish

@@ -1,0 +1,32 @@
+name: Start job telemetry
+description: >-
+  Sample CPU, memory, disk and network use for the remainder of this job, so the
+  published CI cost report can say what a slow step was actually doing.
+
+inputs:
+  interval-ms:
+    description: Milliseconds between samples. Longer jobs can afford a coarser interval.
+    required: false
+    default: "5000"
+  label:
+    description: Human-readable name for this job in the report. Defaults to the job id.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Start the resource sampler
+      shell: bash
+      # `|| true` throughout: a job must never go red because its telemetry did
+      # not start. Missing samples show up as gaps in the report instead.
+      env:
+        CI_TELEMETRY_INTERVAL_MS: ${{ inputs.interval-ms }}
+        CI_TELEMETRY_LABEL: ${{ inputs.label }}
+        CI_TELEMETRY_JOB_INDEX: ${{ strategy.job-index }}
+      run: |
+        if ! command -v node >/dev/null 2>&1; then
+          echo "node is not on PATH yet; skipping resource sampling for this job."
+          exit 0
+        fi
+        node "${GITHUB_WORKSPACE}/scripts/ci/telemetry-start.mjs" || true

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "description": "Workflow jobs that run without in-job resource sampling. Their timings are still collected from the Actions API by scripts/ci/collect-run.mjs; only the CPU/memory/disk/network series are absent. `npm run ci:telemetry-coverage -- --check` fails on any job missing the sampler that is not listed here.",
+  "jobs": {
+    "ci-telemetry.yml#collect": "The collector. Measuring the measurement would add a run to the store on every run of the store's own writer.",
+    "ci.yml#simulation-replay-compare": "Consumes artifacts from simulation-replay and never checks out the repository, so the sampler is not on disk.",
+    "pages.yml#deploy": "Calls actions/deploy-pages and nothing else; there is no checkout and no workload to sample.",
+    "pages.yml#freshness": "A single github-script call comparing SHAs; no checkout, and nothing to measure."
+  }
+}
