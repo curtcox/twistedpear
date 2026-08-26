@@ -282,9 +282,17 @@ async function runLxmfEcho(wsUrl) {
       timestamp: Date.now() / 1_000,
     });
     globalThis.__WEB_INTEROP__.lxmf = `awaiting-echo-${attempt + 1}`;
+    // Keep announcing through the wait rather than going quiet for 15s. The
+    // Python reply is a single opportunistic packet with nothing behind it, so
+    // if its return path to this browser is not committed when delivery fires,
+    // the reply is simply gone. The packet-echo slice below buys the same
+    // guarantee by re-announcing until Python's greeting arrives; this slice
+    // has no unsolicited greeting to wait for, so it keeps the route warm for
+    // the whole window instead.
     const attemptDeadline = Date.now() + 15_000;
     while (echoed === null && Date.now() < attemptDeadline) {
-      await sleep(100);
+      await aliceDelivery.announce();
+      await sleep(1_000);
     }
   }
   if (echoed === null) {

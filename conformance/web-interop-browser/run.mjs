@@ -18,10 +18,12 @@ import {
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
   composeDown,
+  composeLogs,
   interopReady,
   LEAF_ECHO_PORT,
   LXMF_ECHO_PORT,
   tryComposeUp,
+  waitForReadyLine,
   waitForTcp,
 } from "../scenarios/ts/harness.mjs";
 
@@ -57,10 +59,19 @@ async function waitForPath(reticulum, destinationHash, timeoutMs = 30_000) {
   );
 }
 
-async function ensureInteropPeers() {
+/**
+ * Start the peers, and report whether they are ours to tear down.
+ *
+ * Kept separate from waiting on them so that a readiness wait which throws
+ * still leaves the caller knowing these containers need stopping.
+ */
+function startInteropPeers() {
   const startedLeaf = tryComposeUp("leaf-echo");
   const startedLxmf = tryComposeUp("lxmf-echo");
+  return { startedLeaf, startedLxmf, started: startedLeaf || startedLxmf };
+}
 
+async function waitForInteropPeers({ startedLeaf, startedLxmf }) {
   if (!startedLeaf && !(await isTcpReady("127.0.0.1", LEAF_ECHO_PORT))) {
     throw new Error(
       `No leaf-echo peer listening on 127.0.0.1:${LEAF_ECHO_PORT}`,
@@ -75,7 +86,37 @@ async function ensureInteropPeers() {
 
   await waitForTcp("127.0.0.1", LEAF_ECHO_PORT);
   await waitForTcp("127.0.0.1", LXMF_ECHO_PORT);
-  return startedLeaf || startedLxmf;
+  // Both peers bind their TCP listener before RNS/LXMF is live, so a bare
+  // accept says nothing about whether an announce sent now will be seen. Every
+  // other interop runner waits for READY through withComposeService; this one
+  // connected on accept alone and then blamed the browser when the Python side
+  // had not registered its delivery identity yet.
+  await waitForReadyLine("leaf-echo", 45_000);
+  await waitForReadyLine("lxmf-echo", 45_000);
+}
+
+/**
+ * The peer side of a failure is the half that was missing from CI logs.
+ *
+ * `lxmf_echo.py` prints whether it had a return path when it took delivery, so
+ * a red run either shows the message never arrived or shows it arrived with
+ * nowhere to reply to. Without this the only evidence was the browser's own
+ * "echo timeout", which cannot tell those two apart.
+ */
+function reportPeerLogs() {
+  for (const service of ["lxmf-echo", "leaf-echo"]) {
+    try {
+      console.error(
+        `Interop peer logs for ${service}:\n${composeLogs(service, 100)}`,
+      );
+    } catch (error) {
+      console.error(
+        `Interop peer logs for ${service} unavailable: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
 }
 
 if (!interopReady()) {
@@ -280,9 +321,12 @@ async function runPlaywright(pageUrl, gatewayReticulum) {
 let startedCompose = false;
 let staticServer = null;
 let gateway = null;
+let failed = false;
 
 try {
-  startedCompose = await ensureInteropPeers();
+  const peers = startInteropPeers();
+  startedCompose = peers.started;
+  await waitForInteropPeers(peers);
   runBuild();
 
   gateway = await startGateway();
@@ -292,7 +336,10 @@ try {
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`web-interop-browser: failed — ${message}`);
-  process.exit(1);
+  // While the peers are still up: composeDown in the finally takes their logs
+  // with them.
+  reportPeerLogs();
+  failed = true;
 } finally {
   if (staticServer !== null) {
     await staticServer.close();
@@ -305,6 +352,14 @@ try {
   if (startedCompose) {
     composeDown();
   }
+}
+
+// Exiting from the catch skipped every line above, so a failed run left its
+// peers and its gateway running. The workflow's one automatic retry then reran
+// against a Python peer still holding routes to a gateway that no longer
+// existed, which is not the clean second try the retry was added to be.
+if (failed) {
+  process.exit(1);
 }
 
 console.log("web-interop-browser: passed");
