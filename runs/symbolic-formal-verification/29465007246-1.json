@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "runId": 29465007246,
+  "runNumber": 1,
+  "runAttempt": 1,
+  "workflow": "Symbolic Formal Verification",
+  "workflowSlug": "symbolic-formal-verification",
+  "workflowId": 314108415,
+  "workflowPath": ".github/workflows/formal-symbolic.yml",
+  "event": "push",
+  "branch": "main",
+  "sha": "6cbd81f02ec1ca7a4c63b2aecb5d9f2ef862a182",
+  "conclusion": "cancelled",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/29465007246",
+  "createdAt": "2026-07-16T01:47:43Z",
+  "startedAt": "2026-07-16T01:47:43Z",
+  "completedAt": "2026-07-16T02:18:02Z",
+  "wallMs": 1819000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 1814000,
+  "weightedMs": 1814000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 3000,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-26T22:25:33.157Z",
+  "jobs": [
+    {
+      "id": 87516209264,
+      "name": "symbolic",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000059268",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-07-16T01:47:44Z",
+      "startedAt": "2026-07-16T01:47:47Z",
+      "completedAt": "2026-07-16T02:18:01Z",
+      "queuedMs": 3000,
+      "durationMs": 1814000,
+      "billableMs": 0,
+      "weightedMs": 1814000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-07-16T01:47:47Z",
+          "completedAt": "2026-07-16T01:47:48Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-07-16T01:47:48Z",
+          "completedAt": "2026-07-16T01:47:49Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-07-16T01:47:49Z",
+          "completedAt": "2026-07-16T01:47:53Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run cachix/install-nix-action@v31",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-07-16T01:47:53Z",
+          "completedAt": "2026-07-16T01:47:57Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run npm run formal:symbolic:lint",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-07-16T01:47:57Z",
+          "completedAt": "2026-07-16T01:47:57Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Prove Tamarin models",
+          "number": 6,
+          "conclusion": "cancelled",
+          "startedAt": "2026-07-16T01:47:57Z",
+          "completedAt": "2026-07-16T02:17:59Z",
+          "durationMs": 1802000
+        },
+        {
+          "name": "Prove ProVerif models",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-07-16T02:17:59Z",
+          "completedAt": "2026-07-16T02:17:59Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "number": 13,
+          "conclusion": "skipped",
+          "startedAt": "2026-07-16T02:17:59Z",
+          "completedAt": "2026-07-16T02:17:59Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-07-16T02:17:59Z",
+          "completedAt": "2026-07-16T02:18:00Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-07-16T02:18:00Z",
+          "completedAt": "2026-07-16T02:18:00Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    }
+  ],
+  "backfilled": true
+}

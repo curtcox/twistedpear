@@ -1,0 +1,2975 @@
+{
+  "schema": 1,
+  "runId": 31868662005,
+  "runNumber": 41,
+  "runAttempt": 1,
+  "workflow": "Nightly",
+  "workflowSlug": "nightly",
+  "workflowId": 307756809,
+  "workflowPath": ".github/workflows/nightly.yml",
+  "event": "schedule",
+  "branch": "main",
+  "sha": "7b716fd7d012d07dde93edbbb5ed9dd7e939f09a",
+  "conclusion": "failure",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/31868662005",
+  "createdAt": "2026-08-15T06:07:39Z",
+  "startedAt": "2026-08-15T06:07:39Z",
+  "completedAt": "2026-08-15T07:11:26Z",
+  "wallMs": 3827000,
+  "queuedMs": 0,
+  "jobCount": 29,
+  "runnerMs": 8694000,
+  "weightedMs": 20007000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 24
+    },
+    "MACOS": {
+      "totalMs": 0,
+      "jobs": 5
+    }
+  },
+  "queuedJobMs": 71000,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-26T22:26:16.236Z",
+  "jobs": [
+    {
+      "id": 94973646825,
+      "name": "sansio-determinism (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078805",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:08:36Z",
+      "queuedMs": 2000,
+      "durationMs": 55000,
+      "billableMs": 0,
+      "weightedMs": 55000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:08:21Z",
+          "durationMs": 36000
+        },
+        {
+          "name": "Run npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/protocol",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:21Z",
+          "completedAt": "2026-08-15T06:08:22Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm run sansio:determinism",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:22Z",
+          "completedAt": "2026-08-15T06:08:32Z",
+          "durationMs": 10000
+        },
+        {
+          "name": "Run npm run sansio:canary",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:32Z",
+          "completedAt": "2026-08-15T06:08:34Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:34Z",
+          "completedAt": "2026-08-15T06:08:34Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:34Z",
+          "completedAt": "2026-08-15T06:08:35Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:35Z",
+          "completedAt": "2026-08-15T06:08:35Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646830,
+      "name": "examples",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078803",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:08:34Z",
+      "queuedMs": 2000,
+      "durationMs": 53000,
+      "billableMs": 0,
+      "weightedMs": 53000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:47Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:47Z",
+          "completedAt": "2026-08-15T06:08:26Z",
+          "durationMs": 39000
+        },
+        {
+          "name": "Run npm run test:examples",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:26Z",
+          "completedAt": "2026-08-15T06:08:32Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:32Z",
+          "completedAt": "2026-08-15T06:08:32Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:32Z",
+          "completedAt": "2026-08-15T06:08:32Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:32Z",
+          "completedAt": "2026-08-15T06:08:32Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646833,
+      "name": "simulation-campaign",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078808",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:08:32Z",
+      "queuedMs": 2000,
+      "durationMs": 51000,
+      "billableMs": 0,
+      "weightedMs": 51000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:21Z",
+          "durationMs": 35000
+        },
+        {
+          "name": "Run npm run test:sim-campaign",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:21Z",
+          "completedAt": "2026-08-15T06:08:29Z",
+          "durationMs": 8000
+        },
+        {
+          "name": "Run actions/upload-artifact@v7",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:29Z",
+          "completedAt": "2026-08-15T06:08:30Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:30Z",
+          "completedAt": "2026-08-15T06:08:30Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:30Z",
+          "completedAt": "2026-08-15T06:08:30Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:30Z",
+          "completedAt": "2026-08-15T06:08:30Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646837,
+      "name": "link-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078807",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:13:44Z",
+      "queuedMs": 2000,
+      "durationMs": 363000,
+      "billableMs": 0,
+      "weightedMs": 363000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:19Z",
+          "durationMs": 33000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:19Z",
+          "completedAt": "2026-08-15T06:08:20Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run INTEROP=1 npm run test:link-soak",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:20Z",
+          "completedAt": "2026-08-15T06:13:42Z",
+          "durationMs": 322000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:42Z",
+          "completedAt": "2026-08-15T06:13:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:42Z",
+          "completedAt": "2026-08-15T06:13:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:42Z",
+          "completedAt": "2026-08-15T06:13:42Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646855,
+      "name": "freenet-local-network",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078804",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:43Z",
+      "completedAt": "2026-08-15T06:10:03Z",
+      "queuedMs": 4000,
+      "durationMs": 140000,
+      "billableMs": 0,
+      "weightedMs": 140000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:44Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:07:53Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:53Z",
+          "completedAt": "2026-08-15T06:08:33Z",
+          "durationMs": 40000
+        },
+        {
+          "name": "Download pinned Freenet node",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:33Z",
+          "completedAt": "2026-08-15T06:08:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Record 100-sample local update-to-notify measurements",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:33Z",
+          "completedAt": "2026-08-15T06:09:59Z",
+          "durationMs": 86000
+        },
+        {
+          "name": "Run actions/upload-artifact@v7",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:59Z",
+          "completedAt": "2026-08-15T06:10:00Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:10:00Z",
+          "completedAt": "2026-08-15T06:10:01Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:10:01Z",
+          "completedAt": "2026-08-15T06:10:01Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:10:01Z",
+          "completedAt": "2026-08-15T06:10:01Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646872,
+      "name": "resource-interop-100mb",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078809",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:09:54Z",
+      "queuedMs": 2000,
+      "durationMs": 133000,
+      "billableMs": 0,
+      "weightedMs": 133000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:48Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:48Z",
+          "completedAt": "2026-08-15T06:08:24Z",
+          "durationMs": 36000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:24Z",
+          "completedAt": "2026-08-15T06:08:26Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run docker compose -f conformance/docker/docker-compose.yml up -d --build resource-echo",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:26Z",
+          "completedAt": "2026-08-15T06:08:36Z",
+          "durationMs": 10000
+        },
+        {
+          "name": "Run INTEROP=1 npm run test:interop -- --testNamePattern=\"Resource transfer\"",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:36Z",
+          "completedAt": "2026-08-15T06:09:51Z",
+          "durationMs": 75000
+        },
+        {
+          "name": "Run docker compose -f conformance/docker/docker-compose.yml down",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:51Z",
+          "completedAt": "2026-08-15T06:09:52Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:52Z",
+          "completedAt": "2026-08-15T06:09:52Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 16,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:52Z",
+          "completedAt": "2026-08-15T06:09:52Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:52Z",
+          "completedAt": "2026-08-15T06:09:52Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646877,
+      "name": "property-campaign",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078815",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:08:35Z",
+      "queuedMs": 2000,
+      "durationMs": 54000,
+      "billableMs": 0,
+      "weightedMs": 54000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:24Z",
+          "durationMs": 38000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:24Z",
+          "completedAt": "2026-08-15T06:08:26Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run node scripts/checks/run.mjs --tier=pr --only=properties",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:26Z",
+          "completedAt": "2026-08-15T06:08:33Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:33Z",
+          "completedAt": "2026-08-15T06:08:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:33Z",
+          "completedAt": "2026-08-15T06:08:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:33Z",
+          "completedAt": "2026-08-15T06:08:33Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646878,
+      "name": "electron-pack-macos",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000078813",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:10:40Z",
+      "queuedMs": 2000,
+      "durationMs": 179000,
+      "billableMs": 0,
+      "weightedMs": 1790000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:41Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:44Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:44Z",
+          "completedAt": "2026-08-15T06:07:54Z",
+          "durationMs": 10000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:54Z",
+          "completedAt": "2026-08-15T06:08:25Z",
+          "durationMs": 31000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:25Z",
+          "completedAt": "2026-08-15T06:08:27Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run npm run dist --workspace=host-desktop",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:27Z",
+          "completedAt": "2026-08-15T06:09:55Z",
+          "durationMs": 88000
+        },
+        {
+          "name": "Run actions/upload-artifact@v7",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:55Z",
+          "completedAt": "2026-08-15T06:10:36Z",
+          "durationMs": 41000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:10:36Z",
+          "completedAt": "2026-08-15T06:10:37Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:10:37Z",
+          "completedAt": "2026-08-15T06:10:37Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:10:37Z",
+          "completedAt": "2026-08-15T06:10:38Z",
+          "durationMs": 1000
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646879,
+      "name": "sansio-determinism (macos-15)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000078814",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:08:40Z",
+      "queuedMs": 2000,
+      "durationMs": 59000,
+      "billableMs": 0,
+      "weightedMs": 590000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:52Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:52Z",
+          "completedAt": "2026-08-15T06:08:22Z",
+          "durationMs": 30000
+        },
+        {
+          "name": "Run npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/protocol",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:22Z",
+          "completedAt": "2026-08-15T06:08:23Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm run sansio:determinism",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:23Z",
+          "completedAt": "2026-08-15T06:08:35Z",
+          "durationMs": 12000
+        },
+        {
+          "name": "Run npm run sansio:canary",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:35Z",
+          "completedAt": "2026-08-15T06:08:37Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:37Z",
+          "completedAt": "2026-08-15T06:08:38Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:38Z",
+          "completedAt": "2026-08-15T06:08:38Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:38Z",
+          "completedAt": "2026-08-15T06:08:39Z",
+          "durationMs": 1000
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646880,
+      "name": "upstream-interop",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078811",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:09:31Z",
+      "queuedMs": 2000,
+      "durationMs": 110000,
+      "billableMs": 0,
+      "weightedMs": 110000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:49Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:49Z",
+          "completedAt": "2026-08-15T06:08:29Z",
+          "durationMs": 40000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:29Z",
+          "completedAt": "2026-08-15T06:08:31Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run docker compose -f conformance/docker/docker-compose.yml build --build-arg UNPINNED=1 leaf-echo lxmf-echo link-echo udp-echo resource-echo propagation-lxmd",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:31Z",
+          "completedAt": "2026-08-15T06:08:44Z",
+          "durationMs": 13000
+        },
+        {
+          "name": "Run INTEROP=1 npm run test:interop",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:44Z",
+          "completedAt": "2026-08-15T06:09:29Z",
+          "durationMs": 45000
+        },
+        {
+          "name": "Run docker compose -f conformance/docker/docker-compose.yml down",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:29Z",
+          "completedAt": "2026-08-15T06:09:30Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:30Z",
+          "completedAt": "2026-08-15T06:09:30Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 16,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:30Z",
+          "completedAt": "2026-08-15T06:09:30Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:30Z",
+          "completedAt": "2026-08-15T06:09:30Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646885,
+      "name": "integration-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078806",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:13:33Z",
+      "queuedMs": 2000,
+      "durationMs": 352000,
+      "billableMs": 0,
+      "weightedMs": 352000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:24Z",
+          "durationMs": 38000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:24Z",
+          "completedAt": "2026-08-15T06:08:26Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run npm run test:integration-soak",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:26Z",
+          "completedAt": "2026-08-15T06:13:30Z",
+          "durationMs": 304000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:30Z",
+          "completedAt": "2026-08-15T06:13:31Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:31Z",
+          "completedAt": "2026-08-15T06:13:31Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:31Z",
+          "completedAt": "2026-08-15T06:13:31Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646886,
+      "name": "dist-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078812",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:13:25Z",
+      "queuedMs": 2000,
+      "durationMs": 344000,
+      "billableMs": 0,
+      "weightedMs": 344000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:18Z",
+          "durationMs": 32000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:18Z",
+          "completedAt": "2026-08-15T06:08:20Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run npm run test:dist-soak",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:20Z",
+          "completedAt": "2026-08-15T06:13:23Z",
+          "durationMs": 303000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:23Z",
+          "completedAt": "2026-08-15T06:13:23Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:23Z",
+          "completedAt": "2026-08-15T06:13:23Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:23Z",
+          "completedAt": "2026-08-15T06:13:23Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646902,
+      "name": "ios-sim",
+      "status": "completed",
+      "conclusion": "failure",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000078823",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:13:37Z",
+      "queuedMs": 2000,
+      "durationMs": 356000,
+      "billableMs": 0,
+      "weightedMs": 3560000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:07:57Z",
+          "durationMs": 11000
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:57Z",
+          "completedAt": "2026-08-15T06:07:57Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:57Z",
+          "completedAt": "2026-08-15T06:08:40Z",
+          "durationMs": 43000
+        },
+        {
+          "name": "Run python3 -m pip install \"rns==0.9.5\"",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:40Z",
+          "completedAt": "2026-08-15T06:08:42Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run bash conformance/ios-sim/ci-required.sh",
+          "number": 7,
+          "conclusion": "failure",
+          "startedAt": "2026-08-15T06:08:42Z",
+          "completedAt": "2026-08-15T06:13:33Z",
+          "durationMs": 291000
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "number": 12,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-15T06:13:33Z",
+          "completedAt": "2026-08-15T06:13:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 13,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-15T06:13:33Z",
+          "completedAt": "2026-08-15T06:13:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:33Z",
+          "completedAt": "2026-08-15T06:13:34Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:34Z",
+          "completedAt": "2026-08-15T06:13:35Z",
+          "durationMs": 1000
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646913,
+      "name": "lan-mirror",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078810",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:43Z",
+      "completedAt": "2026-08-15T06:08:54Z",
+      "queuedMs": 4000,
+      "durationMs": 71000,
+      "billableMs": 0,
+      "weightedMs": 71000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:44Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:07:50Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:50Z",
+          "completedAt": "2026-08-15T06:08:31Z",
+          "durationMs": 41000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:31Z",
+          "completedAt": "2026-08-15T06:08:33Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run npm run test:lan-mirror",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:33Z",
+          "completedAt": "2026-08-15T06:08:51Z",
+          "durationMs": 18000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:51Z",
+          "completedAt": "2026-08-15T06:08:51Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:51Z",
+          "completedAt": "2026-08-15T06:08:51Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:51Z",
+          "completedAt": "2026-08-15T06:08:51Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646927,
+      "name": "ios-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000078822",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:17:09Z",
+      "queuedMs": 2000,
+      "durationMs": 568000,
+      "billableMs": 0,
+      "weightedMs": 5680000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:41Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:56Z",
+          "durationMs": 11000
+        },
+        {
+          "name": "Run actions/setup-python@v7",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:56Z",
+          "completedAt": "2026-08-15T06:07:56Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:56Z",
+          "completedAt": "2026-08-15T06:08:39Z",
+          "durationMs": 43000
+        },
+        {
+          "name": "Run python3 -m pip install \"rns==0.9.5\"",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:39Z",
+          "completedAt": "2026-08-15T06:08:42Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run bash conformance/scenarios/with-leaf-echo-peer.sh npm run test:ios-soak:required",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:42Z",
+          "completedAt": "2026-08-15T06:17:05Z",
+          "durationMs": 503000
+        },
+        {
+          "name": "Post Run actions/setup-python@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:17:05Z",
+          "completedAt": "2026-08-15T06:17:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:17:05Z",
+          "completedAt": "2026-08-15T06:17:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:17:05Z",
+          "completedAt": "2026-08-15T06:17:06Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:17:06Z",
+          "completedAt": "2026-08-15T06:17:06Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646933,
+      "name": "desktop-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078818",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:43Z",
+      "completedAt": "2026-08-15T06:09:21Z",
+      "queuedMs": 4000,
+      "durationMs": 98000,
+      "billableMs": 0,
+      "weightedMs": 98000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:44Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:44Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:50Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:50Z",
+          "completedAt": "2026-08-15T06:08:29Z",
+          "durationMs": 39000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:29Z",
+          "completedAt": "2026-08-15T06:08:32Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run npm run test:desktop-soak",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:32Z",
+          "completedAt": "2026-08-15T06:09:19Z",
+          "durationMs": 47000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:19Z",
+          "completedAt": "2026-08-15T06:09:19Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:19Z",
+          "completedAt": "2026-08-15T06:09:19Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:19Z",
+          "completedAt": "2026-08-15T06:09:19Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646938,
+      "name": "web-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078821",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:42Z",
+      "completedAt": "2026-08-15T06:13:46Z",
+      "queuedMs": 3000,
+      "durationMs": 364000,
+      "billableMs": 0,
+      "weightedMs": 364000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:16Z",
+          "durationMs": 30000
+        },
+        {
+          "name": "Run npx playwright install chromium --with-deps",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:16Z",
+          "completedAt": "2026-08-15T06:08:40Z",
+          "durationMs": 24000
+        },
+        {
+          "name": "Run npm run test:web-soak",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:40Z",
+          "completedAt": "2026-08-15T06:13:43Z",
+          "durationMs": 303000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:43Z",
+          "completedAt": "2026-08-15T06:13:44Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:44Z",
+          "completedAt": "2026-08-15T06:13:44Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:44Z",
+          "completedAt": "2026-08-15T06:13:44Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646939,
+      "name": "transport-node-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078817",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:42Z",
+      "completedAt": "2026-08-15T06:13:57Z",
+      "queuedMs": 3000,
+      "durationMs": 375000,
+      "billableMs": 0,
+      "weightedMs": 375000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:07:48Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:48Z",
+          "completedAt": "2026-08-15T06:08:27Z",
+          "durationMs": 39000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:27Z",
+          "completedAt": "2026-08-15T06:08:29Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run INTEROP=1 npm run test:transport-node-soak",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:29Z",
+          "completedAt": "2026-08-15T06:13:54Z",
+          "durationMs": 325000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:54Z",
+          "completedAt": "2026-08-15T06:13:54Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:54Z",
+          "completedAt": "2026-08-15T06:13:54Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:54Z",
+          "completedAt": "2026-08-15T06:13:54Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646951,
+      "name": "phase4-demo",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078820",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:08:37Z",
+      "queuedMs": 2000,
+      "durationMs": 56000,
+      "billableMs": 0,
+      "weightedMs": 56000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:24Z",
+          "durationMs": 38000
+        },
+        {
+          "name": "Run npm run demo:phase4",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:24Z",
+          "completedAt": "2026-08-15T06:08:36Z",
+          "durationMs": 12000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:36Z",
+          "completedAt": "2026-08-15T06:08:36Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:36Z",
+          "completedAt": "2026-08-15T06:08:36Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:36Z",
+          "completedAt": "2026-08-15T06:08:36Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646958,
+      "name": "miniapp-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078816",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:42Z",
+      "completedAt": "2026-08-15T06:13:41Z",
+      "queuedMs": 3000,
+      "durationMs": 359000,
+      "billableMs": 0,
+      "weightedMs": 359000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:44Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:44Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:51Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:51Z",
+          "completedAt": "2026-08-15T06:08:33Z",
+          "durationMs": 42000
+        },
+        {
+          "name": "Run npm run test:miniapp-soak",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:33Z",
+          "completedAt": "2026-08-15T06:13:38Z",
+          "durationMs": 305000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:38Z",
+          "completedAt": "2026-08-15T06:13:38Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:38Z",
+          "completedAt": "2026-08-15T06:13:38Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:38Z",
+          "completedAt": "2026-08-15T06:13:38Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973646985,
+      "name": "desktop-macos",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000078827",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:42Z",
+      "completedAt": "2026-08-15T06:09:17Z",
+      "queuedMs": 3000,
+      "durationMs": 95000,
+      "billableMs": 0,
+      "weightedMs": 950000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:44Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:44Z",
+          "completedAt": "2026-08-15T06:07:48Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:48Z",
+          "completedAt": "2026-08-15T06:08:03Z",
+          "durationMs": 15000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:03Z",
+          "completedAt": "2026-08-15T06:08:45Z",
+          "durationMs": 42000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:45Z",
+          "completedAt": "2026-08-15T06:08:49Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run npm run test:desktop",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:49Z",
+          "completedAt": "2026-08-15T06:09:11Z",
+          "durationMs": 22000
+        },
+        {
+          "name": "Run npm run test:widget-parity",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:11Z",
+          "completedAt": "2026-08-15T06:09:12Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:12Z",
+          "completedAt": "2026-08-15T06:09:13Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:13Z",
+          "completedAt": "2026-08-15T06:09:13Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:09:13Z",
+          "completedAt": "2026-08-15T06:09:14Z",
+          "durationMs": 1000
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973647003,
+      "name": "static-analysis-plan",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078819",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:07:51Z",
+      "queuedMs": 2000,
+      "durationMs": 10000,
+      "billableMs": 0,
+      "weightedMs": 10000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:49Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run echo \"matrix=$(npm run --silent checks:matrix -- --tier=nightly)\" >> \"$GITHUB_OUTPUT\"",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:49Z",
+          "completedAt": "2026-08-15T06:07:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:49Z",
+          "completedAt": "2026-08-15T06:07:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:49Z",
+          "completedAt": "2026-08-15T06:07:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:49Z",
+          "completedAt": "2026-08-15T06:07:49Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973647010,
+      "name": "phase3-demo",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078825",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:42Z",
+      "completedAt": "2026-08-15T06:08:36Z",
+      "queuedMs": 3000,
+      "durationMs": 54000,
+      "billableMs": 0,
+      "weightedMs": 54000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:20Z",
+          "durationMs": 34000
+        },
+        {
+          "name": "Run npm run demo:phase3",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:20Z",
+          "completedAt": "2026-08-15T06:08:34Z",
+          "durationMs": 14000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:34Z",
+          "completedAt": "2026-08-15T06:08:34Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:34Z",
+          "completedAt": "2026-08-15T06:08:34Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:34Z",
+          "completedAt": "2026-08-15T06:08:34Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973647063,
+      "name": "harness-install",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078824",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:08:43Z",
+      "queuedMs": 2000,
+      "durationMs": 62000,
+      "billableMs": 0,
+      "weightedMs": 62000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:43Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:22Z",
+          "durationMs": 36000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:22Z",
+          "completedAt": "2026-08-15T06:08:23Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm run test:harness-install",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:23Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 18000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:41Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:41Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:41Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973647067,
+      "name": "mixed-network-soak",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078826",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:39Z",
+      "startedAt": "2026-08-15T06:07:41Z",
+      "completedAt": "2026-08-15T06:13:40Z",
+      "queuedMs": 2000,
+      "durationMs": 359000,
+      "billableMs": 0,
+      "weightedMs": 359000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:42Z",
+          "completedAt": "2026-08-15T06:07:45Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:45Z",
+          "completedAt": "2026-08-15T06:07:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:46Z",
+          "completedAt": "2026-08-15T06:08:22Z",
+          "durationMs": 36000
+        },
+        {
+          "name": "Run npm run build",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:22Z",
+          "completedAt": "2026-08-15T06:08:24Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run npm run test:mixed-network-soak",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:24Z",
+          "completedAt": "2026-08-15T06:13:38Z",
+          "durationMs": 314000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:38Z",
+          "completedAt": "2026-08-15T06:13:38Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:38Z",
+          "completedAt": "2026-08-15T06:13:38Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:13:38Z",
+          "completedAt": "2026-08-15T06:13:38Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973671657,
+      "name": "Nightly gate — Dependency advisory scan",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078828",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:52Z",
+      "startedAt": "2026-08-15T06:07:54Z",
+      "completedAt": "2026-08-15T06:08:43Z",
+      "queuedMs": 2000,
+      "durationMs": 49000,
+      "billableMs": 0,
+      "weightedMs": 49000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:54Z",
+          "completedAt": "2026-08-15T06:07:55Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:55Z",
+          "completedAt": "2026-08-15T06:08:01Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:01Z",
+          "completedAt": "2026-08-15T06:08:02Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:02Z",
+          "completedAt": "2026-08-15T06:08:38Z",
+          "durationMs": 36000
+        },
+        {
+          "name": "Build workspace packages required by the gate",
+          "number": 5,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-15T06:08:38Z",
+          "completedAt": "2026-08-15T06:08:38Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-15T06:08:38Z",
+          "completedAt": "2026-08-15T06:08:38Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run node scripts/checks/run.mjs --tier=nightly --only=audit",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:38Z",
+          "completedAt": "2026-08-15T06:08:40Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/upload-artifact@v7",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:40Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:41Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 16,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:41Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:41Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973671683,
+      "name": "Nightly gate — Churn-weighted complexity hotspots",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078829",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:52Z",
+      "startedAt": "2026-08-15T06:07:54Z",
+      "completedAt": "2026-08-15T06:08:55Z",
+      "queuedMs": 2000,
+      "durationMs": 61000,
+      "billableMs": 0,
+      "weightedMs": 61000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:55Z",
+          "completedAt": "2026-08-15T06:07:55Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:55Z",
+          "completedAt": "2026-08-15T06:08:01Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:01Z",
+          "completedAt": "2026-08-15T06:08:02Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:02Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 39000
+        },
+        {
+          "name": "Build workspace packages required by the gate",
+          "number": 5,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-15T06:08:41Z",
+          "completedAt": "2026-08-15T06:08:41Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:41Z",
+          "completedAt": "2026-08-15T06:08:42Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run node scripts/checks/run.mjs --tier=nightly --only=hotspots",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:42Z",
+          "completedAt": "2026-08-15T06:08:51Z",
+          "durationMs": 9000
+        },
+        {
+          "name": "Run actions/upload-artifact@v7",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:51Z",
+          "completedAt": "2026-08-15T06:08:52Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:52Z",
+          "completedAt": "2026-08-15T06:08:52Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 16,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:52Z",
+          "completedAt": "2026-08-15T06:08:52Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:52Z",
+          "completedAt": "2026-08-15T06:08:52Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973671685,
+      "name": "Nightly gate — CycloneDX SBOM",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078830",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:52Z",
+      "startedAt": "2026-08-15T06:07:55Z",
+      "completedAt": "2026-08-15T06:08:49Z",
+      "queuedMs": 3000,
+      "durationMs": 54000,
+      "billableMs": 0,
+      "weightedMs": 54000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:56Z",
+          "completedAt": "2026-08-15T06:07:57Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:57Z",
+          "completedAt": "2026-08-15T06:08:02Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:02Z",
+          "completedAt": "2026-08-15T06:08:04Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:04Z",
+          "completedAt": "2026-08-15T06:08:44Z",
+          "durationMs": 40000
+        },
+        {
+          "name": "Build workspace packages required by the gate",
+          "number": 5,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-15T06:08:44Z",
+          "completedAt": "2026-08-15T06:08:44Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-15T06:08:44Z",
+          "completedAt": "2026-08-15T06:08:44Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run node scripts/checks/run.mjs --tier=nightly --only=sbom",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:44Z",
+          "completedAt": "2026-08-15T06:08:46Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/upload-artifact@v7",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:46Z",
+          "completedAt": "2026-08-15T06:08:47Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:47Z",
+          "completedAt": "2026-08-15T06:08:47Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 16,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:47Z",
+          "completedAt": "2026-08-15T06:08:48Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:48Z",
+          "completedAt": "2026-08-15T06:08:48Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 94973671757,
+      "name": "Nightly gate — Protocol mutation score",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000078831",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-15T06:07:52Z",
+      "startedAt": "2026-08-15T06:07:55Z",
+      "completedAt": "2026-08-15T07:11:25Z",
+      "queuedMs": 3000,
+      "durationMs": 3810000,
+      "billableMs": 0,
+      "weightedMs": 3810000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:56Z",
+          "completedAt": "2026-08-15T06:07:57Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:07:57Z",
+          "completedAt": "2026-08-15T06:08:02Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:03Z",
+          "completedAt": "2026-08-15T06:08:06Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:06Z",
+          "completedAt": "2026-08-15T06:08:46Z",
+          "durationMs": 40000
+        },
+        {
+          "name": "Build workspace packages required by the gate",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:46Z",
+          "completedAt": "2026-08-15T06:08:48Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Install lizard",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-15T06:08:48Z",
+          "completedAt": "2026-08-15T06:08:48Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run node scripts/checks/run.mjs --tier=nightly --only=mutation",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T06:08:48Z",
+          "completedAt": "2026-08-15T07:11:19Z",
+          "durationMs": 3751000
+        },
+        {
+          "name": "Run actions/upload-artifact@v7",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T07:11:19Z",
+          "completedAt": "2026-08-15T07:11:20Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T07:11:20Z",
+          "completedAt": "2026-08-15T07:11:21Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 16,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T07:11:21Z",
+          "completedAt": "2026-08-15T07:11:21Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-15T07:11:21Z",
+          "completedAt": "2026-08-15T07:11:21Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    }
+  ],
+  "backfilled": true
+}

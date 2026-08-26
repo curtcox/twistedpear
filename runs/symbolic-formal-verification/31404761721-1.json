@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "runId": 31404761721,
+  "runNumber": 15,
+  "runAttempt": 1,
+  "workflow": "Symbolic Formal Verification",
+  "workflowSlug": "symbolic-formal-verification",
+  "workflowId": 314108415,
+  "workflowPath": ".github/workflows/formal-symbolic.yml",
+  "event": "push",
+  "branch": "main",
+  "sha": "2a418f27b1f242bd517574d8c5b66aa6d8217810",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/31404761721",
+  "createdAt": "2026-08-10T15:39:12Z",
+  "startedAt": "2026-08-10T15:39:12Z",
+  "completedAt": "2026-08-10T15:40:09Z",
+  "wallMs": 57000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 50000,
+  "weightedMs": 50000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 5000,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-26T22:25:30.236Z",
+  "jobs": [
+    {
+      "id": 93508261904,
+      "name": "symbolic",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000072397",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-10T15:39:13Z",
+      "startedAt": "2026-08-10T15:39:18Z",
+      "completedAt": "2026-08-10T15:40:08Z",
+      "queuedMs": 5000,
+      "durationMs": 50000,
+      "billableMs": 0,
+      "weightedMs": 50000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:39:19Z",
+          "completedAt": "2026-08-10T15:39:21Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:39:21Z",
+          "completedAt": "2026-08-10T15:39:23Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:39:23Z",
+          "completedAt": "2026-08-10T15:39:24Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run cachix/install-nix-action@v31",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:39:24Z",
+          "completedAt": "2026-08-10T15:39:29Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Run npm run formal:symbolic:lint",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:39:29Z",
+          "completedAt": "2026-08-10T15:39:29Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Prove Tamarin models",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:39:29Z",
+          "completedAt": "2026-08-10T15:40:04Z",
+          "durationMs": 35000
+        },
+        {
+          "name": "Prove ProVerif models",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:40:04Z",
+          "completedAt": "2026-08-10T15:40:05Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:40:05Z",
+          "completedAt": "2026-08-10T15:40:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:40:05Z",
+          "completedAt": "2026-08-10T15:40:06Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-10T15:40:06Z",
+          "completedAt": "2026-08-10T15:40:06Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    }
+  ],
+  "backfilled": true
+}

@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "runId": 32983861449,
+  "runNumber": 223,
+  "runAttempt": 1,
+  "workflow": "Site checks",
+  "workflowSlug": "site-checks",
+  "workflowId": 328850456,
+  "workflowPath": ".github/workflows/site-checks.yml",
+  "event": "workflow_run",
+  "branch": "main",
+  "sha": "b774ed74841b2dfa6d2cdecbdd97527f304d4b5c",
+  "conclusion": "failure",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/32983861449",
+  "createdAt": "2026-08-26T15:01:57Z",
+  "startedAt": "2026-08-26T15:01:57Z",
+  "completedAt": "2026-08-26T15:17:52Z",
+  "wallMs": 955000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 901000,
+  "weightedMs": 901000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 0,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-26T22:29:09.649Z",
+  "jobs": [
+    {
+      "id": 98226930690,
+      "name": "reported-checks",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "runnerOs": "UBUNTU",
+      "runnerName": "",
+      "runnerGroup": "",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-26T15:01:59Z",
+      "startedAt": "2026-08-26T15:01:59Z",
+      "completedAt": "2026-08-26T15:17:00Z",
+      "queuedMs": 0,
+      "durationMs": 901000,
+      "billableMs": 0,
+      "weightedMs": 901000,
+      "attempt": 1,
+      "steps": [],
+      "resources": null,
+      "matrix": null
+    }
+  ],
+  "backfilled": true
+}

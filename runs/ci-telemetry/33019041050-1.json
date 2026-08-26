@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "runId": 33019041050,
+  "runNumber": 1,
+  "runAttempt": 1,
+  "workflow": "CI telemetry",
+  "workflowSlug": "ci-telemetry",
+  "workflowId": 343300837,
+  "workflowPath": ".github/workflows/ci-telemetry.yml",
+  "event": "workflow_run",
+  "branch": "main",
+  "sha": "3bf708e3ba6949789a52112587e86a57e788b38e",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/33019041050",
+  "createdAt": "2026-08-26T22:16:27Z",
+  "startedAt": "2026-08-26T22:16:27Z",
+  "completedAt": "2026-08-26T22:16:54Z",
+  "wallMs": 27000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 12000,
+  "weightedMs": 12000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 9000,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-26T22:18:25.854Z",
+  "jobs": [
+    {
+      "id": 98344530492,
+      "name": "collect",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000098466",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-26T22:16:32Z",
+      "startedAt": "2026-08-26T22:16:41Z",
+      "completedAt": "2026-08-26T22:16:53Z",
+      "queuedMs": 9000,
+      "durationMs": 12000,
+      "billableMs": 0,
+      "weightedMs": 12000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:42Z",
+          "completedAt": "2026-08-26T22:16:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:43Z",
+          "completedAt": "2026-08-26T22:16:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:45Z",
+          "completedAt": "2026-08-26T22:16:45Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Check out the metrics store",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:45Z",
+          "completedAt": "2026-08-26T22:16:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Download the telemetry this run's jobs uploaded",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:46Z",
+          "completedAt": "2026-08-26T22:16:47Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Record the finished run",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:47Z",
+          "completedAt": "2026-08-26T22:16:48Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Import runs that predate the collector",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-26T22:16:48Z",
+          "completedAt": "2026-08-26T22:16:48Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Publish the store",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:48Z",
+          "completedAt": "2026-08-26T22:16:49Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:49Z",
+          "completedAt": "2026-08-26T22:16:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 16,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:49Z",
+          "completedAt": "2026-08-26T22:16:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:49Z",
+          "completedAt": "2026-08-26T22:16:49Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    }
+  ],
+  "backfilled": true
+}

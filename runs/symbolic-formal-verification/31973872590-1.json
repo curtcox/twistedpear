@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "runId": 31973872590,
+  "runNumber": 17,
+  "runAttempt": 1,
+  "workflow": "Symbolic Formal Verification",
+  "workflowSlug": "symbolic-formal-verification",
+  "workflowId": 314108415,
+  "workflowPath": ".github/workflows/formal-symbolic.yml",
+  "event": "push",
+  "branch": "main",
+  "sha": "11d52ebc7063482da8d5fa7f39c6477e7caf7aac",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/31973872590",
+  "createdAt": "2026-08-16T21:34:02Z",
+  "startedAt": "2026-08-16T21:34:02Z",
+  "completedAt": "2026-08-16T21:34:50Z",
+  "wallMs": 48000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 43000,
+  "weightedMs": 43000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 3000,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-26T22:25:29.032Z",
+  "jobs": [
+    {
+      "id": 95230322380,
+      "name": "symbolic",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000080685",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-16T21:34:03Z",
+      "startedAt": "2026-08-16T21:34:06Z",
+      "completedAt": "2026-08-16T21:34:49Z",
+      "queuedMs": 3000,
+      "durationMs": 43000,
+      "billableMs": 0,
+      "weightedMs": 43000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:07Z",
+          "completedAt": "2026-08-16T21:34:08Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:08Z",
+          "completedAt": "2026-08-16T21:34:09Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:09Z",
+          "completedAt": "2026-08-16T21:34:10Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:10Z",
+          "completedAt": "2026-08-16T21:34:14Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run npm run formal:symbolic:lint",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:14Z",
+          "completedAt": "2026-08-16T21:34:14Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Prove Tamarin models",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:14Z",
+          "completedAt": "2026-08-16T21:34:45Z",
+          "durationMs": 31000
+        },
+        {
+          "name": "Prove ProVerif models",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:45Z",
+          "completedAt": "2026-08-16T21:34:46Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:46Z",
+          "completedAt": "2026-08-16T21:34:46Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:46Z",
+          "completedAt": "2026-08-16T21:34:46Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-16T21:34:46Z",
+          "completedAt": "2026-08-16T21:34:46Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    }
+  ],
+  "backfilled": true
+}

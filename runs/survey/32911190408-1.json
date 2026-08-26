@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "runId": 32911190408,
+  "runNumber": 168,
+  "runAttempt": 1,
+  "workflow": "Survey",
+  "workflowSlug": "survey",
+  "workflowId": 333703307,
+  "workflowPath": ".github/workflows/survey.yml",
+  "event": "push",
+  "branch": "main",
+  "sha": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/32911190408",
+  "createdAt": "2026-08-25T23:32:04Z",
+  "startedAt": "2026-08-25T23:32:04Z",
+  "completedAt": "2026-08-25T23:36:08Z",
+  "wallMs": 244000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 242000,
+  "weightedMs": 242000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 2000,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-26T22:29:42.363Z",
+  "jobs": [
+    {
+      "id": 98005557433,
+      "name": "Code survey",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000096070",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-25T23:32:04Z",
+      "startedAt": "2026-08-25T23:32:06Z",
+      "completedAt": "2026-08-25T23:36:08Z",
+      "queuedMs": 2000,
+      "durationMs": 242000,
+      "billableMs": 0,
+      "weightedMs": 242000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:32:07Z",
+          "completedAt": "2026-08-25T23:32:08Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:32:08Z",
+          "completedAt": "2026-08-25T23:32:13Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:32:13Z",
+          "completedAt": "2026-08-25T23:32:17Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:32:17Z",
+          "completedAt": "2026-08-25T23:32:17Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:32:17Z",
+          "completedAt": "2026-08-25T23:32:54Z",
+          "durationMs": 37000
+        },
+        {
+          "name": "Build workspace packages",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:32:54Z",
+          "completedAt": "2026-08-25T23:32:56Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run the survey",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:32:56Z",
+          "completedAt": "2026-08-25T23:36:04Z",
+          "durationMs": 188000
+        },
+        {
+          "name": "Summarise",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:36:04Z",
+          "completedAt": "2026-08-25T23:36:04Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:36:04Z",
+          "completedAt": "2026-08-25T23:36:05Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 16,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:36:05Z",
+          "completedAt": "2026-08-25T23:36:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:36:05Z",
+          "completedAt": "2026-08-25T23:36:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 18,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:36:05Z",
+          "completedAt": "2026-08-25T23:36:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 19,
+          "conclusion": "success",
+          "startedAt": "2026-08-25T23:36:05Z",
+          "completedAt": "2026-08-25T23:36:05Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    }
+  ],
+  "backfilled": true
+}

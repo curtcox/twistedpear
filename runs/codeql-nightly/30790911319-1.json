@@ -1,0 +1,305 @@
+{
+  "schema": 1,
+  "runId": 30790911319,
+  "runNumber": 1,
+  "runAttempt": 1,
+  "workflow": "CodeQL nightly",
+  "workflowSlug": "codeql-nightly",
+  "workflowId": 325797362,
+  "workflowPath": ".github/workflows/codeql-nightly.yml",
+  "event": "schedule",
+  "branch": "main",
+  "sha": "51965dcd79a5890057e6c0ae1aa0561e2540794b",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/30790911319",
+  "createdAt": "2026-08-03T06:39:27Z",
+  "startedAt": "2026-08-03T06:39:27Z",
+  "completedAt": "2026-08-03T06:43:46Z",
+  "wallMs": 259000,
+  "queuedMs": 0,
+  "jobCount": 3,
+  "runnerMs": 364000,
+  "weightedMs": 364000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 3
+    }
+  },
+  "queuedJobMs": 19000,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-26T22:25:27.593Z",
+  "jobs": [
+    {
+      "id": 91614037044,
+      "name": "analyze (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000067947",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-03T06:39:28Z",
+      "startedAt": "2026-08-03T06:39:30Z",
+      "completedAt": "2026-08-03T06:43:45Z",
+      "queuedMs": 2000,
+      "durationMs": 255000,
+      "billableMs": 0,
+      "weightedMs": 255000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:30Z",
+          "completedAt": "2026-08-03T06:39:31Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:32Z",
+          "completedAt": "2026-08-03T06:39:37Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Run github/codeql-action/init@v3",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:37Z",
+          "completedAt": "2026-08-03T06:39:52Z",
+          "durationMs": 15000
+        },
+        {
+          "name": "Run github/codeql-action/analyze@v3",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:52Z",
+          "completedAt": "2026-08-03T06:43:42Z",
+          "durationMs": 230000
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@v3",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:43:42Z",
+          "completedAt": "2026-08-03T06:43:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run github/codeql-action/init@v3",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:43:43Z",
+          "completedAt": "2026-08-03T06:43:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:43:43Z",
+          "completedAt": "2026-08-03T06:43:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:43:43Z",
+          "completedAt": "2026-08-03T06:43:43Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 91614037098,
+      "name": "analyze (actions)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000067949",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-03T06:39:28Z",
+      "startedAt": "2026-08-03T06:39:37Z",
+      "completedAt": "2026-08-03T06:40:21Z",
+      "queuedMs": 9000,
+      "durationMs": 44000,
+      "billableMs": 0,
+      "weightedMs": 44000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:38Z",
+          "completedAt": "2026-08-03T06:39:39Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:39Z",
+          "completedAt": "2026-08-03T06:39:41Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run github/codeql-action/init@v3",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:41Z",
+          "completedAt": "2026-08-03T06:39:54Z",
+          "durationMs": 13000
+        },
+        {
+          "name": "Run github/codeql-action/analyze@v3",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:54Z",
+          "completedAt": "2026-08-03T06:40:19Z",
+          "durationMs": 25000
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@v3",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:40:19Z",
+          "completedAt": "2026-08-03T06:40:20Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run github/codeql-action/init@v3",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:40:20Z",
+          "completedAt": "2026-08-03T06:40:20Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:40:20Z",
+          "completedAt": "2026-08-03T06:40:20Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:40:20Z",
+          "completedAt": "2026-08-03T06:40:20Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 91614037114,
+      "name": "analyze (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000067948",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-03T06:39:28Z",
+      "startedAt": "2026-08-03T06:39:36Z",
+      "completedAt": "2026-08-03T06:40:41Z",
+      "queuedMs": 8000,
+      "durationMs": 65000,
+      "billableMs": 0,
+      "weightedMs": 65000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:36Z",
+          "completedAt": "2026-08-03T06:39:37Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:37Z",
+          "completedAt": "2026-08-03T06:39:43Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Run github/codeql-action/init@v3",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:43Z",
+          "completedAt": "2026-08-03T06:39:58Z",
+          "durationMs": 15000
+        },
+        {
+          "name": "Run github/codeql-action/analyze@v3",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:39:58Z",
+          "completedAt": "2026-08-03T06:40:39Z",
+          "durationMs": 41000
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@v3",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:40:39Z",
+          "completedAt": "2026-08-03T06:40:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run github/codeql-action/init@v3",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:40:39Z",
+          "completedAt": "2026-08-03T06:40:40Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:40:40Z",
+          "completedAt": "2026-08-03T06:40:40Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-03T06:40:40Z",
+          "completedAt": "2026-08-03T06:40:40Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    }
+  ],
+  "backfilled": true
+}
