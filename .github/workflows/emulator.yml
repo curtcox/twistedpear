@@ -18,6 +18,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
@@ -27,6 +29,9 @@ jobs:
       - run: npm run test:updates
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   android-native:
     runs-on: ubuntu-latest
@@ -37,6 +42,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -44,6 +51,9 @@ jobs:
       - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
       - run: npm ci
       - run: npm run test:android-native
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   emulator-ui:
     runs-on: ubuntu-latest
@@ -54,6 +64,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -66,6 +78,9 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: chmod +x conformance/android-emulator/ci.sh && conformance/android-emulator/ci.sh
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   ios-handbook-ui:
     runs-on: macos-15
@@ -76,7 +91,12 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: chmod +x conformance/ios-sim/ci-handbook.sh && conformance/ios-sim/ci-handbook.sh
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   local-multipeer-ios:
     # Full GUI matrix on a macOS runner: TCP hub, a second headless node, and
@@ -89,6 +109,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npm run build
       - run: curl -Ls "https://get.maestro.mobile.dev" | bash
@@ -102,6 +124,9 @@ jobs:
           name: local-multipeer-ios-proof
           path: .tmp/local-peers/multipeer-proof.json
           if-no-files-found: warn
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   cross-device-dev:
     # Dedicated Mac lab: Xcode Simulator + API 34 emulator + Electron + Chromium.
@@ -114,6 +139,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npx playwright install chromium
       - run: npm run test:cross-device-dev -- --build
@@ -123,6 +150,9 @@ jobs:
           name: cross-device-dev-proof
           path: .tmp/cross-device-dev
           if-no-files-found: error
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
 
   cross-device-dev-matrix:
     # The full device matrix, on the same Mac lab. Moved here from nightly.yml:
@@ -136,6 +166,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - run: npm ci
       - run: npx playwright install chromium
       - run: npm run test:cross-device-dev:matrix -- --build
@@ -145,3 +177,6 @@ jobs:
           name: cross-device-dev-matrix-proof
           path: .tmp/cross-device-dev
           if-no-files-found: error
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish

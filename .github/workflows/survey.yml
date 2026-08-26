@@ -40,6 +40,8 @@ jobs:
           node-version: "22"
           cache: npm
 
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -66,3 +68,6 @@ jobs:
           path: reports/
           retention-days: 90
           if-no-files-found: error
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish

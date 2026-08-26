@@ -28,6 +28,8 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "22"
+      - name: Start job telemetry
+        uses: ./.github/actions/telemetry-start
       - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31
       - run: npm run formal:symbolic:lint
       - name: Prove Tamarin models
@@ -39,3 +41,6 @@ jobs:
         run: nix shell nixpkgs#proverif -c npm run formal:proverif
         env:
           SIM_SYMBOLIC_MODEL_TIMEOUT_MS: "300000"
+      - name: Finish job telemetry
+        if: always()
+        uses: ./.github/actions/telemetry-finish
