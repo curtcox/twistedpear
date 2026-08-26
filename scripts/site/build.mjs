@@ -52,6 +52,11 @@ function main() {
   }
   run("node", ["scripts/site/render-reports.mjs"]);
 
+  // 2b. CI cost report. Reads the telemetry history fetched into .tmp/ci-metrics
+  // (scripts/ci/fetch-history.mjs); renders a placeholder when it is absent, so
+  // a local build with no store still produces a complete site.
+  run("node", ["scripts/site/render-ci-metrics.mjs"]);
+
   // 3. Sidebar
   run("node", ["scripts/site/gen-sidebar.mjs"]);
 

@@ -101,6 +101,10 @@ ${depLine}
 
 ${sizeLine}
 
+What CI itself costs to produce this page — per workflow, per job, per step, and
+per unit of CPU and memory — is measured separately and published at
+[CI cost](./ci).
+
 ## Checks
 
 | Status | Check | Metrics | Command | Duration |

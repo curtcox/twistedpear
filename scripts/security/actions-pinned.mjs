@@ -23,6 +23,7 @@ const ROOT = path.resolve(
   "../..",
 );
 const WORKFLOWS = path.join(ROOT, ".github", "workflows");
+const ACTIONS = path.join(ROOT, ".github", "actions");
 
 const USES = /^\s*(?:-\s+)?uses:\s*(\S+)(.*)$/;
 const SHA = /^[0-9a-f]{40}$/;
@@ -40,15 +41,40 @@ const findings = [];
 let pinned = 0;
 let local = 0;
 
-for (const name of fs.readdirSync(WORKFLOWS).sort()) {
-  if (!/\.ya?ml$/.test(name)) continue;
-  const lines = fs.readFileSync(path.join(WORKFLOWS, name), "utf8").split("\n");
+/**
+ * Every file that can carry a `uses:`. A composite action's steps pull third
+ * parties exactly like a workflow's do, so scanning only `.github/workflows`
+ * would have left the local actions as an unpinned back door.
+ */
+function scannable() {
+  const files = [];
+  for (const name of fs.readdirSync(WORKFLOWS).sort()) {
+    if (!/\.ya?ml$/.test(name)) continue;
+    files.push({
+      label: `.github/workflows/${name}`,
+      file: path.join(WORKFLOWS, name),
+    });
+  }
+  if (fs.existsSync(ACTIONS)) {
+    for (const name of fs.readdirSync(ACTIONS).sort()) {
+      for (const leaf of ["action.yml", "action.yaml"]) {
+        const file = path.join(ACTIONS, name, leaf);
+        if (fs.existsSync(file))
+          files.push({ label: `.github/actions/${name}/${leaf}`, file });
+      }
+    }
+  }
+  return files;
+}
+
+for (const { label, file } of scannable()) {
+  const lines = fs.readFileSync(file, "utf8").split("\n");
 
   for (const [index, line] of lines.entries()) {
     const match = USES.exec(line);
     if (!match) continue;
     const [, reference, trailing] = match;
-    const where = `.github/workflows/${name}:${index + 1}`;
+    const where = `${label}:${index + 1}`;
 
     if (isLocal(reference)) {
       local += 1;

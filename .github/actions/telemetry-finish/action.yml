@@ -1,0 +1,29 @@
+name: Finish job telemetry
+description: >-
+  Stop the resource sampler, resolve which Actions job this is, and upload the
+  measurements for the CI telemetry collector to fold into the published report.
+
+runs:
+  using: composite
+  steps:
+    - name: Stop the resource sampler and stage its measurements
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        CI_TELEMETRY_JOB_INDEX: ${{ strategy.job-index }}
+        CI_TELEMETRY_STAGE: ${{ runner.temp }}/ci-telemetry-upload
+      run: |
+        if ! command -v node >/dev/null 2>&1; then
+          echo "node is not on PATH; nothing to stage."
+          exit 0
+        fi
+        node "${GITHUB_WORKSPACE}/scripts/ci/telemetry-finish.mjs" || true
+    - name: Upload this job's telemetry
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      with:
+        name: ci-telemetry-${{ github.job }}-${{ strategy.job-index || 0 }}-${{ runner.os }}
+        path: ${{ runner.temp }}/ci-telemetry-upload
+        if-no-files-found: ignore
+        # The collector copies these into the ci-metrics branch within minutes
+        # of the run finishing; the artifact itself is only the transport.
+        retention-days: 7
