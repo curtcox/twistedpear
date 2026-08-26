@@ -119,9 +119,7 @@ describe("evaluatePolicy remaining operators", () => {
   });
 
   it("treats time.localHourIn as unknown unless the clock is attested (P-R13)", () => {
-    const policy = document([
-      allowWhen({ "time.localHourIn": [9, 17] }),
-    ]);
+    const policy = document([allowWhen({ "time.localHourIn": [9, 17] })]);
     const window = parameterizedPredicateKey("time.localHourIn", [9, 17]);
     expect(evaluatePolicy(policy, install, {})).toEqual({
       kind: "needs",

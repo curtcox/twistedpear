@@ -15,7 +15,9 @@ describe("topic log hostile ingest", () => {
       },
     ]);
     expect(result.rejected[0]?.reason).toBe("forged-author");
-    expect(store.entries("board").map((entry) => entry.payload)).toEqual(["mine"]);
+    expect(store.entries("board").map((entry) => entry.payload)).toEqual([
+      "mine",
+    ]);
   });
 
   it("caps a flooding peer without dropping other authors", () => {
@@ -30,8 +32,12 @@ describe("topic log hostile ingest", () => {
     }));
     store.ingest("board", flood, { fromAuthorId: "peer" });
     const entries = store.entries("board");
-    expect(entries.filter((entry) => entry.authorId === "self")).toHaveLength(1);
-    expect(entries.filter((entry) => entry.authorId === "peer")).toHaveLength(2);
+    expect(entries.filter((entry) => entry.authorId === "self")).toHaveLength(
+      1,
+    );
+    expect(entries.filter((entry) => entry.authorId === "peer")).toHaveLength(
+      2,
+    );
     expect(store.windows("board").peer).toEqual({ minSeq: 5, maxSeq: 6 });
   });
 

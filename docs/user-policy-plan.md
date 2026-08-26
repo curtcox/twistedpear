@@ -76,7 +76,7 @@ Absent entirely:
   host adapters in [user-policy.md](user-policy.md)#evidence. Without sensors they
   stay `unknown`.
 - **No third-party approval of a local action.** Single-use, bound approvals now exist
-  in the same adapter. Chrome that *asks* for one is still planned.
+  in the same adapter. Chrome that _asks_ for one is still planned.
 - **No monotonicity anywhere.** Nothing in the tree distinguishes a tightening change
   from a relaxing one. (Amendment classification now does; this bullet is historical
   for the pre-POL-2 tree.)
@@ -126,7 +126,7 @@ What this section still owns:
 
 ## 6. Warning without prohibiting
 
-Shipped. See [user-policy.md](user-policy.md)#preview. Host chrome that *shows* the
+Shipped. See [user-policy.md](user-policy.md)#preview. Host chrome that _shows_ the
 preview is still planned; the generator, typed confirmation, and consent record are not.
 
 | Preview section           | Question it answers                                                                                                                                                             |
@@ -301,7 +301,7 @@ Open, and deliberately not decided here:
 - The transport for approval requests and attestations — LXMF direct, or a dedicated
   approver flow.
 - Place and wakefulness ship as adapters that return `unknown` without a sensor. Whether
-  any current host *has* those sensors is still open; the language and collapse already
+  any current host _has_ those sensors is still open; the language and collapse already
   treat absence as unknown.
 
 ## 11. Documents to update when policy ships
@@ -312,7 +312,7 @@ these are the documents that describe the platform to a person.
 
 | Document                                                                                                                                             | What changes                                                                                                                                                                                                                                 |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [user-policy.md](user-policy.md)                                                                                                                      | Live half of this pair. Evaluator, amendment, and seal commit are there; preview and chrome are not                                                                                                                                        |
+| [user-policy.md](user-policy.md)                                                                                                                     | Live half of this pair. Evaluator, amendment, and seal commit are there; preview and chrome are not                                                                                                                                          |
 | [FAQ.md](FAQ.md)                                                                                                                                     | "If no one reviews apps, how is that safe?" tells the reader they can set the bar as high as they want, under a ⏳ note pointing here and at [app-approval-risk-plan.md](app-approval-risk-plan.md). Drop the note when both halves are true |
 | [guide/08](../guide/08-trust-privacy-safety.md)                                                                                                      | Where a user learns that a self-imposed restriction is available, and what sealing costs them                                                                                                                                                |
 | [guide/appendix-feature-status.md](../guide/appendix-feature-status.md), [authors/appendix-feature-status.md](../authors/appendix-feature-status.md) | A row each; an author needs to know an app can be refused by a policy rather than by a grant                                                                                                                                                 |

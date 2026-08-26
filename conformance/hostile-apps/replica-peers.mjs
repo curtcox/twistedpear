@@ -2,7 +2,10 @@
  * Hostile-peer replica cases for storage:sync. Verdicts follow the
  * hostile-author catalogue: BLOCKED / CONTAINED / UNCONTROLLED.
  */
-import { TopicLogStore, missingReplicaEntries } from "../../packages/miniapp-runtime/dist/index.js";
+import {
+  TopicLogStore,
+  missingReplicaEntries,
+} from "../../packages/miniapp-runtime/dist/index.js";
 import {
   compileAttackProposal,
   UnlowerableAttackProposalError,
@@ -91,8 +94,12 @@ export async function runReplicaPeerCases() {
       payload: seq,
     }));
     store.ingest("board", flood, { fromAuthorId: "peer" });
-    const mine = store.entries("board").filter((entry) => entry.authorId === "self");
-    const theirs = store.entries("board").filter((entry) => entry.authorId === "peer");
+    const mine = store
+      .entries("board")
+      .filter((entry) => entry.authorId === "self");
+    const theirs = store
+      .entries("board")
+      .filter((entry) => entry.authorId === "peer");
     const actual =
       mine.length === 1 && theirs.length === 2 ? "CONTAINED" : "UNCONTROLLED";
     expectVerdict("HP-CAP", "CONTAINED", actual);
@@ -105,7 +112,9 @@ export async function runReplicaPeerCases() {
     alpha.open("board");
     beta.open("board");
     alpha.set("board", "secret", "alpha-only");
-    const actual = beta.view("board").has("secret") ? "UNCONTROLLED" : "BLOCKED";
+    const actual = beta.view("board").has("secret")
+      ? "UNCONTROLLED"
+      : "BLOCKED";
     expectVerdict("HP-ISOLATE", "BLOCKED", actual);
     counts[actual] += 1;
   }
@@ -124,7 +133,9 @@ export async function runReplicaPeerCases() {
         payload: { claimed: false },
       },
     ]);
-    const actual = store.view("board").has("item/1") ? "UNCONTROLLED" : "BLOCKED";
+    const actual = store.view("board").has("item/1")
+      ? "UNCONTROLLED"
+      : "BLOCKED";
     expectVerdict("HP-RESURRECT", "BLOCKED", actual);
     counts[actual] += 1;
   }
@@ -135,10 +146,15 @@ export async function runReplicaPeerCases() {
     left.open("board");
     right.open("board");
     for (let i = 0; i < 12; i++) left.append("board", i);
-    const missing = missingReplicaEntries(left.entries("board"), right.vector("board"));
+    const missing = missingReplicaEntries(
+      left.entries("board"),
+      right.vector("board"),
+    );
     const after = missingReplicaEntries(left.entries("board"), { a: 12 });
     const actual =
-      missing.length === 12 && after.length === 0 ? "CONTAINED" : "UNCONTROLLED";
+      missing.length === 12 && after.length === 0
+        ? "CONTAINED"
+        : "UNCONTROLLED";
     expectVerdict("HP-AMPLIFY", "CONTAINED", actual);
     counts[actual] += 1;
   }

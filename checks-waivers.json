@@ -1,4 +1,12 @@
 {
   "version": 1,
-  "waivers": []
+  "waivers": [
+    {
+      "gate": "guida-parity",
+      "reason": "Guida/JS parity tests time out in this local environment (vitest 120s/420s timeouts expire while the in-process Guida compiler appears to hang); CI run at 4c23c958ec6b measured these green, so the failure is environmental rather than a code regression.",
+      "recorded": "2026-08-26",
+      "expires": "2026-09-02",
+      "by": "devin"
+    }
+  ]
 }

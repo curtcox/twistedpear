@@ -36,11 +36,10 @@ describe("replica admission", () => {
   });
 
   it("rejects an author with no live offer", () => {
-    const result = admitReplicaEntries(
-      [],
-      [entry("stranger", 1, 1)],
-      { localAuthorId: "self", offeredAuthors: new Set(["peer"]) },
-    );
+    const result = admitReplicaEntries([], [entry("stranger", 1, 1)], {
+      localAuthorId: "self",
+      offeredAuthors: new Set(["peer"]),
+    });
     expect(result.rejected[0]?.reason).toBe("unoffered-author");
   });
 

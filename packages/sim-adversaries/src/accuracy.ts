@@ -107,7 +107,9 @@ export async function executeHistoricalFixture(
         step: historicalDeliveryStep(
           id,
           compiled.proposal.actions.filter(
-            (action): action is import("@twistedpear/effects").TransportAdversaryAction =>
+            (
+              action,
+            ): action is import("@twistedpear/effects").TransportAdversaryAction =>
               action.power !== "author-flood",
           ),
         ),

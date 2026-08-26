@@ -37,7 +37,10 @@ const HOME = { latitude: 51.5, longitude: -0.12 };
 const AFTERNOON = Date.UTC(2026, 0, 15, 15, 0, 0);
 
 function identityFromSeed(seed: number): Identity {
-  const bytes = Uint8Array.from({ length: 64 }, (_, index) => (seed + index) & 0xff);
+  const bytes = Uint8Array.from(
+    { length: 64 },
+    (_, index) => (seed + index) & 0xff,
+  );
   const identity = Identity.fromBytes(provider, bytes);
   if (identity === null) throw new Error("test identity rejected");
   return identity;
@@ -159,17 +162,16 @@ describe("policy evidence adapters", () => {
         parameterizedPredicateKey("place.is", "home")
       ],
     ).toBe("unknown");
-    expect(gatherPolicyEvidence(input("user.awake")).predicates?.["user.awake"]).toBe(
-      "unknown",
-    );
+    expect(
+      gatherPolicyEvidence(input("user.awake")).predicates?.["user.awake"],
+    ).toBe("unknown");
   });
 
   it("resolves place against a named fence and wakefulness from the sensor", () => {
     const namedPlaces = { home: { ...HOME, radiusMeters: 200 } };
     expect(
-      decidePolicy(
-        input({ "place.is": "home" }, { place: HOME, namedPlaces }),
-      ).kind,
+      decidePolicy(input({ "place.is": "home" }, { place: HOME, namedPlaces }))
+        .kind,
     ).toBe("allow");
     expect(
       decidePolicy(
@@ -193,12 +195,15 @@ describe("policy evidence adapters", () => {
       roles: { mother: motherKey },
       approvals: [grant],
     };
-    expect(
-      decidePolicy(input({ "approval.by": "mother" }, base)).kind,
-    ).toBe("allow");
+    expect(decidePolicy(input({ "approval.by": "mother" }, base)).kind).toBe(
+      "allow",
+    );
     expect(
       decidePolicy(
-        input({ "approval.by": "mother" }, { ...base, packageHash: "00".repeat(32) }),
+        input(
+          { "approval.by": "mother" },
+          { ...base, packageHash: "00".repeat(32) },
+        ),
       ).kind,
     ).toBe("deny");
     expect(
@@ -213,11 +218,18 @@ describe("policy evidence adapters", () => {
       decidePolicy(
         input(
           { "approval.by": "mother" },
-          { clock, roles: { mother: bytesToHex(stranger.getPublicKey()) }, approvals: [grant] },
+          {
+            clock,
+            roles: { mother: bytesToHex(stranger.getPublicKey()) },
+            approvals: [grant],
+          },
         ),
       ).kind,
     ).toBe("deny");
-    const expired = approval(mother, { nonce: "nonce-expired", expiresAt: AFTERNOON - 1 });
+    const expired = approval(mother, {
+      nonce: "nonce-expired",
+      expiresAt: AFTERNOON - 1,
+    });
     expect(
       decidePolicy(
         input(
@@ -267,4 +279,3 @@ describe("policy evidence adapters", () => {
     ).toBe("allow");
   });
 });
-

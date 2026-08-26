@@ -121,11 +121,7 @@ export function applySeal(
       return { ok: false, reason: "unknown-rule" };
     }
   }
-  const result = evaluatePolicy(
-    current,
-    { subject: "policy:seal" },
-    evidence,
-  );
+  const result = evaluatePolicy(current, { subject: "policy:seal" }, evidence);
   if (result.kind !== "allow") {
     return { ok: false, reason: "unauthorized", result };
   }

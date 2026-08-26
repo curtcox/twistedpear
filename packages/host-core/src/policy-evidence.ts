@@ -318,9 +318,7 @@ function resolveApproval(
   scope: ApprovalScope,
   input: PolicyEvidenceInput,
 ): Trit {
-  const now = input.clock
-    ? attestedUnixMs(input.clock, input.provider)
-    : null;
+  const now = input.clock ? attestedUnixMs(input.clock, input.provider) : null;
   let pendingUnknown = false;
   for (const attestation of input.approvals ?? []) {
     if (!approvalMatches(attestation, role, scope, input)) continue;
@@ -386,9 +384,5 @@ export function gatherPolicyEvidence(
 }
 
 export function decidePolicy(input: PolicyEvidenceInput) {
-  return evaluatePolicy(
-    input.policy,
-    input.query,
-    gatherPolicyEvidence(input),
-  );
+  return evaluatePolicy(input.policy, input.query, gatherPolicyEvidence(input));
 }

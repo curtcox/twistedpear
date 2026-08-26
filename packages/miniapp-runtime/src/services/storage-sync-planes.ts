@@ -7,10 +7,7 @@ import {
   LxmfReplicaLink,
   type ReplicaEgressAuth,
 } from "./storage-sync-lxmf.js";
-import {
-  replicaConvergeSteps,
-  TopicLogStore,
-} from "./storage-sync.js";
+import { replicaConvergeSteps, TopicLogStore } from "./storage-sync.js";
 
 /** Replica rounds are probe-shaped and never take the realtime share. */
 export const REPLICA_RESERVATION_CLASS = "bulk" as const;

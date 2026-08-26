@@ -1,32 +1,39 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-25T23:56:31.139Z",
-  "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
-  "digest": "0ef35821ffd57f578e93d36bfac74d62857be53e29859d71aa1d871864ff5504",
-  "treeDigest": "546ca0999f181a1da5b6916bf365311691b4d34a0d779ed6e2e248779f5fd2bc",
+  "generatedAt": "2026-08-26T03:34:05.719Z",
+  "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+  "digest": "d0f6268903c3f09983228c2626dfd82ef865f1eecd261e256d5f684050da4ab2",
+  "treeDigest": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
   "gates": {
     "accessibility": {
       "title": "Accessibility ratchet",
       "command": "npm run a11y:check",
       "ok": true,
-      "at": "2026-08-25T23:53:10.229Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-26T03:32:09.047Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "actionlint": {
       "title": "GitHub Actions lint",
       "command": "npm run actionlint",
-      "ok": true,
-      "at": "2026-08-25T23:44:21.477Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:32:19.178Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE actionlint: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "actions-pinned": {
       "title": "GitHub Actions pinned to commit SHAs",
       "command": "npm run actions:check",
-      "ok": true,
-      "at": "2026-08-25T23:44:21.625Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:32:29.285Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE actions-pinned: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "advisories": {
@@ -41,337 +48,303 @@
     "api-signatures": {
       "title": "Public API signature compatibility",
       "command": "npm run api-signatures:check",
-      "ok": true,
-      "at": "2026-08-25T23:49:00.606Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:32:39.453Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE api-signatures: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "api-surface": {
       "title": "Public API surface",
       "command": "npm run api:check",
-      "ok": true,
-      "at": "2026-08-25T23:48:16.540Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:32:59.607Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE api-surface: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "artifact-sizes": {
       "title": "Shipped artifact byte budgets",
       "command": "npm run artifact-sizes:check",
-      "ok": true,
-      "at": "2026-08-25T23:43:47.535Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:30:51.079Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE artifact-sizes: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "ast-grep": {
       "title": "Structural reliability ratchet",
       "command": "npm run ast-grep:check",
-      "ok": true,
-      "at": "2026-08-25T23:52:06.287Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:33:29.924Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE ast-grep: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
-    },
-    "audit": {
-      "title": "Dependency advisory scan",
-      "command": "npm run audit:nightly",
-      "ok": true,
-      "at": "2026-08-25T23:35:08.089Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "audit-policy": {
       "title": "Advisory allowlist policy",
       "command": "npm run audit:policy",
-      "ok": true,
-      "at": "2026-08-25T23:53:11.937Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:33:40.049Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE audit-policy: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
-    },
-    "benchmark": {
-      "title": "Crypto benchmark drift",
-      "command": "npm run benchmark:check",
-      "ok": true,
-      "at": "2026-08-25T23:34:59.497Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "census": {
       "title": "Quality surface census",
       "command": "npm run census:check",
       "ok": true,
-      "at": "2026-08-25T23:50:07.602Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:39:21.383Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
-    },
-    "codeql-alerts": {
-      "title": "Open CodeQL alert ratchet",
-      "command": "npm run codeql:check",
-      "ok": true,
-      "at": "2026-08-25T23:36:20.608Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "cognitive-complexity": {
       "title": "Cognitive complexity ratchet",
       "command": "npm run cognitive-complexity:check",
       "ok": true,
-      "at": "2026-08-25T23:51:21.834Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:41:19.984Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "complexity": {
       "title": "Function complexity ratchet",
       "command": "npm run complexity:check",
       "ok": true,
-      "at": "2026-08-25T23:48:07.031Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:37:55.969Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "complexity-multilang": {
       "title": "Multi-language function complexity",
       "command": "npm run complexity:multilang",
       "ok": true,
-      "at": "2026-08-25T23:48:11.403Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:03:36.130Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "coupling": {
       "title": "Module coupling and modularity",
       "command": "npm run coupling:check",
       "ok": true,
-      "at": "2026-08-25T23:48:15.729Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:38:07.498Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "coverage": {
       "title": "Coverage ratchet",
       "command": "npm run coverage:check",
       "ok": true,
-      "at": "2026-08-25T23:47:48.159Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:34:36.277Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "differential-fuzz": {
       "title": "Differential fuzz against the pinned reference",
       "command": "npm run test:differential-fuzz",
       "ok": true,
-      "at": "2026-08-25T23:52:35.757Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:06:55.532Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "doc-audit": {
       "title": "Documentation audit",
       "command": "npm run test:doc-audit",
-      "ok": true,
-      "at": "2026-08-25T23:44:10.150Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:31:21.232Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE doc-audit: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "file-sizes": {
       "title": "File-size ratchet",
       "command": "npm run sizes",
       "ok": true,
-      "at": "2026-08-25T23:43:47.363Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-26T03:31:55.096Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
-    },
-    "flake": {
-      "title": "Unit-suite flake detection",
-      "command": "npm run flake:check",
-      "ok": true,
-      "at": "2026-08-25T23:38:07.180Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "formal": {
       "title": "Formal machine conformance and model checking",
       "command": "npm run test:formal",
       "ok": true,
-      "at": "2026-08-25T23:34:56.281Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:23.243Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "format": {
       "title": "Formatting ratchet",
       "command": "npm run format:check",
       "ok": true,
-      "at": "2026-08-25T23:51:05.719Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:40:56.079Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "fuzz": {
       "title": "Malformed-input fuzz tests",
       "command": "npm run test:fuzz",
       "ok": true,
-      "at": "2026-08-25T23:52:13.060Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:42:24.296Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "generated-freshness": {
       "title": "Committed generated artifact freshness",
       "command": "npm run generated:check",
       "ok": true,
-      "at": "2026-08-25T23:49:09.094Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:38:49.566Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "guida-parity": {
       "title": "Guida/JS widget-stream parity",
       "command": "npm run test:guida-parity",
-      "ok": true,
-      "at": "2026-08-25T23:43:46.946Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:30:20.891Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE guida-parity: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "harness-mobile-typecheck": {
       "title": "Harness-mobile typecheck",
       "command": "npm run harness-mobile:typecheck",
       "ok": true,
-      "at": "2026-08-25T23:41:24.558Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-26T03:26:40.483Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
-    },
-    "hotspots": {
-      "title": "Churn-weighted complexity hotspots",
-      "command": "npm run hotspots",
-      "ok": true,
-      "at": "2026-08-25T23:34:56.488Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "install-scripts": {
       "title": "Dependency install-script policy",
       "command": "npm run install-scripts:check",
       "ok": true,
-      "at": "2026-08-25T23:53:15.108Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:42:27.200Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "jscpd": {
       "title": "Copy-paste clone ratchet",
       "command": "npm run jscpd:check",
       "ok": true,
-      "at": "2026-08-25T23:51:06.359Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:41:05.116Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "kotlin": {
       "title": "Kotlin lint",
       "command": "npm run lint:kotlin",
       "ok": true,
-      "at": "2026-08-25T23:34:41.595Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:35.252Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "kotlin-coverage": {
       "title": "Kotlin coverage ratchet",
       "command": "npm run coverage:kotlin",
       "ok": true,
-      "at": "2026-08-25T23:37:55.299Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:09:32.445Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "kotlin-tests": {
       "title": "Android bridge unit tests",
       "command": "npm run test:kotlin",
       "ok": true,
-      "at": "2026-08-25T23:37:05.807Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:08:44.003Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "licenses": {
       "title": "Dependency license policy",
       "command": "npm run licenses:check",
       "ok": true,
-      "at": "2026-08-25T23:53:14.900Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:42:26.597Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
-    },
-    "link-benchmark": {
-      "title": "Link handshake latency drift",
-      "command": "npm run test:link-benchmark",
-      "ok": true,
-      "at": "2026-08-25T23:35:44.251Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "lint": {
       "title": "TypeScript and Sans-IO lint",
       "command": "npm run lint",
       "ok": true,
-      "at": "2026-08-25T23:41:22.398Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-26T03:26:39.820Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "lint-all": {
       "title": "Repository lint coverage",
       "command": "npm run lint:all",
       "ok": true,
-      "at": "2026-08-25T23:50:18.592Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:39:32.655Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
-    },
-    "miniapp-benchmark": {
-      "title": "Mini-app spawn and watchdog drift",
-      "command": "npm run test:miniapp-benchmark",
-      "ok": true,
-      "at": "2026-08-25T23:35:37.191Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "mutation-policy": {
       "title": "Mutation score policy",
       "command": "npm run mutation:ratchet",
       "ok": true,
-      "at": "2026-08-25T23:53:12.084Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:42:26.277Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "native-parity": {
       "title": "Cross-language native bridge parity",
       "command": "npm run native-parity:check",
-      "ok": true,
-      "at": "2026-08-25T23:43:47.110Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:30:30.954Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE native-parity: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "properties": {
       "title": "Property-based protocol tests",
       "command": "npm run test:properties",
       "ok": true,
-      "at": "2026-08-25T23:52:09.582Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:42:22.173Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
-    },
-    "provenance": {
-      "title": "Dependency registry signatures",
-      "command": "npm run provenance:check",
-      "ok": true,
-      "at": "2026-08-25T23:35:03.958Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "python": {
       "title": "Python ruff and mypy",
       "command": "npm run lint:python",
       "ok": true,
-      "at": "2026-08-25T23:54:11.195Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:33.382Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "release-harness": {
       "title": "Release harness",
       "command": "npm run test:release-harness",
-      "ok": true,
-      "at": "2026-08-25T23:43:49.392Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "ok": false,
+      "at": "2026-08-26T03:31:01.142Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "detail": "REFUSE release-harness: host headroom",
+      "since": "2026-08-26",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "rust": {
       "title": "Rust clippy, fmt, and deny",
       "command": "npm run lint:rust",
       "ok": true,
-      "at": "2026-08-25T23:53:44.081Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:29.596Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "rust-coverage": {
@@ -383,180 +356,166 @@
       "measuredOn": "546ca0999f181a1da5b6916bf365311691b4d34a0d779ed6e2e248779f5fd2bc",
       "tier": "pr"
     },
-    "rust-fuzz": {
-      "title": "Freenet contract fuzzing",
-      "command": "npm run fuzz:rust",
-      "ok": true,
-      "at": "2026-08-25T23:37:06.680Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
-    },
     "rust-lints": {
       "title": "Rust contract restriction lints",
       "command": "npm run rust-lints:check",
       "ok": true,
-      "at": "2026-08-25T23:54:09.703Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:29.597Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "rust-tests": {
       "title": "Rust contract unit tests",
       "command": "npm run test:rust",
       "ok": true,
-      "at": "2026-08-25T23:54:57.887Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:35.867Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
-    },
-    "sbom": {
-      "title": "CycloneDX SBOM",
-      "command": "npm run sbom",
-      "ok": true,
-      "at": "2026-08-25T23:35:27.483Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
-      "tier": "nightly"
     },
     "secrets": {
       "title": "Secret scanning",
       "command": "npm run secrets:check",
       "ok": true,
-      "at": "2026-08-25T23:53:14.727Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:28.776Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "shell": {
       "title": "ShellCheck",
       "command": "npm run lint:shell",
       "ok": true,
-      "at": "2026-08-25T23:54:10.016Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:30.052Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "sim-authored-replay": {
       "title": "Authored simulation replay",
       "command": "npm run test:sim-authored-replay",
       "ok": true,
-      "at": "2026-08-25T23:44:18.734Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:28:28.781Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "sim-fixed-replay": {
       "title": "Fixed simulation replay",
       "command": "npm run test:sim-fixed-replay",
       "ok": true,
-      "at": "2026-08-25T23:53:11.771Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:42:25.424Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "site-pages": {
       "title": "GitHub Pages site integrity",
       "command": "npm run site:verify",
       "ok": true,
-      "at": "2026-08-25T23:55:57.887Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:28:24.104Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "spec-traceability": {
       "title": "Specification evidence traceability",
       "command": "npm run spec-traceability:check",
       "ok": true,
-      "at": "2026-08-25T23:44:10.382Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:28:22.206Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "spelling": {
       "title": "Prose spelling",
       "command": "npm run spelling:check",
       "ok": true,
-      "at": "2026-08-25T23:44:17.713Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:28:28.105Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "state-migration": {
       "title": "On-disk store compatibility",
       "command": "npm run test:state-migration",
       "ok": true,
-      "at": "2026-08-25T23:44:21.026Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:28:29.877Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "structure": {
       "title": "Dependency structure",
       "command": "npm run structure:check",
       "ok": true,
-      "at": "2026-08-25T23:47:56.892Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:34:44.250Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "swift": {
       "title": "Swift lint",
       "command": "npm run lint:swift",
       "ok": true,
-      "at": "2026-08-25T23:35:50.240Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:35.866Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "swift-coverage": {
       "title": "Swift coverage ratchet",
       "command": "npm run coverage:swift",
       "ok": true,
-      "at": "2026-08-25T23:36:03.953Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:46.067Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "swift-tests": {
       "title": "Swift bridge unit tests",
       "command": "npm run test:swift",
       "ok": true,
-      "at": "2026-08-25T23:36:17.429Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:42.852Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "tsconfig-parity": {
       "title": "TypeScript strictness parity",
       "command": "npm run tsconfig:check",
       "ok": true,
-      "at": "2026-08-25T23:41:24.729Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-26T03:26:40.671Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "type-coverage": {
       "title": "Non-any type coverage ratchet",
       "command": "npm run type-coverage:check",
       "ok": true,
-      "at": "2026-08-25T23:52:03.391Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:41:51.050Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "typed-lint": {
       "title": "Typed asynchronous lint",
       "command": "npm run lint:typed",
       "ok": true,
-      "at": "2026-08-25T23:50:47.808Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:40:11.496Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "ui-invariants": {
       "title": "Trust UI behavioral invariants",
       "command": "npm run test:ui-invariants",
       "ok": true,
-      "at": "2026-08-25T23:53:02.307Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:11.956Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "unit-tests": {
       "title": "Unit tests",
       "command": "npm run test:unit",
       "ok": true,
-      "at": "2026-08-25T23:42:55.529Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-26T03:30:10.820Z",
+      "commit": "174149604c3cffb06ae4d7f2f6010b0db0cfdae6",
+      "measuredOn": "043c8c93af33e806ce53af2575b9fec7fcae49cfea6256b05a6e56011c50256e",
       "tier": "pr"
     },
     "visual-regression": {
       "title": "Critical desktop visual regression",
       "command": "npm run visual:check",
       "ok": true,
-      "at": "2026-08-25T23:35:35.992Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:12.268Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     },
     "web-cross-browser": {
@@ -572,8 +531,8 @@
       "title": "Browser example apps",
       "command": "npm run test:web-examples",
       "ok": true,
-      "at": "2026-08-25T23:52:53.902Z",
-      "commit": "4c23c958ec6bb2185f831777b2375df80c89a6a3",
+      "at": "2026-08-25T02:07:07.204Z",
+      "commit": "c094fef7111486c869d6fc0042f488f73ded0208",
       "tier": "pr"
     }
   }

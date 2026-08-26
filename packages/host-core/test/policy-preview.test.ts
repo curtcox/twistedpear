@@ -86,11 +86,13 @@ describe("policy consequence preview", () => {
     const preview = previewPolicy(policy);
     expect(preview.loadBearingPeople).toEqual(["mother"]);
     expect(preview.loadBearingSources).toEqual(["clock", "place"]);
-    expect(preview.unknownWeakenings.some((line) => line.includes("assume"))).toBe(
-      true,
-    );
     expect(
-      preview.unknownWeakenings.some((line) => line.includes("onUnknown allow")),
+      preview.unknownWeakenings.some((line) => line.includes("assume")),
+    ).toBe(true);
+    expect(
+      preview.unknownWeakenings.some((line) =>
+        line.includes("onUnknown allow"),
+      ),
     ).toBe(true);
   });
 

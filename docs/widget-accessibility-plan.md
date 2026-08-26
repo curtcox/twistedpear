@@ -210,12 +210,12 @@ finished.
 
 ## 10. Sequencing
 
-| Phase | Deliverable                                                                        | Gate                                                       |
-| ----- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 3     | Accessibility-tree projection and `ax` strings in the golden streams               | Done — `renderHeadlessAxSnapshot` + `ax` on every stream   |
+| Phase | Deliverable                                                                        | Gate                                                              |
+| ----- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 3     | Accessibility-tree projection and `ax` strings in the golden streams               | Done — `renderHeadlessAxSnapshot` + `ax` on every stream          |
 | 4     | `validate.ts` rejection tier behind `minHostApi >= 0.21.0`; `doctor.ts` retargeted | Done — hostile-app fixture cannot bypass; 3 switch sites migrated |
-| 5     | Cookbook accessibility ratchet at measured floors                                  | Done — new app cannot enter above its floor            |
-| 6     | Focus order derived into the SPEC-PRESENT layout vectors                           | Vectors regenerate identically                             |
+| 5     | Cookbook accessibility ratchet at measured floors                                  | Done — new app cannot enter above its floor                       |
+| 6     | Focus order derived into the SPEC-PRESENT layout vectors                           | Vectors regenerate identically                                    |
 
 Phase 4 is the only one that can break a shipped app, and the `minHostApi` gate is what
 stops it.

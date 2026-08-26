@@ -234,8 +234,8 @@ it is what testing misses. The model should assert:
 | Phase | Deliverable                                                          | Gate                                                                                                                               |
 | ----- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | 3     | Version-vector digest and reconcile over the LXMF plane, offer-bound | `assertEgressAllowed` refuses an un-offered round; the ledger meters bytes — now in [replicated shared state](replicated-state.md) |
-| 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder | Two-host convergence in the multipeer harness — now in [replicated shared state](replicated-state.md)                         |
-| 5     | Retention, tombstones, per-author caps, byzantine-peer adversary     | No hostile-peer scenario lands UNCONTROLLED — now in [replicated shared state](replicated-state.md)                             |
+| 4     | Plane selection and `bulk` reservation across the SPEC-STREAM ladder | Two-host convergence in the multipeer harness — now in [replicated shared state](replicated-state.md)                              |
+| 5     | Retention, tombstones, per-author caps, byzantine-peer adversary     | No hostile-peer scenario lands UNCONTROLLED — now in [replicated shared state](replicated-state.md)                                |
 | 6     | Cookbook migration; delete "merge is your problem"                   | `roll-call` and `neighborhood-board` rebuilt on `storage:sync`                                                                     |
 
 Phase 2 (in-process loopback under drop/delay/reorder/duplicate/partition),

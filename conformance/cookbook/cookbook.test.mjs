@@ -905,7 +905,12 @@ it("counts placeholder-only inputs and unnamed named controls", () => {
             type: "switch",
             props: { value: false, accessibilityLabel: "Alerts" },
           },
-          { id: "h", type: "text", props: { value: "Title" }, style: { fontSize: 24 } },
+          {
+            id: "h",
+            type: "text",
+            props: { value: "Title" },
+            style: { fontSize: 24 },
+          },
         ],
       },
     }),

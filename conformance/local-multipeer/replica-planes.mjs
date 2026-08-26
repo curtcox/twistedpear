@@ -73,15 +73,22 @@ export function proveReplicaPlanes({ assert, step }) {
     8_192,
   );
 
-  assert(link.plane === "reticulum", `expected reticulum plane, got ${link.plane}`);
+  assert(
+    link.plane === "reticulum",
+    `expected reticulum plane, got ${link.plane}`,
+  );
   assert(link.reservationClass === "bulk", "replica reservation must be bulk");
   const snapshot = limiter.reservationSnapshot();
   assert(
-    snapshot.some((row) => row.class === "bulk" && row.bytesPerSecond === 8_192),
+    snapshot.some(
+      (row) => row.class === "bulk" && row.bytesPerSecond === 8_192,
+    ),
     "limiter should hold a bulk replica reservation",
   );
   assert(
-    snapshot.some((row) => row.class === "realtime" && row.bytesPerSecond === 200_000),
+    snapshot.some(
+      (row) => row.class === "realtime" && row.bytesPerSecond === 200_000,
+    ),
     "replica must not consume the realtime reservation",
   );
 

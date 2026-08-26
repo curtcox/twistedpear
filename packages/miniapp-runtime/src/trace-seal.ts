@@ -1,11 +1,7 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createPrivateKey,
-  createPublicKey,
-  diffieHellman,
-  hkdfSync,
-} from "node:crypto";
+import { chacha20poly1305 } from "@noble/ciphers/chacha.js";
+import { hkdf } from "@noble/hashes/hkdf.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { x25519 } from "@noble/curves/ed25519.js";
 import { canonicalJson } from "@twistedpear/effects";
 import {
   APP_TRACE_FORMAT,
@@ -26,8 +22,6 @@ import {
 export const APP_TRACE_MODE_SEALED = "sealed" as const;
 export const APP_TRACE_SEAL_ALG = "x25519-chacha20poly1305-v1" as const;
 
-const PKCS8_PREFIX = Buffer.from("302e020100300506032b656e04220420", "hex");
-const SPKI_PREFIX = Buffer.from("302a300506032b656e032100", "hex");
 const HEX = /^[0-9a-f]+$/;
 
 export interface TraceEntropy {
@@ -61,11 +55,10 @@ export function sealAppTrace(
   const ephPublic = x25519PublicFromPrivate(ephPrivate);
   const shared = x25519Shared(ephPrivate, recipient);
   const key = deriveSealKey(shared, ephPublic, recipient);
-  const plaintext = Buffer.from(
+  const plaintext = new TextEncoder().encode(
     trace.mode === APP_TRACE_MODE_PAYLOAD
       ? serializePayloadAppTrace(trace)
       : serializeAppTrace(trace),
-    "utf8",
   );
   const identity = trace.identity;
   const aad = sealAad({
@@ -172,8 +165,8 @@ function sealAad(fields: {
   recipientKey: string;
   eph: string;
   nonce: string;
-}): Buffer {
-  return Buffer.from(
+}): Uint8Array {
+  return new TextEncoder().encode(
     canonicalJson({
       alg: APP_TRACE_SEAL_ALG,
       eph: fields.eph,
@@ -184,7 +177,6 @@ function sealAad(fields: {
       nonce: fields.nonce,
       recipientKey: fields.recipientKey,
     }),
-    "utf8",
   );
 }
 
@@ -193,92 +185,50 @@ function deriveSealKey(
   ephPublic: Uint8Array,
   recipient: Uint8Array,
 ): Uint8Array {
-  return new Uint8Array(
-    hkdfSync(
-      "sha256",
-      Buffer.from(shared),
-      Buffer.from(ephPublic),
-      Buffer.concat([
-        Buffer.from("tp-app-trace-seal-v1"),
-        Buffer.from(recipient),
-      ]),
-      32,
-    ),
+  const info = new TextEncoder().encode("tp-app-trace-seal-v1");
+  return hkdf(
+    sha256,
+    shared,
+    ephPublic,
+    new Uint8Array([...info, ...recipient]),
+    32,
   );
 }
 
 function aeadEncrypt(
   key: Uint8Array,
   nonce: Uint8Array,
-  plain: Buffer,
-  aad: Buffer,
+  plain: Uint8Array,
+  aad: Uint8Array,
 ): Uint8Array {
-  const cipher = createCipheriv(
-    "chacha20-poly1305",
-    Buffer.from(key),
-    Buffer.from(nonce),
-    { authTagLength: 16 },
-  );
-  cipher.setAAD(aad);
-  const body = Buffer.concat([cipher.update(plain), cipher.final()]);
-  return new Uint8Array(Buffer.concat([body, cipher.getAuthTag()]));
+  return chacha20poly1305(key, nonce, aad).encrypt(plain);
 }
 
 function aeadDecrypt(
   key: Uint8Array,
   nonce: Uint8Array,
   ct: Uint8Array,
-  aad: Buffer,
+  aad: Uint8Array,
 ): Uint8Array {
   if (ct.byteLength < 16) {
     throw new AppTraceFormatError("sealed ciphertext is truncated");
   }
-  const tag = Buffer.from(ct.subarray(ct.byteLength - 16));
-  const body = Buffer.from(ct.subarray(0, ct.byteLength - 16));
-  const decipher = createDecipheriv(
-    "chacha20-poly1305",
-    Buffer.from(key),
-    Buffer.from(nonce),
-    { authTagLength: 16 },
-  );
-  decipher.setAAD(aad);
-  decipher.setAuthTag(tag);
   try {
-    return new Uint8Array(
-      Buffer.concat([decipher.update(body), decipher.final()]),
-    );
+    return chacha20poly1305(key, nonce, aad).decrypt(ct);
   } catch {
     throw new AppTraceFormatError("sealed trace authentication failed");
   }
 }
 
 function x25519PublicFromPrivate(privateKey: Uint8Array): Uint8Array {
-  const key = createPrivateKey({
-    key: Buffer.concat([PKCS8_PREFIX, Buffer.from(privateKey)]),
-    format: "der",
-    type: "pkcs8",
-  });
-  const der = createPublicKey(key).export({ type: "spki", format: "der" });
-  return new Uint8Array(der.subarray(der.length - 32));
+  return x25519.getPublicKey(privateKey);
 }
 
 function x25519Shared(
   privateKey: Uint8Array,
   publicKey: Uint8Array,
 ): Uint8Array {
-  const shared = diffieHellman({
-    privateKey: createPrivateKey({
-      key: Buffer.concat([PKCS8_PREFIX, Buffer.from(privateKey)]),
-      format: "der",
-      type: "pkcs8",
-    }),
-    publicKey: createPublicKey({
-      key: Buffer.concat([SPKI_PREFIX, Buffer.from(publicKey)]),
-      format: "der",
-      type: "spki",
-    }),
-  });
-  return new Uint8Array(shared);
+  return x25519.getSharedSecret(privateKey, publicKey);
 }
 
 function requireBytes(
@@ -293,11 +243,16 @@ function requireBytes(
 }
 
 function bytesToHex(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("hex");
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function hexToBytes(hex: string, path: string): Uint8Array {
-  return new Uint8Array(Buffer.from(asHex(hex, path), "hex"));
+  const validated = asHex(hex, path);
+  const out = new Uint8Array(validated.length / 2);
+  for (let i = 0; i < validated.length; i += 2) {
+    out[i / 2] = Number.parseInt(validated.slice(i, i + 2), 16);
+  }
+  return out;
 }
 
 function asHex(value: unknown, path: string, length?: number): string {

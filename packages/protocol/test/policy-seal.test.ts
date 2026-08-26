@@ -66,9 +66,10 @@ describe("applySeal", () => {
 
   it("refuses a short parent commit", () => {
     const current = policy([denyInstall("no-install")]);
-    expect(
-      applySeal(current, ["no-install"], {}, new Uint8Array(16)),
-    ).toEqual({ ok: false, reason: "invalid" });
+    expect(applySeal(current, ["no-install"], {}, new Uint8Array(16))).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
   });
 });
 

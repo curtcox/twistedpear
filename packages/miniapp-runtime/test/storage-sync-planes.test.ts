@@ -81,7 +81,8 @@ class MemoryLimiter implements ReplicaBandwidthLimiter {
       .filter((entry) => entry.class === reservationClass)
       .reduce((sum, entry) => sum + entry.bytesPerSecond, 0);
     const total = this.committed.reduce(
-      (sum, entry) => sum + entry.bytesPerSecond, 0,
+      (sum, entry) => sum + entry.bytesPerSecond,
+      0,
     );
     if (
       classUsed + bytesPerSecond > classCap ||
@@ -185,9 +186,7 @@ describe("storage:sync bulk reservation", () => {
         release: () => {},
       }),
     };
-    expect(() => reserveReplicaBulk(limiter, 8_192)).toThrow(
-      ReplicaPlaneError,
-    );
+    expect(() => reserveReplicaBulk(limiter, 8_192)).toThrow(ReplicaPlaneError);
   });
 });
 

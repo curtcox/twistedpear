@@ -5,10 +5,7 @@ import {
 } from "./replica-merge.js";
 
 export type ReplicaAdmitReason =
-  | "forged-author"
-  | "unoffered-author"
-  | "cross-author-tombstone"
-  | "conflict";
+  "forged-author" | "unoffered-author" | "cross-author-tombstone" | "conflict";
 
 export interface ReplicaAdmitRejection {
   readonly entry: ReplicaEntry;

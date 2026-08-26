@@ -105,7 +105,9 @@ export class TopicLogStore {
 
   windows(
     topic: string,
-  ): Readonly<Record<string, { readonly minSeq: number; readonly maxSeq: number }>> {
+  ): Readonly<
+    Record<string, { readonly minSeq: number; readonly maxSeq: number }>
+  > {
     return replicaRetentionWindows(this.require(topic));
   }
 

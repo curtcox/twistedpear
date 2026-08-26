@@ -3,8 +3,15 @@ export {
   MiniappKvQuotaError,
 } from "../services/storage-kv.js";
 export type { MiniappKvStoreBackend } from "../services/storage-kv.js";
-export { ReplicaCapError, TopicLogStore, missingReplicaEntries } from "../services/storage-kv.js";
-export type { TopicLogOptions, ReplicaIngestOptions } from "../services/storage-kv.js";
+export {
+  ReplicaCapError,
+  TopicLogStore,
+  missingReplicaEntries,
+} from "../services/storage-kv.js";
+export type {
+  TopicLogOptions,
+  ReplicaIngestOptions,
+} from "../services/storage-kv.js";
 export { CorestoreBeeBackend } from "../services/storage-bee-corestore.js";
 export { KvStorageBeeBackend } from "../services/storage-bee-kv.js";
 export {

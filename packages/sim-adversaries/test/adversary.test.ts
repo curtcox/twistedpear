@@ -436,4 +436,3 @@ describe("authorised replica flood power", () => {
     ).toThrow(UnlowerableAttackProposalError);
   });
 });
-

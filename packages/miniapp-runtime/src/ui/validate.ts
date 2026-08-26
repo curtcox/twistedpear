@@ -1,7 +1,4 @@
-import {
-  ACCESSIBLE_NAME_MIN_HOST_API,
-  hostApiAtLeast,
-} from "../host-api.js";
+import { ACCESSIBLE_NAME_MIN_HOST_API, hostApiAtLeast } from "../host-api.js";
 import { chromeLexiconViolation } from "./chrome-lexicon.js";
 import {
   ACCESSIBILITY_LIVE_REGIONS,

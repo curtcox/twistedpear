@@ -64,5 +64,9 @@ export class NamespacedKvService {
   }
 }
 
-export { ReplicaCapError, TopicLogStore, missingReplicaEntries } from "./storage-sync.js";
+export {
+  ReplicaCapError,
+  TopicLogStore,
+  missingReplicaEntries,
+} from "./storage-sync.js";
 export type { TopicLogOptions, ReplicaIngestOptions } from "./storage-sync.js";

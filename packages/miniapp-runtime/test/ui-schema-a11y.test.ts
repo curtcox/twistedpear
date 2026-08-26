@@ -149,9 +149,9 @@ describe("bounded accessibility prop set", () => {
       root({ type: "date", props: { value: "2026-08-21" } }),
     ];
     for (const tree of unnamed) {
-      expect(() =>
-        validateWidgetTree(tree, { minHostApi: "0.21.0" }),
-      ).toThrow(/accessibilityLabel/);
+      expect(() => validateWidgetTree(tree, { minHostApi: "0.21.0" })).toThrow(
+        /accessibilityLabel/,
+      );
     }
     expect(() =>
       validateWidgetTree(

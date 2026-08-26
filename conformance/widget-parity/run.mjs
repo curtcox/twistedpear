@@ -393,10 +393,7 @@ try {
   validateWidgetTree(unnamedSwitch, { minHostApi: "0.21.0" });
   throw new Error("host accepted unnamed switch at minHostApi 0.21.0");
 } catch (error) {
-  if (
-    error instanceof Error &&
-    error.message.startsWith("host accepted")
-  ) {
+  if (error instanceof Error && error.message.startsWith("host accepted")) {
     throw error;
   }
 }

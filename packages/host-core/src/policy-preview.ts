@@ -51,7 +51,10 @@ export type PreviewedSeal =
       readonly commit: Uint8Array;
       readonly consent: SealConsent;
     }
-  | { readonly ok: false; readonly reason: "confirmation" | "preview" | "seal" };
+  | {
+      readonly ok: false;
+      readonly reason: "confirmation" | "preview" | "seal";
+    };
 
 type Collector = {
   predicates: Set<string>;
@@ -142,7 +145,10 @@ function pinnedUnknown(
   return prefix !== undefined && unavailable.has(prefix);
 }
 
-function collectPolicy(policy: PolicyDocument, subject?: PolicySubject): Collector {
+function collectPolicy(
+  policy: PolicyDocument,
+  subject?: PolicySubject,
+): Collector {
   const into: Collector = {
     predicates: new Set(),
     people: new Set(),
@@ -233,7 +239,9 @@ function renderPreview(preview: Omit<PolicyPreview, "text">): string {
     lines.push(`Load-bearing people: ${preview.loadBearingPeople.join(", ")}`);
   }
   if (preview.loadBearingSources.length > 0) {
-    lines.push(`Load-bearing sources: ${preview.loadBearingSources.join(", ")}`);
+    lines.push(
+      `Load-bearing sources: ${preview.loadBearingSources.join(", ")}`,
+    );
   }
   if (preview.unknownWeakenings.length > 0) {
     lines.push(`Unknown weakenings: ${preview.unknownWeakenings.join("; ")}`);
@@ -265,7 +273,10 @@ export function previewPolicy(
   return { ...draft, text: renderPreview(draft) };
 }
 
-export function previewsMatch(left: PolicyPreview, right: PolicyPreview): boolean {
+export function previewsMatch(
+  left: PolicyPreview,
+  right: PolicyPreview,
+): boolean {
   return canonicalJson(left) === canonicalJson(right);
 }
 

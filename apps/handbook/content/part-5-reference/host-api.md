@@ -32,7 +32,7 @@ Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 - **`0.18.0`** — notify:post — host-rendered, app-attributed notifications with per-host rate ceiling.
 - **`0.19.0`** — Brokered crypto.randomBytes, crypto.hash, crypto.hmac, and crypto.timingSafeEqual (no capability; no seal/open).
 - **`0.20.0`** — Widget vocabulary: text-input multiline/secure/keyboard, plus select, slider, and date.
-- **`0.21.0`** — Named controls (`switch`, `slider`, `select`, `date`) require `accessibilityLabel` when `minHostApi` is 0.21.0 or newer.
+- **`0.21.0`** — Named controls (switch, slider, select, date) require accessibilityLabel when minHostApi is 0.21.0 or newer.
 
 ## host.info()
 

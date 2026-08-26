@@ -203,9 +203,7 @@ async function main() {
           root: {
             id: "root",
             type: "view",
-            children: [
-              { id: "sw", type: "switch", props: { value: false } },
-            ],
+            children: [{ id: "sw", type: "switch", props: { value: false } }],
           },
         },
         { minHostApi: "0.21.0" },
