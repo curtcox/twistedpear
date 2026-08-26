@@ -16,7 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@twistedpear/protocol": "*",
+    "@twistedpear/protocol": "0.0.9",
     "@twistedpear/reticulum-ts": "*"
   }
 }

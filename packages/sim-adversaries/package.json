@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@twistedpear/effects": "*",
-    "@twistedpear/protocol": "*",
-    "@twistedpear/miniapp-runtime": "*"
+    "@twistedpear/protocol": "0.0.9",
+    "@twistedpear/miniapp-runtime": "0.1.14"
   }
 }

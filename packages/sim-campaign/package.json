@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@twistedpear/effects": "*",
-    "@twistedpear/miniapp-runtime": "*",
-    "@twistedpear/protocol": "*",
-    "@twistedpear/sim-adversaries": "*"
+    "@twistedpear/miniapp-runtime": "0.1.14",
+    "@twistedpear/protocol": "0.0.9",
+    "@twistedpear/sim-adversaries": "0.0.2"
   }
 }

@@ -12,7 +12,7 @@
     }
   },
   "dependencies": {
-    "@twistedpear/miniapp-runtime": "0.1.12"
+    "@twistedpear/miniapp-runtime": "0.1.14"
   },
   "scripts": {
     "build": "tsc -b"

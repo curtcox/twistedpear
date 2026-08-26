@@ -37,7 +37,7 @@
     "@twistedpear/cas-256t": "0.1.0",
     "@twistedpear/effects": "*",
     "@twistedpear/lxmf-ts": "*",
-    "@twistedpear/protocol": "*",
+    "@twistedpear/protocol": "0.0.9",
     "@twistedpear/reticulum-interfaces": "0.2.0",
     "@twistedpear/reticulum-ts": "*"
   }
