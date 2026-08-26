@@ -11,9 +11,10 @@ counterpart: docs/user-policy-plan.md
 [user policy plan](user-policy-plan.md). Where the two disagree, this file wins.
 
 The host can load a user-authored policy document, decide a closed set of
-subjects, apply an amendment, and seal rules into a commit chain that wraps
-the catalog, grants, and app-data master key. It cannot yet gather evidence or
-preview consequences.
+subjects, apply an amendment, seal rules into a commit chain that wraps the
+catalog, grants, and app-data master key, and gather evidence for time, place,
+wakefulness, and single-use approvals, and generate a consequence preview
+before seal. Host chrome for `ask` is not yet wired.
 
 ## Evaluator
 
@@ -93,8 +94,42 @@ does not know is refused before unwrap (P-R9). Accepting a later amendment
 calls [`rewrapSealedMaster`](../packages/host-core/src/policy-seal.ts) under the
 new commit and forgets the previous wrap.
 
-Consequence preview, typed confirmation, and binding the commit into a backup
-envelope remain in the [plan](user-policy-plan.md).
+Typed confirmation is part of the previewed seal below. Binding the commit into
+a backup envelope remains in the [plan](user-policy-plan.md).
+
+## Evidence
+
+[`gatherPolicyEvidence`](../packages/host-core/src/policy-evidence.ts) is the
+host adapter. The evaluator stays Sans-IO: this module answers the world and
+hands back trits.
+
+- **Time (P-R13).** `time.localHourIn` is `unknown` unless `clock.attested` is
+  true. Attestation is a monotonic reading plus a signed unix-time reference
+  from a trusted signer. A settable device clock is never the source of hour.
+- **Approvals (P-R12).** An attestation binds subject, package hash, installation
+  id, nonce, and expiry, and is spent on first successful use. Role names map
+  to keys in the host's role table; rebinding a name is an amendment, not a
+  config tweak.
+- **Place and wakefulness.** Absent a fix or sensor, the predicate is
+  `unknown` and the rule's `onUnknown` collapse applies.
+- **Siblings (P-R11).** A linked installation may carry an approval blob. It may
+  never make a policy decision for this installation —
+  [`SIBLING_DECISION_CLASSES`](../packages/host-core/src/sibling-decisions.ts)
+  has no policy class, and a sibling "allow" payload is discarded.
+
+## Preview
+
+[`previewPolicy`](../packages/host-core/src/policy-preview.ts) enumerates the
+finite predicate domain (host-unavailable predicates pinned to `unknown`) and
+answers, per subject, whether any world this host can present yields `allow`.
+A reachable subject carries a witness the evaluator accepts; an unreachable one
+has none (P-R16). `policy:amend` unreachable means the policy is terminal. The
+preview names load-bearing people and sources, lists `assume(..., true)` and
+`onUnknown: allow` as weakenings, and states the reinstall cost (the sealed
+catalog, grants, and app-data stores). [`sealWithPreview`](../packages/host-core/src/policy-preview.ts)
+refuses to seal unless that generated text is accepted with the typed phrase
+`I understand these consequences` (P-R15). A terminal policy is still sealeable
+(P-R17).
 
 ## Vectors
 
@@ -104,6 +139,5 @@ exhaustive Kleene tables and a few document-level decisions
 
 ## Not in this drop
 
-Evidence adapters, consequence preview, host chrome for `ask`, backup-envelope
-binding, and the bypass catalogue remain in the [plan](user-policy-plan.md)
-(§6 onward).
+Host chrome for `ask`, backup-envelope binding, and the bypass catalogue remain
+in the [plan](user-policy-plan.md) (§8–§9).

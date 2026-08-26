@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-25T18:38:32.259Z",
-  "commit": "b03b99b230adf8415b417ba11ad3eb8f8d8a3e34",
+  "generatedAt": "2026-08-26T02:16:57.932Z",
+  "commit": "f358023cf79babb3ff7fbef8cab3474a26646aa3",
   "counts": {
-    "total": 47,
+    "total": 52,
     "high": 0,
-    "medium": 45,
+    "medium": 50,
     "low": 2
   },
   "ratchets": {
@@ -17,54 +17,6 @@
     "license-ratchet.json": 0
   },
   "findings": [
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-API-SIGNATURES",
-      "summary": "api-signatures has been red since today: failed in CI",
-      "ask": "Fix api-signatures before picking up anything else: `npm run api-signatures:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-API-SURFACE",
-      "summary": "api-surface has been red since today: failed in CI — Public symbols: 8269 · Packages: 21 · Entry points: 47",
-      "ask": "Fix api-surface before picking up anything else: `npm run api:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-COUPLING",
-      "summary": "coupling has been red since today: failed in CI — Modules: 1368 · Components: 26 · Cycles: 4",
-      "ask": "Fix coupling before picking up anything else: `npm run coupling:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-FORMAT",
-      "summary": "format has been red since today: failed in CI — Files needing formatting: 1",
-      "ask": "Fix format before picking up anything else: `npm run format:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-GENERATED-FRESHNESS",
-      "summary": "generated-freshness has been red since today: failed in CI",
-      "ask": "Fix generated-freshness before picking up anything else: `npm run generated:check`."
-    },
-    {
-      "family": "gates",
-      "check": "red",
-      "severity": "medium",
-      "where": "GATE-TYPED-LINT",
-      "summary": "typed-lint has been red since today: failed in CI — Findings: 2",
-      "ask": "Fix typed-lint before picking up anything else: `npm run lint:typed`."
-    },
     {
       "family": "gates",
       "check": "unverified-record",
@@ -118,7 +70,7 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "apps/host-desktop/package.json",
-      "summary": "BUG-ELECTRON-BUILDER-VERSION closed 2026-08-12, but its evidence apps/host-desktop/package.json changed on 2026-08-23",
+      "summary": "BUG-ELECTRON-BUILDER-VERSION closed 2026-08-12, but its evidence apps/host-desktop/package.json changed on 2026-08-25",
       "ask": "Would `npm run desktop:pack` still pass? Re-run it if apps/host-desktop/package.json carries the behaviour BUG-ELECTRON-BUILDER-VERSION claimed."
     },
     {
@@ -149,6 +101,22 @@
       "family": "closed",
       "check": "evidence-drift",
       "severity": "medium",
+      "where": "conformance/hostile-apps/run.mjs",
+      "summary": "APPR-FLOOR-PROBE closed 2026-08-18, but its evidence conformance/hostile-apps/run.mjs changed on 2026-08-25",
+      "ask": "Would `npm run test:hostile-apps` still pass? Re-run it if conformance/hostile-apps/run.mjs carries the behaviour APPR-FLOOR-PROBE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "conformance/hostile-apps/run.mjs",
+      "summary": "CAP-HOSTILE-PROBES closed 2026-08-18, but its evidence conformance/hostile-apps/run.mjs changed on 2026-08-25",
+      "ask": "Would `npm run test:hostile-apps` still pass? Re-run it if conformance/hostile-apps/run.mjs carries the behaviour CAP-HOSTILE-PROBES claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
       "where": "docs/linked-devices.md",
       "summary": "ID-SIBLING-GATE closed 2026-08-10, but its evidence docs/linked-devices.md changed on 2026-08-17",
       "ask": "Would `npx vitest run packages/host-core/test/sibling-decisions.test.ts packages/miniapp-runtime/test/grant-installation-scope.test.ts` still pass? Re-run it if docs/linked-devices.md carries the behaviour ID-SIBLING-GATE claimed."
@@ -157,8 +125,24 @@
       "family": "closed",
       "check": "evidence-drift",
       "severity": "medium",
+      "where": "docs/miniapp-sdk.md",
+      "summary": "APPR-SPEC-RISK closed 2026-08-18, but its evidence docs/miniapp-sdk.md changed on 2026-08-25",
+      "ask": "Would `npm run test:doc-audit` still pass? Re-run it if docs/miniapp-sdk.md carries the behaviour APPR-SPEC-RISK claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "docs/miniapp-sdk.md",
+      "summary": "CAP-SPEC-SCOPE closed 2026-08-18, but its evidence docs/miniapp-sdk.md changed on 2026-08-25",
+      "ask": "Would `npm run test:doc-audit && npm run test:formal` still pass? Re-run it if docs/miniapp-sdk.md carries the behaviour CAP-SPEC-SCOPE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
       "where": "docs/static-analysis.md",
-      "summary": "QL-HARNESS-MOBILE-TYPECHECK closed 2026-08-11, but its evidence docs/static-analysis.md changed on 2026-08-24",
+      "summary": "QL-HARNESS-MOBILE-TYPECHECK closed 2026-08-11, but its evidence docs/static-analysis.md changed on 2026-08-25",
       "ask": "Would `npm run harness-mobile:typecheck` still pass? Re-run it if docs/static-analysis.md carries the behaviour QL-HARNESS-MOBILE-TYPECHECK claimed."
     },
     {
@@ -166,7 +150,7 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "docs/work-tracking.md",
-      "summary": "WORK-EFFORT closed 2026-08-14, but its evidence docs/work-tracking.md changed on 2026-08-24",
+      "summary": "WORK-EFFORT closed 2026-08-14, but its evidence docs/work-tracking.md changed on 2026-08-25",
       "ask": "Would `npx vitest run conformance/doc-audit/work-ranking.test.mjs` still pass? Re-run it if docs/work-tracking.md carries the behaviour WORK-EFFORT claimed."
     },
     {
@@ -174,7 +158,7 @@
       "check": "evidence-drift",
       "severity": "medium",
       "where": "docs/work-tracking.md",
-      "summary": "WORK-UNATTENDED closed 2026-08-17, but its evidence docs/work-tracking.md changed on 2026-08-24",
+      "summary": "WORK-UNATTENDED closed 2026-08-17, but its evidence docs/work-tracking.md changed on 2026-08-25",
       "ask": "Would `npx vitest run conformance/doc-audit/work-ranking.test.mjs` still pass? Re-run it if docs/work-tracking.md carries the behaviour WORK-UNATTENDED claimed."
     },
     {
@@ -245,6 +229,22 @@
       "family": "closed",
       "check": "evidence-drift",
       "severity": "medium",
+      "where": "packages/miniapp-runtime/src/egress-enforcement.ts",
+      "summary": "CAP-BUDGETS closed 2026-08-18, but its evidence packages/miniapp-runtime/src/egress-enforcement.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/egress-budgets.test.ts` still pass? Re-run it if packages/miniapp-runtime/src/egress-enforcement.ts carries the behaviour CAP-BUDGETS claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/src/egress-enforcement.ts",
+      "summary": "CAP-EGRESS-WIRING closed 2026-08-18, but its evidence packages/miniapp-runtime/src/egress-enforcement.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/egress-enforcement.test.ts` still pass? Re-run it if packages/miniapp-runtime/src/egress-enforcement.ts carries the behaviour CAP-EGRESS-WIRING claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
       "where": "packages/miniapp-runtime/src/grant-ttl.ts",
       "summary": "CAP-TTL closed 2026-08-18, but its evidence packages/miniapp-runtime/src/grant-ttl.ts changed on 2026-08-25",
       "ask": "Would `npx vitest run packages/miniapp-runtime/test/grant-ttl.test.ts` still pass? Re-run it if packages/miniapp-runtime/src/grant-ttl.ts carries the behaviour CAP-TTL claimed."
@@ -264,6 +264,22 @@
       "where": "packages/miniapp-runtime/src/ui/chrome-lexicon.ts",
       "summary": "HA-P2-RENDER-ORACLE closed 2026-08-18, but its evidence packages/miniapp-runtime/src/ui/chrome-lexicon.ts changed on 2026-08-25",
       "ask": "Would `npx vitest run packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts && npm run test:chrome` still pass? Re-run it if packages/miniapp-runtime/src/ui/chrome-lexicon.ts carries the behaviour HA-P2-RENDER-ORACLE claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/test/app-to-app.test.ts",
+      "summary": "MINIAPP-APP-TO-APP closed 2026-08-17, but its evidence packages/miniapp-runtime/test/app-to-app.test.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/app-to-app.test.ts` still pass? Re-run it if packages/miniapp-runtime/test/app-to-app.test.ts carries the behaviour MINIAPP-APP-TO-APP claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/miniapp-runtime/test/egress-enforcement.test.ts",
+      "summary": "CAP-EGRESS-WIRING closed 2026-08-18, but its evidence packages/miniapp-runtime/test/egress-enforcement.test.ts changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/miniapp-runtime/test/egress-enforcement.test.ts` still pass? Re-run it if packages/miniapp-runtime/test/egress-enforcement.test.ts carries the behaviour CAP-EGRESS-WIRING claimed."
     },
     {
       "family": "closed",
@@ -296,6 +312,30 @@
       "where": "packages/protocol/test/capability-risk.test.ts",
       "summary": "APPR-RISK-CLASS closed 2026-08-18, but its evidence packages/protocol/test/capability-risk.test.ts changed on 2026-08-25",
       "ask": "Would `npx vitest run packages/protocol/test/capability-risk.test.ts` still pass? Re-run it if packages/protocol/test/capability-risk.test.ts carries the behaviour APPR-RISK-CLASS claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "summary": "APPR-OPTIONAL-CAPS closed 2026-08-18, but its evidence packages/worklet-core/src/miniapp-host-shared-backends.mjs changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/app-registry/test/optional-capabilities.test.ts` still pass? Re-run it if packages/worklet-core/src/miniapp-host-shared-backends.mjs carries the behaviour APPR-OPTIONAL-CAPS claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "summary": "APPR-UPDATE-DELTA closed 2026-08-18, but its evidence packages/worklet-core/src/miniapp-host-shared-backends.mjs changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/app-registry/test/update-delta.test.ts` still pass? Re-run it if packages/worklet-core/src/miniapp-host-shared-backends.mjs carries the behaviour APPR-UPDATE-DELTA claimed."
+    },
+    {
+      "family": "closed",
+      "check": "evidence-drift",
+      "severity": "medium",
+      "where": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
+      "summary": "CAP-MANIFEST-V2 closed 2026-08-18, but its evidence packages/worklet-core/src/miniapp-host-shared-backends.mjs changed on 2026-08-25",
+      "ask": "Would `npx vitest run packages/app-registry/test/manifest-v2.test.ts` still pass? Re-run it if packages/worklet-core/src/miniapp-host-shared-backends.mjs carries the behaviour CAP-MANIFEST-V2 claimed."
     },
     {
       "family": "closed",

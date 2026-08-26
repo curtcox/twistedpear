@@ -1669,6 +1669,13 @@
       "requires": ["POL-1-EVAL"],
       "verify": "npm test -- packages/host-core/test/policy-evidence.test.ts",
       "added": "2026-08-23",
+      "completed": "2026-08-26",
+      "evidence": [
+        "packages/host-core/src/policy-evidence.ts",
+        "packages/host-core/test/policy-evidence.test.ts",
+        "packages/protocol/src/policy-evaluate.ts",
+        "docs/user-policy.md"
+      ],
       "notes": "Evidence gathering is a host adapter; the evaluator stays Sans-IO. Attestations bind subject, package hash, installation id, nonce, expiry and are single-use. Time is unknown unless the clock is attested. P-R11..P-R13."
     },
     "POL-5-PREVIEW": {
@@ -1676,6 +1683,12 @@
       "requires": ["POL-1-EVAL"],
       "verify": "npm test -- packages/host-core/test/policy-preview.test.ts",
       "added": "2026-08-23",
+      "completed": "2026-08-26",
+      "evidence": [
+        "packages/host-core/src/policy-preview.ts",
+        "packages/host-core/test/policy-preview.test.ts",
+        "docs/user-policy.md"
+      ],
       "notes": "Generated from the policy, not hand-written; recorded verbatim in the consent record. Reachability, terminal-policy detection, load-bearing people and sources, unknown collapses, reinstall cost. Property P6 makes a preview that lies a test failure. P-R15..P-R17."
     },
     "POL-6-BYPASS": {

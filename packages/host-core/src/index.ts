@@ -153,6 +153,38 @@ export {
   type SealedStoreName,
 } from "./policy-seal.js";
 export {
+  POLICY_APPROVAL_ATTESTATION_KIND,
+  POLICY_CLOCK_ATTESTATION_KIND,
+  approvalsCarriedBySibling,
+  createMemoryNonceStore,
+  decidePolicy,
+  gatherPolicyEvidence,
+  signApprovalAttestation,
+  signClockAttestation,
+  verifyApprovalAttestation,
+  verifyClockAttestation,
+  type ApprovalAttestation,
+  type ApprovalNonceStore,
+  type ApprovalScope,
+  type ClockAttestation,
+  type ClockSample,
+  type GeoFence,
+  type PlaceSample,
+  type PolicyEvidenceInput,
+  type SiblingPolicyCarry,
+} from "./policy-evidence.js";
+export {
+  POLICY_SEAL_CONFIRMATION,
+  previewPolicy,
+  previewsMatch,
+  sealWithPreview,
+  type PolicyPreview,
+  type PreviewHost,
+  type PreviewedSeal,
+  type SealConsent,
+  type SubjectReachability,
+} from "./policy-preview.js";
+export {
   APP_DATA_ARCHIVE_EXTENSION,
   AppDataArchiveError,
   snapshotAppData,

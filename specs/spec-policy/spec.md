@@ -103,7 +103,12 @@ cases cite the rule they exercise.
   [conformance/vectors/policy.json](../../conformance/vectors/policy.json).
 - **Amendment and seal.** `applyAmendment` and `applySeal` in `packages/protocol`;
   catalog / grants / app-data wrap in `packages/host-core` `policy-seal.ts`.
-- **Not yet.** TLA+ twin, bypass suite.
+- **Evidence adapters.** `gatherPolicyEvidence` in `packages/host-core`
+  `policy-evidence.ts`: attested clock (P-R13), bound single-use approvals (P-R12),
+  place, wakefulness, and sibling carry-not-decide (P-R11).
+- **Consequence preview.** `previewPolicy` / `sealWithPreview` in
+  `packages/host-core` `policy-preview.ts` (P-R15–P-R17).
+- **Not yet.** TLA+ twin, bypass suite, host chrome for `ask`.
 
 The mechanisms the remaining work is built from also exist —
 [`grants.ts`](../../packages/protocol/src/grants.ts),

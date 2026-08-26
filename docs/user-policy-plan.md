@@ -72,10 +72,11 @@ Absent entirely:
   TwistedPear. `RelayPolicyMatrix` is a fixed allow-matrix over interface kinds;
   [`security-policies.ts`](../packages/miniapp-runtime/src/security-policies.ts) holds two
   standalone primitives with no ingress. Nothing accepts a user-supplied expression.
-- **No environmental predicates.** Location, wakefulness, and attested time have no
-  representation. Time is read as a host clock wherever it is read at all.
-- **No third-party approval of a local action.** Attestations exist for publishers, not
-  for "my spouse approved this install on this device".
+- **No environmental predicates.** Location, wakefulness, and attested time now have
+  host adapters in [user-policy.md](user-policy.md)#evidence. Without sensors they
+  stay `unknown`.
+- **No third-party approval of a local action.** Single-use, bound approvals now exist
+  in the same adapter. Chrome that *asks* for one is still planned.
 - **No monotonicity anywhere.** Nothing in the tree distinguishes a tightening change
   from a relaxing one. (Amendment classification now does; this bullet is historical
   for the pre-POL-2 tree.)
@@ -125,10 +126,8 @@ What this section still owns:
 
 ## 6. Warning without prohibiting
 
-Before any sealing amendment, the host runs a **consequence preview** and requires the
-user to type a confirmation phrase. The preview is generated from the policy, not written
-by hand, and it is recorded verbatim in the consent record so "I was not warned" is later
-checkable.
+Shipped. See [user-policy.md](user-policy.md)#preview. Host chrome that *shows* the
+preview is still planned; the generator, typed confirmation, and consent record are not.
 
 | Preview section           | Question it answers                                                                                                                                                             |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -145,24 +144,8 @@ says so rather than guessing — and §9's P6 makes a preview that _lies_ a test
 
 ## 7. Trusting the evidence
 
-A predicate is only as good as the thing answering it, and a policy is a claim about the
-world made by a device the user may not fully control.
-
-- **Time.** `time.*` resolves `unknown` unless the clock is attested: monotonic since
-  boot, plus a signed time reference from a peer or approver where the rule demands it. A
-  settable device clock otherwise turns "between 9am and 8pm" into "whenever I like" (B4).
-- **Approvals.** An attestation is bound to `(subject, package hash, installation id,
-nonce, expiry)` and is single-use. Rebinding a role name like `"mother"` to a different
-  key is itself a `policy:amend` — approver identity is policy, not configuration (B5, B6).
-- **Place and wakefulness.** Both are inferences, both are sensor-dependent, and both are
-  privacy-sensitive. A policy that uses them makes those sensors load-bearing, which the
-  preview states. Absent sensor → permanently `unknown` → the rule's declared collapse.
-- **Siblings.** A linked installation may _carry_ an approval; it may never _make_ a
-  policy decision for this one. This extends the existing rule that no sibling class
-  carries capability grants ([`sibling-decisions.ts`](../packages/host-core/src/sibling-decisions.ts)) to policy (B7).
-- **Mini-apps.** No capability reaches policy. There is no broker namespace, no grant, and
-  no chrome path by which app code proposes, reads, or amends a rule. Asserted as a closed
-  set, not as an absence (B10).
+Shipped. See [user-policy.md](user-policy.md)#evidence. Mini-app isolation (B10) and
+preview of load-bearing sensors remain planned.
 
 ## 8. The worked example
 
@@ -317,9 +300,9 @@ Open, and deliberately not decided here:
   policies, or whether the preview needs a solver.
 - The transport for approval requests and attestations — LXMF direct, or a dedicated
   approver flow.
-- Whether `place` and `awake` ship at all in the first cut, or whether the first cut ships
-  only always-resolvable artifact predicates plus approvals, with sensor predicates
-  expressible but permanently `unknown` on every current host.
+- Place and wakefulness ship as adapters that return `unknown` without a sensor. Whether
+  any current host *has* those sensors is still open; the language and collapse already
+  treat absence as unknown.
 
 ## 11. Documents to update when policy ships
 

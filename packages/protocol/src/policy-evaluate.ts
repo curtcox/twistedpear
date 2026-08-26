@@ -135,12 +135,15 @@ function collectParameterizedNeeds(
     return true;
   }
   if ("time.localHourIn" in expr) {
-    parameterizedNeed(
-      needed,
-      evidence,
-      "time.localHourIn",
-      expr["time.localHourIn"],
-    );
+    needPredicate(needed, evidence, "clock.attested");
+    if (evidence.predicates?.["clock.attested"] === "true") {
+      parameterizedNeed(
+        needed,
+        evidence,
+        "time.localHourIn",
+        expr["time.localHourIn"],
+      );
+    }
     return true;
   }
   if ("approval.by" in expr) {
@@ -236,6 +239,9 @@ function evalParameterized(
     );
   }
   if ("time.localHourIn" in expr) {
+    if (evidence.predicates?.["clock.attested"] !== "true") {
+      return "unknown";
+    }
     return predicateTrit(
       evidence,
       parameterizedPredicateKey("time.localHourIn", expr["time.localHourIn"]),

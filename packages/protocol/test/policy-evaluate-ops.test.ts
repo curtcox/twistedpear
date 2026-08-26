@@ -60,8 +60,8 @@ describe("evaluatePolicy remaining operators", () => {
     if (result.kind !== "needs") return;
     expect(result.predicates).toEqual(
       [
+        "clock.attested",
         parameterizedPredicateKey("place.is", "home"),
-        parameterizedPredicateKey("time.localHourIn", [9, 17]),
         parameterizedPredicateKey("approval.by", "alice"),
         parameterizedPredicateKey("approval.byOrg", "ops"),
         parameterizedPredicateKey("user.typedPhrase", "ok"),
@@ -77,6 +77,7 @@ describe("evaluatePolicy remaining operators", () => {
     const policy = document([allowWhen(whenAll)]);
     const evidence: PolicyEvidence = {
       predicates: {
+        "clock.attested": "true",
         [parameterizedPredicateKey("place.is", "home")]: "true",
         [parameterizedPredicateKey("time.localHourIn", [9, 17])]: "true",
         [parameterizedPredicateKey("approval.by", "alice")]: "true",
@@ -115,5 +116,31 @@ describe("evaluatePolicy remaining operators", () => {
         },
       }),
     ).toEqual({ kind: "deny", source: "base" });
+  });
+
+  it("treats time.localHourIn as unknown unless the clock is attested (P-R13)", () => {
+    const policy = document([
+      allowWhen({ "time.localHourIn": [9, 17] }),
+    ]);
+    const window = parameterizedPredicateKey("time.localHourIn", [9, 17]);
+    expect(evaluatePolicy(policy, install, {})).toEqual({
+      kind: "needs",
+      predicates: ["clock.attested"],
+    });
+    expect(
+      evaluatePolicy(policy, install, {
+        predicates: { "clock.attested": "false", [window]: "true" },
+      }),
+    ).toMatchObject({ kind: "deny", source: "rule" });
+    expect(
+      evaluatePolicy(policy, install, {
+        predicates: { "clock.attested": "true" },
+      }),
+    ).toEqual({ kind: "needs", predicates: [window] });
+    expect(
+      evaluatePolicy(policy, install, {
+        predicates: { "clock.attested": "true", [window]: "true" },
+      }),
+    ).toMatchObject({ kind: "allow", source: "rule" });
   });
 });

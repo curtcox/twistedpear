@@ -35,6 +35,7 @@
     "@twistedpear/bridge-freenet": "0.1.0",
     "@twistedpear/bridge-hyper": "0.1.0",
     "@twistedpear/cas-256t": "0.1.0",
+    "@twistedpear/effects": "*",
     "@twistedpear/lxmf-ts": "*",
     "@twistedpear/protocol": "*",
     "@twistedpear/reticulum-interfaces": "0.2.0",
