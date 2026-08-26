@@ -9,7 +9,7 @@
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "6616bf545c8e3ae8c34e010715ac3e72ff1e9fee89fcc4f4dd7f99a21425a348"
+      "sha256": "4ea1d7b1e11d0ae111ba0674706a8dff9eb9d648ce289aa8cf2f115650b61c83"
     },
     "host-core.api.md": {
       "package": "packages/host-core",

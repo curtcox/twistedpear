@@ -1,0 +1,42 @@
+{
+  "description": "Payload-mode mini-app session traces for TRACE-4-SEALED. Hashes are FNV-1a 64-bit over canonical JSON. Redacting the vector must drop secret-note.",
+  "vectors": [
+    {
+      "name": "dice-table-payload",
+      "hash": "0d2b7761021c030a",
+      "trace": {
+        "format": 1,
+        "kind": "miniapp-session",
+        "mode": "payload",
+        "hostApiVersion": "0.20.0",
+        "identity": {
+          "appId": "dice-table",
+          "version": "1.0.0",
+          "publisherKey": "1111111111111111111111111111111111111111111111111111111111111111",
+          "packageHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "host": {
+          "platform": "node",
+          "hostVersion": "0.0.0",
+          "hostApiVersion": "0.20.0"
+        },
+        "grants": ["lxmf:send"],
+        "entries": [
+          { "t": "clock", "at": 0 },
+          {
+            "t": "broker",
+            "at": 1,
+            "namespace": "lxmf",
+            "method": "send",
+            "capability": "lxmf:send",
+            "outcome": "allowed",
+            "payload": { "note": "secret-note" },
+            "result": { "ok": true }
+          },
+          { "t": "inbound", "at": 2, "kind": "ui", "name": "press" },
+          { "t": "assert", "at": 3, "kind": "widget", "nodes": 5 }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://twistedpear.dev/specs/spec-app-trace/schema/app-session-payload.schema.json",
+  "title": "SPEC-APP-TRACE mini-app session (payload mode)",
+  "description": "Format 1 payload-mode session. Broker rows may carry JSON payload and result; other entries stay shape-only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "kind",
+    "mode",
+    "hostApiVersion",
+    "identity",
+    "host",
+    "grants",
+    "entries"
+  ],
+  "properties": {
+    "format": { "const": 1 },
+    "kind": { "const": "miniapp-session" },
+    "mode": { "const": "payload" },
+    "hostApiVersion": { "type": "string", "minLength": 1 },
+    "identity": { "$ref": "app-session.schema.json#/$defs/identity" },
+    "host": { "$ref": "app-session.schema.json#/$defs/host" },
+    "grants": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "app-session.schema.json#/$defs/clock" },
+          { "$ref": "app-session.schema.json#/$defs/entropy" },
+          { "$ref": "app-session.schema.json#/$defs/grant" },
+          { "$ref": "#/$defs/broker" },
+          { "$ref": "app-session.schema.json#/$defs/inbound" },
+          { "$ref": "app-session.schema.json#/$defs/assert" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "broker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["t", "at", "namespace", "method", "capability", "outcome"],
+      "properties": {
+        "t": { "const": "broker" },
+        "at": { "type": "integer", "minimum": 0 },
+        "namespace": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 },
+        "capability": { "type": ["string", "null"] },
+        "outcome": { "enum": ["allowed", "denied", "failed"] },
+        "payload": true,
+        "result": true
+      }
+    }
+  }
+}

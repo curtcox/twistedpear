@@ -51,8 +51,26 @@ emitting a trace that would silently fail replay.
 
 Focused tests: `npx vitest run packages/miniapp-runtime/test/trace-recording.test.ts`.
 
+## Payload, redaction, and sealed traces
+
+Shape remains the default. A host that constructs `SessionRecorder` with
+`mode: "payload"` may attach JSON `payload` and `result` on broker rows.
+`snapshot()` is still shape-only. `snapshotPayload()` returns the payload
+document. `redactAppTrace` / `SessionRecorder.redact()` drop those fields and
+parse as shape; a known secret string must not survive as UTF-8 in the
+serialized redaction.
+
+`sealAppTrace` wraps a shape or payload document in an X25519-ChaCha20-Poly1305
+envelope addressed to a 32-byte recipient key (typically the publisher's
+encryption key). Identity stays in the clear. Opening with the matching
+private key recovers the inner document; any other key fails closed.
+Recording stays host-owned: `MiniappBroker` has no trace methods, and two
+recorders do not share tape. In-memory tape is capped (`maxBytes`, default
+256 KiB) and drops oldest entries rather than growing without bound.
+
+Focused tests: `npx vitest run packages/miniapp-runtime/test/trace-security.test.ts`.
+
 ## Not in this drop
 
 `tp trace record` / `replay` / `step` / `shrink` do not exist. Desktop has no
-Record session control. Payload recording and sealed traces are later plan
-phases.
+Record session control.

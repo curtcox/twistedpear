@@ -292,9 +292,34 @@ export type {
   AppTraceInboundKind,
 } from "./diagnostics.js";
 export {
+  APP_TRACE_MODE_PAYLOAD,
+  hashPayloadAppTrace,
+  parsePayloadAppTrace,
+  redactAppTrace,
+  serializePayloadAppTrace,
+} from "./trace-payload.js";
+export type {
+  PayloadAppTrace,
+  PayloadAppTraceEntry,
+  PayloadBrokerEntry,
+} from "./trace-payload.js";
+export {
+  APP_TRACE_MODE_SEALED,
+  APP_TRACE_SEAL_ALG,
+  openSealedAppTrace,
+  parseSealedAppTrace,
+  sealAppTrace,
+} from "./trace-seal.js";
+export type { SealedAppTrace, TraceEntropy } from "./trace-seal.js";
+export {
+  DEFAULT_TRACE_MAX_BYTES,
   SessionRecorder,
   UnshimmedClockError,
   countWidgetNodes,
+} from "./trace-recording.js";
+export type {
+  SessionRecorderOptions,
+  BrokerAuditShape,
 } from "./trace-recording.js";
 export { installTimeShims, isNativeDateNow } from "./sandbox/time-shims.js";
 export type {

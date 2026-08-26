@@ -8,9 +8,9 @@ counterpart: docs/miniapp-record-replay.md
 -->
 
 **This document describes intended work, not current behaviour.** The shape-only
-session format that already ships is in
-[mini-app record and replay](miniapp-record-replay.md). What still does not exist
-is recording, replay, shrinking, and host chrome. What already existed for debugging
+session format, live recording, payload/redaction, and sealed envelopes that
+already ship are in [mini-app record and replay](miniapp-record-replay.md).
+What still does not exist is replay, shrinking, and host chrome. What already existed for debugging
 a mini-app is a console shim and a diagnostics ring, described in
 [Testing and debugging](../authors/11-testing-and-debugging.md) and
 [the mini-app runtime reference](miniapp-runtime.md); the deterministic kernel this plan
@@ -164,21 +164,17 @@ Nothing in this plan is claimed until these run:
 | Phase | Deliverable                                                           | Gate                                                         |
 | ----- | --------------------------------------------------------------------- | ------------------------------------------------------------ |
 | 3     | `tp trace replay` and `tp trace step` over `widget-renderer-headless` | Cookbook corpus replays identically                          |
-| 4     | Payload recording, redaction, and sealed traces                       | Security review of §6 signed off                             |
 | 5     | `tp trace shrink` and `tp trace test`                                 | A found bug becomes a checked-in regression                  |
 | 6     | Desktop **Record session** chrome and the recording indicator         | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) |
 
-Phase 2 (recording at the audit seam, sandbox clock/entropy shims, negative
-control) now lives in [mini-app record and replay](miniapp-record-replay.md).
-Phases 3–4 remain useful on their own: shape-only traces with no payload recording already
-solve mishandled denials, render loops, and quota branches, and they carry none of §6's
-risk. Phase 4 is where the review gate belongs.
+Phase 2 (recording) and phase 4 (payload, redaction, sealed traces) now live in
+[mini-app record and replay](miniapp-record-replay.md). Phase 3 remains useful
+on its own: shape-only traces already solve mishandled denials, render loops,
+and quota branches. Shrinking still waits for replay; host chrome waits for the
+privacy boundary, which is now in the live document.
 
-The phases are tracked as `TRACE-1-FORMAT`, `TRACE-2-RECORD`, `TRACE-3-REPLAY`,
-`TRACE-4-SEALED`, `TRACE-5-SHRINK`, and `TRACE-6-CHROME` in the
-[software backlog](../STATUS-SOFTWARE.md). Shrinking waits for both replay and the sealed
-payload format; host chrome waits for the privacy boundary rather than exposing an unsafe
-recording mode early.
+The remaining phases are tracked as `TRACE-3-REPLAY`, `TRACE-5-SHRINK`, and
+`TRACE-6-CHROME` in the [software backlog](../STATUS-SOFTWARE.md).
 
 ## 10. Open questions
 

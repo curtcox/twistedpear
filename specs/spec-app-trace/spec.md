@@ -11,13 +11,21 @@ register: none
 ## Scope
 
 The interoperable unit for a recorded mini-app session. Hosts, the CLI, and tests
-exchange the same document. Format 1 is **shape-only**: it records causal input
-kinds, names, capabilities, and outcomes, never broker payloads, results, or user
-content. Kernel-level protocol traces remain [SPEC-TRACE](../spec-trace/spec.md).
+exchange the same document. Format 1 has three modes:
 
-Recording, replay, shrinking, and sealed payload traces are out of scope here;
-they are later phases of the
-[record-and-replay plan](../../docs/miniapp-record-replay-plan.md).
+- **`shape`** (default): causal input kinds, names, capabilities, and outcomes.
+  Never broker payloads, results, or user content. `parseAppTrace` accepts only
+  this mode.
+- **`payload`**: the same tape, with optional JSON `payload` / `result` on
+  `broker` rows. Hosts write this only when the operator opts in.
+  `parsePayloadAppTrace` / `redactAppTrace` convert to `shape`.
+- **`sealed`**: an X25519-ChaCha20-Poly1305 envelope around a shape or payload
+  document, addressed to a 32-byte recipient key (typically the publisher's
+  encryption key). Identity stays public; the tape is ciphertext.
+
+Kernel-level protocol traces remain [SPEC-TRACE](../spec-trace/spec.md).
+Replay, shrinking, and host chrome are out of scope here; they remain later
+phases of the [record-and-replay plan](../../docs/miniapp-record-replay-plan.md).
 
 ## Document
 
@@ -27,7 +35,7 @@ A session is one JSON object:
 | ---------------- | ----------------------------------------------------------------- |
 | `format`         | `1`                                                               |
 | `kind`           | `miniapp-session`                                                 |
-| `mode`           | `shape` (the only legal value in format 1)                        |
+| `mode`           | `shape` (default). `payload` and `sealed` are additional modes.   |
 | `hostApiVersion` | Host API the session ran against                                  |
 | `identity`       | `appId`, `version`, 32-byte `publisherKey`, 32-byte `packageHash` |
 | `host`           | `platform`, `hostVersion`, `hostApiVersion`                       |
@@ -37,7 +45,9 @@ A session is one JSON object:
 Entry tags: `clock`, `entropy` (`byteCount` only), `grant`, `broker`, `inbound`,
 `assert`. `assert` records output checks (widget node counts, call shapes), not
 inputs. A `broker` row carries `namespace`, `method`, `capability`, and `outcome`
-and must not carry `payload` or `result`.
+and must not carry `payload` or `result`. Payload-mode broker rows may add
+`payload` and `result` as JSON values. Sealed documents replace `entries` with
+`recipientKey`, `alg` (`x25519-chacha20poly1305-v1`), `eph`, `nonce`, and `ct`.
 
 ## Canonical form and hash
 
@@ -50,9 +60,13 @@ implement them. Key order on disk is not significant.
 
 ## Normative artifacts
 
-- Schema: [schema/app-session.schema.json](schema/app-session.schema.json)
+- Schema: [schema/app-session.schema.json](schema/app-session.schema.json),
+  [schema/app-session-payload.schema.json](schema/app-session-payload.schema.json),
+  [schema/app-session-sealed.schema.json](schema/app-session-sealed.schema.json)
 - Known-answer vectors: `app-session.json` → `dice-table-shape`,
   `pocket-notes-shape`, `unit-converter-shape`
-  ([vectors/app-session.json](vectors/app-session.json))
+  ([vectors/app-session.json](vectors/app-session.json));
+  `app-session-payload.json` → `dice-table-payload`
 - Round-trip and rejection tests:
-  `trace-format.test.ts` ("round-trips the three Cookbook shape traces")
+  `trace-format.test.ts` ("round-trips the three Cookbook shape traces"),
+  `trace-security.test.ts` ("TRACE-4 payload, redaction, and sealed traces")

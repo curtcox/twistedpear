@@ -2145,6 +2145,15 @@
       "requires": ["TRACE-2-RECORD"],
       "verify": "npx vitest run packages/miniapp-runtime/test/trace-security.test.ts",
       "added": "2026-08-24",
+      "completed": "2026-08-26",
+      "evidence": [
+        "packages/miniapp-runtime/src/trace-payload.ts",
+        "packages/miniapp-runtime/src/trace-seal.ts",
+        "packages/miniapp-runtime/src/trace-recording.ts",
+        "packages/miniapp-runtime/test/trace-security.test.ts",
+        "specs/spec-app-trace/spec.md",
+        "docs/miniapp-record-replay.md"
+      ],
       "notes": "docs/miniapp-record-replay-plan.md Phase 4. Preserve the §6 privacy boundary: host-only recording, app isolation, bytewise secret-redaction checks, authenticated sealed traces, and bounded storage."
     },
     "TRACE-5-SHRINK": {
