@@ -30,7 +30,17 @@ export interface FreenetPacketLogBackendOptions {
   /** Local write direction; peer writes the other. */
   readonly localDirection: 0 | 1;
   readonly updateOptions?: FreenetUpdateOptions;
+  /**
+   * Upper bound on how stale the local view of the log may get while the
+   * backend is active. Subscription notifications are the fast path; this is
+   * the floor that keeps a dropped notification from stalling the stream
+   * forever. Set to 0 to rely on notifications alone.
+   */
+  readonly reconcileIntervalMs?: number;
 }
+
+/** Freshness floor when the caller does not pick one. */
+const DEFAULT_RECONCILE_INTERVAL_MS = 1_000;
 
 function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
   return (
@@ -44,6 +54,13 @@ function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
  * notifications are treated as hints to fetch authoritative state, then
  * contiguous peer indices are delivered upward (gaps recovered via refetch,
  * duplicates ignored).
+ *
+ * Cross-node Freenet notify is a hint that can be dropped outright — the S2
+ * measurement harness already carries a GET-reconcile fallback for exactly
+ * that. Refetching only when a notification arrives therefore made a dropped
+ * notification permanent: the frame sat in authoritative state that nothing
+ * ever went back for, and the interface went quiet rather than slow. A
+ * periodic reconcile is what makes the "recovered via refetch" above true.
  */
 export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendPort {
   readonly #client: FreenetClient;
@@ -64,6 +81,10 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
   #publishQueue: Promise<void> = Promise.resolve();
   #contractKey: Uint8Array | null = null;
   #reconcileQueue: Promise<void> = Promise.resolve();
+  readonly #reconcileIntervalMs: number;
+  #reconcileTimer: ReturnType<typeof setInterval> | null = null;
+  #lastReconcileAt = 0;
+  #reconcilesInFlight = 0;
 
   constructor(options: FreenetPacketLogBackendOptions) {
     if (options.rendezvous.length !== 32) {
@@ -80,6 +101,8 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
     this.#localDirection = options.localDirection;
     this.#peerDirection = options.localDirection === 0 ? 1 : 0;
     this.#updateOptions = options.updateOptions;
+    this.#reconcileIntervalMs =
+      options.reconcileIntervalMs ?? DEFAULT_RECONCILE_INTERVAL_MS;
   }
 
   get active(): boolean {
@@ -105,10 +128,15 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
       this.#enqueueReconcile();
     });
     this.#active = true;
+    this.#startReconcileTimer();
   }
 
   async stop(): Promise<void> {
     this.#active = false;
+    if (this.#reconcileTimer !== null) {
+      clearInterval(this.#reconcileTimer);
+      this.#reconcileTimer = null;
+    }
     this.#unsubscribe?.();
     this.#unsubscribe = null;
     this.#pendingPeer.clear();
@@ -151,11 +179,38 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
     this.#state = merged;
   }
 
+  #startReconcileTimer(): void {
+    if (this.#reconcileIntervalMs <= 0 || this.#reconcileTimer !== null) {
+      return;
+    }
+    const timer = setInterval(() => {
+      // A get() already running is the freshest view obtainable, and a node
+      // answering more slowly than the interval would otherwise accrue a queue
+      // of gets it can never work off.
+      if (this.#reconcilesInFlight > 0) {
+        return;
+      }
+      // A notification within the window already refreshed the view, so the
+      // timer costs a get() only when the notify path has gone quiet.
+      if (Date.now() - this.#lastReconcileAt < this.#reconcileIntervalMs) {
+        return;
+      }
+      this.#enqueueReconcile();
+    }, this.#reconcileIntervalMs);
+    timer.unref?.();
+    this.#reconcileTimer = timer;
+  }
+
   #enqueueReconcile(): void {
+    this.#lastReconcileAt = Date.now();
+    this.#reconcilesInFlight += 1;
     this.#reconcileQueue = this.#reconcileQueue
       .then(() => this.#reconcileFromAuthoritative())
       .catch(() => {
         // Transient get failures leave pending indices buffered for the next hint.
+      })
+      .finally(() => {
+        this.#reconcilesInFlight -= 1;
       });
   }
 

@@ -227,6 +227,89 @@ describe("FreenetContractPacketLogBackend", () => {
     await right.stop();
   });
 
+  it("recovers a peer frame whose notification never arrives", async () => {
+    // The cross-node failure this guards: Freenet notify is a hint that can be
+    // dropped, and with refetch driven only by notifications a dropped one made
+    // the frame permanently invisible rather than merely late.
+    const client = makeFakeClient();
+    const wasm = new Uint8Array([0, 97, 115, 109]);
+    const rendezvous = new Uint8Array(32).fill(0x47);
+    const right = new FreenetContractPacketLogBackend({
+      client,
+      wasm,
+      rendezvous,
+      localDirection: 1,
+      retentionPerDirection: 8,
+      reconcileIntervalMs: 10,
+    });
+    const received: number[] = [];
+    right.setReceiver((frame) => received.push(frame[0]!));
+    await right.start();
+
+    const key = contractKey(wasm, rendezvous);
+    // Authoritative state advances with no notification at all.
+    client.setState(key, encodePacketLogState([entry(0, 0n, 31)]));
+
+    const deadline = Date.now() + 1_000;
+    while (received.length === 0 && Date.now() < deadline) {
+      await settle();
+    }
+
+    expect(received).toEqual([31]);
+    await right.stop();
+  });
+
+  it("stops reconciling once stopped", async () => {
+    const client = makeFakeClient();
+    const wasm = new Uint8Array([0, 97, 115, 109]);
+    const rendezvous = new Uint8Array(32).fill(0x48);
+    const right = new FreenetContractPacketLogBackend({
+      client,
+      wasm,
+      rendezvous,
+      localDirection: 1,
+      retentionPerDirection: 8,
+      reconcileIntervalMs: 10,
+    });
+    await right.start();
+    await right.stop();
+
+    const getsAfterStop = client.getCalls.length;
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(client.getCalls.length).toBe(getsAfterStop);
+  });
+
+  it("does not refetch on the timer while notifications keep the view fresh", async () => {
+    // The timer is a freshness floor, not a second polling loop: traffic that
+    // keeps notifying should cost exactly the notification-driven gets.
+    const client = makeFakeClient();
+    const wasm = new Uint8Array([0, 97, 115, 109]);
+    const rendezvous = new Uint8Array(32).fill(0x49);
+    const right = new FreenetContractPacketLogBackend({
+      client,
+      wasm,
+      rendezvous,
+      localDirection: 1,
+      retentionPerDirection: 8,
+      reconcileIntervalMs: 30,
+    });
+    await right.start();
+
+    const key = contractKey(wasm, rendezvous);
+    const getsBefore = client.getCalls.length;
+    let notifications = 0;
+    const deadline = Date.now() + 200;
+    while (Date.now() < deadline) {
+      client.notify(key, encodePacketLogState([]));
+      notifications += 1;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    await settle();
+
+    expect(client.getCalls.length - getsBefore).toBe(notifications);
+    await right.stop();
+  });
+
   it("recovers a missing intermediate index after a delayed authoritative get", async () => {
     const client = makeFakeClient();
     const wasm = new Uint8Array([0, 97, 115, 109]);
