@@ -138,6 +138,21 @@ export {
   type IdentityRecoveryWords,
 } from "./identity-backup.js";
 export {
+  POLICY_SEAL_KIND,
+  POLICY_SEAL_UNREADABLE,
+  POLICY_SEAL_UNSUPPORTED,
+  PolicySealError,
+  SEALED_STORE_NAMES,
+  decryptSealedStore,
+  encryptSealedStore,
+  rewrapSealedMaster,
+  unwrapSealedMaster,
+  wrapSealedMaster,
+  type PolicySealEnvelope,
+  type SealedStoreBlob,
+  type SealedStoreName,
+} from "./policy-seal.js";
+export {
   APP_DATA_ARCHIVE_EXTENSION,
   AppDataArchiveError,
   snapshotAppData,

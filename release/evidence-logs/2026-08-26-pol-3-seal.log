@@ -1,0 +1,14 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 test
+> vitest run packages/host-core/test/policy-seal.test.ts
+
+
+ RUN  v4.1.11 /Users/curtcox/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  20:39:01
+   Duration  1.82s (transform 1.12s, setup 0ms, import 1.71s, tests 9ms, environment 0ms)
+

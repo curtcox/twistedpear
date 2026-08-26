@@ -64,6 +64,15 @@ export {
   type AmendmentOutcome,
 } from "../policy-amend.js";
 export {
+  POLICY_SEAL_SALT,
+  applySeal,
+  deriveSealKey,
+  genesisCommit,
+  nextCommit,
+  type SealOutcome,
+} from "../policy-seal.js";
+
+export {
   capReplicaLogs,
   DEFAULT_REPLICA_AUTHOR_CAP,
   mergeReplicaLogs,

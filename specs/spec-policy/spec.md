@@ -101,7 +101,9 @@ cases cite the rule they exercise.
 - **Evaluator.** `loadPolicy` and `evaluatePolicy` in `packages/protocol`, with
   exhaustive Kleene tables and decision cells in
   [conformance/vectors/policy.json](../../conformance/vectors/policy.json).
-- **Not yet.** Amendment machine, TLA+ twin, bypass suite.
+- **Amendment and seal.** `applyAmendment` and `applySeal` in `packages/protocol`;
+  catalog / grants / app-data wrap in `packages/host-core` `policy-seal.ts`.
+- **Not yet.** TLA+ twin, bypass suite.
 
 The mechanisms the remaining work is built from also exist —
 [`grants.ts`](../../packages/protocol/src/grants.ts),

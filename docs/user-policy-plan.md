@@ -7,11 +7,11 @@ register: software
 counterpart: docs/user-policy.md
 -->
 
-**This is a plan, not a description of current behaviour.** The Sans-IO evaluator
-and amendment machine now live in [user-policy.md](user-policy.md); that live
-file wins against this one. What still does not ship is sealing, evidence
-adapters, preview, and chrome. The normative artifacts this plan produces are
-specified in [SPEC-POLICY](../specs/spec-policy/spec.md).
+**This is a plan, not a description of current behaviour.** The Sans-IO evaluator,
+amendment machine, and seal commit now live in [user-policy.md](user-policy.md);
+that live file wins against this one. What still does not ship is evidence
+adapters, preview, chrome, and backup-envelope binding. The normative artifacts
+this plan produces are specified in [SPEC-POLICY](../specs/spec-policy/spec.md).
 
 A plan for letting the user state, in a form the host actually enforces, what may happen
 on this installation — and to make some of those statements permanent. The design premise
@@ -76,10 +76,9 @@ Absent entirely:
   representation. Time is read as a host clock wherever it is read at all.
 - **No third-party approval of a local action.** Attestations exist for publishers, not
   for "my spouse approved this install on this device".
-- **No irreversibility.** Every setting in the tree can be set back. No mechanism ties a
-  decision to key material such that reversing it destroys data.
 - **No monotonicity anywhere.** Nothing in the tree distinguishes a tightening change
-  from a relaxing one.
+  from a relaxing one. (Amendment classification now does; this bullet is historical
+  for the pre-POL-2 tree.)
 
 ## 3. The policy document
 
@@ -91,8 +90,8 @@ Order is not semantics (§9, P5) — a rule cannot be shadowed by a later one, s
 re-ordering is not an attack surface.
 
 `policy:amend` and `policy:seal` are ordinary subjects so that policy governs the
-setting of policy (§4). The amendment machine now lives in
-[user-policy.md](user-policy.md); the seal commit does not exist yet.
+setting of policy (§4). The amendment machine and seal commit now live in
+[user-policy.md](user-policy.md).
 
 The syntactic handle §4 needs: **adding a `deny` rule can never widen a decision,
 and removing an `allow` rule can never widen a decision.** That is deny-overrides
@@ -107,39 +106,22 @@ What this section still owns is the surrounding work: the consequence preview
 that must warn before a terminal policy is sealed (§6), and the bypass catalogue
 that tries to talk the machine out of A-1 through A-4 (§9).
 
-## 5. Sealing — what "no takesie backsies" compiles to
+## 5. Sealing — remaining around the commit
 
-An unsealed policy is enforced by an honest host: correct against software, useless
-against someone editing the file. Sealing makes it true against the disk.
+The commit chain, wrap key, catalog / grants / app-data wrap, tamper and
+rollback failure, and older-host refusal now live in
+[user-policy.md](user-policy.md). Identity stays on the passphrase vault; a
+tamper of a sealed policy does not by itself destroy the identity backup.
 
-**Mechanism.** Sealed rules are committed into a hash chain,
-`commit₀ = H(genesis)`, `commitₙ = H(commitₙ₋₁ ‖ H(amendmentₙ))`. The installation's vault
-key is `Kₙ = HKDF(rootSecret, commitₙ)` using the existing
-[`rns-hkdf`](../packages/protocol/src/rns-hkdf.ts) discipline, and the store master key is
-kept wrapped under `Kₙ`. Accepting an amendment is the only code path that rewraps, and it
-rewraps only after the amendment passes §4. Previous wraps are erased on rewrap.
+What this section still owns:
 
-What that buys:
-
-- **Edit the policy file** → `commit` no longer matches → `K` no longer unwraps → the
-  store does not open. Tampering is indistinguishable from destroying the installation,
-  which is the intended cost.
-- **Roll back to an earlier policy** → the wrap for that chain head no longer exists →
-  same outcome.
-- **Tighten legitimately** → the accepted amendment rewraps → the store opens normally.
-- **Restore a pre-seal backup** → must not launder the policy away. The policy commit is
-  bound into the backup envelope; restoring a backup restores its policy, and a backup
-  older than the seal restores an installation that is _also_ older than the seal — with
-  the data of that moment, not today's. B8 in §9.
-
-**Prerequisite work.** Today only the identity vault is under a passphrase-derived key;
-the catalog, grants, and app data are not uniformly beneath it. Either they come under the
-sealed key or the preview must say plainly which state survives a tamper. Deciding that,
-and making it true, is `POL-3-SEAL`.
-
-**Version pinning.** The commit includes the policy language version and the subject set.
-An older host that cannot evaluate a sealed policy must fail closed — refuse to run the
-installation — rather than open a store whose rules it does not understand. B11.
+- **Consequence preview before first seal** — POL-5. The wrap exists; the host
+  must still say which state dies if the user proceeds.
+- **Backup-envelope binding** — POL-8. Restoring a pre-seal backup must not
+  launder the policy away. The policy commit is bound into the backup envelope;
+  restoring a backup restores its policy, and a backup older than the seal
+  restores an installation that is _also_ older than the seal — with the data of
+  that moment, not today's. B8 in §9.
 
 ## 6. Warning without prohibiting
 
@@ -329,8 +311,8 @@ Taken:
 
 Open, and deliberately not decided here:
 
-- Which stores come under the sealed key (`POL-3-SEAL`), and what the preview must say
-  about anything that stays outside it.
+- What the preview must say about identity remaining outside the sealed wrap
+  (`POL-5-PREVIEW`), now that catalog, grants, and app-data are under it.
 - Whether the predicate domain is small enough for exhaustive reachability on realistic
   policies, or whether the preview needs a solver.
 - The transport for approval requests and attestations — LXMF direct, or a dedicated
@@ -347,7 +329,7 @@ these are the documents that describe the platform to a person.
 
 | Document                                                                                                                                             | What changes                                                                                                                                                                                                                                 |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A new `docs/user-policy.md`                                                                                                                          | The live half of this pair, per the live/planned rule in [docs/README.md](README.md). It does not exist yet because nothing ships                                                                                                            |
+| [user-policy.md](user-policy.md)                                                                                                                      | Live half of this pair. Evaluator, amendment, and seal commit are there; preview and chrome are not                                                                                                                                        |
 | [FAQ.md](FAQ.md)                                                                                                                                     | "If no one reviews apps, how is that safe?" tells the reader they can set the bar as high as they want, under a ⏳ note pointing here and at [app-approval-risk-plan.md](app-approval-risk-plan.md). Drop the note when both halves are true |
 | [guide/08](../guide/08-trust-privacy-safety.md)                                                                                                      | Where a user learns that a self-imposed restriction is available, and what sealing costs them                                                                                                                                                |
 | [guide/appendix-feature-status.md](../guide/appendix-feature-status.md), [authors/appendix-feature-status.md](../authors/appendix-feature-status.md) | A row each; an author needs to know an app can be refused by a policy rather than by a grant                                                                                                                                                 |

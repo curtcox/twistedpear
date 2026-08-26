@@ -1641,6 +1641,14 @@
       "requires": ["POL-2-AMEND"],
       "verify": "npm test -- packages/host-core/test/policy-seal.test.ts",
       "added": "2026-08-23",
+      "completed": "2026-08-26",
+      "evidence": [
+        "packages/protocol/src/policy-seal.ts",
+        "packages/host-core/src/policy-seal.ts",
+        "packages/host-core/test/policy-seal.test.ts",
+        "packages/protocol/test/policy-seal.test.ts",
+        "docs/user-policy.md"
+      ],
       "notes": "Includes deciding which stores come under the sealed key. Tampering with or rolling back a sealed policy must render the store unreadable; an older host must refuse rather than open. P-R7..P-R9."
     },
     "POL-4-EVIDENCE": {
