@@ -134,6 +134,7 @@ replayer
 rnode
 rnsd
 sansio
+sealeable
 sideload
 Sideload
 sideloading
@@ -146,6 +147,7 @@ sysdiagnose
 takesie
 Tarjan
 Temurin
+trits
 twistedpear
 unallowlisted
 unconfigured
@@ -169,6 +171,7 @@ venvs
 Verif
 WCAG
 weakenable
+weakenings
 WEBED
 webrtc
 widenable
