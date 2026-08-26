@@ -99,13 +99,13 @@ export class LoopbackReplicaLink {
     to: TopicLogStore,
     direction: Direction,
   ): void {
-    for (const batch of direction.flush()) to.ingest(this.topic, batch);
+    for (const batch of direction.flush()) to.ingest(this.topic, batch, { fromAuthorId: from.authorId });
     const missing = missingReplicaEntries(
       from.entries(this.topic),
       to.vector(this.topic),
     );
     for (const batch of direction.send(missing)) {
-      to.ingest(this.topic, batch);
+      to.ingest(this.topic, batch, { fromAuthorId: from.authorId });
     }
   }
 }

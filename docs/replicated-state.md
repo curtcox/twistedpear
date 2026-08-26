@@ -39,8 +39,12 @@ peer or force a round.
   ladder (`webrtc`, `pears-bulk`, `reticulum`, `lxmf`, `cas`), then reserves
   `bulk` airtime on the shared limiter — never `realtime`. Two-host convergence
   is proven in `npm run test:local-multipeer`.
+- Hostile-peer admission sits in front of merge: forged attribution, unoffered
+  authors, and cross-author tombstones are refused; each author's retained log is
+  capped; a replica reports the seq window it still holds. `compileAttackProposal`
+  accepts an `author-flood` power for an authorised peer. `npm run test:hostile-apps`
+  records no UNCONTROLLED hostile-peer scenario.
 
 ## Not in this drop
 
-Hostile-peer retention and Cookbook migration remain in the
-[plan](replicated-state-plan.md).
+Cookbook migration remains in the [plan](replicated-state-plan.md).

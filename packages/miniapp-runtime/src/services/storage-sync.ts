@@ -1,9 +1,12 @@
 import {
+  admitReplicaEntries,
   capReplicaLogs,
   DEFAULT_REPLICA_AUTHOR_CAP,
   mergeReplicaLogs,
+  replicaRetentionWindows,
   replicaVersionVector,
   replicaVisibleView,
+  type ReplicaAdmitResult,
   type ReplicaEntry,
 } from "@twistedpear/protocol";
 
@@ -17,17 +20,25 @@ export class ReplicaCapError extends Error {
 export interface TopicLogOptions {
   readonly authorId: string;
   readonly authorCap?: number;
+  readonly offeredAuthors?: ReadonlySet<string>;
+}
+
+export interface ReplicaIngestOptions {
+  readonly fromAuthorId?: string;
+  readonly offeredAuthors?: ReadonlySet<string>;
 }
 
 export class TopicLogStore {
   private readonly logs = new Map<string, ReplicaEntry[]>();
   private readonly clocks = new Map<string, number>();
-  private readonly authorId: string;
+  readonly authorId: string;
   private readonly authorCap: number;
+  private readonly offeredAuthors: ReadonlySet<string> | undefined;
 
   constructor(options: TopicLogOptions) {
     this.authorId = options.authorId;
     this.authorCap = options.authorCap ?? DEFAULT_REPLICA_AUTHOR_CAP;
+    this.offeredAuthors = options.offeredAuthors;
   }
 
   open(topic: string): void {
@@ -68,15 +79,34 @@ export class TopicLogStore {
     return this.append(topic, null, { key, tombstone: true });
   }
 
-  ingest(topic: string, remote: ReadonlyArray<ReplicaEntry>): void {
+  ingest(
+    topic: string,
+    remote: ReadonlyArray<ReplicaEntry>,
+    options: ReplicaIngestOptions = {},
+  ): ReplicaAdmitResult {
     const log = this.require(topic);
+    const offered = options.offeredAuthors ?? this.offeredAuthors;
+    const admitted = admitReplicaEntries(log, remote, {
+      localAuthorId: this.authorId,
+      ...(options.fromAuthorId === undefined
+        ? {}
+        : { fromAuthorId: options.fromAuthorId }),
+      ...(offered === undefined ? {} : { offeredAuthors: offered }),
+    });
     const merged = capReplicaLogs(
-      mergeReplicaLogs(log, remote),
+      mergeReplicaLogs(log, admitted.accepted),
       this.authorCap,
     );
     this.logs.set(topic, merged);
     const maxAt = merged.reduce((max, entry) => Math.max(max, entry.at), 0);
     this.clocks.set(topic, Math.max(this.clocks.get(topic) ?? 0, maxAt));
+    return admitted;
+  }
+
+  windows(
+    topic: string,
+  ): Readonly<Record<string, { readonly minSeq: number; readonly maxSeq: number }>> {
+    return replicaRetentionWindows(this.require(topic));
   }
 
   entries(topic: string): ReadonlyArray<ReplicaEntry> {

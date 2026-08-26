@@ -80,6 +80,7 @@ export async function executeHistoricalFixture(
     Set<import("@twistedpear/effects").DolevYaoPower>
   >();
   for (const action of compiled.proposal.actions) {
+    if (action.power === "author-flood") continue;
     const key = `${action.source}\0${action.destination}`;
     const powers = linkPowers.get(key) ?? new Set();
     powers.add(action.power);
@@ -103,7 +104,13 @@ export async function executeHistoricalFixture(
         id,
         machine: `historical/${fixture.target ?? "target"}`,
         initial: initialTarget,
-        step: historicalDeliveryStep(id, compiled.proposal.actions),
+        step: historicalDeliveryStep(
+          id,
+          compiled.proposal.actions.filter(
+            (action): action is import("@twistedpear/effects").TransportAdversaryAction =>
+              action.power !== "author-flood",
+          ),
+        ),
       })),
       {
         id: "z",

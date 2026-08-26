@@ -411,3 +411,29 @@ describe("Dolev-Yao adversaries (continued)", () => {
     expect(modelCalls).toBe(1);
   });
 });
+
+describe("authorised replica flood power", () => {
+  it("lowers an authorised-flood replica proposal when that power is in model", () => {
+    const compiled = compileAttackProposal(
+      {
+        name: "authorised peer flood",
+        actions: [{ power: "author-flood", source: "b", destination: "a" }],
+      },
+      ["author-flood"],
+    );
+    expect(compiled.powers).toEqual(["author-flood"]);
+  });
+
+  it("refuses authorised-flood when that power is out of model", () => {
+    expect(() =>
+      compileAttackProposal(
+        {
+          name: "authorised peer flood",
+          actions: [{ power: "author-flood", source: "b", destination: "a" }],
+        },
+        ["drop"],
+      ),
+    ).toThrow(UnlowerableAttackProposalError);
+  });
+});
+

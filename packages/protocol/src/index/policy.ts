@@ -83,6 +83,14 @@ export {
   type ReplicaEntry,
 } from "../replica-merge.js";
 export {
+  admitReplicaEntries,
+  replicaRetentionWindows,
+  type ReplicaAdmitOptions,
+  type ReplicaAdmitReason,
+  type ReplicaAdmitRejection,
+  type ReplicaAdmitResult,
+} from "../replica-admit.js";
+export {
   initialReplicaState,
   replicaMachine,
   stepReplica,

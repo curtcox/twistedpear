@@ -17,6 +17,7 @@ import {
 import { runCapabilityProbes } from "./capability-probes.mjs";
 import { runHandlerErrorCases } from "./handler-errors.mjs";
 import { runNotifyHostileCases } from "./notify-flood.mjs";
+import { runReplicaPeerCases } from "./replica-peers.mjs";
 
 const helloBundle = new TextEncoder()
   .encode(`import { ui } from "@twistedpear/miniapp-sdk";
@@ -404,8 +405,9 @@ async function run() {
   await runCapabilityProbes();
   await runHandlerErrorCases();
   await runNotifyHostileCases();
+  await runReplicaPeerCases();
   console.log(
-    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, launch/stop cycles, capability probes, handler errors, and notify flood passed",
+    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, launch/stop cycles, capability probes, handler errors, notify flood, and replica-peer controls passed",
   );
 }
 

@@ -3,9 +3,11 @@ export {
   createFuzzAdversary,
   UnlowerableAttackProposalError,
   type AdversaryState,
+  type AttackPower,
   type AttackProposal,
   type CompiledAdversary,
   type FuzzAdversaryOptions,
+  type ReplicaFloodAction,
 } from "./adversary.js";
 export {
   HISTORICAL_REPLAY_FIXTURES,

@@ -71,6 +71,7 @@ export function authoredConfig(
     }
   >();
   for (const action of strategy.proposal.actions) {
+    if (action.power === "author-flood") continue;
     const key = `${action.source}\0${action.destination}`;
     const link = links.get(key) ?? {
       source: action.source,

@@ -63,6 +63,6 @@ the LWW view and omitted for log-only entries.
 ## To finish this spec
 
 Phase 1 is the local store and the four-representation merge machine. Offer-bound
-LXMF replication and SPEC-STREAM plane selection with `bulk` reservation now
-ship as host adapters. Hostile-peer bounds and Cookbook migration remain later
-amendments tracked as `SYNC-5` and `SYNC-6`.
+LXMF replication, SPEC-STREAM plane selection with `bulk` reservation, and
+hostile-peer admission now ship as host adapters. Cookbook migration remains a
+later amendment tracked as `SYNC-6`.

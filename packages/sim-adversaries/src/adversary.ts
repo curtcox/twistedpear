@@ -12,15 +12,23 @@ export interface AdversaryState {
   readonly entropyRequested: boolean;
 }
 
+export type ReplicaFloodAction = {
+  readonly power: "author-flood";
+  readonly source: NodeId;
+  readonly destination: NodeId;
+};
+
+export type AttackPower = DolevYaoPower | "author-flood";
+
 export interface AttackProposal {
   readonly name: string;
-  readonly actions: readonly TransportAdversaryAction[];
+  readonly actions: readonly (TransportAdversaryAction | ReplicaFloodAction)[];
 }
 
 export interface CompiledAdversary {
   readonly initial: AdversaryState;
   readonly step: StepFn<AdversaryState>;
-  readonly powers: readonly DolevYaoPower[];
+  readonly powers: readonly AttackPower[];
   readonly proposal: AttackProposal;
 }
 
@@ -34,7 +42,7 @@ export class UnlowerableAttackProposalError extends Error {
 /** Lower an authored strategy to a deterministic ordinary-node step function. */
 export function compileAttackProposal(
   proposal: AttackProposal,
-  allowedPowers: readonly DolevYaoPower[],
+  allowedPowers: readonly AttackPower[],
 ): CompiledAdversary {
   if (proposal.actions.length === 0)
     throw new UnlowerableAttackProposalError("proposal has no actions");
@@ -54,10 +62,11 @@ export function compileAttackProposal(
     if (event.kind !== "start" || state.acted) return { state, intents: [] };
     return {
       state: { ...state, acted: true },
-      intents: proposal.actions.map((action): Intent => ({
-        kind: "transport/adversary",
-        action,
-      })),
+      intents: proposal.actions.flatMap((action): Intent[] =>
+        action.power === "author-flood"
+          ? []
+          : [{ kind: "transport/adversary", action }],
+      ),
     };
   };
   return {

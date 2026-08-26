@@ -99,7 +99,7 @@ export class LxmfReplicaLink {
       topic: this.topic,
       entries: missing,
     });
-    to.ingest(this.topic, missing);
+    to.ingest(this.topic, missing, { fromAuthorId: from.authorId });
     return digestBytes + entryBytes;
   }
 }

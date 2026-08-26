@@ -2136,6 +2136,16 @@
       "requires": ["SYNC-4-PLANES"],
       "verify": "npm run test:hostile-apps",
       "added": "2026-08-24",
+      "completed": "2026-08-26",
+      "evidence": [
+        "packages/protocol/src/replica-admit.ts",
+        "packages/protocol/test/replica-admit.test.ts",
+        "packages/miniapp-runtime/src/services/storage-sync.ts",
+        "packages/miniapp-runtime/test/storage-sync-admit.test.ts",
+        "conformance/hostile-apps/replica-peers.mjs",
+        "packages/sim-adversaries/src/adversary.ts",
+        "docs/replicated-state.md"
+      ],
       "notes": "docs/replicated-state-plan.md Phase 5. Bound tombstones and per-author growth, reject forged attribution and cross-author deletes, and leave no hostile-peer scenario UNCONTROLLED."
     },
     "SYNC-6-COOKBOOK": {
