@@ -164,6 +164,8 @@ view model =
             { value = List.member today model.days
             , onChange = Toggle
             , event = "streak.toggle"
+            , accessibilityLabel = Just "Done today"
+            , accessibilityHint = Nothing
             }
         , W.divider "divider"
         , W.list "recent"

@@ -258,12 +258,22 @@ spacer id size =
     leaf "spacer" id [] (Just (E.object [ ( "size", E.float size ) ])) Dict.empty
 
 
-switch : String -> List S.Style -> { value : Bool, onChange : Bool -> msg, event : String } -> Widget msg
+switch : String -> List S.Style -> { value : Bool, onChange : Bool -> msg, event : String, accessibilityLabel : Maybe String, accessibilityHint : Maybe String } -> Widget msg
 switch id styles config =
     leaf "switch"
         id
         styles
-        (Just (E.object [ ( "value", E.bool config.value ), ( "event", E.string config.event ) ]))
+        (Just
+            (E.object
+                (List.filterMap identity
+                    [ Just ( "value", E.bool config.value )
+                    , Just ( "event", E.string config.event )
+                    , Maybe.map (\label -> ( "accessibilityLabel", E.string label )) config.accessibilityLabel
+                    , Maybe.map (\hint -> ( "accessibilityHint", E.string hint )) config.accessibilityHint
+                    ]
+                )
+            )
+        )
         (Dict.singleton config.event (D.map config.onChange D.bool))
 
 

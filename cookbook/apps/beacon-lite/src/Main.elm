@@ -146,7 +146,13 @@ view model =
             [ S.fontSize 12 ]
             (String.fromInt (payloadBytes model) ++ " bytes per beacon · " ++ String.fromInt model.peers ++ " peers in range")
         , W.text "auto-label" [] ("Repeat every " ++ String.fromInt (minIntervalMs // 60000) ++ " minutes")
-        , W.switch "auto" [] { value = model.auto, onChange = Auto, event = "bl.auto" }
+        , W.switch "auto" []
+            { value = model.auto
+            , onChange = Auto
+            , event = "bl.auto"
+            , accessibilityLabel = Just "Repeat automatically"
+            , accessibilityHint = Nothing
+            }
         , W.button "send" [] { label = "Beacon now", onPress = Send, event = "bl.send" }
         , W.text "status" [ S.fontSize 12 ] model.status
         , W.text "warning"
