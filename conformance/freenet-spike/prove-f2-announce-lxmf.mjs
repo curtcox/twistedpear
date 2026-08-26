@@ -45,6 +45,18 @@ const rightToken =
   process.env.FREENET_RIGHT_NODE_TOKEN ?? process.env.FREENET_NODE_TOKEN;
 const pathTimeoutMs = Number(process.env.FREENET_F2_PATH_TIMEOUT_MS ?? 60_000);
 const lxmfTimeoutMs = Number(process.env.FREENET_F2_LXMF_TIMEOUT_MS ?? 60_000);
+/**
+ * How often to repeat an announce or an LXMF send while waiting.
+ *
+ * Announcing once and then waiting a minute is only a test of latency. What
+ * actually went wrong on CI was loss: a frame that never reaches the peer log
+ * produces no path however long the wait, which is why both attempts of this
+ * proof used to burn the full 60s and fail identically. Repeating is what turns
+ * a lost frame into a slower pass instead of a red job.
+ */
+const repeatIntervalMs = Number(
+  process.env.FREENET_F2_REPEAT_INTERVAL_MS ?? 5_000,
+);
 
 if (leftUrl === undefined || rightUrl === undefined) {
   throw new Error(
@@ -77,11 +89,16 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForPath(reticulum, destinationHash, timeoutMs) {
+async function waitForPath(reticulum, destinationHash, timeoutMs, repeat) {
   const deadline = Date.now() + timeoutMs;
+  let nextRepeatAt = Date.now() + repeatIntervalMs;
   while (Date.now() < deadline) {
     if (reticulum.hasPath(destinationHash)) {
       return;
+    }
+    if (Date.now() >= nextRepeatAt) {
+      await repeat();
+      nextRepeatAt = Date.now() + repeatIntervalMs;
     }
     await sleep(100);
   }
@@ -150,33 +167,43 @@ console.log(
     (distinct ? " (distinct nodes)" : " (same node)"),
 );
 
-try {
+async function announceBoth() {
   await aliceDelivery.announce();
   await bobDelivery.announce();
-  await waitForPath(leftReticulum, bobOut.hash, pathTimeoutMs);
+}
 
-  const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("LXMF delivery timeout over FreenetInterface")),
-      lxmfTimeoutMs,
-    );
-    rightRouter.onDelivery((message) => {
-      clearTimeout(timer);
-      resolve(message.contentAsString());
+try {
+  await announceBoth();
+  await waitForPath(leftReticulum, bobOut.hash, pathTimeoutMs, announceBoth);
+
+  let got = null;
+  rightRouter.onDelivery((message) => {
+    got ??= message.contentAsString();
+  });
+
+  // Resends carry the same source, destination, content and timestamp, so the
+  // peer router's seen-message set drops any that arrive after a delivery. A
+  // resend only ever reaches the callback when the previous send was lost.
+  const deadline = Date.now() + lxmfTimeoutMs;
+  while (got === null && Date.now() < deadline) {
+    await leftRouter.packAndSend({
+      destination: bobOut,
+      source: aliceDelivery,
+      title: "Freenet F2",
+      content,
+      desiredMethod: LXMessageMethod.OPPORTUNISTIC,
+      deferStamp: true,
+      timestamp: 1_700_000_400,
     });
-  });
+    const repeatAt = Math.min(Date.now() + repeatIntervalMs, deadline);
+    while (got === null && Date.now() < repeatAt) {
+      await sleep(100);
+    }
+  }
 
-  await leftRouter.packAndSend({
-    destination: bobOut,
-    source: aliceDelivery,
-    title: "Freenet F2",
-    content,
-    desiredMethod: LXMessageMethod.OPPORTUNISTIC,
-    deferStamp: true,
-    timestamp: 1_700_000_400,
-  });
-
-  const got = await received;
+  if (got === null) {
+    throw new Error("LXMF delivery timeout over FreenetInterface");
+  }
   if (got !== content) {
     throw new Error(`F2 announce+LXMF payload mismatch: ${got}`);
   }

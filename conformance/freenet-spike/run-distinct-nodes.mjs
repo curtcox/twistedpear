@@ -238,6 +238,34 @@ async function dashboardPeerCount(wsPort) {
   return body.match(/peer-row/g)?.length ?? 0;
 }
 
+/**
+ * Wait until a node's own WS-API port serves its dashboard.
+ *
+ * `waitForPort` returns on the first accepted connection, which a restarted
+ * Freenet node offers well before it answers contract requests — the observed
+ * failure was three attempts of "Request timeout" against a node whose port
+ * had been open the whole time. The dashboard shares that port, so a 200 here
+ * is evidence the API is actually serving rather than merely listening.
+ */
+async function waitForNodeApi(wsPort, timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      await dashboardPeerCount(wsPort);
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(
+    `Freenet node on ${wsPort} did not serve its API in ${timeoutMs}ms: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`,
+  );
+}
+
 async function waitForGatewayPeers(minimumPeers, timeoutMs = readyTimeoutMs) {
   const deadline = Date.now() + timeoutMs;
   let lastCount = 0;
@@ -450,6 +478,7 @@ await runMain(async () => {
     await stopNamed("subscriber");
     startNode("subscriber", nodeArgs(2));
     await waitForPort(wsPorts[2]);
+    await waitForNodeApi(wsPorts[2]);
     await new Promise((resolve) => setTimeout(resolve, 8_000));
     await waitForGatewayPeers(2, 30_000);
     await runNodeScriptWithRetry(
