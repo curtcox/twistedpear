@@ -4,7 +4,9 @@ import { StyleSheet, Text, View } from "react-native";
 import { MiniappHost } from "../../../packages/miniapp-runtime/src/host";
 import type { WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
-import { EDITOR_SEEDS, DEVSTUDIO_BUNDLE, DEVSTUDIO_MANIFEST } from "virtual:editor-assets";
+import type * as EditorAssets from "virtual:editor-assets";
+const { EDITOR_SEEDS, DEVSTUDIO_BUNDLE, DEVSTUDIO_MANIFEST } =
+  await import("virtual:editor-assets") as unknown as EditorAssets;
 import { PagesPeerChrome } from "../react-native-web-samples/peer-chrome.ts";
 import { PeerChromePanel } from "../react-native-web-samples/peer-chrome-ui.tsx";
 import { LocalStorageStore, type StorageFallbackReason } from "../browser-host/store.ts";

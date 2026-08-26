@@ -33,13 +33,14 @@ const common = {
   platform: "browser",
   target: ["es2022"],
   sourcemap: true,
+  splitting: true,
   alias: { "react-native": "react-native-web" },
 };
 
 await build({
   ...common,
-  entryPoints: [path.join(sourceDir, "entry.tsx")],
-  outfile: path.join(outputDir, "app.js"),
+  entryPoints: { app: path.join(sourceDir, "entry.tsx") },
+  outdir: outputDir,
   plugins: [
     {
       name: "editor-assets",
@@ -61,8 +62,8 @@ export const DEVSTUDIO_MANIFEST = ${JSON.stringify(assets.DEVSTUDIO_MANIFEST)};`
 
 await build({
   ...common,
-  entryPoints: [path.join(sourceDir, "guida-worker.ts")],
-  outfile: path.join(outputDir, "guida-worker.js"),
+  entryPoints: { "guida-worker": path.join(sourceDir, "guida-worker.ts") },
+  outdir: outputDir,
 });
 
 const mainSource = fs.readFileSync(path.join(outputDir, "app.js"), "utf8");
