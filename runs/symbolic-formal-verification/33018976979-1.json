@@ -1,0 +1,237 @@
+{
+  "schema": 1,
+  "runId": 33018976979,
+  "runNumber": 23,
+  "runAttempt": 1,
+  "workflow": "Symbolic Formal Verification",
+  "workflowSlug": "symbolic-formal-verification",
+  "workflowId": 314108415,
+  "workflowPath": ".github/workflows/formal-symbolic.yml",
+  "event": "push",
+  "branch": "main",
+  "sha": "3bf708e3ba6949789a52112587e86a57e788b38e",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/33018976979",
+  "createdAt": "2026-08-26T22:15:33Z",
+  "startedAt": "2026-08-26T22:15:33Z",
+  "completedAt": "2026-08-26T22:16:25Z",
+  "wallMs": 52000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 49000,
+  "weightedMs": 49000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 1000,
+  "cpuSeconds": 68,
+  "peakMemPct": 10.67,
+  "telemetryJobCount": 1,
+  "collectedAt": "2026-08-26T22:16:48.182Z",
+  "jobs": [
+    {
+      "id": 98344297190,
+      "name": "symbolic",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000098406",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-26T22:15:34Z",
+      "startedAt": "2026-08-26T22:15:35Z",
+      "completedAt": "2026-08-26T22:16:24Z",
+      "queuedMs": 1000,
+      "durationMs": 49000,
+      "billableMs": 0,
+      "weightedMs": 49000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:15:36Z",
+          "completedAt": "2026-08-26T22:15:37Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:15:37Z",
+          "completedAt": "2026-08-26T22:15:40Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:15:40Z",
+          "completedAt": "2026-08-26T22:15:45Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:15:45Z",
+          "completedAt": "2026-08-26T22:15:45Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:15:45Z",
+          "completedAt": "2026-08-26T22:15:49Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run npm run formal:symbolic:lint",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:15:49Z",
+          "completedAt": "2026-08-26T22:15:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Prove Tamarin models",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:15:49Z",
+          "completedAt": "2026-08-26T22:16:20Z",
+          "durationMs": 31000
+        },
+        {
+          "name": "Prove ProVerif models",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:20Z",
+          "completedAt": "2026-08-26T22:16:21Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:21Z",
+          "completedAt": "2026-08-26T22:16:22Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:22Z",
+          "completedAt": "2026-08-26T22:16:23Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 18,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:23Z",
+          "completedAt": "2026-08-26T22:16:23Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 19,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T22:16:23Z",
+          "completedAt": "2026-08-26T22:16:23Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "symbolic",
+        "startedAt": "2026-08-26T22:15:45.549Z",
+        "finishedAt": "2026-08-26T22:16:21.628Z",
+        "durationMs": 36078,
+        "intervalMs": 5000,
+        "sampleCount": 9,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000098406",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 8,
+          "mean": 47.15,
+          "p50": 44.63,
+          "p95": 82.96,
+          "max": 82.96,
+          "min": 25
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 9,
+          "mean": 3.07,
+          "p50": 3.19,
+          "p95": 3.66,
+          "max": 3.66,
+          "min": 2.08
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 9,
+          "mean": 1452815701.33,
+          "p50": 1364652032,
+          "p95": 1788170240,
+          "max": 1788170240,
+          "min": 1202479104
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 9,
+          "mean": 8.67,
+          "p50": 8.14,
+          "p95": 10.67,
+          "max": 10.67,
+          "min": 7.17
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 9,
+          "mean": 162.11,
+          "p50": 162,
+          "p95": 166,
+          "max": 166,
+          "min": 159
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 9,
+          "mean": 40.42,
+          "p50": 40.29,
+          "p95": 40.65,
+          "max": 40.65,
+          "min": 40.16
+        },
+        "runnerDiskGrowthBytes": 747782144,
+        "ioReadBytes": 7278592,
+        "ioWriteBytes": 1195089920,
+        "netRxBytes": 422245758,
+        "netTxBytes": 1048558,
+        "cpuSeconds": 68
+      },
+      "matrix": null
+    }
+  ]
+}
