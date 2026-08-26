@@ -1,0 +1,261 @@
+{
+  "schema": 1,
+  "runId": 33024897612,
+  "runNumber": 185,
+  "runAttempt": 1,
+  "workflow": "Survey",
+  "workflowSlug": "survey",
+  "workflowId": 333703307,
+  "workflowPath": ".github/workflows/survey.yml",
+  "event": "push",
+  "branch": "main",
+  "sha": "68b86237c26506d1989614f45279b92fcc271826",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/33024897612",
+  "createdAt": "2026-08-26T23:53:53Z",
+  "startedAt": "2026-08-26T23:53:53Z",
+  "completedAt": "2026-08-26T23:57:15Z",
+  "wallMs": 202000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 199000,
+  "weightedMs": 199000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 2000,
+  "cpuSeconds": 380.1,
+  "peakMemPct": 14.28,
+  "telemetryJobCount": 1,
+  "collectedAt": "2026-08-26T23:57:28.745Z",
+  "jobs": [
+    {
+      "id": 98363838043,
+      "name": "Code survey",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000098800",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-26T23:53:53Z",
+      "startedAt": "2026-08-26T23:53:55Z",
+      "completedAt": "2026-08-26T23:57:14Z",
+      "queuedMs": 2000,
+      "durationMs": 199000,
+      "billableMs": 0,
+      "weightedMs": 199000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:53:56Z",
+          "completedAt": "2026-08-26T23:53:58Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:53:58Z",
+          "completedAt": "2026-08-26T23:54:04Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:54:04Z",
+          "completedAt": "2026-08-26T23:54:06Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:54:06Z",
+          "completedAt": "2026-08-26T23:54:06Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:54:06Z",
+          "completedAt": "2026-08-26T23:54:06Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:54:06Z",
+          "completedAt": "2026-08-26T23:54:36Z",
+          "durationMs": 30000
+        },
+        {
+          "name": "Build workspace packages",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:54:36Z",
+          "completedAt": "2026-08-26T23:54:38Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run the survey",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:54:38Z",
+          "completedAt": "2026-08-26T23:57:07Z",
+          "durationMs": 149000
+        },
+        {
+          "name": "Summarise",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:57:07Z",
+          "completedAt": "2026-08-26T23:57:07Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:57:07Z",
+          "completedAt": "2026-08-26T23:57:09Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:57:09Z",
+          "completedAt": "2026-08-26T23:57:11Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 20,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:57:11Z",
+          "completedAt": "2026-08-26T23:57:11Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 21,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:57:11Z",
+          "completedAt": "2026-08-26T23:57:11Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 22,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:57:11Z",
+          "completedAt": "2026-08-26T23:57:11Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 23,
+          "conclusion": "success",
+          "startedAt": "2026-08-26T23:57:11Z",
+          "completedAt": "2026-08-26T23:57:11Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "survey",
+        "startedAt": "2026-08-26T23:54:06.184Z",
+        "finishedAt": "2026-08-26T23:57:09.547Z",
+        "durationMs": 183363,
+        "intervalMs": 5000,
+        "sampleCount": 38,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "INTEL(R) XEON(R) PLATINUM 8573C",
+          "memTotalBytes": 16765378560,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000098800",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 37,
+          "mean": 51.82,
+          "p50": 53.52,
+          "p95": 66.94,
+          "max": 68.03,
+          "min": 25.74
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 38,
+          "mean": 2.61,
+          "p50": 3.06,
+          "p95": 3.42,
+          "max": 3.53,
+          "min": 0.5
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 38,
+          "mean": 1948807706.95,
+          "p50": 1941344256,
+          "p95": 2271387648,
+          "max": 2394181632,
+          "min": 1367404544
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 38,
+          "mean": 11.62,
+          "p50": 11.58,
+          "p95": 13.55,
+          "max": 14.28,
+          "min": 8.16
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 38,
+          "mean": 155.08,
+          "p50": 156,
+          "p95": 156,
+          "max": 156,
+          "min": 152
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 38,
+          "mean": 41.75,
+          "p50": 41.95,
+          "p95": 41.98,
+          "max": 41.98,
+          "min": 40.2
+        },
+        "runnerDiskGrowthBytes": 2757738496,
+        "ioReadBytes": 116154368,
+        "ioWriteBytes": 6174588928,
+        "netRxBytes": 1261228694,
+        "netTxBytes": 5924450,
+        "cpuSeconds": 380.1
+      },
+      "matrix": null
+    }
+  ]
+}
