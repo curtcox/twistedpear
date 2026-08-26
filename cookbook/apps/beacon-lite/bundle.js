@@ -85,7 +85,11 @@ async function render() {
         {
           id: "auto",
           type: "switch",
-          props: { value: auto, event: "bl.auto" }
+          props: {
+            value: auto,
+            event: "bl.auto",
+            accessibilityLabel: "Repeat automatically"
+          }
         },
         { id: "send", type: "button", props: { label: "Beacon now", event: "bl.send" } },
         { id: "status", type: "text", props: { value: status }, style: { fontSize: 12 } },

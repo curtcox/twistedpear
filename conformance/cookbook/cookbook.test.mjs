@@ -36,6 +36,17 @@ import {
   PeerSessionManager,
 } from "../../packages/peer-discovery/dist/index.js";
 import { validateSampleCountProse } from "./sample-count.mjs";
+import { countUnlabeledControls } from "./unlabeled-controls.mjs";
+
+const unlabeledFloors = JSON.parse(
+  readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      "unlabeled-controls-ratchet.json",
+    ),
+    "utf8",
+  ),
+).floors;
 
 const repositoryRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -881,6 +892,26 @@ afterEach(() => {
   }
 });
 
+it("counts placeholder-only inputs and unnamed named controls", () => {
+  expect(
+    countUnlabeledControls({
+      root: {
+        id: "root",
+        type: "view",
+        children: [
+          { id: "i", type: "text-input", props: { placeholder: "Name" } },
+          {
+            id: "s",
+            type: "switch",
+            props: { value: false, accessibilityLabel: "Alerts" },
+          },
+          { id: "h", type: "text", props: { value: "Title" }, style: { fontSize: 24 } },
+        ],
+      },
+    }),
+  ).toBe(2);
+});
+
 describe.each(appNames)("cookbook app %s", (name) => {
   it("validates, packs through tp, starts, and renders", async () => {
     const manifest = JSON.parse(
@@ -912,6 +943,13 @@ describe.each(appNames)("cookbook app %s", (name) => {
       await host.launch(launchManifest, bundle);
       const tree = await waitForRender(host);
       expect(tree.root.id).toBe("root");
+      const unlabeled = countUnlabeledControls(tree);
+      const floor = unlabeledFloors[name];
+      expect(
+        floor,
+        `${name} missing from unlabeled-controls-ratchet.json (measured ${unlabeled}; new apps enter at 0)`,
+      ).toBeTypeOf("number");
+      expect(unlabeled, `${name} unlabeled controls`).toBe(floor);
     } finally {
       await host.stop();
     }

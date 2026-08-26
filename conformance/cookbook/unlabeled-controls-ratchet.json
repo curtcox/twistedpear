@@ -1,0 +1,31 @@
+{
+  "description": "Per-app unlabeled-control floors for Cookbook. A new app enters at 0. An existing floor may only shrink. Measured by conformance/cookbook/cookbook.test.mjs via countUnlabeledControls.",
+  "floors": {
+    "app-relay": 1,
+    "ask-the-handbook": 1,
+    "beacon-lite": 1,
+    "breath-pacer": 1,
+    "dead-drop": 2,
+    "dice-table": 1,
+    "field-log": 1,
+    "form-forge": 1,
+    "line-check": 1,
+    "link-weather": 0,
+    "neighborhood-board": 1,
+    "net-ledger": 3,
+    "nine-line": 10,
+    "photo-drop": 2,
+    "pocket-notes": 1,
+    "pocket-translator": 2,
+    "recipe-box": 2,
+    "roll-call": 1,
+    "signal-check": 1,
+    "split-the-bill": 3,
+    "sticker-mill": 3,
+    "streak-tracker": 1,
+    "swap-shelf": 1,
+    "triage-notes": 1,
+    "unit-converter": 2,
+    "zine-reader": 1
+  }
+}

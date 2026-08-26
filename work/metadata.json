@@ -245,6 +245,13 @@
       "requires": ["AX-3-TREE"],
       "verify": "npm run test:hostile-apps && npm run test:widget-parity",
       "added": "2026-08-24",
+      "completed": "2026-08-26",
+      "evidence": [
+        "packages/miniapp-runtime/src/ui/validate.ts",
+        "packages/miniapp-runtime/test/ui-schema-a11y.test.ts",
+        "conformance/hostile-apps/run.mjs",
+        "conformance/widget-parity/run.mjs"
+      ],
       "notes": "docs/widget-accessibility-plan.md Phase 4. Reject provably unnamed controls only for minHostApi >= 0.21.0, retarget advisory checks, and migrate the three existing switch sites."
     },
     "AX-5-RATCHET": {
@@ -252,6 +259,12 @@
       "requires": ["AX-4-VALIDATE"],
       "verify": "npm run test:cookbook",
       "added": "2026-08-24",
+      "completed": "2026-08-26",
+      "evidence": [
+        "conformance/cookbook/unlabeled-controls.mjs",
+        "conformance/cookbook/unlabeled-controls-ratchet.json",
+        "conformance/cookbook/cookbook.test.mjs"
+      ],
       "notes": "docs/widget-accessibility-plan.md Phase 5. Measure per-app unlabeled-control floors so a new app enters at zero and every existing floor can only shrink."
     },
     "AX-6-FOCUS": {

@@ -7,7 +7,7 @@ register: none
 -->
 
 Phase 4 introduces a host-rendered, brokered mini-app runtime. The current host API
-anchor is `HOST_API_VERSION = 0.20.0`; package `minHostApi` checks and capability
+anchor is `HOST_API_VERSION = 0.21.0`; package `minHostApi` checks and capability
 validation use that value.
 
 ## Isolation ADR
@@ -88,6 +88,8 @@ Host API `0.19.0` adds brokered `crypto.randomBytes` / `hash` / `hmac` /
 `timingSafeEqual` with no capability (no seal/open).
 Host API `0.20.0` adds `text-input` `multiline` / `secure` / `keyboard` plus
 `select`, `slider`, and `date` widgets.
+Host API `0.21.0` requires `accessibilityLabel` on `switch`, `slider`, `select`,
+and `date` when the app declares `minHostApi` 0.21.0 or newer.
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are

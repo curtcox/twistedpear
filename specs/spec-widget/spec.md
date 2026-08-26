@@ -127,8 +127,9 @@ The headless renderer projects an accessibility tree from this vocabulary:
 [packages/widget-renderer-headless](../../packages/widget-renderer-headless/).
 Golden streams pin the result as an `ax` string beside each frame `snapshot`.
 A node with no exposed role and no name flattens into its parent; `decorative`
-nodes are omitted. Unnamed-control rejection and derived focus order remain later
-amendments.
+nodes are omitted. Apps that declare `minHostApi` 0.21.0 or newer are rejected if a
+`switch`, `slider`, `select`, or `date` has no `accessibilityLabel`. Derived focus
+order remains a later amendment.
 
 ## To finish this spec
 

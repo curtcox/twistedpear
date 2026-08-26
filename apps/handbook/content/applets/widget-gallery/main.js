@@ -50,6 +50,7 @@ export async function run(sdk, report) {
                   value: "a",
                   options: ["a", "b"],
                   event: "hb.gallery.select",
+                  accessibilityLabel: "Select",
                 },
               },
               {
@@ -61,17 +62,26 @@ export async function run(sdk, report) {
                   max: 10,
                   step: 1,
                   event: "hb.gallery.slide",
+                  accessibilityLabel: "Slider",
                 },
               },
               {
                 id: "g-date",
                 type: "date",
-                props: { value: "2026-08-21", event: "hb.gallery.date" },
+                props: {
+                  value: "2026-08-21",
+                  event: "hb.gallery.date",
+                  accessibilityLabel: "Date",
+                },
               },
               {
                 id: "g-switch",
                 type: "switch",
-                props: { value: false, event: "hb.gallery.switch" },
+                props: {
+                  value: false,
+                  event: "hb.gallery.switch",
+                  accessibilityLabel: "Switch",
+                },
               },
               { id: "g-progress", type: "progress", props: { value: 0.4 } },
               { id: "g-divider", type: "divider" },

@@ -65,7 +65,8 @@ The `links` namespace and realtime-media extensions require host API `0.12.0`.
 require host API `0.16.0`. `lxmf.onMessage` / `announce.onEvent` /
 `apps.channel.onMessage` require `0.17.0`. `notify:post` requires `0.18.0`.
 Brokered `crypto.*` requires `0.19.0`. The second widget wave (`select`, `slider`,
-`date`, and extra `text-input` props) requires `0.20.0`.
+`date`, and extra `text-input` props) requires `0.20.0`. Named controls require
+`accessibilityLabel` when `minHostApi` is `0.21.0` or newer.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, preview, and channel-open call raises a host-chrome confirmation dialog the

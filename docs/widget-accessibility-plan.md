@@ -22,8 +22,10 @@ from the widget tree alone — no browser, no human.
 The closed vocabulary now _accepts_ labels, hints, heading, live, and decorative — see
 [widget-accessibility.md](widget-accessibility.md). The accessibility tree is
 checkable via `renderHeadlessAxSnapshot` and the `ax` golden strings. What still
-cannot be checked is unnamed-control rejection, a Cookbook floor, or derived focus
-order.
+cannot be checked is derived focus order. Unnamed `switch` / `slider` /
+`select` / `date` nodes are rejected when `minHostApi` is 0.21.0 or newer.
+Cookbook unlabeled-control floors live in
+`conformance/cookbook/unlabeled-controls-ratchet.json`.
 There are three renderer implementations, not four: the web host renders through
 `packages/widget-renderer-rn` under react-native-web. Most of the new props are not yet
 honoured by those renderers.
@@ -211,16 +213,14 @@ finished.
 | Phase | Deliverable                                                                        | Gate                                                       |
 | ----- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | 3     | Accessibility-tree projection and `ax` strings in the golden streams               | Done — `renderHeadlessAxSnapshot` + `ax` on every stream   |
-| 4     | `validate.ts` rejection tier behind `minHostApi >= 0.21.0`; `doctor.ts` retargeted | Hostile-app fixture cannot bypass; 3 switch sites migrated |
-| 5     | Cookbook accessibility ratchet at measured floors                                  | New app cannot enter above its floor                       |
+| 4     | `validate.ts` rejection tier behind `minHostApi >= 0.21.0`; `doctor.ts` retargeted | Done — hostile-app fixture cannot bypass; 3 switch sites migrated |
+| 5     | Cookbook accessibility ratchet at measured floors                                  | Done — new app cannot enter above its floor            |
 | 6     | Focus order derived into the SPEC-PRESENT layout vectors                           | Vectors regenerate identically                             |
 
 Phase 4 is the only one that can break a shipped app, and the `minHostApi` gate is what
 stops it.
 
-The remaining phases are tracked as `AX-4-VALIDATE`, `AX-5-RATCHET`, and
-`AX-6-FOCUS` in the [software backlog](../STATUS-SOFTWARE.md). Phase 3 is
-`AX-3-TREE` and is implemented.
+The remaining phase is tracked as `AX-6-FOCUS` in the [software backlog](../STATUS-SOFTWARE.md). Phases 3–5 (`AX-3-TREE`, `AX-4-VALIDATE`, `AX-5-RATCHET`) are implemented.
 
 ## 11. Open questions
 

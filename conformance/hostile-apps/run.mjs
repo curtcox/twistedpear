@@ -196,6 +196,19 @@ async function main() {
         },
         { maxBytes: 256 * 1024 },
       ),
+    () =>
+      validateWidgetTree(
+        {
+          root: {
+            id: "root",
+            type: "view",
+            children: [
+              { id: "sw", type: "switch", props: { value: false } },
+            ],
+          },
+        },
+        { minHostApi: "0.21.0" },
+      ),
   ];
 
   for (const reject of uiRejections) {

@@ -15,8 +15,8 @@ The widget vocabulary is the closed set in
 [SPEC-WIDGET](../specs/spec-widget/spec.md). The host now **accepts** the bounded
 accessibility prop set below. Two props — `view.accessibilityLabel` and `image.alt` —
 already pass through every renderer. The rest of the set is accepted and specified;
-renderers do not yet honour the new members, and there is no accessibility-tree
-oracle yet.
+renderers do not yet honour the new members. The accessibility-tree oracle and
+version-gated unnamed-control rejection are in this drop.
 
 ## What ships
 
@@ -59,8 +59,23 @@ flattening of unnamed groups, spacers, and `decorative` nodes. Golden streams
 in `specs/spec-widget/streams/` pin an `ax` string beside each frame's visual
 `snapshot`. `npm run test:widget-parity` checks both.
 
+## Version-gated unnamed-control rejection
+
+Apps that declare `minHostApi` 0.21.0 or newer are rejected (`INVALID_WIDGET`) if a
+`switch`, `slider`, `select`, or `date` has no `accessibilityLabel`. Older apps are
+unchanged at render time. `tp doctor` flags those four types as advisory findings for
+every app, and no longer flags unlabeled `view` nodes.
+
+## Cookbook unlabeled-control ratchet
+
+`conformance/cookbook/cookbook.test.mjs` measures unlabeled controls on each
+Cookbook app's first render: unnamed `switch` / `slider` / `select` / `date`,
+`text-input` without `accessibilityLabel`, `view` nodes that handle an `event`
+with no name, and `text` at `fontSize` 24 or 32 with no `heading`. Floors live in
+`conformance/cookbook/unlabeled-controls-ratchet.json`. A new app enters at 0;
+an existing floor may only shrink.
+
 ## Not in this drop
 
 Renderer mapping for `accessibilityHint`, `heading`, `live`, and `decorative`;
-version-gated unnamed-control rejection; the Cookbook ratchet; and derived focus
-order remain in the [plan](widget-accessibility-plan.md).
+and derived focus order remain in the [plan](widget-accessibility-plan.md).

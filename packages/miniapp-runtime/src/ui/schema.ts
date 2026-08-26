@@ -112,6 +112,13 @@ export const ACCESSIBILITY_LABEL_TYPES: ReadonlySet<WidgetType> = new Set([
   "map-preview",
   "remote-video",
 ]);
+/** Controls whose accessible name can come only from accessibilityLabel. */
+export const NAMED_CONTROL_TYPES: ReadonlySet<WidgetType> = new Set([
+  "switch",
+  "slider",
+  "select",
+  "date",
+]);
 export const ACCESSIBILITY_HINT_TYPES: ReadonlySet<WidgetType> = new Set([
   "button",
   "text-input",

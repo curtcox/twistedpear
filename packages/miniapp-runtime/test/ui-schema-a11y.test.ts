@@ -129,4 +129,41 @@ describe("bounded accessibility prop set", () => {
       ),
     ).toThrow(/decorative/);
   });
+
+  it("accepts an unnamed switch below minHostApi 0.21.0", () => {
+    expect(() =>
+      validateWidgetTree(root({ type: "switch", props: { value: false } })),
+    ).not.toThrow();
+    expect(() =>
+      validateWidgetTree(root({ type: "switch", props: { value: false } }), {
+        minHostApi: "0.20.0",
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects unnamed named controls at minHostApi 0.21.0", () => {
+    const unnamed = [
+      root({ type: "switch", props: { value: false } }),
+      root({ type: "slider", props: { value: 1 } }),
+      root({ type: "select", props: { value: "a", options: ["a"] } }),
+      root({ type: "date", props: { value: "2026-08-21" } }),
+    ];
+    for (const tree of unnamed) {
+      expect(() =>
+        validateWidgetTree(tree, { minHostApi: "0.21.0" }),
+      ).toThrow(/accessibilityLabel/);
+    }
+    expect(() =>
+      validateWidgetTree(
+        root({
+          type: "switch",
+          props: { value: false, accessibilityLabel: "Alerts" },
+        }),
+        { minHostApi: "0.21.0" },
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validateWidgetTree(root({ type: "view" }), { minHostApi: "0.21.0" }),
+    ).not.toThrow();
+  });
 });

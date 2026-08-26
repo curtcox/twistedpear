@@ -76,6 +76,7 @@ export function createDevSideLoadMethod({
         entry: manifest.entry ?? "bundle.js",
         capabilities: declared,
         publisherPublicKey: manifest.publisherPublicKey ?? "dev",
+        minHostApi: manifest.minHostApi,
       },
       bundleBytes,
     );
@@ -519,6 +520,7 @@ export async function launchWithCapabilityReview(options) {
       entry: record.manifest.entry,
       capabilities: declared,
       publisherPublicKey: record.manifest.publisherPublicKey,
+      minHostApi: record.manifest.minHostApi,
     },
     bundle,
   );
@@ -563,6 +565,7 @@ export async function launchWithoutReview({
       entry: record.manifest.entry,
       capabilities: declared,
       publisherPublicKey: record.manifest.publisherPublicKey,
+      minHostApi: record.manifest.minHostApi,
     },
     bundle,
   );

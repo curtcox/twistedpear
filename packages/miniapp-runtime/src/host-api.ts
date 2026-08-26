@@ -1,4 +1,25 @@
-export const HOST_API_VERSION = "0.20.0";
+export const HOST_API_VERSION = "0.21.0";
+
+/** Named controls must carry accessibilityLabel at this minHostApi and above. */
+export const ACCESSIBLE_NAME_MIN_HOST_API = "0.21.0";
+
+export function hostApiAtLeast(
+  version: string | undefined,
+  minimum: string,
+): boolean {
+  if (version === undefined) return false;
+  const parse = (value: string): number[] =>
+    value.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const left = parse(version);
+  const right = parse(minimum);
+  const length = Math.max(left.length, right.length);
+  for (let i = 0; i < length; i += 1) {
+    const a = left[i] ?? 0;
+    const b = right[i] ?? 0;
+    if (a !== b) return a > b;
+  }
+  return true;
+}
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -83,7 +104,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "Brokered crypto.randomBytes, crypto.hash, crypto.hmac, and crypto.timingSafeEqual (no capability; no seal/open).",
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.20.0",
     note: "Widget vocabulary: text-input multiline/secure/keyboard, plus select, slider, and date.",
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "Named controls (switch, slider, select, date) require accessibilityLabel when minHostApi is 0.21.0 or newer.",
   },
 ];

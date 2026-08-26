@@ -123,7 +123,7 @@ describe("app-to-app channel", () => {
       (item) => item.id === "apps:channel",
     );
     expect(entry?.description).toContain("named when you grant this");
-    expect(HOST_API_VERSION).toBe("0.20.0");
+    expect(HOST_API_VERSION).toBe("0.21.0");
   });
 
   it("delivers a message only after both sides grant the named destination", async () => {

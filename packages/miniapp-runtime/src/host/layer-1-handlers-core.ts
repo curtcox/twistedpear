@@ -24,9 +24,14 @@ export abstract class MiniappHostLayer1HandlersCore extends MiniappHostLayer1Bas
   private registerUiIdentityHandlers(): void {
     this.broker.register("ui", "render", null, (request, context) => {
       const tree = (request.payload as { tree: WidgetTree }).tree;
-      validateWidgetTree(tree);
-      this.options.sessionRecorder?.recordAssertWidget(countWidgetNodes(tree));
       const app = this.appByIdentity(context.appId, context.publisherPublicKey);
+      validateWidgetTree(
+        tree,
+        app?.manifest.minHostApi === undefined
+          ? {}
+          : { minHostApi: app.manifest.minHostApi },
+      );
+      this.options.sessionRecorder?.recordAssertWidget(countWidgetNodes(tree));
       let patches: ReadonlyArray<WidgetPatch> = [];
       if (app !== undefined) {
         patches = diffWidgetTrees(app.widgetTree, tree);

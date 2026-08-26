@@ -1,3 +1,7 @@
+import {
+  ACCESSIBLE_NAME_MIN_HOST_API,
+  hostApiAtLeast,
+} from "../host-api.js";
 import { chromeLexiconViolation } from "./chrome-lexicon.js";
 import {
   ACCESSIBILITY_LIVE_REGIONS,
@@ -6,6 +10,7 @@ import {
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
   MAX_DEVICE_SESSION_PROP_LENGTH,
   MAX_QR_CODE_VALUE_LENGTH,
+  NAMED_CONTROL_TYPES,
   PREVIEW_SURFACE_TYPES,
   TEXT_INPUT_KEYBOARDS,
   WIDGET_PROP_KEYS,
@@ -19,6 +24,7 @@ export interface WidgetValidationOptions {
   readonly maxNodes?: number;
   readonly maxDepth?: number;
   readonly maxBytes?: number;
+  readonly minHostApi?: string;
 }
 
 export class WidgetValidationError extends Error {
@@ -204,7 +210,24 @@ function validateAccessibilityProps(node: WidgetNode): void {
   validateDecorative(node);
 }
 
-function validateNode(node: WidgetNode, ids: Set<string>): void {
+function validateNamedControlName(
+  node: WidgetNode,
+  minHostApi: string | undefined,
+): void {
+  if (!NAMED_CONTROL_TYPES.has(node.type)) return;
+  if (!hostApiAtLeast(minHostApi, ACCESSIBLE_NAME_MIN_HOST_API)) return;
+  if (typeof node.props?.accessibilityLabel !== "string") {
+    invalidWidget(
+      `${node.type} "${node.id}" requires accessibilityLabel when minHostApi >= ${ACCESSIBLE_NAME_MIN_HOST_API}`,
+    );
+  }
+}
+
+function validateNode(
+  node: WidgetNode,
+  ids: Set<string>,
+  minHostApi: string | undefined,
+): void {
   validateNodeIdentity(node, ids);
   validateWidgetType(node);
   validateAllowedProps(node);
@@ -215,6 +238,7 @@ function validateNode(node: WidgetNode, ids: Set<string>): void {
   validateSlider(node);
   validatePreviewSurface(node);
   validateAccessibilityProps(node);
+  validateNamedControlName(node, minHostApi);
   validateStyles(node);
 }
 
@@ -252,7 +276,7 @@ export function validateWidgetTree(
       );
     }
 
-    validateNode(node, ids);
+    validateNode(node, ids, options.minHostApi);
 
     for (const child of node.children ?? []) {
       visit(child, depth + 1);

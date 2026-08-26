@@ -80,7 +80,7 @@ async function render() {
         {
           id: "today",
           type: "switch",
-          props: { value: done, event: "streak.toggle" }
+          props: { value: done, event: "streak.toggle", accessibilityLabel: "Done today" }
         },
         { id: "divider", type: "divider" },
         {

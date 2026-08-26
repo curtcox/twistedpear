@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import {
   CAPABILITY_DEFINITIONS,
   HOST_API_VERSION,
+  NAMED_CONTROL_TYPES,
   validateWidgetTree,
   type WidgetNode,
 } from "@twistedpear/miniapp-runtime";
@@ -69,10 +70,10 @@ function usedCapabilities(source: string): Set<string> {
 
 function collectAccessibilityGaps(node: WidgetNode, gaps: string[]): void {
   if (
-    node.type === "view" &&
+    NAMED_CONTROL_TYPES.has(node.type) &&
     typeof node.props?.accessibilityLabel !== "string"
   ) {
-    gaps.push(node.id);
+    gaps.push(`${node.type} "${node.id}"`);
   }
   for (const child of node.children ?? []) {
     collectAccessibilityGaps(child, gaps);
@@ -161,10 +162,10 @@ function checkWidgetTree(
   }
   const gaps: string[] = [];
   collectAccessibilityGaps(tree.root, gaps);
-  for (const id of gaps) {
+  for (const gap of gaps) {
     findings.push({
       code: "accessibilityLabel",
-      message: `view "${id}" is missing accessibilityLabel`,
+      message: `${gap} is missing accessibilityLabel`,
     });
   }
   return findings;

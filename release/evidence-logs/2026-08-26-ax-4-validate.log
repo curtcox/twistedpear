@@ -1,0 +1,28 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 test:hostile-apps
+> npm run build && node conformance/hostile-apps/run.mjs
+
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, launch/stop cycles, capability probes, handler errors, and notify flood passed
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 test:widget-parity
+> npm run build && node conformance/widget-parity/run.mjs
+
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+widget-parity: golden fixtures + DOM whitelist coverage passed
+widget-parity: stream a11y-existing (1 frames) passed
+widget-parity: stream board (3 frames) passed
+widget-parity: stream chat (4 frames) passed
+widget-parity: stream file-drop (3 frames) passed
+widget-parity: recorded golden streams drive schema, differ, and headless renderer
+widget-parity: 16 SPEC-PRESENT layout vectors reproduced exactly

@@ -211,7 +211,7 @@ describe("host API version", () => {
   });
 
   it("includes format and diagnostics in 0.16.0", () => {
-    expect(HOST_API_VERSION).toBe("0.20.0");
+    expect(HOST_API_VERSION).toBe("0.21.0");
     expect(
       HOST_API_CHANGELOG.some(
         (entry) =>

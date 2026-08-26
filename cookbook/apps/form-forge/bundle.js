@@ -102,7 +102,7 @@ async function render() {
               style: { flexDirection: "row", gap: 8 },
               children: [
                 { id: "label-" + field.name, type: "text", props: { value: field.label } },
-                { id: field.name, type: "switch", props: { value: values[field.name] === true, event: field.name } }
+                { id: field.name, type: "switch", props: { value: values[field.name] === true, event: field.name, accessibilityLabel: field.label } }
               ]
             }
           : { id: field.name, type: "text-input", props: { value: values[field.name] ?? "", placeholder: field.label, event: field.name } }

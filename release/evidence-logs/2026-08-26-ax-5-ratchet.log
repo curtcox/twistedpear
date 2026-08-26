@@ -1,0 +1,19 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 test:cookbook
+> npm run build && vitest run conformance/cookbook/cookbook.test.mjs
+
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+
+ RUN  v4.1.11 /Users/curtcox/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  59 passed (59)
+   Start at  20:52:43
+   Duration  18.42s (transform 1.28s, setup 0ms, import 2.07s, tests 16.26s, environment 0ms)
+

@@ -90,6 +90,7 @@ export async function mountAppFromDir(
     entry: string;
     capabilities?: string[];
     publisherPublicKey?: string;
+    minHostApi?: string;
   };
   const manifest: LaunchManifest = {
     name: raw.name,
@@ -97,6 +98,7 @@ export async function mountAppFromDir(
     entry: raw.entry,
     capabilities: raw.capabilities ?? [],
     publisherPublicKey: raw.publisherPublicKey ?? "test-publisher",
+    ...(raw.minHostApi !== undefined ? { minHostApi: raw.minHostApi } : {}),
   };
   const bundle = new Uint8Array(
     readFileSync(join(dirname(manifestPath), manifest.entry)),

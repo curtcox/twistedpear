@@ -385,6 +385,22 @@ for (const bad of a11yBadTrees) {
   }
 }
 
+const unnamedSwitch = {
+  root: { id: "r", type: "switch", props: { value: false } },
+};
+validateWidgetTree(unnamedSwitch);
+try {
+  validateWidgetTree(unnamedSwitch, { minHostApi: "0.21.0" });
+  throw new Error("host accepted unnamed switch at minHostApi 0.21.0");
+} catch (error) {
+  if (
+    error instanceof Error &&
+    error.message.startsWith("host accepted")
+  ) {
+    throw error;
+  }
+}
+
 const streamsDir = join(specDir, "streams");
 const streamFiles = readdirSync(streamsDir)
   .filter((name) => name.endsWith(".json"))

@@ -46,6 +46,7 @@ export interface LaunchManifest {
   readonly entry: string;
   readonly capabilities: ReadonlyArray<string>;
   readonly publisherPublicKey: string;
+  readonly minHostApi?: string;
 }
 
 export interface MiniappHostLogEntry {
