@@ -195,17 +195,26 @@ function finish() {
   process.exit(0);
 }
 
+/**
+ * How often the stop file is checked, independently of the sampling interval.
+ *
+ * These were one timer until the first real CI run measured the cost: the
+ * finish step waited a whole sampling interval for the sampler to notice it
+ * had been asked to stop, which across a hundred jobs was most of the
+ * telemetry's total overhead. Sampling is expensive enough to want a coarse
+ * interval; noticing a file is not.
+ */
+const STOP_POLL_MS = 250;
+
 collect();
-const timer = setInterval(
-  () => {
-    collect();
-    if (fs.existsSync(stopFile) || Date.now() - startedAt >= maxLifetimeMs) {
-      clearInterval(timer);
-      finish();
-    }
-  },
-  Math.max(500, intervalMs),
-);
+const sampleTimer = setInterval(collect, Math.max(500, intervalMs));
+const stopTimer = setInterval(() => {
+  if (fs.existsSync(stopFile) || Date.now() - startedAt >= maxLifetimeMs) {
+    clearInterval(sampleTimer);
+    clearInterval(stopTimer);
+    finish();
+  }
+}, STOP_POLL_MS);
 
 for (const signal of ["SIGTERM", "SIGINT", "SIGHUP"]) {
   process.on(signal, finish);

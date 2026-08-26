@@ -92,7 +92,9 @@ async function waitForSummary() {
         lastParseError = error;
       }
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Fine-grained on purpose: the sampler now notices the stop file within
+    // ~250 ms, and a one-second poll here would put most of that back.
+    await new Promise((resolve) => setTimeout(resolve, 150));
   }
   console.warn(
     lastParseError

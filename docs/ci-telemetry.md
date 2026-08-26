@@ -131,8 +131,32 @@ Backfill and collection need a `GITHUB_TOKEN` with `actions: read`.
 
 ## Cost of the measurement
 
-Two steps per job. The sampler is one Node process reading `os` counters and
-three `/proc` files every five seconds; on a busy runner it does not register.
-Each job uploads a few kilobytes as an artifact with a seven-day retention — the
-collector copies them into the branch within minutes, and the artifact is only
-the transport. The collector itself is a single `ubuntu-latest` job per run.
+Measured, not estimated — the first full CI run under instrumentation reported
+its own overhead:
+
+| Step                   | Jobs |  Mean | Total |
+| ---------------------- | ---: | ----: | ----: |
+| `Start job telemetry`  |  100 | 0.1 s |  11 s |
+| `Finish job telemetry` |  100 | 6.8 s | 681 s |
+
+That was **20.8 weighted minutes per CI run**, against a run that costs about
+210 — roughly a tenth, added by the thing meant to bring the number down. Very
+little of it was the sampling. `Start` is free. `Finish` waited a whole
+sampling interval for the sampler to notice the stop file, because the stop
+check and the sample tick shared one timer.
+
+They are separate timers now: sampling stays coarse at five seconds, the stop
+file is checked every 250 ms, and the finish step polls at 150 ms to match.
+The measured stop-to-summary latency fell from a whole interval to 0.4 s. What
+remains in `Finish` is the job-id lookup against the Actions API and the
+artifact upload, neither of which is avoidable at this design.
+
+The sampler's own runtime cost is genuinely negligible: one Node process
+reading `os` counters and three `/proc` files every five seconds, on runners
+that this same telemetry shows sitting at single-digit CPU for much of a run.
+It is the per-job step overhead, not the sampling, that was worth measuring —
+which is the argument for the whole change, turned on itself.
+
+Each job uploads a few kilobytes as an artifact with a seven-day retention;
+the collector copies them into the branch within minutes, and the artifact is
+only the transport. The collector itself is one `ubuntu-latest` job per run.
