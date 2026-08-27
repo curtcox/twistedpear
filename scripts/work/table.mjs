@@ -1,9 +1,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { repoRoot } from "../doc-audit/repo-root.mjs";
 
 const SEPARATOR = /^\|[-| :]+\|$/;
+const PRETTIER = createRequire(import.meta.url).resolve(
+  "prettier/bin/prettier.cjs",
+);
 
 /**
  * @typedef {object} Table
@@ -205,11 +209,15 @@ export function writeDoc(root, rel, text) {
  * @returns {string}
  */
 export function formatText(text, rel, root = repoRoot()) {
-  const result = spawnSync("npx", ["prettier", "--stdin-filepath", rel], {
-    cwd: root,
-    encoding: "utf8",
-    input: text,
-  });
+  const result = spawnSync(
+    process.execPath,
+    [PRETTIER, "--stdin-filepath", rel],
+    {
+      cwd: root,
+      encoding: "utf8",
+      input: text,
+    },
+  );
   if (result.status !== 0) {
     throw new Error(`prettier failed: ${result.stderr || result.stdout}`);
   }
@@ -224,7 +232,7 @@ export function formatText(text, rel, root = repoRoot()) {
  */
 export function formatFiles(paths, root = repoRoot()) {
   if (paths.length === 0) return;
-  const result = spawnSync("npx", ["prettier", "--write", ...paths], {
+  const result = spawnSync(process.execPath, [PRETTIER, "--write", ...paths], {
     cwd: root,
     encoding: "utf8",
   });
