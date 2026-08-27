@@ -10,6 +10,7 @@ import { gates } from "../../scripts/checks/registry.mjs";
 import {
   GiB,
   HEAVY_GATE_IDS,
+  ancestorPids,
   coverageWorkerArgs,
   formatRefusal,
   gateCost,
@@ -62,19 +63,43 @@ describe("parseSwapUsedBytes", () => {
 });
 
 describe("parseProcessTable", () => {
-  it("keeps pid, rss, and the command line", () => {
+  it("keeps pid, ppid, rss, and the command line", () => {
     expect(
       parseProcessTable(
-        "  42  2048000 java GradleDaemon 9.3.1\n  99    12000 node scripts/checks/run.mjs --tier=pr\n",
+        "  42 1 2048000 java GradleDaemon 9.3.1\n  99 42   12000 node scripts/checks/run.mjs --tier=pr\n",
       ),
     ).toEqual([
-      { pid: 42, rssKiB: 2_048_000, args: "java GradleDaemon 9.3.1" },
+      { pid: 42, ppid: 1, rssKiB: 2_048_000, args: "java GradleDaemon 9.3.1" },
       {
         pid: 99,
+        ppid: 42,
         rssKiB: 12_000,
         args: "node scripts/checks/run.mjs --tier=pr",
       },
     ]);
+  });
+});
+
+describe("ancestorPids", () => {
+  it("walks the launching shell out of a grandchild probe", () => {
+    const rows = parseProcessTable(
+      [
+        "300 1 4000 zsh -c npm run check:all",
+        "301 300 8000 node scripts/checks/run.mjs --tier=pr",
+        "302 301 8000 node scripts/checks/coverage-run.mjs",
+        "303 302 8000 node headroom probe",
+      ].join("\n"),
+    );
+    expect([...ancestorPids(rows, 303)]).toEqual([302, 301, 300]);
+  });
+
+  it("stops rather than looping on a table that describes a cycle", () => {
+    const rows = [
+      { pid: 1, ppid: 1, rssKiB: 0, args: "init" },
+      { pid: 10, ppid: 11, rssKiB: 0, args: "a" },
+      { pid: 11, ppid: 10, rssKiB: 0, args: "b" },
+    ];
+    expect([...ancestorPids(rows, 10)]).toEqual([11, 10]);
   });
 });
 
@@ -92,7 +117,8 @@ describe("snapshotHost", () => {
       listProcesses: () => [
         {
           pid: 40,
-          rssKiB: 100_000,
+          ppid: 1,
+          rssKiB: 400_000,
           args: "node scripts/checks/run.mjs --tier=pr",
         },
       ],
@@ -102,22 +128,71 @@ describe("snapshotHost", () => {
     expect([...host.selfPids]).toEqual([42, 43, 40, 41]);
     expect(judgeHeadroom(host, { cost: "heavy" }).ok).toBe(true);
   });
+
+  it("treats the shell that launched the runner as self", () => {
+    // The `zsh -c` wrapper repeats the whole command in its own argv, so it
+    // matches the runner pattern; only the ppid chain tells us it is ours.
+    const processes = parseProcessTable(
+      [
+        "300 1 900000 zsh -c npm run check:all --tier=pr",
+        "301 300 800000 node scripts/checks/run.mjs --tier=pr",
+        "302 301 400000 node scripts/checks/coverage-run.mjs",
+      ].join("\n"),
+    );
+    const host = snapshotHost({
+      // What run.mjs exports: the runner pid, not the shell above it.
+      env: { TP_HEADROOM_OWNER_PIDS: "301" },
+      osApi: {
+        totalmem: () => GiB16,
+        freemem: () => 4 * GiB,
+        loadavg: () => [1],
+        cpus: () => Array.from({ length: 8 }),
+      },
+      readSwap: () => 0,
+      listProcesses: () => processes,
+      pid: 303,
+      ppid: 302,
+    });
+    expect(host.selfPids.has(300)).toBe(true);
+    expect(rivalProcesses(processes, host.selfPids)).toEqual([]);
+    expect(judgeHeadroom(host, { cost: "heavy" }).ok).toBe(true);
+  });
 });
 
 describe("rivalProcesses", () => {
   it("drops the current gate runner and keeps Gradle/JDT/coverage", () => {
     const rows = parseProcessTable(
       [
-        "100 8000 node scripts/checks/run.mjs --tier=pr",
-        "200 1800000 java GradleDaemon",
-        "201 500000 org.eclipse.equinox.launcher jdt.ls",
-        "202 20000 node node_modules/vitest/vitest.mjs run --coverage.enabled",
-        "203 4000 vim README.md",
+        "100 1 800000 node scripts/checks/run.mjs --tier=pr",
+        "200 1 1800000 java GradleDaemon",
+        "201 1 500000 org.eclipse.equinox.launcher jdt.ls",
+        "202 100 900000 node node_modules/vitest/vitest.mjs run --coverage.enabled",
+        "203 1 4000 vim README.md",
       ].join("\n"),
     );
     expect(rivalProcesses(rows, new Set([100])).map((row) => row.pid)).toEqual([
       200, 201, 202,
     ]);
+  });
+
+  it("does not count a process that merely names the runner", () => {
+    // Every one of these holds a few MiB and competes for nothing. Matching on
+    // argv alone refused coverage at 4 GiB free, which reads as memory pressure
+    // that is not there.
+    const rows = parseProcessTable(
+      [
+        "300 1 2400 grep -rn scripts/checks/run.mjs .",
+        "301 1 1800 sed -n 1,40p scripts/checks/run.mjs",
+        "302 1 3200 zsh -c node scripts/checks/run.mjs --tier=pr --only=coverage",
+        "303 1 131071 node scripts/checks/run.mjs --tier=pr",
+      ].join("\n"),
+    );
+    expect(rivalProcesses(rows)).toEqual([]);
+  });
+
+  it("still counts a real heap at the floor", () => {
+    const rows = parseProcessTable("400 1 131072 java GradleDaemon");
+    expect(rivalProcesses(rows).map((row) => row.pid)).toEqual([400]);
   });
 });
 

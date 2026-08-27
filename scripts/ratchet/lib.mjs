@@ -1,8 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const NO_FALLBACK = Symbol("no fallback");
+
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+const PRETTIER = path.join(ROOT, "node_modules/prettier/bin/prettier.cjs");
 
 export function readJson(file, fallback = NO_FALLBACK) {
   try {
@@ -18,9 +25,38 @@ export function readJson(file, fallback = NO_FALLBACK) {
   }
 }
 
+/**
+ * Reformat a file the way the formatting gate would, so a baseline write is
+ * format-clean by construction.
+ *
+ * Best-effort on purpose: a gate that cannot reach Prettier must still record
+ * its baseline. Prettier reads `.prettierignore` from the repository root, so
+ * the files whose generator deliberately owns their layout — the ones compared
+ * byte-for-byte against `JSON.stringify` — are skipped here exactly as they are
+ * by `format:check`.
+ */
+function formatInPlace(file) {
+  if (!fs.existsSync(PRETTIER)) return;
+  spawnSync(
+    process.execPath,
+    [PRETTIER, "--write", "--log-level=silent", file],
+    {
+      cwd: ROOT,
+      encoding: "utf8",
+    },
+  );
+}
+
+/**
+ * `JSON.stringify` never collapses a short array and Prettier always does, so
+ * writing the raw serialisation left every `--write` baseline command trading a
+ * red analysis gate for a red formatting gate. Reformatting here keeps the two
+ * agreeing without each caller having to remember.
+ */
 export function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+  formatInPlace(file);
 }
 
 /**

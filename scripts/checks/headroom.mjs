@@ -46,6 +46,13 @@ export const LIMITS = {
   maxLoadPerCpu: 4,
   /** Advertised 16/24 GB machines cannot stack heavy gates on IDE heaps. */
   smallHostBytes: 32 * GiB,
+  /**
+   * A rival has to be an actual heap. A grep, a `sed`, or the `zsh -c` wrapper
+   * that launched the runner all carry the matched path in their own argv while
+   * holding a few MiB; the daemons this refuses for hold hundreds. Below this
+   * floor a match is a mention of the command, not competition for memory.
+   */
+  minRivalRssBytes: 128 * 1024 * 1024,
   recoverySamples: 7,
   recoveryDelayMs: 10_000,
 };
@@ -53,6 +60,7 @@ export const LIMITS = {
 /**
  * @typedef {object} ProcessRow
  * @property {number} pid
+ * @property {number} ppid
  * @property {number} rssKiB
  * @property {string} args
  */
@@ -143,12 +151,13 @@ export function parseSwapUsedBytes(text) {
 export function parseProcessTable(text) {
   return text
     .split("\n")
-    .map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/))
+    .map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/))
     .filter((match) => match !== null)
     .map((match) => ({
       pid: Number(match[1]),
-      rssKiB: Number(match[2]),
-      args: match[3],
+      ppid: Number(match[2]),
+      rssKiB: Number(match[3]),
+      args: match[4],
     }));
 }
 
@@ -160,8 +169,33 @@ export function rivalProcesses(processes, selfPids = new Set()) {
   return processes.filter(
     (row) =>
       !selfPids.has(row.pid) &&
+      row.rssKiB * 1024 >= LIMITS.minRivalRssBytes &&
       RIVAL_PATTERNS.some((pattern) => pattern.test(row.args)),
   );
+}
+
+/**
+ * Every ancestor of `pid` the process table can reach.
+ *
+ * A shell repeats the whole command it was given in its own argv, so the
+ * `zsh -c` wrapper that launched a gate matches the runner pattern. A probe
+ * that runs as a grandchild — `coverage-run.mjs` calling `waitForHeadroom` —
+ * knows its own parent and the runner pid it was handed, but not that wrapper,
+ * and would otherwise count its own launcher as a rival heap.
+ *
+ * @param {ProcessRow[]} processes
+ * @param {number} pid
+ */
+export function ancestorPids(processes, pid) {
+  const parentOf = new Map(processes.map((row) => [row.pid, row.ppid]));
+  const chain = new Set();
+  let current = parentOf.get(pid);
+  // `chain.has` also terminates a cycle, which a corrupt table could describe.
+  while (current !== undefined && current > 1 && !chain.has(current)) {
+    chain.add(current);
+    current = parentOf.get(current);
+  }
+  return chain;
 }
 
 function formatGiB(bytes) {
@@ -372,7 +406,7 @@ function readSwapUsedBytes() {
 }
 
 function readProcessTable() {
-  const result = spawnSync("ps", ["-axo", "pid=,rss=,command="], {
+  const result = spawnSync("ps", ["-axo", "pid=,ppid=,rss=,command="], {
     encoding: "utf8",
   });
   if (result.status !== 0) return [];
@@ -402,6 +436,10 @@ function resolveHostOptions(options = {}) {
  */
 export function snapshotHost(options = {}) {
   const resolved = resolveHostOptions(options);
+  const processes = resolved.listProcesses();
+  const seeds = [resolved.pid, resolved.ppid, ...resolved.ownerPids].filter(
+    Boolean,
+  );
   return {
     ci: Boolean(resolved.env.CI),
     totalBytes: resolved.osApi.totalmem(),
@@ -409,9 +447,9 @@ export function snapshotHost(options = {}) {
     swapUsedBytes: resolved.readSwap(),
     load1: resolved.osApi.loadavg()[0] ?? 0,
     cpuCount: resolved.osApi.cpus()?.length || 1,
-    processes: resolved.listProcesses(),
+    processes,
     selfPids: new Set(
-      [resolved.pid, resolved.ppid, ...resolved.ownerPids].filter(Boolean),
+      seeds.flatMap((pid) => [pid, ...ancestorPids(processes, pid)]),
     ),
   };
 }

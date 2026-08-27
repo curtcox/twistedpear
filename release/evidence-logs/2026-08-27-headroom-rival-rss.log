@@ -1,0 +1,13 @@
+
+> twistedpear@0.0.0 test
+> vitest run conformance/checks/headroom.test.mjs
+
+
+ RUN  v4.1.11 /Users/curtcox/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  27 passed (27)
+   Start at  21:49:41
+   Duration  141ms (transform 32ms, setup 0ms, import 45ms, tests 6ms, environment 0ms)
+

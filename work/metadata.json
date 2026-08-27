@@ -195,8 +195,13 @@
     "ARTIFACT-SIZES-BASELINE-FORMAT": {
       "type": "bug",
       "requires": [],
-      "verify": "npm run format:check",
+      "verify": "npm run artifact-sizes:baseline && npm run format:check && npx vitest run conformance/checks/write-json-format.test.mjs",
       "added": "2026-08-27",
+      "completed": "2026-08-27",
+      "evidence": [
+        "scripts/ratchet/lib.mjs",
+        "conformance/checks/write-json-format.test.mjs"
+      ],
       "notes": "npm run artifact-sizes:baseline rewrites artifact-size-rules.json through writeJson (scripts/ratchet/lib.mjs), which serialises with JSON.stringify(value, null, 2). That expands short arrays onto one line each, while Prettier collapses them, so the documented baseline command always leaves the tree failing the format gate. Observed 2026-08-26: the committed file held \"roots\": [\"apps\", \"packages\"] on one line; after artifact-sizes:baseline it became a four-line array and 'Formatting ratchet: FAIL; 1 new, 0 stale' with prettier --list-different naming artifact-size-rules.json as the only offender. Anyone following the recorded fix for an artifact-size drift therefore trades one red gate for another, which is easy to misread as the baseline command being wrong to run. Same risk applies to any other ratchet writer that shares writeJson and whose output Prettier also formats. Suggested fix: run the ratchet writers' output through Prettier (or match its JSON printing) so a baseline write is format-clean by construction."
     },
     "AX-1-RENDERERS": {
@@ -1182,6 +1187,11 @@
       "requires": [],
       "verify": "npm test -- conformance/checks/headroom.test.mjs",
       "added": "2026-08-27",
+      "completed": "2026-08-27",
+      "evidence": [
+        "scripts/checks/headroom.mjs",
+        "conformance/checks/headroom.test.mjs"
+      ],
       "notes": "rivalProcesses() in scripts/checks/headroom.mjs matches purely on command-line text (RIVAL_PATTERNS, including /scripts\\/checks\\/run\\.mjs/) with no RSS threshold, though parseProcessTable already captures rssKiB. appendRivalReason then refuses every heavy gate when rivals.length > 0. Two consequences verified on 2026-08-26: (1) any process whose argv merely mentions the runner path -- a grep or sed reading the file, or the zsh -c wrapper Claude Code/CI use to launch it, which embeds the full command string in its own argv -- is counted as a 'rival heap'; (2) coverage-run.mjs runs its own waitForHeadroom as a grandchild, and TP_HEADROOM_OWNER_PIDS carries only the spawning runner's pid, not its ancestor shell, so that wrapper is never in selfPids. Result: 'REFUSE coverage: 1 rival heap(s): checks-run' at 4.0 GiB free / 0.5 GiB swap -- no memory pressure at all. Proof: invoking the same gate as (cd scripts/checks && node ./run.mjs --tier=pr --only=coverage), so no argv spells the matched path, let coverage run immediately on the same host. Suggested fix: require a real heap (e.g. rssKiB above a threshold) before counting a rival, and/or walk the ppid chain into selfPids."
     },
     "ID-APPSCOPE": {
