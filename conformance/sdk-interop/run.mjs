@@ -127,6 +127,17 @@ async function main() {
     allGrants,
   );
 
+  // lxmf:send is offer-bound: the grant alone does not name a destination, so
+  // the host has to author the app-a -> app-b offer the way host chrome would.
+  // Without it every send is EGRESS_DENIED and app-b's inbox stays empty.
+  host.grantEgressOffer({
+    appId: "app-a",
+    capability: "lxmf:send",
+    targetKind: "peer",
+    targetId: "app-b",
+    ttlMs: 60_000,
+  });
+
   const destinationA = await dispatch(
     host,
     {
@@ -256,6 +267,9 @@ async function main() {
     throw new Error("Hyperbee read failed for app-b");
   }
 
+  // Announce is own-namespace only: an app publishes and subscribes under its
+  // own prefix, and a shared cross-app topic is a scope escape. Publish with
+  // the namespace omitted so it resolves to app-a's own namespace.
   await dispatch(
     host,
     {
@@ -265,7 +279,6 @@ async function main() {
       capability: "announce:publish",
       payload: {
         appData: new TextEncoder().encode("board-post"),
-        namespace: "board",
       },
     },
     appA,
@@ -279,9 +292,8 @@ async function main() {
       namespace: "announce",
       method: "subscribe",
       capability: "announce:subscribe",
-      payload: { namespace: "board" },
     },
-    appB,
+    appA,
     allGrants,
   );
   if (
@@ -290,6 +302,25 @@ async function main() {
     announces.result.length === 0
   ) {
     throw new Error("announce.subscribe failed");
+  }
+
+  const crossAnnounce = await dispatch(
+    host,
+    {
+      id: "id-10b",
+      namespace: "announce",
+      method: "subscribe",
+      capability: "announce:subscribe",
+      payload: { namespace: "app-a" },
+    },
+    appB,
+    allGrants,
+  );
+  if (
+    crossAnnounce.ok ||
+    crossAnnounce.error?.code !== "ANNOUNCE_CROSS_APP_SCOPE"
+  ) {
+    throw new Error("app-b reached app-a's announce namespace");
   }
 
   const fetched = await dispatch(
