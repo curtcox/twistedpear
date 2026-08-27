@@ -284,32 +284,43 @@ describe("FreenetContractPacketLogBackend timer behaviour", () => {
   it("does not refetch on the timer while notifications keep the view fresh", async () => {
     // The timer is a freshness floor, not a second polling loop: traffic that
     // keeps notifying should cost exactly the notification-driven gets.
-    const client = makeFakeClient();
-    const wasm = new Uint8Array([0, 97, 115, 109]);
-    const rendezvous = new Uint8Array(32).fill(0x49);
-    const right = new FreenetContractPacketLogBackend({
-      client,
-      wasm,
-      rendezvous,
-      localDirection: 1,
-      retentionPerDirection: 8,
-      reconcileIntervalMs: 30,
-    });
-    await right.start();
+    //
+    // Driven on fake timers so the cadence is exact rather than merely likely.
+    // Under real timers the 10ms notify spacing had only a 3x margin on the
+    // 30ms reconcile interval: one slow `setTimeout` on a loaded machine let
+    // the freshness window lapse, the timer took a get of its own, and the
+    // count came in one high. That measured the host, not the backend.
+    vi.useFakeTimers();
+    try {
+      const client = makeFakeClient();
+      const wasm = new Uint8Array([0, 97, 115, 109]);
+      const rendezvous = new Uint8Array(32).fill(0x49);
+      const right = new FreenetContractPacketLogBackend({
+        client,
+        wasm,
+        rendezvous,
+        localDirection: 1,
+        retentionPerDirection: 8,
+        reconcileIntervalMs: 30,
+      });
+      await right.start();
 
-    const key = contractKey(wasm, rendezvous);
-    const getsBefore = client.getCalls.length;
-    let notifications = 0;
-    const deadline = Date.now() + 200;
-    while (Date.now() < deadline) {
-      client.notify(key, encodePacketLogState([]));
-      notifications += 1;
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      const key = contractKey(wasm, rendezvous);
+      const getsBefore = client.getCalls.length;
+      let notifications = 0;
+      // Twenty notifications spaced 10ms apart span 200ms, so the 30ms timer
+      // comes due about six times and has to decline every one of them.
+      for (let elapsed = 0; elapsed < 200; elapsed += 10) {
+        client.notify(key, encodePacketLogState([]));
+        notifications += 1;
+        await vi.advanceTimersByTimeAsync(10);
+      }
+
+      expect(client.getCalls.length - getsBefore).toBe(notifications);
+      await right.stop();
+    } finally {
+      vi.useRealTimers();
     }
-    await settle();
-
-    expect(client.getCalls.length - getsBefore).toBe(notifications);
-    await right.stop();
   });
 
   it("recovers a missing intermediate index after a delayed authoritative get", async () => {
