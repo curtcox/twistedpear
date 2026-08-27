@@ -193,6 +193,16 @@ async function exerciseChat(packed) {
       manifest.capabilities,
       manifest.capabilities,
     );
+    // lxmf:send is offer-bound, so the grant alone names no destination and
+    // every send is EGRESS_DENIED. The chat example delivers to itself, so
+    // author the offer host chrome would for that one destination.
+    host.grantEgressOffer({
+      appId: manifest.name,
+      capability: "lxmf:send",
+      targetKind: "peer",
+      targetId: manifest.name,
+      ttlMs: 60_000,
+    });
     await host.launch(manifest, packed.bundle);
     await waitForTreeText(host, "Chat");
     await waitForTreeText(host, "Me:");
