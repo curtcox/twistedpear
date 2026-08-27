@@ -104,25 +104,29 @@ async function waitForSummary() {
   return null;
 }
 
+function env(key, fallback = null) {
+  return process.env[key] ?? fallback;
+}
+
 async function jobContext() {
-  const workflow = process.env.GITHUB_WORKFLOW ?? "unknown";
+  const workflow = env("GITHUB_WORKFLOW", "unknown");
   const base = {
     workflow,
     workflowSlug: slug(workflow),
-    workflowRef: process.env.GITHUB_WORKFLOW_REF ?? null,
-    runId: process.env.GITHUB_RUN_ID ?? null,
-    runNumber: process.env.GITHUB_RUN_NUMBER ?? null,
-    runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
-    job: process.env.GITHUB_JOB ?? null,
+    workflowRef: env("GITHUB_WORKFLOW_REF"),
+    runId: env("GITHUB_RUN_ID"),
+    runNumber: env("GITHUB_RUN_NUMBER"),
+    runAttempt: env("GITHUB_RUN_ATTEMPT"),
+    job: env("GITHUB_JOB"),
     jobIndex: process.env.CI_TELEMETRY_JOB_INDEX || null,
     matrix: parseMatrix(),
-    sha: process.env.GITHUB_SHA ?? null,
-    ref: process.env.GITHUB_REF ?? null,
-    event: process.env.GITHUB_EVENT_NAME ?? null,
-    runnerName: process.env.RUNNER_NAME ?? null,
-    runnerOs: process.env.RUNNER_OS ?? null,
-    runnerArch: process.env.RUNNER_ARCH ?? null,
-    runnerEnvironment: process.env.RUNNER_ENVIRONMENT ?? null,
+    sha: env("GITHUB_SHA"),
+    ref: env("GITHUB_REF"),
+    event: env("GITHUB_EVENT_NAME"),
+    runnerName: env("RUNNER_NAME"),
+    runnerOs: env("RUNNER_OS"),
+    runnerArch: env("RUNNER_ARCH"),
+    runnerEnvironment: env("RUNNER_ENVIRONMENT"),
     jobId: null,
     jobName: null,
   };

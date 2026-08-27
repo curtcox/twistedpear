@@ -1,4 +1,8 @@
 import { canonicalJson, fnv1a64Hex } from "@twistedpear/effects";
+import { asArray, asRecord } from "./trace-assertions.js";
+import { AppTraceFormatError } from "./trace-errors.js";
+
+export { AppTraceFormatError } from "./trace-errors.js";
 
 export const APP_TRACE_FORMAT = 1 as const;
 export const APP_TRACE_KIND = "miniapp-session" as const;
@@ -31,13 +35,6 @@ export const APP_TRACE_SHAPE_FORBIDDEN_KEYS = [
   "bytes",
   "message",
 ] as const;
-
-export class AppTraceFormatError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AppTraceFormatError";
-  }
-}
 
 export interface AppTraceIdentity {
   readonly appId: string;
@@ -265,20 +262,6 @@ function assertNoForbiddenKeys(value: unknown, path: string): void {
     }
     assertNoForbiddenKeys(child, `${path}.${key}`);
   }
-}
-
-function asRecord(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new AppTraceFormatError(`${path} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function asArray(value: unknown, path: string): unknown[] {
-  if (!Array.isArray(value)) {
-    throw new AppTraceFormatError(`${path} must be an array`);
-  }
-  return value;
 }
 
 function asStringArray(value: unknown, path: string): string[] {

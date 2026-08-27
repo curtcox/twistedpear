@@ -21,13 +21,9 @@ import {
   writeDetail,
   writeIndex,
 } from "./history.mjs";
+import { parseArgs } from "./args.mjs";
 
-const args = new Map(
-  process.argv.slice(2).map((arg) => {
-    const [key, ...rest] = arg.replace(/^--/, "").split("=");
-    return [key, rest.join("=") || "true"];
-  }),
-);
+const args = parseArgs();
 
 const store = path.resolve(args.get("store") ?? "ci-metrics");
 const limit = Number(args.get("limit") ?? 40);

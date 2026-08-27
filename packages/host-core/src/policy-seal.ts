@@ -43,6 +43,15 @@ export type PolicySealEnvelope = {
   readonly wrapped: string;
 };
 
+/** Envelope whose format/kind have not yet been validated at runtime. */
+export type UnverifiedPolicySealEnvelope = Omit<
+  PolicySealEnvelope,
+  "format" | "kind"
+> & {
+  readonly format: number;
+  readonly kind: string;
+};
+
 export type SealedStoreBlob = {
   readonly store: SealedStoreName;
   readonly nonce: string;
@@ -104,7 +113,9 @@ function storeAad(store: SealedStoreName, commit: Uint8Array): Uint8Array {
   return out;
 }
 
-function assertHostCanEvaluate(envelope: PolicySealEnvelope): void {
+function assertHostCanEvaluate(
+  envelope: UnverifiedPolicySealEnvelope,
+): asserts envelope is PolicySealEnvelope {
   if (envelope.format !== 1 || envelope.kind !== POLICY_SEAL_KIND) {
     throw new PolicySealError("UNREADABLE");
   }
@@ -182,7 +193,7 @@ export function wrapSealedMaster(options: {
 export function unwrapSealedMaster(options: {
   readonly rootSecret: Uint8Array;
   readonly policy: PolicyDocument;
-  readonly envelope: PolicySealEnvelope;
+  readonly envelope: UnverifiedPolicySealEnvelope;
 }): Uint8Array {
   const { envelope } = options;
   assertHostCanEvaluate(envelope);
@@ -221,7 +232,7 @@ export function unwrapSealedMaster(options: {
 /** Advance the chain and wrap the same master under the new commit. */
 export function rewrapSealedMaster(options: {
   readonly rootSecret: Uint8Array;
-  readonly previous: PolicySealEnvelope;
+  readonly previous: UnverifiedPolicySealEnvelope;
   readonly nextPolicy: PolicyDocument;
   readonly masterKey: Uint8Array;
   readonly nonce: Uint8Array;

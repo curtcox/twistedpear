@@ -11,13 +11,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { BRANCH, branchExists, git, remoteUrl } from "./store-branch.mjs";
+import { parseArgs } from "./args.mjs";
 
-const args = new Map(
-  process.argv.slice(2).map((arg) => {
-    const [key, ...rest] = arg.replace(/^--/, "").split("=");
-    return [key, rest.join("=") || "true"];
-  }),
-);
+const args = parseArgs();
 
 const into = path.resolve(
   args.get("into") ?? process.env.CI_METRICS_DIR ?? ".tmp/ci-metrics",

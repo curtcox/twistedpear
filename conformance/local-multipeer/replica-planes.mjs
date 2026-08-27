@@ -56,13 +56,13 @@ export function proveReplicaPlanes({ assert, step }) {
   assert(realtime !== null, "realtime reservation should still admit");
 
   const ledger = new EgressBudgetLedger();
-  const link = new PlaneReplicaLink(
-    new TopicLogStore({ authorId: "hub" }),
-    new TopicLogStore({ authorId: "node2" }),
-    "board",
-    auth(grant("east", "node2"), ledger),
-    auth(grant("west", "hub"), ledger),
-    [
+  const link = new PlaneReplicaLink({
+    local: new TopicLogStore({ authorId: "hub" }),
+    remote: new TopicLogStore({ authorId: "node2" }),
+    topic: "board",
+    localAuth: auth(grant("east", "node2"), ledger),
+    remoteAuth: auth(grant("west", "hub"), ledger),
+    candidates: [
       { plane: "webrtc", effectiveBps: 0, headroomBps: 0 },
       { plane: "pears-bulk", effectiveBps: 0, headroomBps: 0 },
       { plane: "reticulum", effectiveBps: 12_000, headroomBps: 12_000 },
@@ -70,8 +70,8 @@ export function proveReplicaPlanes({ assert, step }) {
       { plane: "cas", effectiveBps: 0, headroomBps: 0 },
     ],
     limiter,
-    8_192,
-  );
+    bulkBytesPerSecond: 8_192,
+  });
 
   assert(
     link.plane === "reticulum",

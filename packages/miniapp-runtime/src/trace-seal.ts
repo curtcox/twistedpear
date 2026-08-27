@@ -3,6 +3,7 @@ import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { x25519 } from "@noble/curves/ed25519.js";
 import { canonicalJson } from "@twistedpear/effects";
+import { asRecord } from "./trace-assertions.js";
 import {
   APP_TRACE_FORMAT,
   APP_TRACE_KIND,
@@ -265,9 +266,4 @@ function asHex(value: unknown, path: string, length?: number): string {
   return value;
 }
 
-function asRecord(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new AppTraceFormatError(`${path} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
+

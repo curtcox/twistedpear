@@ -14,13 +14,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { BRANCH, configureIdentity, git } from "./store-branch.mjs";
 import { readIndex, upsertIndex, writeIndex } from "./history.mjs";
+import { parseArgs } from "./args.mjs";
 
-const args = new Map(
-  process.argv.slice(2).map((arg) => {
-    const [key, ...rest] = arg.replace(/^--/, "").split("=");
-    return [key, rest.join("=") || "true"];
-  }),
-);
+const args = parseArgs();
 
 const from = path.resolve(args.get("from") ?? "ci-metrics");
 const attempts = Number(args.get("attempts") ?? 5);

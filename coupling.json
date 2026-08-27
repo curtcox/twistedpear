@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1372,
+  "modules": 1414,
   "components": 26,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 279,
+      "modules": 283,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,
@@ -39,7 +39,7 @@
     },
     {
       "id": "scripts",
-      "modules": 218,
+      "modules": 240,
       "ca": 1,
       "ce": 11,
       "instability": 0.92,
@@ -59,7 +59,7 @@
     },
     {
       "id": "packages/protocol",
-      "modules": 214,
+      "modules": 216,
       "ca": 12,
       "ce": 1,
       "instability": 0.08,
@@ -69,7 +69,7 @@
     },
     {
       "id": "packages/miniapp-runtime",
-      "modules": 107,
+      "modules": 114,
       "ca": 13,
       "ce": 3,
       "instability": 0.19,
@@ -115,15 +115,16 @@
     },
     {
       "id": "packages/host-core",
-      "modules": 53,
+      "modules": 59,
       "ca": 6,
-      "ce": 8,
-      "instability": 0.57,
+      "ce": 9,
+      "instability": 0.6,
       "dependsOn": [
         "packages/app-registry",
         "packages/bridge-freenet",
         "packages/bridge-hyper",
         "packages/cas-256t",
+        "packages/effects",
         "packages/lxmf-ts",
         "packages/protocol",
         "packages/reticulum-interfaces",
@@ -196,7 +197,7 @@
     {
       "id": "packages/effects",
       "modules": 23,
-      "ca": 10,
+      "ca": 11,
       "ce": 0,
       "instability": 0,
       "dependsOn": []
@@ -233,18 +234,8 @@
       ]
     },
     {
-      "id": "packages/peer-discovery",
-      "modules": 19,
-      "ca": 5,
-      "ce": 1,
-      "instability": 0.17,
-      "dependsOn": [
-        "packages/protocol"
-      ]
-    },
-    {
       "id": "packages/cli",
-      "modules": 18,
+      "modules": 19,
       "ca": 2,
       "ce": 8,
       "instability": 0.8,
@@ -257,6 +248,16 @@
         "packages/miniapp-runtime",
         "packages/miniapp-test",
         "packages/reticulum-ts"
+      ]
+    },
+    {
+      "id": "packages/peer-discovery",
+      "modules": 19,
+      "ca": 5,
+      "ce": 1,
+      "instability": 0.17,
+      "dependsOn": [
+        "packages/protocol"
       ]
     },
     {

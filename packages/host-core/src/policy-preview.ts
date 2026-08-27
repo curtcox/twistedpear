@@ -11,6 +11,7 @@ import {
   type PolicyDocument,
   type PolicyEvidence,
   type PolicyExpression,
+  type PolicyParameterizedPredicate,
   type PolicySubject,
   type Trit,
 } from "@twistedpear/protocol";
@@ -63,6 +64,110 @@ type Collector = {
   assumesTrue: string[];
 };
 
+type PolicyObjectExpr = Exclude<PolicyExpression, string | boolean>;
+
+function isPolicyObject(expr: PolicyExpression): expr is PolicyObjectExpr {
+  return typeof expr === "object" && expr !== null;
+}
+
+function collectAssume(expr: { assume: [PolicyExpression, boolean] }, into: Collector): void {
+  if (expr.assume[1] === true) {
+    into.assumesTrue.push("assume(..., true)");
+  }
+  collectExpr(expr.assume[0], into);
+}
+
+function collectParameterized(
+  family: PolicyParameterizedPredicate,
+  parameter: string,
+  into: Collector,
+  source?: "place" | "clock" | "typed-phrase",
+): void {
+  into.predicates.add(parameterizedPredicateKey(family, parameter));
+  if (source) into.sources.add(source);
+}
+
+function collectApproval(
+  family: "approval.by" | "approval.byOrg",
+  parameter: string,
+  into: Collector,
+): void {
+  const approvalFamily: PolicyParameterizedPredicate = family;
+  into.predicates.add(parameterizedPredicateKey(approvalFamily, parameter));
+  into.people.add(parameter);
+}
+
+type ParameterizedPredicate = {
+  readonly family: PolicyParameterizedPredicate;
+  readonly parameter: string;
+  readonly source?: "place" | "clock" | "typed-phrase";
+};
+
+function collectCombinator(expr: PolicyObjectExpr, into: Collector): boolean {
+  if ("all" in expr) {
+    for (const item of expr.all) collectExpr(item, into);
+    return true;
+  }
+  if ("any" in expr) {
+    for (const item of expr.any) collectExpr(item, into);
+    return true;
+  }
+  return false;
+}
+
+function collectUnary(expr: PolicyObjectExpr, into: Collector): boolean {
+  if ("not" in expr) {
+    collectExpr(expr.not, into);
+    return true;
+  }
+  if ("known" in expr) {
+    collectExpr(expr.known, into);
+    return true;
+  }
+  return false;
+}
+
+function parameterized(expr: PolicyObjectExpr): ParameterizedPredicate | null {
+  if ("place.is" in expr) {
+    return { family: "place.is", parameter: expr["place.is"], source: "place" };
+  }
+  if ("time.localHourIn" in expr) {
+    return {
+      family: "time.localHourIn",
+      parameter: expr["time.localHourIn"].join(","),
+      source: "clock",
+    };
+  }
+  if ("approval.by" in expr) {
+    return { family: "approval.by", parameter: expr["approval.by"] };
+  }
+  if ("approval.byOrg" in expr) {
+    return { family: "approval.byOrg", parameter: expr["approval.byOrg"] };
+  }
+  if ("user.typedPhrase" in expr) {
+    return {
+      family: "user.typedPhrase",
+      parameter: expr["user.typedPhrase"],
+      source: "typed-phrase",
+    };
+  }
+  return null;
+}
+
+function collectParameterizedPredicate(
+  parameter: ParameterizedPredicate,
+  into: Collector,
+): void {
+  if (
+    parameter.family === "approval.by" ||
+    parameter.family === "approval.byOrg"
+  ) {
+    collectApproval(parameter.family, parameter.parameter, into);
+  } else {
+    collectParameterized(parameter.family, parameter.parameter, into, parameter.source);
+  }
+}
+
 function collectExpr(expr: PolicyExpression, into: Collector): void {
   if (typeof expr === "boolean") return;
   if (typeof expr === "string") {
@@ -70,59 +175,16 @@ function collectExpr(expr: PolicyExpression, into: Collector): void {
     noteSource(expr, into);
     return;
   }
-  if ("all" in expr) {
-    for (const item of expr.all) collectExpr(item, into);
-    return;
-  }
-  if ("any" in expr) {
-    for (const item of expr.any) collectExpr(item, into);
-    return;
-  }
-  if ("not" in expr) {
-    collectExpr(expr.not, into);
-    return;
-  }
-  if ("known" in expr) {
-    collectExpr(expr.known, into);
-    return;
-  }
+  if (!isPolicyObject(expr)) return;
+  if (collectCombinator(expr, into)) return;
+  if (collectUnary(expr, into)) return;
   if ("assume" in expr) {
-    if (expr.assume[1] === true) {
-      into.assumesTrue.push("assume(..., true)");
-    }
-    collectExpr(expr.assume[0], into);
+    collectAssume(expr as { assume: [PolicyExpression, boolean] }, into);
     return;
   }
-  if ("place.is" in expr) {
-    const key = parameterizedPredicateKey("place.is", expr["place.is"]);
-    into.predicates.add(key);
-    into.sources.add("place");
-    return;
-  }
-  if ("time.localHourIn" in expr) {
-    into.predicates.add(
-      parameterizedPredicateKey("time.localHourIn", expr["time.localHourIn"]),
-    );
-    into.sources.add("clock");
-    return;
-  }
-  if ("approval.by" in expr) {
-    const role = expr["approval.by"];
-    into.predicates.add(parameterizedPredicateKey("approval.by", role));
-    into.people.add(role);
-    return;
-  }
-  if ("approval.byOrg" in expr) {
-    const org = expr["approval.byOrg"];
-    into.predicates.add(parameterizedPredicateKey("approval.byOrg", org));
-    into.people.add(org);
-    return;
-  }
-  if ("user.typedPhrase" in expr) {
-    into.predicates.add(
-      parameterizedPredicateKey("user.typedPhrase", expr["user.typedPhrase"]),
-    );
-    into.sources.add("typed-phrase");
+  const parameter = parameterized(expr);
+  if (parameter !== null) {
+    collectParameterizedPredicate(parameter, into);
   }
 }
 

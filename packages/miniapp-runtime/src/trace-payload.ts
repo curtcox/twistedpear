@@ -1,4 +1,5 @@
 import { canonicalJson, fnv1a64Hex } from "@twistedpear/effects";
+import { asArray, asRecord } from "./trace-assertions.js";
 import {
   APP_TRACE_FORMAT,
   APP_TRACE_KIND,
@@ -109,20 +110,6 @@ function asJson(value: unknown, path: string): unknown {
   } catch {
     throw new AppTraceFormatError(`${path} must be JSON`);
   }
-}
-
-function asRecord(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new AppTraceFormatError(`${path} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function asArray(value: unknown, path: string): unknown[] {
-  if (!Array.isArray(value)) {
-    throw new AppTraceFormatError(`${path} must be an array`);
-  }
-  return value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

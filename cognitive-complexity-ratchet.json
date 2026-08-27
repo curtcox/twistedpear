@@ -65,7 +65,6 @@
     "conformance/handbook/run.mjs:main:over-15",
     "conformance/handbook/run.mjs:main:over-25",
     "conformance/hostile-apps/run.mjs:main:over-15",
-    "conformance/hostile-apps/run.mjs:main:over-25",
     "conformance/ios-sim/hostile-smoke.mjs:runIosHostileSmoke:over-15",
     "conformance/kernel/runner.mjs:canonicalJson:over-15",
     "conformance/local-multipeer/run.mjs:(anonymous@0):over-15",

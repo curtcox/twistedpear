@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 672,
-  "functions": 7841,
-  "groups": 4742,
+  "files": 701,
+  "functions": 8156,
+  "groups": 4930,
   "exemptions": 85,
   "violations": 0,
   "stale": 0,
@@ -202,7 +202,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createMediaPipeline",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createMediaPipeline",
-      "line": 200,
+      "line": 201,
       "tier": "source",
       "ccn": 30,
       "pinned": {
@@ -276,19 +276,6 @@
       }
     },
     {
-      "key": "conformance/hostile-apps/run.mjs::main",
-      "file": "conformance/hostile-apps/run.mjs",
-      "name": "main",
-      "line": 59,
-      "tier": "tooling",
-      "ccn": 23,
-      "nloc": 296,
-      "pinned": {
-        "ccn": 23,
-        "nloc": 296
-      }
-    },
-    {
       "key": "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs::handleHostMessageImpl",
       "file": "apps/harness-mobile/worklet/web-entry-handleHostMessage.mjs",
       "name": "handleHostMessageImpl",
@@ -303,7 +290,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::createCommonHostInfoBackend",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "createCommonHostInfoBackend",
-      "line": 98,
+      "line": 99,
       "tier": "source",
       "ccn": 22,
       "pinned": {
@@ -352,6 +339,19 @@
       "ccn": 20,
       "pinned": {
         "ccn": 20
+      }
+    },
+    {
+      "key": "conformance/hostile-apps/run.mjs::main",
+      "file": "conformance/hostile-apps/run.mjs",
+      "name": "main",
+      "line": 118,
+      "tier": "tooling",
+      "ccn": 20,
+      "nloc": 256,
+      "pinned": {
+        "ccn": 23,
+        "nloc": 296
       }
     },
     {
@@ -971,7 +971,7 @@
       "key": "packages/worklet-core/src/miniapp-host-shared-backends.mjs::launchWithoutReview",
       "file": "packages/worklet-core/src/miniapp-host-shared-backends.mjs",
       "name": "launchWithoutReview",
-      "line": 530,
+      "line": 532,
       "tier": "source",
       "params": 7,
       "pinned": {

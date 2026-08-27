@@ -197,7 +197,7 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
       }
       this.#enqueueReconcile();
     }, this.#reconcileIntervalMs);
-    timer.unref?.();
+    if (typeof timer.unref === "function") timer.unref();
     this.#reconcileTimer = timer;
   }
 

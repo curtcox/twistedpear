@@ -23,13 +23,9 @@ import {
   writeDetail,
   writeIndex,
 } from "./history.mjs";
+import { parseArgs } from "./args.mjs";
 
-const args = new Map(
-  process.argv.slice(2).map((arg) => {
-    const [key, ...rest] = arg.replace(/^--/, "").split("=");
-    return [key, rest.join("=") || "true"];
-  }),
-);
+const args = parseArgs();
 
 const runId = args.get("run-id") ?? process.env.GITHUB_RUN_ID;
 const attempt = Number(args.get("attempt") ?? 0) || null;

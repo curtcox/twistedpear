@@ -18,7 +18,7 @@
     {
       "path": "apps/host-desktop/worklet/worklet.bundle",
       "budgetBytes": 12582912,
-      "bytes": 11571873,
+      "bytes": 11598859,
       "note": "Electron host worklet. The largest file in the repository and, until this gate, measured by nothing."
     },
     {

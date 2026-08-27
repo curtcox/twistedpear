@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "total": 8286,
-  "cap": 8286,
+  "total": 8364,
+  "cap": 8364,
   "packages": 21,
   "entryPoints": 47,
   "unresolved": 0,
@@ -10,19 +10,19 @@
     {
       "name": "protocol",
       "entryPoints": {
-        ".": 5995
+        ".": 6007
       },
-      "total": 5995
+      "total": 6007
     },
     {
       "name": "miniapp-runtime",
       "entryPoints": {
-        ".": 379,
+        ".": 402,
         "./worklet": 108,
         "./sandbox/web": 2,
         "./ui": 13
       },
-      "total": 502
+      "total": 525
     },
     {
       "name": "reticulum-ts",
@@ -36,12 +36,12 @@
     {
       "name": "host-core",
       "entryPoints": {
-        ".": 268,
+        ".": 309,
         "./web": 91,
         "./protocol": 12,
         "./identity-backup": 13
       },
-      "total": 384
+      "total": 425
     },
     {
       "name": "effects",
@@ -141,9 +141,9 @@
     {
       "name": "sim-adversaries",
       "entryPoints": {
-        ".": 28
+        ".": 30
       },
-      "total": 28
+      "total": 30
     },
     {
       "name": "miniapp-sdk",

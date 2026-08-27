@@ -109,22 +109,22 @@ function peerLink(
   bulkBytesPerSecond: number = DEFAULT_REPLICA_BULK_BPS,
 ): PlaneReplicaLink {
   const ledger = new EgressBudgetLedger();
-  return new PlaneReplicaLink(
-    new TopicLogStore({ authorId: "device-a" }),
-    new TopicLogStore({ authorId: "device-b" }),
-    "board",
-    auth(
+  return new PlaneReplicaLink({
+    local: new TopicLogStore({ authorId: "device-a" }),
+    remote: new TopicLogStore({ authorId: "device-b" }),
+    topic: "board",
+    localAuth: auth(
       grant({ id: "east", targetKind: "peer", targetId: "device-b" }),
       ledger,
     ),
-    auth(
+    remoteAuth: auth(
       grant({ id: "west", targetKind: "peer", targetId: "device-a" }),
       ledger,
     ),
     candidates,
     limiter,
     bulkBytesPerSecond,
-  );
+  });
 }
 
 describe("storage:sync plane selection", () => {

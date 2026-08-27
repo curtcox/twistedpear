@@ -57,6 +57,64 @@ function wideNode(index) {
   return { id: `node-${index}`, type: "text", props: { value: `n${index}` } };
 }
 
+function runWidgetRejections() {
+  const uiRejections = [
+    () =>
+      validateWidgetTree({ root: { id: "root", type: "evil", children: [] } }),
+    () => validateWidgetTree({ root: deepNode("root", 40) }, { maxDepth: 32 }),
+    () =>
+      validateWidgetTree(
+        {
+          root: {
+            id: "root",
+            type: "view",
+            children: Array.from({ length: 5_001 }, (_, index) =>
+              wideNode(index),
+            ),
+          },
+        },
+        { maxNodes: 5_000 },
+      ),
+    () =>
+      validateWidgetTree({
+        root: { id: "root", type: "text", props: { html: "<b>x</b>" } },
+      }),
+    () =>
+      validateWidgetTree(
+        {
+          root: {
+            id: "root",
+            type: "text",
+            props: { value: "x".repeat(300_000) },
+          },
+        },
+        { maxBytes: 256 * 1024 },
+      ),
+    () =>
+      validateWidgetTree(
+        {
+          root: {
+            id: "root",
+            type: "view",
+            children: [{ id: "sw", type: "switch", props: { value: false } }],
+          },
+        },
+        { minHostApi: "0.21.0" },
+      ),
+  ];
+
+  for (const reject of uiRejections) {
+    try {
+      reject();
+      throw new Error("expected widget validation failure");
+    } catch (error) {
+      if (!(error instanceof WidgetValidationError)) {
+        throw error;
+      }
+    }
+  }
+}
+
 async function main() {
   const store = new MemoryKvStoreBackend();
   const host = new MiniappHost({
@@ -165,61 +223,7 @@ async function main() {
     throw new Error("broker flood was not rate limited");
   }
 
-  const uiRejections = [
-    () =>
-      validateWidgetTree({ root: { id: "root", type: "evil", children: [] } }),
-    () => validateWidgetTree({ root: deepNode("root", 40) }, { maxDepth: 32 }),
-    () =>
-      validateWidgetTree(
-        {
-          root: {
-            id: "root",
-            type: "view",
-            children: Array.from({ length: 5_001 }, (_, index) =>
-              wideNode(index),
-            ),
-          },
-        },
-        { maxNodes: 5_000 },
-      ),
-    () =>
-      validateWidgetTree({
-        root: { id: "root", type: "text", props: { html: "<b>x</b>" } },
-      }),
-    () =>
-      validateWidgetTree(
-        {
-          root: {
-            id: "root",
-            type: "text",
-            props: { value: "x".repeat(300_000) },
-          },
-        },
-        { maxBytes: 256 * 1024 },
-      ),
-    () =>
-      validateWidgetTree(
-        {
-          root: {
-            id: "root",
-            type: "view",
-            children: [{ id: "sw", type: "switch", props: { value: false } }],
-          },
-        },
-        { minHostApi: "0.21.0" },
-      ),
-  ];
-
-  for (const reject of uiRejections) {
-    try {
-      reject();
-      throw new Error("expected widget validation failure");
-    } catch (error) {
-      if (!(error instanceof WidgetValidationError)) {
-        throw error;
-      }
-    }
-  }
+  runWidgetRejections();
 
   const cycleBackend = new NodeWorkerSandboxBackend();
   const cycleLifecycle = new MiniappLifecycle(

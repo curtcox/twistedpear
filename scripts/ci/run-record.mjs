@@ -53,20 +53,35 @@ function stepRecord(step) {
  * @param {Map<number, number>} billableByJob job id → billable ms from /timing
  * @param {Map<number, any>} telemetryByJob job id → staged sampler record
  */
+function weightedDuration(durationMs, runnerOs) {
+  return durationMs == null ? null : durationMs * multiplierFor(runnerOs);
+}
+
+function telemetryField(telemetry, field) {
+  return telemetry?.[field] ?? null;
+}
+
 export function jobRecord(job, billableByJob, telemetryByJob) {
   const durationMs = ms(job.started_at, job.completed_at);
   const runnerOs = osOf(job);
   const telemetry = telemetryByJob.get(job.id) ?? null;
+  const {
+    runner_name: runnerName = null,
+    runner_group_name: runnerGroup = null,
+    run_attempt: attempt = null,
+    labels = [],
+    steps = [],
+  } = job;
   return {
     id: job.id,
     name: job.name,
     status: job.status,
     conclusion: job.conclusion,
     runnerOs,
-    runnerName: job.runner_name ?? null,
-    runnerGroup: job.runner_group_name ?? null,
-    selfHosted: (job.labels ?? []).some((label) => /self-hosted/i.test(label)),
-    labels: job.labels ?? [],
+    runnerName,
+    runnerGroup,
+    selfHosted: labels.some((label) => /self-hosted/i.test(label)),
+    labels,
     createdAt: job.created_at,
     startedAt: job.started_at,
     completedAt: job.completed_at,
@@ -77,12 +92,11 @@ export function jobRecord(job, billableByJob, telemetryByJob) {
     billableMs: billableByJob.get(job.id) ?? null,
     // Multiplier-weighted, so a macOS job's true share of the bill is visible
     // next to a Linux job's.
-    weightedMs:
-      durationMs == null ? null : durationMs * multiplierFor(runnerOs),
-    attempt: job.run_attempt ?? null,
-    steps: (job.steps ?? []).map(stepRecord),
-    resources: telemetry?.resources ?? null,
-    matrix: telemetry?.matrix ?? null,
+    weightedMs: weightedDuration(durationMs, runnerOs),
+    attempt,
+    steps: steps.map(stepRecord),
+    resources: telemetryField(telemetry, "resources"),
+    matrix: telemetryField(telemetry, "matrix"),
   };
 }
 
@@ -97,13 +111,7 @@ function total(values) {
  * @param {Map<number, any>} telemetryByJob
  * @param {{name: string, path: string} | null} definition the workflow itself
  */
-export function runRecord(
-  run,
-  apiJobs,
-  timing,
-  telemetryByJob,
-  definition = null,
-) {
+function buildBillable(timing) {
   const billableByJob = new Map();
   const billable = {};
   for (const [osLabel, entry] of Object.entries(timing?.billable ?? {})) {
@@ -115,7 +123,38 @@ export function runRecord(
       billableByJob.set(jobRun.job_id, jobRun.duration_ms ?? null);
     }
   }
+  return { billable, billableByJob };
+}
 
+function runTiming(run) {
+  const start = run.run_started_at ?? run.created_at;
+  return {
+    startedAt: start,
+    completedAt: run.updated_at,
+    wallMs: ms(start, run.updated_at),
+    queuedMs: ms(run.created_at, start),
+  };
+}
+
+function resourceTotal(jobs, path) {
+  return total(jobs.map((job) => job.resources?.[path])) || null;
+}
+
+function peakMemoryPct(jobs) {
+  return (
+    Math.max(0, ...jobs.map((job) => job.resources?.memUsedPct?.max ?? 0)) ||
+    null
+  );
+}
+
+export function runRecord(
+  run,
+  apiJobs,
+  timing,
+  telemetryByJob,
+  definition = null,
+) {
+  const { billable, billableByJob } = buildBillable(timing);
   const jobs = apiJobs.map((job) =>
     jobRecord(job, billableByJob, telemetryByJob),
   );
@@ -124,27 +163,40 @@ export function runRecord(
   const workflow = definition?.name ?? run.name ?? "unknown";
   const runnerMs = total(jobs.map((job) => job.durationMs));
   const weightedMs = total(jobs.map((job) => job.weightedMs));
+  const runTimingInfo = runTiming(run);
+  const {
+    run_attempt: runAttempt = 1,
+    workflow_id: workflowId,
+    event,
+    head_branch: branch,
+    head_sha: sha,
+    conclusion,
+    html_url: htmlUrl,
+    created_at: createdAt,
+    updated_at: updatedAt,
+    run_number: runNumber,
+  } = run;
 
   return {
     schema: 1,
     runId: run.id,
-    runNumber: run.run_number,
-    runAttempt: run.run_attempt ?? 1,
+    runNumber,
+    runAttempt,
     workflow,
     workflowSlug: slug(workflow),
-    workflowId: run.workflow_id,
+    workflowId,
     workflowPath: definition?.path ?? null,
-    event: run.event,
-    branch: run.head_branch,
-    sha: run.head_sha,
-    conclusion: run.conclusion,
-    htmlUrl: run.html_url,
-    createdAt: run.created_at,
-    startedAt: run.run_started_at ?? run.created_at,
-    completedAt: run.updated_at,
+    event,
+    branch,
+    sha,
+    conclusion,
+    htmlUrl,
+    createdAt,
+    startedAt: runTimingInfo.startedAt,
+    completedAt: updatedAt,
     // What a person waited for, start of run to last job finishing.
-    wallMs: ms(run.run_started_at ?? run.created_at, run.updated_at),
-    queuedMs: ms(run.created_at, run.run_started_at ?? run.created_at),
+    wallMs: runTimingInfo.wallMs,
+    queuedMs: runTimingInfo.queuedMs,
     jobCount: jobs.length,
     // Machine time, which on a wide matrix is many times the wall clock.
     runnerMs,
@@ -152,10 +204,8 @@ export function runRecord(
     billableMs: total(Object.values(billable).map((entry) => entry.totalMs)),
     billable,
     queuedJobMs: total(jobs.map((job) => job.queuedMs)),
-    cpuSeconds: total(jobs.map((job) => job.resources?.cpuSeconds)) || null,
-    peakMemPct:
-      Math.max(0, ...jobs.map((job) => job.resources?.memUsedPct?.max ?? 0)) ||
-      null,
+    cpuSeconds: resourceTotal(jobs, "cpuSeconds"),
+    peakMemPct: peakMemoryPct(jobs),
     telemetryJobCount: jobs.filter((job) => job.resources).length,
     collectedAt: new Date().toISOString(),
     jobs,

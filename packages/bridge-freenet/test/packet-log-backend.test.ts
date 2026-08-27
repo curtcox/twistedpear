@@ -226,7 +226,9 @@ describe("FreenetContractPacketLogBackend", () => {
     expect(received).toEqual([7]);
     await right.stop();
   });
+});
 
+describe("FreenetContractPacketLogBackend timer behaviour", () => {
   it("recovers a peer frame whose notification never arrives", async () => {
     // The cross-node failure this guards: Freenet notify is a hint that can be
     // dropped, and with refetch driven only by notifications a dropped one made

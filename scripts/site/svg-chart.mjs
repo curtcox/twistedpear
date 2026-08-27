@@ -58,8 +58,23 @@ function label(x, y, text, options = {}) {
  *
  * @param {{label: string, value: number, note?: string, color?: string, href?: string}[]} rows
  */
+function renderBar(row, index, options) {
+  const y = options.top + index * options.rowHeight;
+  const barWidth = Math.max(1, ((row.value ?? 0) / options.max) * options.plot);
+  const color = row.color ?? paletteColor(options.monochrome ? 0 : index);
+  const name = truncate(row.label, options.labelChars ?? 44);
+  const body =
+    label(options.labelWidth - 8, y + options.rowHeight / 2 + 4, name, { anchor: "end", fill: "var(--vp-c-text-1)" }) +
+    `<rect x="${options.labelWidth}" y="${y + 4}" width="${barWidth}" height="${options.rowHeight - 9}" ` +
+    `rx="2" fill="${color}" opacity="0.85"><title>${escapeXml(`${row.label}: ${options.format(row.value)}${row.note ? ` — ${row.note}` : ""}`)}</title></rect>` +
+    label(options.labelWidth + barWidth + 8, y + options.rowHeight / 2 + 4, options.format(row.value), {
+      fill: "var(--vp-c-text-2)",
+    });
+  return row.href ? `<a href="${escapeXml(row.href)}">${body}</a>` : body;
+}
+
 export function barChart(rows, options = {}) {
-  if (!rows || rows.length === 0) return "";
+  if (!rows?.length) return "";
 
   const title = options.title ?? "Bar chart";
   const width = options.width ?? 860;
@@ -73,20 +88,18 @@ export function barChart(rows, options = {}) {
   const format = options.format ?? ((value) => String(value));
 
   const bars = rows
-    .map((row, index) => {
-      const y = top + index * rowHeight;
-      const barWidth = Math.max(1, ((row.value ?? 0) / max) * plot);
-      const color = row.color ?? paletteColor(options.monochrome ? 0 : index);
-      const name = truncate(row.label, options.labelChars ?? 44);
-      const body =
-        label(labelWidth - 8, y + rowHeight / 2 + 4, name, { anchor: "end", fill: "var(--vp-c-text-1)" }) +
-        `<rect x="${labelWidth}" y="${y + 4}" width="${barWidth}" height="${rowHeight - 9}" ` +
-        `rx="2" fill="${color}" opacity="0.85"><title>${escapeXml(`${row.label}: ${format(row.value)}${row.note ? ` — ${row.note}` : ""}`)}</title></rect>` +
-        label(labelWidth + barWidth + 8, y + rowHeight / 2 + 4, format(row.value), {
-          fill: "var(--vp-c-text-2)",
-        });
-      return row.href ? `<a href="${escapeXml(row.href)}">${body}</a>` : body;
-    })
+    .map((row, index) =>
+      renderBar(row, index, {
+        top,
+        rowHeight,
+        labelWidth,
+        plot,
+        max,
+        format,
+        monochrome: options.monochrome,
+        labelChars: options.labelChars,
+      }),
+    )
     .join("");
 
   return `${open(width, height, title, options.description)}${bars}</svg>`;

@@ -44,9 +44,7 @@
   ],
   "protocolDependencyAllowlist": [
     "@twistedpear/effects",
-    "@noble/hashes",
-    "@noble/ciphers",
-    "@noble/curves"
+    "@noble/hashes"
   ],
   "exceptions": []
 }

@@ -196,26 +196,34 @@ function resourceTraces(store, detail) {
   return charts || "_Traces were recorded but held no usable samples._\n";
 }
 
+function parseSample(sample, cpu, mem) {
+  if (typeof sample.cpuPct === "number") cpu.push({ x: sample.t, y: sample.cpuPct });
+  if (typeof sample.mem?.usedPct === "number") mem.push({ x: sample.t, y: sample.mem.usedPct });
+}
+
+function parseSamples(lines) {
+  const cpu = [];
+  const mem = [];
+  let skipped = 0;
+  for (const line of lines) {
+    try {
+      parseSample(JSON.parse(line), cpu, mem);
+    } catch {
+      // A truncated final line is expected when a job is cancelled
+      // mid-sample. Silently thinning a series is not: count them, so a
+      // trace drawn from half its samples says so.
+      skipped += 1;
+    }
+  }
+  return { cpu, mem, skipped };
+}
+
 function readSeries(dir, job) {
   for (const name of fs.readdirSync(dir)) {
     if (!name.endsWith(".samples.ndjson")) continue;
     if (!name.includes(String(job.id))) continue;
     const lines = fs.readFileSync(path.join(dir, name), "utf8").split("\n").filter(Boolean);
-    const cpu = [];
-    const mem = [];
-    let skipped = 0;
-    for (const line of lines) {
-      try {
-        const sample = JSON.parse(line);
-        if (typeof sample.cpuPct === "number") cpu.push({ x: sample.t, y: sample.cpuPct });
-        if (typeof sample.mem?.usedPct === "number") mem.push({ x: sample.t, y: sample.mem.usedPct });
-      } catch {
-        // A truncated final line is expected when a job is cancelled
-        // mid-sample. Silently thinning a series is not: count them, so a
-        // trace drawn from half its samples says so.
-        skipped += 1;
-      }
-    }
+    const { cpu, mem, skipped } = parseSamples(lines);
     if (skipped > 0) {
       console.warn(`${name}: skipped ${skipped} unreadable sample line(s)`);
     }

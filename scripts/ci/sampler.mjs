@@ -32,13 +32,9 @@ import {
   processCount,
   round,
 } from "./sample-sources.mjs";
+import { parseArgs } from "./args.mjs";
 
-const args = new Map(
-  process.argv.slice(2).map((arg) => {
-    const [key, ...rest] = arg.replace(/^--/, "").split("=");
-    return [key, rest.join("=") || "true"];
-  }),
-);
+const args = parseArgs();
 
 const outDir = path.resolve(args.get("out") ?? ".ci-telemetry");
 const intervalMs = Number(args.get("interval") ?? 5000);
@@ -127,13 +123,31 @@ function last(pick) {
   return null;
 }
 
+function runnerInfo(memTotal) {
+  return {
+    platform: os.platform(),
+    arch: os.arch(),
+    release: os.release(),
+    cpuCount: os.cpus()?.length ?? null,
+    cpuModel: os.cpus()?.[0]?.model ?? null,
+    memTotalBytes: memTotal,
+    osLabel: process.env.RUNNER_OS ?? null,
+    runnerName: process.env.RUNNER_NAME ?? null,
+    imageOs: process.env.ImageOS ?? null,
+  };
+}
+
+function diskGrowthBytes() {
+  const workspaceStart = samples[0]?.disk?.workspace?.usedBytes ?? null;
+  const workspaceEnd = last((sample) => sample.disk?.workspace?.usedBytes);
+  return workspaceStart != null && workspaceEnd != null
+    ? workspaceEnd - workspaceStart
+    : null;
+}
+
 function summarize() {
   const durationMs = Date.now() - startedAt;
   const memTotal = samples.at(-1)?.mem?.totalBytes ?? os.totalmem();
-  // Free space on the runner's own volume, not the size of the checkout: what
-  // matters here is whether a job is filling the disk it shares with the cache.
-  const workspaceStart = samples[0]?.disk?.workspace?.usedBytes ?? null;
-  const workspaceEnd = last((sample) => sample.disk?.workspace?.usedBytes);
   return {
     schema: 1,
     label,
@@ -142,17 +156,7 @@ function summarize() {
     durationMs,
     intervalMs,
     sampleCount: samples.length,
-    runner: {
-      platform: os.platform(),
-      arch: os.arch(),
-      release: os.release(),
-      cpuCount: os.cpus()?.length ?? null,
-      cpuModel: os.cpus()?.[0]?.model ?? null,
-      memTotalBytes: memTotal,
-      osLabel: process.env.RUNNER_OS ?? null,
-      runnerName: process.env.RUNNER_NAME ?? null,
-      imageOs: process.env.ImageOS ?? null,
-    },
+    runner: runnerInfo(memTotal),
     cpuPct: series("cpuPct", (sample) => sample.cpuPct),
     loadOne: series("loadOne", (sample) => sample.load?.one),
     memUsedBytes: series("memUsedBytes", (sample) => sample.mem?.usedBytes),
@@ -162,10 +166,7 @@ function summarize() {
       "diskWorkspacePct",
       (sample) => sample.disk?.workspace?.usedPct,
     ),
-    runnerDiskGrowthBytes:
-      workspaceStart != null && workspaceEnd != null
-        ? workspaceEnd - workspaceStart
-        : null,
+    runnerDiskGrowthBytes: diskGrowthBytes(),
     ioReadBytes: last((sample) => sample.ioReadBytes),
     ioWriteBytes: last((sample) => sample.ioWriteBytes),
     netRxBytes: last((sample) => sample.netRxBytes),

@@ -29,7 +29,7 @@
     "packages/cas-256t": 1,
     "packages/cli": 9,
     "packages/effects": 0,
-    "packages/host-core": 8,
+    "packages/host-core": 9,
     "packages/lxmf-ts": 3,
     "packages/miniapp-runtime": 3,
     "packages/miniapp-sdk": 1,

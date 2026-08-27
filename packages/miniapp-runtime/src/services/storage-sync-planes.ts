@@ -75,27 +75,45 @@ export function reserveReplicaBulk(
   return reservation;
 }
 
+export interface PlaneReplicaLinkOptions {
+  readonly local: TopicLogStore;
+  readonly remote: TopicLogStore;
+  readonly topic: string;
+  readonly localAuth: ReplicaEgressAuth;
+  readonly remoteAuth: ReplicaEgressAuth;
+  readonly candidates: ReadonlyArray<LinkSupply>;
+  readonly limiter: ReplicaBandwidthLimiter;
+  readonly bulkBytesPerSecond?: number;
+}
+
 /**
  * Two topic logs that pick a SPEC-STREAM plane, reserve bulk airtime, then
  * exchange version-vector diffs. The frame is plane-neutral; the plane is
  * the admission choice. Apps still cannot force a round.
  */
 export class PlaneReplicaLink {
+  readonly local: TopicLogStore;
+  readonly remote: TopicLogStore;
+  readonly topic: string;
   readonly plane: StreamPlane;
   readonly reservationClass = REPLICA_RESERVATION_CLASS;
   private readonly reservation: ReplicaBandwidthReservation;
   private readonly wire: LxmfReplicaLink;
 
-  constructor(
-    readonly local: TopicLogStore,
-    readonly remote: TopicLogStore,
-    readonly topic: string,
-    localAuth: ReplicaEgressAuth,
-    remoteAuth: ReplicaEgressAuth,
-    candidates: ReadonlyArray<LinkSupply>,
-    limiter: ReplicaBandwidthLimiter,
-    bulkBytesPerSecond: number = DEFAULT_REPLICA_BULK_BPS,
-  ) {
+  constructor(options: PlaneReplicaLinkOptions) {
+    const {
+      local,
+      remote,
+      topic,
+      localAuth,
+      remoteAuth,
+      candidates,
+      limiter,
+      bulkBytesPerSecond = DEFAULT_REPLICA_BULK_BPS,
+    } = options;
+    this.local = local;
+    this.remote = remote;
+    this.topic = topic;
     const selected = selectReplicaPlane(candidates);
     this.plane = selected.plane;
     this.reservation = reserveReplicaBulk(limiter, bulkBytesPerSecond);

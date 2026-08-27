@@ -132,6 +132,7 @@ const allowed = {
     "bridge-freenet",
     "bridge-hyper",
     "cas-256t",
+    "effects",
     "lxmf-ts",
     "peer-discovery",
     "protocol",

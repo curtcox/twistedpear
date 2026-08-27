@@ -32,6 +32,61 @@ function samePayload(left: ReplicaEntry, right: ReplicaEntry): boolean {
   );
 }
 
+function rejectDuplicate(
+  existing: ReplicaEntry | undefined,
+  entry: ReplicaEntry,
+): ReplicaAdmitReason | null {
+  if (existing === undefined) return null;
+  return samePayload(existing, entry) ? null : "conflict";
+}
+
+function rejectAuthor(
+  entry: ReplicaEntry,
+  options: ReplicaAdmitOptions,
+): ReplicaAdmitReason | null {
+  if (entry.authorId === options.localAuthorId) return "forged-author";
+  if (
+    options.fromAuthorId !== undefined &&
+    entry.authorId !== options.fromAuthorId
+  ) {
+    return "forged-author";
+  }
+  if (
+    options.offeredAuthors !== undefined &&
+    !options.offeredAuthors.has(entry.authorId)
+  ) {
+    return "unoffered-author";
+  }
+  return null;
+}
+
+function rejectTombstone(
+  entry: ReplicaEntry,
+  local: ReadonlyArray<ReplicaEntry>,
+  accepted: ReadonlyArray<ReplicaEntry>,
+): ReplicaAdmitReason | null {
+  if (entry.tombstone !== true || entry.key === undefined) return null;
+  const winner = replicaLwwView([...local, ...accepted]).get(entry.key);
+  if (winner !== undefined && winner.authorId !== entry.authorId) {
+    return "cross-author-tombstone";
+  }
+  return null;
+}
+
+function classifyEntry(
+  entry: ReplicaEntry,
+  existing: ReplicaEntry | undefined,
+  local: ReadonlyArray<ReplicaEntry>,
+  accepted: ReadonlyArray<ReplicaEntry>,
+  options: ReplicaAdmitOptions,
+): ReplicaAdmitReason | null {
+  return (
+    rejectDuplicate(existing, entry) ??
+    rejectAuthor(entry, options) ??
+    rejectTombstone(entry, local, accepted)
+  );
+}
+
 export function admitReplicaEntries(
   local: ReadonlyArray<ReplicaEntry>,
   remote: ReadonlyArray<ReplicaEntry>,
@@ -40,38 +95,14 @@ export function admitReplicaEntries(
   const byId = new Map(local.map((entry) => [replicaEntryId(entry), entry]));
   const accepted: ReplicaEntry[] = [];
   const rejected: ReplicaAdmitRejection[] = [];
-  const offered = options.offeredAuthors;
 
   for (const entry of remote) {
     const id = replicaEntryId(entry);
     const existing = byId.get(id);
-    if (existing !== undefined) {
-      if (!samePayload(existing, entry)) {
-        rejected.push({ entry, reason: "conflict" });
-      }
+    const reason = classifyEntry(entry, existing, local, accepted, options);
+    if (reason !== null) {
+      rejected.push({ entry, reason });
       continue;
-    }
-    if (entry.authorId === options.localAuthorId) {
-      rejected.push({ entry, reason: "forged-author" });
-      continue;
-    }
-    if (
-      options.fromAuthorId !== undefined &&
-      entry.authorId !== options.fromAuthorId
-    ) {
-      rejected.push({ entry, reason: "forged-author" });
-      continue;
-    }
-    if (offered !== undefined && !offered.has(entry.authorId)) {
-      rejected.push({ entry, reason: "unoffered-author" });
-      continue;
-    }
-    if (entry.tombstone === true && entry.key !== undefined) {
-      const winner = replicaLwwView([...local, ...accepted]).get(entry.key);
-      if (winner !== undefined && winner.authorId !== entry.authorId) {
-        rejected.push({ entry, reason: "cross-author-tombstone" });
-        continue;
-      }
     }
     accepted.push(entry);
     byId.set(id, entry);
