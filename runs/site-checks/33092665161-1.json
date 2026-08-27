@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "runId": 33092665161,
+  "runNumber": 237,
+  "runAttempt": 1,
+  "workflow": "Site checks",
+  "workflowSlug": "site-checks",
+  "workflowId": 328850456,
+  "workflowPath": ".github/workflows/site-checks.yml",
+  "event": "workflow_run",
+  "branch": "main",
+  "sha": "8a634a254cfebf4abfca9b2abd05cd9bc867231a",
+  "conclusion": "failure",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/33092665161",
+  "createdAt": "2026-08-27T16:19:57Z",
+  "startedAt": "2026-08-27T16:19:57Z",
+  "completedAt": "2026-08-27T16:20:10Z",
+  "wallMs": 13000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 8000,
+  "weightedMs": 8000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 3000,
+  "cpuSeconds": null,
+  "peakMemPct": null,
+  "telemetryJobCount": 0,
+  "collectedAt": "2026-08-27T16:20:29.299Z",
+  "jobs": [
+    {
+      "id": 98589349517,
+      "name": "reported-checks",
+      "status": "completed",
+      "conclusion": "failure",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000100589",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T16:19:58Z",
+      "startedAt": "2026-08-27T16:20:01Z",
+      "completedAt": "2026-08-27T16:20:09Z",
+      "queuedMs": 3000,
+      "durationMs": 8000,
+      "billableMs": 0,
+      "weightedMs": 8000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T16:20:02Z",
+          "completedAt": "2026-08-27T16:20:03Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T16:20:03Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Wait after a transient artifact download failure",
+          "number": 3,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 4,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Note that the build produced no report",
+          "number": 5,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 7,
+          "conclusion": "failure",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Fail if reported checks failed",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 9,
+          "conclusion": "failure",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 18,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 19,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T16:20:05Z",
+          "completedAt": "2026-08-27T16:20:05Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    }
+  ]
+}
