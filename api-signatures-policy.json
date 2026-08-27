@@ -13,7 +13,7 @@
     },
     "host-core.api.md": {
       "package": "packages/host-core",
-      "sha256": "7dd378f71d30231f794cd16b6e80af49c6a9d8cd83b1249359470552f76ecb07"
+      "sha256": "a4014b90e56d9d391d4379cdf073cfbb3a853d9665100f38bc96e6e6e4b9d850"
     },
     "reticulum-ts.api.md": {
       "package": "packages/reticulum-ts",

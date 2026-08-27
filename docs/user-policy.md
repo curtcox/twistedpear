@@ -86,8 +86,8 @@ Each accepted seal or later rewrap advances
 `K_n = HKDF(rootSecret, commit_n)` via [`rnsHkdfSha256`](../packages/protocol/src/rns-hkdf.ts).
 
 [`wrapSealedMaster`](../packages/host-core/src/policy-seal.ts) keeps the store
-master key under `K_n`. Catalog, grants, and app-data blobs encrypt under that
-master. Identity stays on its own passphrase vault. Tampering with the policy,
+master key under `K_n`. Catalog, grants, app-data, and the role table encrypt
+under that master. Identity stays on its own passphrase vault. Tampering with the policy,
 or rolling back to an earlier chain head after rewrap, fails closed as
 unreadable (P-R8). An envelope whose language version or subject set this host
 does not know is refused before unwrap (P-R9). Accepting a later amendment
@@ -105,13 +105,18 @@ hands back trits.
 
 - **Time (P-R13).** `time.localHourIn` is `unknown` unless `clock.attested` is
   true. Attestation is a monotonic reading plus a signed unix-time reference
-  from a trusted signer. A settable device clock is never the source of hour.
+  **and timezone offset** from a trusted signer. Neither a settable device clock
+  nor a settable timezone is a source of hour (B4).
 - **Approvals (P-R12).** An attestation binds subject, package hash, installation
   id, nonce, and expiry, and is spent on first successful use. Role names map
-  to keys in the host's role table; rebinding a name is an amendment, not a
-  config tweak.
+  to keys in the host's role table, which is the sealed `roles` store
+  ([`policy-roles.ts`](../packages/host-core/src/policy-roles.ts)): rebinding a
+  name means rewrapping under a new commit — an amendment, not a config tweak
+  (B6).
 - **Place and wakefulness.** Absent a fix or sensor, the predicate is
-  `unknown` and the rule's `onUnknown` collapse applies.
+  `unknown` and the rule's `onUnknown` collapse applies. Any predicate this host
+  cannot resolve resolves `unknown` rather than staying absent, so
+  `decidePolicy` answers `allow` or `deny` and never hands the caller a shrug.
 - **Siblings (P-R11).** A linked installation may carry an approval blob. It may
   never make a policy decision for this installation —
   [`SIBLING_DECISION_CLASSES`](../packages/host-core/src/sibling-decisions.ts)
@@ -131,6 +136,17 @@ refuses to seal unless that generated text is accepted with the typed phrase
 `I understand these consequences` (P-R15). A terminal policy is still sealeable
 (P-R17).
 
+## Bypass suite
+
+[`conformance/policy-bypass/`](../conformance/policy-bypass/README.md) is the
+adversarial layer: B1–B14 of the plan's catalogue, one named test each,
+asserting the attack fails — and B14 asserting that self-lockout succeeds
+(`npm run test:policy-bypass`). Each test carries the payoff as well as the
+refusal, so a defence is distinguishable from a mistyped attack, and
+`catalogue.test.ts` parses the plan's table so a new row cannot be added
+without a test. One half of B8 — refusing a restored pre-seal backup — waits on
+the backup-envelope binding in `POL-8-RECOVERY` and is a named `todo`.
+
 ## Vectors
 
 [`conformance/vectors/policy.json`](../conformance/vectors/policy.json) holds the
@@ -139,5 +155,5 @@ exhaustive Kleene tables and a few document-level decisions
 
 ## Not in this drop
 
-Host chrome for `ask`, backup-envelope binding, and the bypass catalogue remain
-in the [plan](user-policy-plan.md) (§8–§9).
+Host chrome for `ask` and backup-envelope binding remain in the
+[plan](user-policy-plan.md) (§5, §8).

@@ -1,6 +1,7 @@
 /**
- * Host wrap for a sealed policy: store master key under K_n, catalog / grants
- * / app-data under the master. Identity stays on its own passphrase vault.
+ * Host wrap for a sealed policy: store master key under K_n, and catalog /
+ * grants / app-data / roles under the master. Identity stays on its own
+ * passphrase vault.
  */
 import { gcm } from "@noble/ciphers/aes.js";
 import { canonicalJson } from "@twistedpear/effects";
@@ -12,7 +13,12 @@ import {
   type PolicyDocument,
 } from "@twistedpear/protocol";
 
-export const SEALED_STORE_NAMES = ["catalog", "grants", "app-data"] as const;
+export const SEALED_STORE_NAMES = [
+  "catalog",
+  "grants",
+  "app-data",
+  "roles",
+] as const;
 export type SealedStoreName = (typeof SEALED_STORE_NAMES)[number];
 
 export const POLICY_SEAL_KIND = "tp-policy-seal" as const;

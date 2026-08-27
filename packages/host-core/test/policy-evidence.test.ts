@@ -69,10 +69,13 @@ function clockSample(
   const monotonicMs = extra.monotonicMs ?? 10_000;
   const attestation =
     extra.attestation ??
-    signClockAttestation(signer, { unixMs: AFTERNOON, monotonicMs });
+    signClockAttestation(signer, {
+      unixMs: AFTERNOON,
+      monotonicMs,
+      timezoneOffsetMinutes: 0,
+    });
   return {
     monotonicMs,
-    timezoneOffsetMinutes: extra.timezoneOffsetMinutes ?? 0,
     attestation,
     trustedSigners: extra.trustedSigners ?? [attestation.signerPublicKey],
   };
@@ -127,7 +130,11 @@ describe("policy evidence adapters", () => {
   it("computes local hour from the attested reference, not a settable wall clock", () => {
     const when = { "time.localHourIn": [9, 17] };
     const evening = clockSample(timeAuthority, {
-      timezoneOffsetMinutes: 6 * 60,
+      attestation: signClockAttestation(timeAuthority, {
+        unixMs: AFTERNOON,
+        monotonicMs: 10_000,
+        timezoneOffsetMinutes: 6 * 60,
+      }),
     });
     expect(decidePolicy(input(when, { clock: evening })).kind).toBe("deny");
   });
@@ -146,6 +153,7 @@ describe("policy evidence adapters", () => {
       attestation: signClockAttestation(timeAuthority, {
         unixMs: AFTERNOON,
         monotonicMs: 10_000,
+        timezoneOffsetMinutes: 0,
       }),
       monotonicMs: 1,
     });

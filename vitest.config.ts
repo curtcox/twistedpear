@@ -59,6 +59,7 @@ export default defineConfig({
             "conformance/local-multipeer/**/*.test.mjs",
             "conformance/miniapp-identity/**/*.test.mjs",
             "conformance/reticulum-interfaces/**/*.test.ts",
+            "conformance/policy-bypass/**/*.test.ts",
             "conformance/cross-device-dev/**/*.test.mjs",
             "conformance/ui-invariants/**/*.test.mjs",
             "conformance/checks/**/*.test.mjs",

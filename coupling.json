@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1419,
+  "modules": 1422,
   "components": 26,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 284,
+      "modules": 286,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,
@@ -115,7 +115,7 @@
     },
     {
       "id": "packages/host-core",
-      "modules": 59,
+      "modules": 60,
       "ca": 6,
       "ce": 9,
       "instability": 0.6,

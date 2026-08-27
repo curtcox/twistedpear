@@ -1718,8 +1718,17 @@
     "POL-6-BYPASS": {
       "type": "feature",
       "requires": ["POL-3-SEAL", "POL-4-EVIDENCE", "POL-5-PREVIEW"],
-      "verify": "runbook:docs/user-policy-plan.md#93-bypass-catalogue",
+      "verify": "npm run test:policy-bypass",
       "added": "2026-08-23",
+      "completed": "2026-08-27",
+      "evidence": [
+        "conformance/policy-bypass/amendment.test.ts",
+        "conformance/policy-bypass/evidence.test.ts",
+        "conformance/policy-bypass/seal.test.ts",
+        "conformance/policy-bypass/isolation.test.ts",
+        "conformance/policy-bypass/catalogue.test.ts",
+        "packages/host-core/src/policy-roles.ts"
+      ],
       "notes": "Gate self-removal, amendment ladders, evidence starvation, clock attacks, approval replay and substitution, sibling laundering, backup laundering, disk tamper, app-initiated amendment, host downgrade, adapter substitution, collapse laddering. B14 asserts the platform does not refuse a self-locking policy."
     },
     "POL-7-FORMAL": {

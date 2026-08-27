@@ -185,6 +185,11 @@ export {
   type SubjectReachability,
 } from "./policy-preview.js";
 export {
+  openRoleTable,
+  sealRoleTable,
+  type PolicyRoleTable,
+} from "./policy-roles.js";
+export {
   APP_DATA_ARCHIVE_EXTENSION,
   AppDataArchiveError,
   snapshotAppData,

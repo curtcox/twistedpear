@@ -144,8 +144,8 @@ says so rather than guessing — and §9's P6 makes a preview that _lies_ a test
 
 ## 7. Trusting the evidence
 
-Shipped. See [user-policy.md](user-policy.md)#evidence. Mini-app isolation (B10) and
-preview of load-bearing sensors remain planned.
+Shipped. See [user-policy.md](user-policy.md)#evidence. Mini-app isolation is
+B10 in the suite; preview of load-bearing sensors remains planned.
 
 ## 8. The worked example
 
@@ -248,7 +248,9 @@ Property tests over generated policies and worlds, using `fast-check`.
 
 ### 9.3 Bypass catalogue
 
-Each is a named, executable test asserting the bypass **fails**.
+Each is a named, executable test asserting the bypass **fails**. Shipped as
+[`conformance/policy-bypass/`](../conformance/policy-bypass/README.md); the
+table below is what `catalogue.test.ts` holds the suite to, so it stays here.
 
 | ID  | Attack                                                                                            |
 | --- | ------------------------------------------------------------------------------------------------- |

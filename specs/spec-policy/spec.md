@@ -8,10 +8,10 @@ register: none
 
 **Group:** C (platform) · **Status:** stub (informative) · **Migration phase:** 4
 
-The schema, the Sans-IO evaluator, and the amendment machine in `packages/protocol`
-now exist; see [user-policy.md](../../docs/user-policy.md). Sealing, the TLA+
-twin, and the bypass suite do not. Everything below stays informative until those
-artifacts cross-check; the delivery sequence is in
+The schema, the Sans-IO evaluator, the amendment machine, sealing, and the bypass
+suite now exist; see [user-policy.md](../../docs/user-policy.md). The TLA+ twin
+does not. Everything below stays informative until those artifacts cross-check;
+the delivery sequence is in
 [docs/user-policy-plan.md](../../docs/user-policy-plan.md).
 
 ## Scope
@@ -68,7 +68,8 @@ themselves.
 → decision` cases, including the exhaustive three-valued truth tables and the worked
   example from the plan, byte for byte.
 - **Bypass suite.** `conformance/policy-bypass/` — B1…B14 in the plan, each asserting a
-  named attack fails, plus B14 asserting that self-lockout succeeds.
+  named attack fails, plus B14 asserting that self-lockout succeeds. Present:
+  `npm run test:policy-bypass`.
 
 ## Requirements
 
@@ -108,7 +109,18 @@ cases cite the rule they exercise.
   place, wakefulness, and sibling carry-not-decide (P-R11).
 - **Consequence preview.** `previewPolicy` / `sealWithPreview` in
   `packages/host-core` `policy-preview.ts` (P-R15–P-R17).
-- **Not yet.** TLA+ twin, bypass suite, host chrome for `ask`.
+- **Bypass suite.** `conformance/policy-bypass/`, run by `npm run test:policy-bypass`:
+  `amendment.test.ts` ("B1 — refuses an amendment that rewrites the rule authorizing it")
+  for P-R4, ("B3 — denying the sensor is a relaxation, not a free tightening (P-R6)")
+  for P-R6; `evidence.test.ts` ("B5 — an approval is spent on first use (P-R12)") for
+  P-R12, ("B4 — a settable wall clock is not a source of hour (P-R13)") for P-R13;
+  `seal.test.ts` ("B9 — unsealing a rule on disk makes the store unreadable (P-R8)") for
+  P-R8, ("B11 — a host that cannot evaluate the language refuses to open (P-R9)") for
+  P-R9; `isolation.test.ts` ("B10 — no capability names a policy-governing subject (P-R10)")
+  for P-R10, ("B7 — no sibling decision class can carry a policy decision (P-R11)") for
+  P-R11.
+- **Not yet.** TLA+ twin, host chrome for `ask`, and the backup-envelope binding B8
+  needs in full.
 
 The mechanisms the remaining work is built from also exist —
 [`grants.ts`](../../packages/protocol/src/grants.ts),

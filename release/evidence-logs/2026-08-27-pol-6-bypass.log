@@ -1,0 +1,21 @@
+
+> twistedpear@0.0.0 test:policy-bypass
+> npm run build --workspace=@twistedpear/host-core --workspace=@twistedpear/miniapp-runtime && vitest run conformance/policy-bypass
+
+
+> @twistedpear/host-core@0.1.9 build
+> tsc -b
+
+
+> @twistedpear/miniapp-runtime@0.1.14 build
+> tsc -b
+
+
+ RUN  v4.1.11 /Users/curt/me/twistedpear
+
+
+ Test Files  5 passed (5)
+      Tests  39 passed | 1 todo (40)
+   Start at  08:31:19
+   Duration  1.90s (transform 4.10s, setup 0ms, import 6.43s, tests 52ms, environment 0ms)
+

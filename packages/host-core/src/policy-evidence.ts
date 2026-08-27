@@ -6,6 +6,8 @@ import {
   type PolicyEvidence,
   type PolicyQuery,
   type PolicySubject,
+  type PolicyTerm,
+  type PolicyTermValue,
   type Trit,
 } from "@twistedpear/protocol";
 import {
@@ -23,6 +25,11 @@ export type ApprovalScope = "by" | "byOrg";
 export type ClockAttestation = {
   readonly unixMs: number;
   readonly monotonicMs: number;
+  /**
+   * Signed alongside the reference so a local-hour window cannot be entered by
+   * changing the device timezone (B4). A settable offset is not evidence.
+   */
+  readonly timezoneOffsetMinutes: number;
   readonly signerPublicKey: string;
   readonly signature: string;
 };
@@ -52,7 +59,6 @@ export type GeoFence = {
 
 export type ClockSample = {
   readonly monotonicMs: number;
-  readonly timezoneOffsetMinutes: number;
   readonly attestation: ClockAttestation;
   readonly trustedSigners: readonly string[];
 };
@@ -76,12 +82,17 @@ export type PolicyEvidenceInput = {
   readonly place?: PlaceSample;
   readonly namedPlaces?: Readonly<Record<string, GeoFence>>;
   readonly awake?: Trit;
+  /** `approval.by` bindings, read from the sealed `roles` store. */
   readonly roles?: Readonly<Record<string, string>>;
+  /** `approval.byOrg` bindings, from the same store. */
   readonly orgs?: Readonly<Record<string, string>>;
   readonly approvals?: readonly ApprovalAttestation[];
+  /** Facts about the subject of the query, which the host already holds. */
+  readonly terms?: Readonly<Partial<Record<PolicyTerm, PolicyTermValue>>>;
   readonly nonces: ApprovalNonceStore;
 };
 
+const TERM_NEED_PREFIX = "term:";
 const EARTH_RADIUS_M = 6_371_000;
 const MS_PER_HOUR = 3_600_000;
 const MS_PER_DAY = 86_400_000;
@@ -114,6 +125,7 @@ function clockBody(attestation: Omit<ClockAttestation, "signature">): unknown {
   return {
     kind: POLICY_CLOCK_ATTESTATION_KIND,
     monotonicMs: attestation.monotonicMs,
+    timezoneOffsetMinutes: attestation.timezoneOffsetMinutes,
     unixMs: attestation.unixMs,
   };
 }
@@ -135,11 +147,16 @@ function approvalBody(
 
 export function signClockAttestation(
   identity: Identity,
-  fields: { readonly unixMs: number; readonly monotonicMs: number },
+  fields: {
+    readonly unixMs: number;
+    readonly monotonicMs: number;
+    readonly timezoneOffsetMinutes: number;
+  },
 ): ClockAttestation {
   const unsigned = {
     monotonicMs: fields.monotonicMs,
     signerPublicKey: publicKeyHex(identity),
+    timezoneOffsetMinutes: fields.timezoneOffsetMinutes,
     unixMs: fields.unixMs,
   };
   return {
@@ -275,7 +292,7 @@ function resolveTime(key: string, input: PolicyEvidenceInput): Trit {
   if (window === null || input.clock === undefined) return "unknown";
   const unixMs = attestedUnixMs(input.clock, input.provider);
   if (unixMs === null) return "unknown";
-  const hour = localHour(unixMs, input.clock.timezoneOffsetMinutes);
+  const hour = localHour(unixMs, input.clock.attestation.timezoneOffsetMinutes);
   return hourInWindow(hour, window[0], window[1]) ? "true" : "false";
 }
 
@@ -356,8 +373,10 @@ function resolvePredicate(
 }
 
 /**
- * Fill host-owned predicates the evaluator asked for. Absent sensors resolve
- * `unknown`. Time stays unknown unless the clock is attested (P-R13).
+ * Fill host-owned predicates the evaluator asked for. A sensor this host does
+ * not have resolves `unknown` — never `true`, and never left absent, so the
+ * rule's own collapse decides rather than the caller seeing `needs` (B12).
+ * Time stays unknown unless the clock is attested (P-R13).
  */
 export function gatherPolicyEvidence(
   input: PolicyEvidenceInput,
@@ -367,20 +386,24 @@ export function gatherPolicyEvidence(
       ? "true"
       : "false",
   };
+  const evidence = (): PolicyEvidence =>
+    input.terms === undefined
+      ? { predicates }
+      : { predicates, terms: input.terms };
   for (let round = 0; round < 8; round += 1) {
-    const result = evaluatePolicy(input.policy, input.query, { predicates });
-    if (result.kind !== "needs") return { predicates };
+    const result = evaluatePolicy(input.policy, input.query, evidence());
+    if (result.kind !== "needs") return evidence();
     let progressed = false;
     for (const key of result.predicates) {
-      if (predicates[key] !== undefined) continue;
-      const value = resolvePredicate(key, input);
-      if (value === undefined) continue;
-      predicates[key] = value;
+      if (predicates[key] !== undefined || key.startsWith(TERM_NEED_PREFIX)) {
+        continue;
+      }
+      predicates[key] = resolvePredicate(key, input) ?? "unknown";
       progressed = true;
     }
     if (!progressed) break;
   }
-  return { predicates };
+  return evidence();
 }
 
 export function decidePolicy(input: PolicyEvidenceInput) {

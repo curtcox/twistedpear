@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "total": 8382,
-  "cap": 8364,
+  "total": 8385,
+  "cap": 8385,
   "packages": 21,
   "entryPoints": 47,
   "unresolved": 0,
-  "violations": 3,
+  "violations": 0,
   "findings": [
     {
       "name": "protocol",
@@ -36,12 +36,12 @@
     {
       "name": "host-core",
       "entryPoints": {
-        ".": 309,
+        ".": 312,
         "./web": 91,
         "./protocol": 12,
         "./identity-backup": 13
       },
-      "total": 425
+      "total": 428
     },
     {
       "name": "effects",

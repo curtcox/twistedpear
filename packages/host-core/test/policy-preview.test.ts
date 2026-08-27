@@ -108,7 +108,12 @@ describe("policy consequence preview", () => {
 
   it("lists sealed-store reinstall cost", () => {
     const preview = previewPolicy(document([]));
-    expect(preview.reinstallCost).toEqual(["catalog", "grants", "app-data"]);
+    expect(preview.reinstallCost).toEqual([
+      "catalog",
+      "grants",
+      "app-data",
+      "roles",
+    ]);
   });
 
   it("refuses to seal without the typed confirmation and a matching preview (P-R15)", () => {

@@ -279,6 +279,7 @@
     "structure:baseline": "node scripts/analysis/structure-ratchet.mjs --write",
     "ratchets:rank": "node scripts/ratchet/rank.mjs",
     "test:properties": "vitest run packages/protocol/test/properties*.test.ts",
+    "test:policy-bypass": "npm run build --workspace=@twistedpear/host-core --workspace=@twistedpear/miniapp-runtime && vitest run conformance/policy-bypass",
     "actionlint": "actionlint",
     "audit:policy": "node scripts/security/audit.mjs",
     "audit:nightly": "node scripts/security/audit.mjs --full",
