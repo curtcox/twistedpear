@@ -18,13 +18,13 @@
     {
       "path": "apps/host-desktop/worklet/worklet.bundle",
       "budgetBytes": 12582912,
-      "bytes": 11598859,
+      "bytes": 11600019,
       "note": "Electron host worklet. The largest file in the repository and, until this gate, measured by nothing."
     },
     {
       "path": "apps/harness-mobile/worklet/worklet.bundle.mjs",
       "budgetBytes": 12582912,
-      "bytes": 11116187,
+      "bytes": 11144001,
       "note": "Expo host worklet, shipped into the mobile app. Carries the compiled wasm contracts inline, which is why it tracks the desktop bundle's size."
     },
     {
@@ -42,7 +42,7 @@
     {
       "path": "packages/guida-twistedpear/src/seed-files.generated.js",
       "budgetBytes": 393216,
-      "bytes": 308434
+      "bytes": 308901
     },
     {
       "path": "apps/host-desktop/src/renderer/vendor/jsqr.js",

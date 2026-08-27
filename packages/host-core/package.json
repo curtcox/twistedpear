@@ -1,6 +1,6 @@
 {
   "name": "@twistedpear/host-core",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -32,7 +32,7 @@
     "@noble/hashes": "^2.3.0",
     "@scure/bip39": "^2.3.0",
     "@twistedpear/app-registry": "0.1.4",
-    "@twistedpear/bridge-freenet": "0.1.0",
+    "@twistedpear/bridge-freenet": "0.1.1",
     "@twistedpear/bridge-hyper": "0.1.0",
     "@twistedpear/cas-256t": "0.1.0",
     "@twistedpear/effects": "*",

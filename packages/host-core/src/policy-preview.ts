@@ -67,10 +67,13 @@ type Collector = {
 type PolicyObjectExpr = Exclude<PolicyExpression, string | boolean>;
 
 function isPolicyObject(expr: PolicyExpression): expr is PolicyObjectExpr {
-  return typeof expr === "object" && expr !== null;
+  return typeof expr === "object";
 }
 
-function collectAssume(expr: { assume: [PolicyExpression, boolean] }, into: Collector): void {
+function collectAssume(
+  expr: { assume: [PolicyExpression, boolean] },
+  into: Collector,
+): void {
   if (expr.assume[1] === true) {
     into.assumesTrue.push("assume(..., true)");
   }
@@ -164,7 +167,12 @@ function collectParameterizedPredicate(
   ) {
     collectApproval(parameter.family, parameter.parameter, into);
   } else {
-    collectParameterized(parameter.family, parameter.parameter, into, parameter.source);
+    collectParameterized(
+      parameter.family,
+      parameter.parameter,
+      into,
+      parameter.source,
+    );
   }
 }
 

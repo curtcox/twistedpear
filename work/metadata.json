@@ -192,6 +192,13 @@
       ],
       "notes": "app-approval-risk-plan.md Phase 2, finding A-7 and hostile-author scenario HA-11. An update adding a capability must not auto-activate; the delta and its risk are named."
     },
+    "ARTIFACT-SIZES-BASELINE-FORMAT": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run format:check",
+      "added": "2026-08-27",
+      "notes": "npm run artifact-sizes:baseline rewrites artifact-size-rules.json through writeJson (scripts/ratchet/lib.mjs), which serialises with JSON.stringify(value, null, 2). That expands short arrays onto one line each, while Prettier collapses them, so the documented baseline command always leaves the tree failing the format gate. Observed 2026-08-26: the committed file held \"roots\": [\"apps\", \"packages\"] on one line; after artifact-sizes:baseline it became a four-line array and 'Formatting ratchet: FAIL; 1 new, 0 stale' with prettier --list-different naming artifact-size-rules.json as the only offender. Anyone following the recorded fix for an artifact-size drift therefore trades one red gate for another, which is easy to misread as the baseline command being wrong to run. Same risk applies to any other ratchet writer that shares writeJson and whose output Prettier also formats. Suggested fix: run the ratchet writers' output through Prettier (or match its JSON printing) so a baseline write is format-clean by construction."
+    },
     "AX-1-RENDERERS": {
       "type": "feature",
       "requires": [],
@@ -1169,6 +1176,13 @@
         "docs/hostile-author-plan.md"
       ],
       "notes": "hostile-author-plan.md P4. HA-30 (granted lxmf:send used to ship the contact list) and HA-36 (benign until a remote flag arrives) are the plan's load-bearing scenarios: they cannot be resolved by better dialogs, only by EgressOffer. Written red now and standing as the acceptance test for the scoping work. Exit rewrites security-review.md F4 from an accepting sentence into an enumerated residual and updates LIMITATIONS §7."
+    },
+    "HEADROOM-RIVAL-RSS": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm test -- conformance/checks/headroom.test.mjs",
+      "added": "2026-08-27",
+      "notes": "rivalProcesses() in scripts/checks/headroom.mjs matches purely on command-line text (RIVAL_PATTERNS, including /scripts\\/checks\\/run\\.mjs/) with no RSS threshold, though parseProcessTable already captures rssKiB. appendRivalReason then refuses every heavy gate when rivals.length > 0. Two consequences verified on 2026-08-26: (1) any process whose argv merely mentions the runner path -- a grep or sed reading the file, or the zsh -c wrapper Claude Code/CI use to launch it, which embeds the full command string in its own argv -- is counted as a 'rival heap'; (2) coverage-run.mjs runs its own waitForHeadroom as a grandchild, and TP_HEADROOM_OWNER_PIDS carries only the spawning runner's pid, not its ancestor shell, so that wrapper is never in selfPids. Result: 'REFUSE coverage: 1 rival heap(s): checks-run' at 4.0 GiB free / 0.5 GiB swap -- no memory pressure at all. Proof: invoking the same gate as (cd scripts/checks && node ./run.mjs --tier=pr --only=coverage), so no argv spells the matched path, let coverage run immediately on the same host. Suggested fix: require a real heap (e.g. rssKiB above a threshold) before counting a rival, and/or walk the ppid chain into selfPids."
     },
     "ID-APPSCOPE": {
       "type": "bug",
@@ -2221,6 +2235,13 @@
       "verify": "npx vitest run packages/host-core/test/trace-chrome.test.ts",
       "added": "2026-08-24",
       "notes": "docs/miniapp-record-replay-plan.md Phase 6. Add a host-owned Record session control and indicator under SPEC-CHROME; an app cannot induce, observe, or impersonate recording."
+    },
+    "TYPED-LINT-BUILT-WORKER": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run lint:typed",
+      "added": "2026-08-27",
+      "notes": "apps/harness-mobile/public/web-core.worker.js is a 4 MB build output, gitignored via apps/harness-mobile/public/.gitignore. eslint.typed.config.js scopes its typed block to packages/**/*.{ts,tsx} and apps/**/*.{ts,tsx}, so this .js bundle falls through to a later block that does not register the @typescript-eslint plugin; its vendored eslint-disable comments then report as 'Definition for rule ... was not found', adding 8 phantom findings to the ratchet. It only appears once something has built the worker, so a full local gate run turns typed-lint red while a clean CI job stays green -- the local result stops describing the committed tree. Worked around on 2026-08-26 by adding the path to the ignores list in eslint.typed.config.js; the broader fix is to ignore built output under apps/*/public/ generally, or scope the .js lint block the way the .ts one already is."
     },
     "WEBED-CHROME": {
       "type": "feature",

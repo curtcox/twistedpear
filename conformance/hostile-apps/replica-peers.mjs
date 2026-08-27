@@ -27,12 +27,10 @@ function testForge() {
   const result = store.ingest("board", [
     { authorId: "self", seq: 2, at: 9, payload: "forged" },
   ]);
-  return (
-    result.rejected[0]?.reason === "forged-author" &&
+  return result.rejected[0]?.reason === "forged-author" &&
     !store.entries("board").some((entry) => entry.payload === "forged")
-      ? "BLOCKED"
-      : "UNCONTROLLED"
-  );
+    ? "BLOCKED"
+    : "UNCONTROLLED";
 }
 
 function testCrossTomb() {
@@ -53,12 +51,10 @@ function testCrossTomb() {
     ],
     { fromAuthorId: "peer" },
   );
-  return (
-    result.rejected[0]?.reason === "cross-author-tombstone" &&
+  return result.rejected[0]?.reason === "cross-author-tombstone" &&
     store.view("board").get("slot")?.payload === "held"
-      ? "BLOCKED"
-      : "UNCONTROLLED"
-  );
+    ? "BLOCKED"
+    : "UNCONTROLLED";
 }
 
 function testUnoffered() {
@@ -70,11 +66,9 @@ function testUnoffered() {
   const result = store.ingest("board", [
     { authorId: "stranger", seq: 1, at: 1, payload: "spam" },
   ]);
-  return (
-    result.rejected[0]?.reason === "unoffered-author"
-      ? "BLOCKED"
-      : "UNCONTROLLED"
-  );
+  return result.rejected[0]?.reason === "unoffered-author"
+    ? "BLOCKED"
+    : "UNCONTROLLED";
 }
 
 function testCap() {
@@ -94,9 +88,9 @@ function testCap() {
   const theirs = store
     .entries("board")
     .filter((entry) => entry.authorId === "peer");
-  return (
-    mine.length === 1 && theirs.length === 2 ? "CONTAINED" : "UNCONTROLLED"
-  );
+  return mine.length === 1 && theirs.length === 2
+    ? "CONTAINED"
+    : "UNCONTROLLED";
 }
 
 function testIsolate() {
@@ -136,9 +130,9 @@ function testAmplify() {
     right.vector("board"),
   );
   const after = missingReplicaEntries(left.entries("board"), { a: 12 });
-  return (
-    missing.length === 12 && after.length === 0 ? "CONTAINED" : "UNCONTROLLED"
-  );
+  return missing.length === 12 && after.length === 0
+    ? "CONTAINED"
+    : "UNCONTROLLED";
 }
 
 function testFloodModel() {
@@ -161,11 +155,9 @@ function testFloodModel() {
   } catch (error) {
     refused = error instanceof UnlowerableAttackProposalError;
   }
-  return (
-    compiled.powers[0] === "author-flood" && refused
-      ? "CONTAINED"
-      : "UNCONTROLLED"
-  );
+  return compiled.powers[0] === "author-flood" && refused
+    ? "CONTAINED"
+    : "UNCONTROLLED";
 }
 
 export async function runReplicaPeerCases() {

@@ -13,7 +13,7 @@
     },
     "host-core.api.md": {
       "package": "packages/host-core",
-      "sha256": "a4f56d171767d4e70f74cf6beaa7982f8f27dafd9ec318377633547092b7865e"
+      "sha256": "7dd378f71d30231f794cd16b6e80af49c6a9d8cd83b1249359470552f76ecb07"
     },
     "reticulum-ts.api.md": {
       "package": "packages/reticulum-ts",
@@ -73,7 +73,7 @@
     },
     "bridge-freenet.api.md": {
       "package": "packages/bridge-freenet",
-      "sha256": "a983e341850969b531bc49ff0a74002cc08dde8c86493c8080628cf1a907d585"
+      "sha256": "eaefb8744e7d131720995d3ad99268e58c8077d874c9701bd9a5dc6347f8b8b8"
     },
     "cas-256t.api.md": {
       "package": "packages/cas-256t",

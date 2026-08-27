@@ -103,19 +103,24 @@ async function waitForInteropPeers({ startedLeaf, startedLxmf }) {
  * nowhere to reply to. Without this the only evidence was the browser's own
  * "echo timeout", which cannot tell those two apart.
  */
+/**
+ * The log text for one service, or a description of why it is unavailable.
+ * Returning the failure rather than logging it keeps both outcomes on the same
+ * path, so the caller reports whatever it gets instead of being told nothing.
+ */
+function peerLogText(service) {
+  try {
+    return composeLogs(service, 100);
+  } catch (error) {
+    return `unavailable: ${
+      error instanceof Error ? error.message : String(error)
+    }`;
+  }
+}
+
 function reportPeerLogs() {
   for (const service of ["lxmf-echo", "leaf-echo"]) {
-    try {
-      console.error(
-        `Interop peer logs for ${service}:\n${composeLogs(service, 100)}`,
-      );
-    } catch (error) {
-      console.error(
-        `Interop peer logs for ${service} unavailable: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
+    console.error(`Interop peer logs for ${service}:\n${peerLogText(service)}`);
   }
 }
 

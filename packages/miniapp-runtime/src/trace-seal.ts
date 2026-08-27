@@ -265,5 +265,3 @@ function asHex(value: unknown, path: string, length?: number): string {
   }
   return value;
 }
-
-
