@@ -60,6 +60,7 @@
     "jscpd",
     "mermaid",
     "opusscript",
+    "prettier",
     "terser",
     "qrcode-generator",
     "react",
