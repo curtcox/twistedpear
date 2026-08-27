@@ -321,3 +321,4 @@
 {"at":"2026-08-27T15:29:10.021Z","actor":"curtcox","action":"add","id":"QL-GATE-PUBLISH-GAP","to":"open","type":"quality","verify":"npm run checks:status:import"}
 {"at":"2026-08-27T15:29:19.849Z","actor":"curtcox","action":"add","id":"QL-APPLET-CHAPTER-DERIVE","to":"open","type":"quality","verify":"npm run test:handbook"}
 {"at":"2026-08-27T15:30:04.306Z","actor":"curtcox","action":"add","id":"QL-EVIDENCE-GENERATED-FILES","to":"open","type":"quality","verify":"npm run work:audit"}
+{"at":"2026-08-27T15:42:48.099Z","actor":"curtcox","action":"add","id":"BUG-FREENET-ARTIFACT-REPRO","to":"open","type":"bug","verify":"npm run test:freenet-offline"}

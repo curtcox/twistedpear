@@ -81,6 +81,7 @@ and `npm run work:next` picks the next item from this table. See
 | QL-GATE-PUBLISH-GAP         | open   | Pages publishes 68 of 71 gates, so three can never be refreshed by import                   | —                                                                     | `npm run checks:status:import`                                                                                               |
 | QL-APPLET-CHAPTER-DERIVE    | open   | Derive the applet chapter map from the content markers instead of maintaining it by hand    | —                                                                     | `npm run test:handbook`                                                                                                      |
 | QL-EVIDENCE-GENERATED-FILES | open   | Evidence lists cite generated files, so work:audit reports perpetual drift                  | —                                                                     | `npm run work:audit`                                                                                                         |
+| BUG-FREENET-ARTIFACT-REPRO  | open   | Committed Freenet contract wasm is stale and only reproducible on a GitHub runner           | —                                                                     | `npm run test:freenet-offline`                                                                                               |
 
 ## Blocked backlog
 
