@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-27T19:11:37.808Z",
-  "commit": "4443685cd0054080bb7cece55aea7b7563b05688",
-  "digest": "0b6cbfdc29d86181286bab5769cbb507a69dee70e99059a925f2dcc7648b36a6",
-  "treeDigest": "0b6cbfdc29d86181286bab5769cbb507a69dee70e99059a925f2dcc7648b36a6",
+  "generatedAt": "2026-08-27T19:37:44.784Z",
+  "commit": "58816561b706a2aa225b0416425d9dc5d5381d7e",
+  "digest": "49a2c4fbf442c44f5d87777b93fdc8d680a62ab130d9d84d34a79e3b3b668237",
+  "treeDigest": "5c207b6e526687d1314a2206ea79c21c5bd9b77693c5d52c3397c9bdf2ba624e",
   "gates": {
     "accessibility": {
       "title": "Accessibility ratchet",
@@ -58,8 +58,9 @@
       "title": "Shipped artifact byte budgets",
       "command": "npm run artifact-sizes:check",
       "ok": true,
-      "at": "2026-08-27T18:58:10.330Z",
+      "at": "2026-08-27T19:37:40.018Z",
       "commit": "58816561b706a2aa225b0416425d9dc5d5381d7e",
+      "measuredOn": "5c207b6e526687d1314a2206ea79c21c5bd9b77693c5d52c3397c9bdf2ba624e",
       "tier": "pr"
     },
     "ast-grep": {
@@ -209,11 +210,10 @@
     "generated-freshness": {
       "title": "Committed generated artifact freshness",
       "command": "npm run generated:check",
-      "ok": false,
-      "at": "2026-08-27T19:03:50.542Z",
+      "ok": true,
+      "at": "2026-08-27T19:28:41.900Z",
       "commit": "58816561b706a2aa225b0416425d9dc5d5381d7e",
-      "detail": "failed in CI",
-      "since": "2026-08-27",
+      "measuredOn": "5c207b6e526687d1314a2206ea79c21c5bd9b77693c5d52c3397c9bdf2ba624e",
       "tier": "pr"
     },
     "guida-parity": {
@@ -551,8 +551,9 @@
       "title": "Unit tests",
       "command": "npm run test:unit",
       "ok": true,
-      "at": "2026-08-27T18:57:15.173Z",
+      "at": "2026-08-27T19:37:11.457Z",
       "commit": "58816561b706a2aa225b0416425d9dc5d5381d7e",
+      "measuredOn": "5c207b6e526687d1314a2206ea79c21c5bd9b77693c5d52c3397c9bdf2ba624e",
       "tier": "pr"
     },
     "visual-regression": {
