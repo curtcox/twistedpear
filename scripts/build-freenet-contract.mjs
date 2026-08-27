@@ -1,5 +1,4 @@
 import { copyFileSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -66,24 +65,6 @@ if (toBuild.length === 0) {
 
 mkdirSync(targetDir, { recursive: true });
 
-/**
- * rustc bakes the absolute path of every compiled source into the wasm, so an
- * unremapped build is only byte-reproducible on the machine that made it: the
- * committed artifacts carried `/home/runner/.cargo/...` and no local rebuild
- * could ever match them. Remap the two roots that vary — the cargo home, which
- * covers both registry sources and git checkouts, and the workspace itself —
- * onto stable synthetic prefixes so the same toolchain yields the same bytes
- * on any machine.
- */
-const cargoHome = process.env.CARGO_HOME ?? resolve(homedir(), ".cargo");
-const remap = [
-  `--remap-path-prefix=${cargoHome}=/cargo`,
-  `--remap-path-prefix=${root}=/twistedpear`,
-];
-const rustflags = [process.env.RUSTFLAGS ?? "", ...remap]
-  .filter(Boolean)
-  .join(" ");
-
 for (const contract of toBuild) {
   const result = spawnSync(
     "cargo",
@@ -97,11 +78,7 @@ for (const contract of toBuild) {
       "--target-dir",
       targetDir,
     ],
-    {
-      cwd: dirname(contract.manifest),
-      stdio: "inherit",
-      env: { ...process.env, RUSTFLAGS: rustflags },
-    },
+    { cwd: dirname(contract.manifest), stdio: "inherit" },
   );
   if (result.status !== 0) {
     process.exitCode = result.status ?? 1;
