@@ -71,7 +71,15 @@ function normalize(value: string): string {
 }
 
 export function chromeLexiconViolation(tree: WidgetTree): string | null {
-  return visitChrome(tree.root);
+  const directViolation = visitChrome(tree.root);
+  if (directViolation !== null) return directViolation;
+  if (
+    containsCanonicalCapabilityDescription(tree.root) &&
+    containsGrantAction(tree.root)
+  ) {
+    return "CHROME-R8 reserved lexicon: canonical capability description";
+  }
+  return null;
 }
 
 function visitChrome(node: WidgetNode): string | null {
@@ -85,11 +93,6 @@ function visitChrome(node: WidgetNode): string | null {
     if (claim !== null) {
       return `CHROME-R8 reserved lexicon: ${claim}`;
     }
-    for (const description of capabilityDescriptions()) {
-      if (text.includes(description)) {
-        return "CHROME-R8 reserved lexicon: canonical capability description";
-      }
-    }
   }
   if (imitatesGrantScreen(node)) {
     return "CHROME-R8 reserved lexicon: grant-screen layout";
@@ -99,6 +102,26 @@ function visitChrome(node: WidgetNode): string | null {
     if (nested !== null) return nested;
   }
   return null;
+}
+
+function containsCanonicalCapabilityDescription(node: WidgetNode): boolean {
+  const descriptions = capabilityDescriptions();
+  if (
+    collectTexts(node).some((text) =>
+      descriptions.some((description) => text.includes(description)),
+    )
+  ) {
+    return true;
+  }
+  return (node.children ?? []).some(containsCanonicalCapabilityDescription);
+}
+
+function containsGrantAction(node: WidgetNode): boolean {
+  if (node.type === "button" && typeof node.props?.label === "string") {
+    const label = normalize(node.props.label);
+    if (AFFIRM_LABELS.has(label) || REJECT_LABELS.has(label)) return true;
+  }
+  return (node.children ?? []).some(containsGrantAction);
 }
 
 function matchAny(

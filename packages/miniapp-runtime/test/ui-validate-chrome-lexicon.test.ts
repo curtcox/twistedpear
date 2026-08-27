@@ -92,13 +92,32 @@ describe("CHROME-R8 reserved lexicon", () => {
     );
   });
 
-  it("rejects a copied canonical capability description", () => {
+  it("allows canonical capability copy in documentation", () => {
+    expect(
+      validateWidgetTree(
+        tree([
+          {
+            id: "reference",
+            type: "text",
+            props: { value: describeCapability("lxmf:send") },
+          },
+        ]),
+      ),
+    ).toMatchObject({ root: { id: "root" } });
+  });
+
+  it("rejects copied canonical capability copy beside a grant action", () => {
     rejects(
       tree([
         {
           id: "grant",
           type: "text",
           props: { value: describeCapability("lxmf:send") },
+        },
+        {
+          id: "allow",
+          type: "button",
+          props: { label: "Allow", event: "grant.allow" },
         },
       ]),
       /CHROME-R8.*canonical capability description/,

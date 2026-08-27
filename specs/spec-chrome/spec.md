@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-18
+audited: 2026-08-27
 register: none
 -->
 
@@ -47,9 +47,10 @@ Fixtures cite these ids; a fixture that attacks a rule names it.
   screen has no drawing surface and cannot overlay chrome. Its widget tree is
   retained and painted when the user switches to it.
 - **CHROME-R8 (reserved lexicon).** App widget text cannot use reserved host-chrome
-  vocabulary: platform-name authority claims, copied capability-registry wording,
-  host-update banners, or an Approve/Deny (Allow/Not now) pair that imitates a
-  grant screen.
+  vocabulary: platform-name authority claims, host-update banners, or an
+  Approve/Deny (Allow/Not now) pair that imitates a grant screen. Canonical
+  capability-registry wording is allowed as documentation, but is reserved when the
+  same widget tree also presents an Approve, Allow, Deny, or Not now action.
 - **CHROME-R9 (no secret solicitation).** App widget text cannot solicit a recovery
   phrase, seed words, mnemonic, identity backup, or identity string.
 

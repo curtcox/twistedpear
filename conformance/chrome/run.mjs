@@ -8,6 +8,7 @@ import {
   MiniappHost,
   NodeWorkerSandboxBackend,
   createLoopbackBinding,
+  describeCapability,
   validateWidgetTree,
 } from "../../packages/miniapp-runtime/dist/index.js";
 import { runSnapshotFixtures } from "./snapshot.mjs";
@@ -286,6 +287,42 @@ expectInvalid(
     },
   },
   /CHROME-R8/,
+);
+try {
+  validateWidgetTree({
+    root: {
+      id: "reference",
+      type: "text",
+      props: { value: describeCapability("lxmf:send") },
+    },
+  });
+  check("CHROME-R8", "capability reference copy is allowed", true);
+} catch (error) {
+  check(
+    "CHROME-R8",
+    "capability reference copy is allowed",
+    false,
+    error instanceof Error ? error.message : String(error),
+  );
+}
+expectInvalid(
+  "CHROME-R8",
+  "capability copy with a grant action is rejected",
+  {
+    root: {
+      id: "root",
+      type: "view",
+      children: [
+        {
+          id: "copy",
+          type: "text",
+          props: { value: describeCapability("lxmf:send") },
+        },
+        { id: "a", type: "button", props: { label: "Allow", event: "a" } },
+      ],
+    },
+  },
+  /CHROME-R8.*canonical capability description/,
 );
 expectInvalid(
   "CHROME-R9",
