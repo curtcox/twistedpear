@@ -32,6 +32,9 @@
     },
     {
       "path": "../cas-256t"
+    },
+    {
+      "path": "../widget-renderer-headless"
     }
   ]
 }

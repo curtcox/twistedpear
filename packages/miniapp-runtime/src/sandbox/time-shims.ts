@@ -112,6 +112,23 @@ function __tpInstallTimeShims() {
     return __tpClockMs;
   };
   Date.now.${TIME_SHIM_FLAG} = true;
+  // Date.now is not the only way out. \`new Date()\` and \`Date()\` read the
+  // platform clock directly, and an app that renders one of those replays to a
+  // different tree every time. A Proxy keeps statics, prototype, and
+  // \`instanceof\` intact while seeding the no-argument forms from the tape.
+  var NativeDate = Date;
+  globalThis.Date = new Proxy(NativeDate, {
+    construct: function (target, args, newTarget) {
+      if (args.length !== 0) return Reflect.construct(target, args, newTarget);
+      ${post}({ type: "trace-clock" });
+      return Reflect.construct(target, [__tpClockMs], newTarget);
+    },
+    apply: function (target, thisArg, args) {
+      if (args.length !== 0) return target.apply(thisArg, args);
+      ${post}({ type: "trace-clock" });
+      return new NativeDate(__tpClockMs).toString();
+    },
+  });
   Math.random = function () {
     ${post}({ type: "trace-entropy", byteCount: 8 });
     var bytes = __tpRandomBytes(8);

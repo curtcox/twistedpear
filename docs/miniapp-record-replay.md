@@ -7,8 +7,8 @@ register: software
 counterpart: docs/miniapp-record-replay-plan.md
 -->
 
-**This describes the implementation as it exists now.** Replay, shrinking,
-and host chrome remain in the
+**This describes the implementation as it exists now.** Shrinking and host
+chrome remain in the
 [record-and-replay plan](miniapp-record-replay-plan.md). Where the two disagree, this
 file wins.
 
@@ -70,7 +70,44 @@ recorders do not share tape. In-memory tape is capped (`maxBytes`, default
 
 Focused tests: `npx vitest run packages/miniapp-runtime/test/trace-security.test.ts`.
 
+## Replay and step
+
+`tp trace replay <file.tptrace> [app-dir]` re-runs a recorded session against a
+real `MiniappHost` and compares tapes. `tp trace step` does the same and prints
+each step through `widget-renderer-headless` — `--at <n>` for one step, `--ax`
+for the accessibility tree instead of the widget tree. Both refuse a trace that
+names another app or another `HOST_API_VERSION` (`--allow-host-skew` overrides
+the latter) rather than reporting a quietly-wrong result.
+
+The engine is `replaySession` / `recordSession` / `roundTripSession` in
+`@twistedpear/miniapp-test`. Two things make it work:
+
+- **A virtual clock.** `createTraceClock` advances a fixed step per host `now()`
+  call. The sandbox entropy LCG is seeded from the launch clock, so record and
+  replay only agree on `Math.random` when they agree on that seed. A trace
+  recorded on a wall-clock host replays control flow but not entropy draws.
+- **Inputs resolved by event name.** A shape tape records the event name, never
+  the node id — the id is app data. Replay resolves it from the replayed tree
+  the way `AppHandle.fire` does. A tree that no longer declares the name fails
+  loudly instead of skipping the input.
+
+What replay asserts is the tape: entry kinds, capabilities, and outcomes, in
+order. Entry timestamps are counted (`clockDrift`) rather than asserted, because
+`at` counts host clock reads and async completion order can shift that by a tick
+without changing what the app did. The widget-patch stream is not in the tape
+at all, so only a record-and-replay in one process (`roundTripSession`) can
+compare it — which is what the Cookbook corpus does.
+
+The sandbox shims `Date.now`, `Math.random`, `crypto.getRandomValues`, and —
+since replay made the hole visible — `new Date()` and `Date()`, which read the
+platform clock straight past `Date.now`.
+
+Conformance: all 26 apps under `cookbook/apps/` record a scripted session and
+replay to an identical widget-patch stream
+(`npx vitest run conformance/cookbook/cookbook.test.mjs`). Focused tests:
+`npx vitest run packages/miniapp-test/test/trace-replay.test.ts packages/cli/test/trace.test.ts`.
+
 ## Not in this drop
 
-`tp trace record` / `replay` / `step` / `shrink` do not exist. Desktop has no
-Record session control.
+`tp trace record` and `tp trace shrink` do not exist; recording is a host-side
+API, not a CLI verb. Desktop has no Record session control.

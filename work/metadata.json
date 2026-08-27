@@ -2214,6 +2214,8 @@
       "requires": ["TRACE-2-RECORD"],
       "verify": "npx vitest run packages/cli/test/trace.test.ts conformance/cookbook/cookbook.test.mjs",
       "added": "2026-08-24",
+      "completed": "2026-08-27",
+      "evidence": ["conformance/cookbook/cookbook.test.mjs"],
       "notes": "docs/miniapp-record-replay-plan.md Phase 3. Every Cookbook app records a scripted session and replays to an identical widget-patch stream."
     },
     "TRACE-4-SEALED": {

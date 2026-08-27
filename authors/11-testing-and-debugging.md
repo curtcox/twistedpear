@@ -154,5 +154,13 @@ rendered into a `text` widget. `tp test <app-dir>` runs the app's `*.test.js` fi
 against a real `MiniappHost` (`@twistedpear/miniapp-test`). `tp dev --link lan|ble|lora`
 throttles the side-load path to those profiles.
 
+What you also have is replay. A recorded session
+([mini-app record and replay](../docs/miniapp-record-replay.md)) is a file, and
+`tp trace replay session.tptrace my-app` re-runs it against your source and says
+where it stopped matching. `tp trace step session.tptrace my-app --at 2` prints
+the widget tree at one step, `--ax` the accessibility tree. That is not a
+breakpoint — the app is re-run, not paused — but it turns "it did something odd
+on someone else's phone" into something you can look at.
+
 That sounds worse than it is, given how small a single-file mini-app has to be. But it is a
 reason to keep your app small and your state explicit.

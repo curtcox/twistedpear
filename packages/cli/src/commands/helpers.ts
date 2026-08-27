@@ -76,6 +76,8 @@ export function printHelp(command: string): void {
     trust:
       "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers",
     test: "tp test <app-dir>  Run the app's harness tests against a real MiniappHost",
+    trace:
+      "tp trace replay <file.tptrace> [app-dir] [--strict-clock] [--allow-host-skew] [--json]  Re-run a recorded session and report divergence\n       tp trace step <file.tptrace> [app-dir] [--at <n>] [--ax]  Replay and print per-step headless widget or accessibility snapshots",
     inspect:
       "tp inspect <file.tpkg|256t>  Resolve, verify hashes and signature, print capabilities and install time",
     doctor:

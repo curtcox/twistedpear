@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1414,
+  "modules": 1419,
   "components": 26,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -9,7 +9,7 @@
   "summary": [
     {
       "id": "conformance",
-      "modules": 283,
+      "modules": 284,
       "ca": 3,
       "ce": 21,
       "instability": 0.88,
@@ -221,6 +221,24 @@
       ]
     },
     {
+      "id": "packages/cli",
+      "modules": 20,
+      "ca": 2,
+      "ce": 9,
+      "instability": 0.82,
+      "dependsOn": [
+        "packages/app-registry",
+        "packages/bridge-freenet",
+        "packages/bridge-hyper",
+        "packages/cas-256t",
+        "packages/host-core",
+        "packages/miniapp-runtime",
+        "packages/miniapp-test",
+        "packages/reticulum-ts",
+        "packages/widget-renderer-headless"
+      ]
+    },
+    {
       "id": "packages/bridge-hyper",
       "modules": 19,
       "ca": 6,
@@ -230,23 +248,6 @@
         "packages/app-registry",
         "packages/cas-256t",
         "packages/reticulum-interfaces",
-        "packages/reticulum-ts"
-      ]
-    },
-    {
-      "id": "packages/cli",
-      "modules": 19,
-      "ca": 2,
-      "ce": 8,
-      "instability": 0.8,
-      "dependsOn": [
-        "packages/app-registry",
-        "packages/bridge-freenet",
-        "packages/bridge-hyper",
-        "packages/cas-256t",
-        "packages/host-core",
-        "packages/miniapp-runtime",
-        "packages/miniapp-test",
         "packages/reticulum-ts"
       ]
     },
@@ -320,11 +321,21 @@
       ]
     },
     {
+      "id": "packages/miniapp-test",
+      "modules": 7,
+      "ca": 1,
+      "ce": 1,
+      "instability": 0.5,
+      "dependsOn": [
+        "packages/miniapp-runtime"
+      ]
+    },
+    {
       "id": "packages/widget-renderer-headless",
       "modules": 5,
-      "ca": 2,
+      "ca": 3,
       "ce": 1,
-      "instability": 0.33,
+      "instability": 0.25,
       "dependsOn": [
         "packages/miniapp-runtime"
       ]
@@ -337,16 +348,6 @@
       "instability": 0.1,
       "dependsOn": [
         "packages/reticulum-ts"
-      ]
-    },
-    {
-      "id": "packages/miniapp-test",
-      "modules": 4,
-      "ca": 1,
-      "ce": 1,
-      "instability": 0.5,
-      "dependsOn": [
-        "packages/miniapp-runtime"
       ]
     },
     {

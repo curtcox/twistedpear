@@ -27,8 +27,16 @@ class ConfirmationRateLimiter {
   }
 }
 
-/** Node adapter: entropy, timers, and the confirmation rate limiter. */
-export function createNodeConfirmationEffects(): ConfirmationEffects {
+/**
+ * Node adapter: entropy, timers, and the confirmation rate limiter.
+ *
+ * The limiter is per-instance, so a host that builds its own gets a window that
+ * is not shared with any other host in the process, and `now` lets a host on a
+ * virtual clock rate-limit on that clock rather than on wall time.
+ */
+export function createNodeConfirmationEffects(
+  now: () => number = () => Date.now(),
+): ConfirmationEffects {
   return {
     randomBytes(length: number): Uint8Array {
       const bytes = new Uint8Array(length);
@@ -44,7 +52,7 @@ export function createNodeConfirmationEffects(): ConfirmationEffects {
     delay(ms: number): Promise<void> {
       return new Promise((resolve) => setTimeout(resolve, ms));
     },
-    now: () => Date.now(),
+    now,
     limiter: new ConfirmationRateLimiter(),
   };
 }
