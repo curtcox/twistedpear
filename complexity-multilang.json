@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 702,
-  "functions": 8179,
-  "groups": 4935,
+  "files": 703,
+  "functions": 8187,
+  "groups": 4942,
   "exemptions": 85,
   "violations": 0,
   "stale": 0,
@@ -165,10 +165,10 @@
       "key": "conformance/sdk-interop/run.mjs::main",
       "file": "conformance/sdk-interop/run.mjs",
       "name": "main",
-      "line": 49,
+      "line": 82,
       "tier": "tooling",
       "ccn": 32,
-      "nloc": 350,
+      "nloc": 346,
       "pinned": {
         "ccn": 32,
         "nloc": 350

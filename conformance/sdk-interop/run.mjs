@@ -46,6 +46,39 @@ async function dispatch(host, request, appManifest, grants) {
   return host.dispatchRaw(request, appManifest, grants);
 }
 
+async function assertBrokerRateLimit() {
+  const broker = new MiniappBroker({
+    maxMessagesPerSecond: 1,
+    now: () => 2_000,
+  });
+  broker.register("ui", "render", null, () => "ok");
+  const limited = await broker.dispatch(
+    { id: "flood-1", namespace: "ui", method: "render" },
+    {
+      appId: "flood",
+      publisherPublicKey: "pub",
+      declaredCapabilities: [],
+      grantedCapabilities: [],
+    },
+  );
+  if (!limited.ok) {
+    throw new Error("first broker message should pass");
+  }
+
+  const throttled = await broker.dispatch(
+    { id: "flood-2", namespace: "ui", method: "render" },
+    {
+      appId: "flood",
+      publisherPublicKey: "pub",
+      declaredCapabilities: [],
+      grantedCapabilities: [],
+    },
+  );
+  if (throttled.error?.code !== "RATE_LIMITED") {
+    throw new Error("broker rate limit not enforced");
+  }
+}
+
 async function main() {
   const store = createMemoryStore();
   const beePath = mkdtempSync(join(tmpdir(), "sdk-interop-bee-"));
@@ -424,36 +457,7 @@ async function main() {
   }
   await quotaBee.close();
 
-  const broker = new MiniappBroker({
-    maxMessagesPerSecond: 1,
-    now: () => 2_000,
-  });
-  broker.register("ui", "render", null, () => "ok");
-  const limited = await broker.dispatch(
-    { id: "flood-1", namespace: "ui", method: "render" },
-    {
-      appId: "flood",
-      publisherPublicKey: "pub",
-      declaredCapabilities: [],
-      grantedCapabilities: [],
-    },
-  );
-  if (!limited.ok) {
-    throw new Error("first broker message should pass");
-  }
-
-  const throttled = await broker.dispatch(
-    { id: "flood-2", namespace: "ui", method: "render" },
-    {
-      appId: "flood",
-      publisherPublicKey: "pub",
-      declaredCapabilities: [],
-      grantedCapabilities: [],
-    },
-  );
-  if (throttled.error?.code !== "RATE_LIMITED") {
-    throw new Error("broker rate limit not enforced");
-  }
+  await assertBrokerRateLimit();
 
   await beeBackend.close();
   rmSync(beePath, { recursive: true, force: true });

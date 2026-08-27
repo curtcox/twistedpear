@@ -14,6 +14,7 @@
   "scripts": {
     "build": "tsc -b",
     "build:freenet-contract": "node scripts/build-freenet-contract.mjs",
+    "test:freenet-offline": "npm run build:freenet-contract && git diff --exit-code -- packages/bridge-freenet/contract/locator/locator-contract.wasm packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm",
     "typecheck": "tsc -b --pretty false",
     "tsconfig:check": "node scripts/analysis/tsconfig-parity.mjs",
     "native-parity:check": "node scripts/analysis/native-parity.mjs",
