@@ -303,9 +303,23 @@
     "BUG-CHROME-R8-HANDBOOK": {
       "type": "bug",
       "requires": [],
-      "verify": "npm run test:web-handbook",
+      "verify": "npx vitest run packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts",
       "added": "2026-08-27",
+      "completed": "2026-08-27",
+      "evidence": [
+        "packages/miniapp-runtime/src/ui/chrome-lexicon.ts",
+        "packages/miniapp-runtime/test/ui-validate-chrome-lexicon.test.ts",
+        "specs/spec-chrome/spec.md",
+        "apps/handbook/content/part-5-reference/capabilities.md"
+      ],
       "notes": "CI web job is red: ui.render is rejected with 'CHROME-R8 reserved lexicon: canonical capability description', then the runtime times out. apps/handbook/content/part-5-reference/capabilities.md is generated from CAPABILITY_DEFINITIONS and reproduces all 58 descriptions verbatim; the handbook bundle embeds them in its CATALOG. chrome-lexicon.ts rejects any app widget text containing one. Introduced by 76b8f6e5 (2026-08-18), which added the rule without touching the handbook. The spec (specs/spec-chrome/spec.md, CHROME-R8) has no first-party carve-out and CHROME-R1 explains why the copy is reserved. Rewording the chapter fights its generator and the applet coverage gate, so the real options are exempting a first-party handbook or narrowing the rule to fire only alongside grant-screen layout signals. Needs a product decision."
+    },
+    "BUG-CONFIRMATION-BUDGET-FIXTURES": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run test:web-handbook && npm run test:chrome",
+      "added": "2026-08-27",
+      "notes": "On 2026-08-27, web-handbook rendered chapter:ref-capabilities successfully, then failed apps-publish-install because apps.packageProject became the third confirmation and apps.publish exceeded the 3-per-10s limit. The CHROME conformance runner likewise reports CHROME-R2 apps.preview and CHROME-R6 preview failures after package/publish/install consume the window. Pace multi-confirmation fixtures on the intentional host budget."
     },
     "BUG-DEVSTUDIO-SUBSET-GRANT": {
       "type": "bug",

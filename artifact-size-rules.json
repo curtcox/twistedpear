@@ -18,13 +18,13 @@
     {
       "path": "apps/host-desktop/worklet/worklet.bundle",
       "budgetBytes": 12582912,
-      "bytes": 11603372,
+      "bytes": 11605697,
       "note": "Electron host worklet. The largest file in the repository and, until this gate, measured by nothing."
     },
     {
       "path": "apps/harness-mobile/worklet/worklet.bundle.mjs",
       "budgetBytes": 12582912,
-      "bytes": 11147435,
+      "bytes": 11147725,
       "note": "Expo host worklet, shipped into the mobile app. Carries the compiled wasm contracts inline, which is why it tracks the desktop bundle's size."
     },
     {
@@ -36,7 +36,7 @@
     {
       "path": "apps/handbook/bundle.js",
       "budgetBytes": 524288,
-      "bytes": 423784,
+      "bytes": 424806,
       "note": "The Handbook ships as a mini-app package, so this is a bundle peers actually transfer."
     },
     {

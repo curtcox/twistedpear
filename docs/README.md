@@ -69,6 +69,7 @@ one-sided `counterpart:` all fail the build.
 | Check capability × host implementation / testing / validation                   | [Platform capabilities status](platform-capabilities-status.md)                                                                                                                                                                                          |
 | Review known limitations                                                        | [Limitations](../LIMITATIONS.md)                                                                                                                                                                                                                         |
 | Run the complete local validation suite                                         | [Single-Mac validation](mac-validation.md)                                                                                                                                                                                                               |
+| Diagnose long agent validation sessions and supervision                         | [Agent session duration and supervision](agent-session-performance.md)                                                                                                                                                                                    |
 
 ## Status and history
 

@@ -2,6 +2,13 @@
  * Opening a channel to an app that is not running must fail before chrome asks.
  * This does not prompt, so it is safe in routine diagnostics.
  */
+function isMissingDestination(code, message) {
+  return (
+    code === "CHANNEL_PEER_NOT_RUNNING" ||
+    /^Mini-app "[^"]+" is not running\.$/.test(message)
+  );
+}
+
 export async function run(sdk, report) {
   const started = Date.now();
   const open = sdk.apps?.channel?.open;
@@ -49,10 +56,7 @@ export async function run(sdk, report) {
     return;
   }
 
-  if (
-    code === "CHANNEL_PEER_NOT_RUNNING" ||
-    /^Mini-app \"[^\"]+\" is not running\.$/.test(err.message)
-  ) {
+  if (isMissingDestination(code, err.message)) {
     report({
       status: "pass",
       details: "Missing destination was rejected before confirmation.",

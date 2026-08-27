@@ -110,13 +110,9 @@ function findApplet(id) {
 }
 
 function chapterNavigationOrder() {
-  const order = [];
-  for (const part of CATALOG.parts) {
-    for (const chapter of part.chapters) {
-      order.push(chapter.id);
-    }
-  }
-  return order;
+  return CATALOG.parts.flatMap((part) =>
+    part.chapters.map((chapter) => chapter.id),
+  );
 }
 
 export function chapterNeighbors(id) {
@@ -162,14 +158,7 @@ async function ensureSeeds() {
 
   seeding = true;
   try {
-    await writeSeedsWithinBrokerBudget(
-      CATALOG.seeds,
-      (path, content) => workspace.write(path, content),
-      (delayMs) =>
-        new Promise((resolve) => {
-          setTimeout(resolve, delayMs);
-        }),
-    );
+    await writeWorkspaceSeedsWithinBrokerBudget(CATALOG.seeds, workspace);
     await kvSetText(SEEDED_KEY, "1");
     await kvSetText(SEED_VERSION_KEY, CATALOG.version);
   } finally {

@@ -28,6 +28,7 @@ export const CONCAT_GROUPS = [
     assembledBy: "apps/handbook/build.mjs",
     prologue: "const CATALOG = {};",
     members: [
+      "apps/handbook/src/runtime-seeds.js",
       "apps/handbook/src/runtime-render.js",
       "apps/handbook/src/runtime-devstudio.js",
       "apps/handbook/src/runtime-applets.js",

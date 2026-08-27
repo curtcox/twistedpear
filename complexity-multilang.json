@@ -6,9 +6,9 @@
     "kotlin",
     "swift"
   ],
-  "files": 703,
-  "functions": 8187,
-  "groups": 4942,
+  "files": 704,
+  "functions": 8201,
+  "groups": 4947,
   "exemptions": 85,
   "violations": 0,
   "stale": 0,
@@ -17,10 +17,10 @@
       "key": "apps/handbook/src/runtime-render.js::chapterNeighbors",
       "file": "apps/handbook/src/runtime-render.js",
       "name": "chapterNeighbors",
-      "line": 122,
+      "line": 118,
       "tier": "source",
-      "ccn": 128,
-      "nloc": 592,
+      "ccn": 127,
+      "nloc": 590,
       "pinned": {
         "ccn": 128,
         "nloc": 592
@@ -104,7 +104,7 @@
       "key": "apps/handbook/build-content.mjs::loadApplets",
       "file": "apps/handbook/build-content.mjs",
       "name": "loadApplets",
-      "line": 262,
+      "line": 263,
       "tier": "tooling",
       "ccn": 38,
       "pinned": {

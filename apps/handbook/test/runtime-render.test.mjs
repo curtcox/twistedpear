@@ -33,6 +33,7 @@ import {
   SEED_BROKER_BATCH_SIZE,
   SEED_BROKER_PAUSE_MS,
   writeSeedsWithinBrokerBudget,
+  writeWorkspaceSeedsWithinBrokerBudget,
 } from "../src/runtime-seeds.js";
 
 /**
@@ -127,6 +128,24 @@ describe("chapterMatchesSearch", () => {
 });
 
 describe("Handbook workspace seeding", () => {
+  it("writes short seed sets through the workspace adapter", async () => {
+    const writes = [];
+    await writeWorkspaceSeedsWithinBrokerBudget(
+      [
+        { path: "one", content: "first" },
+        { path: "two", content: "second" },
+      ],
+      {
+        write: async (path, content) => writes.push([path, content]),
+      },
+    );
+
+    expect(writes).toEqual([
+      ["one", "first"],
+      ["two", "second"],
+    ]);
+  });
+
   it("paces generated writes below the broker's per-second message budget", async () => {
     const seeds = Array.from(
       { length: SEED_BROKER_BATCH_SIZE * 2 + 13 },

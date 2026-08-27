@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "modules": 1422,
+  "modules": 1423,
   "components": 26,
   "cycles": 4,
   "unresolvedDependencies": 0,
@@ -174,7 +174,7 @@
     },
     {
       "id": "apps/handbook",
-      "modules": 33,
+      "modules": 34,
       "ca": 0,
       "ce": 3,
       "instability": 1,

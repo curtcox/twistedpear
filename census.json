@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-27T13:27:11.778Z",
+  "generatedAt": "2026-08-27T23:05:55.442Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -351,6 +351,7 @@
       "test:freenet-distinct-nodes",
       "test:freenet-interface",
       "test:freenet-local-network",
+      "test:freenet-offline",
       "test:freenet-ordered-log",
       "test:freenet-propagation",
       "test:freenet-roundtrip",
@@ -546,7 +547,7 @@
     "gates:nightly": 11,
     "gates:pr": 60,
     "gates:release": 1,
-    "scripts:quality": 176,
+    "scripts:quality": 177,
     "skips:suppressed-tests": 2,
     "test-files:apps/handbook": 2,
     "test-files:apps/harness-mobile": 4,
@@ -589,7 +590,7 @@
     "test-files:packages/widget-renderer-rn": 2,
     "test-files:packages/worklet-core": 14,
     "test-files:total": 489,
-    "tests:apps/handbook": 34,
+    "tests:apps/handbook": 36,
     "tests:apps/harness-mobile": 19,
     "tests:apps/host-desktop": 27,
     "tests:conformance/android-emulator": 3,
@@ -617,7 +618,7 @@
     "tests:packages/guida-twistedpear": 22,
     "tests:packages/host-core": 172,
     "tests:packages/lxmf-ts": 37,
-    "tests:packages/miniapp-runtime": 464,
+    "tests:packages/miniapp-runtime": 467,
     "tests:packages/miniapp-sdk": 92,
     "tests:packages/miniapp-test": 10,
     "tests:packages/peer-discovery": 54,
@@ -629,7 +630,7 @@
     "tests:packages/widget-renderer-headless": 90,
     "tests:packages/widget-renderer-rn": 51,
     "tests:packages/worklet-core": 138,
-    "tests:total": 3612,
+    "tests:total": 3617,
     "waivers:live": 1
   },
   "delta": {
