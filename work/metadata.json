@@ -300,6 +300,20 @@
       ],
       "notes": "npm audit fix reorders the tree while installing, so apps/host-desktop's postinstall runs when its own @electron/get is not resolvable; the install aborts, the lockfile is untouched, and fix.mjs ignores applyFixes().ok and reports 'Nothing was fixable without a breaking upgrade.'"
     },
+    "BUG-CHROME-R8-HANDBOOK": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run test:web-handbook",
+      "added": "2026-08-27",
+      "notes": "CI web job is red: ui.render is rejected with 'CHROME-R8 reserved lexicon: canonical capability description', then the runtime times out. apps/handbook/content/part-5-reference/capabilities.md is generated from CAPABILITY_DEFINITIONS and reproduces all 58 descriptions verbatim; the handbook bundle embeds them in its CATALOG. chrome-lexicon.ts rejects any app widget text containing one. Introduced by 76b8f6e5 (2026-08-18), which added the rule without touching the handbook. The spec (specs/spec-chrome/spec.md, CHROME-R8) has no first-party carve-out and CHROME-R1 explains why the copy is reserved. Rewording the chapter fights its generator and the applet coverage gate, so the real options are exempting a first-party handbook or narrowing the rule to fire only alongside grant-screen layout signals. Needs a product decision."
+    },
+    "BUG-DEVSTUDIO-SUBSET-GRANT": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run test:devstudio-loop",
+      "added": "2026-08-27",
+      "notes": "CI devstudio-loop is red with 'Grant every required capability before launch' at miniapp-host-shared-backends.mjs:507. The fixture installs hello-app declaring storage:kv + lxmf:send, grants only storage:kv, and expects launch to succeed with a runtime DENIED: on send. launchGrantsSatisfyDeclarations requires every non-optional declaration, so an app must mark a capability optional:true to be omittable. The devstudio path cannot express that: validateManifestDraft types capabilities as string[], and validateManifestCapabilities (capabilities.ts:229/240) flattens object entries to bare ids, destroying optional. Note announce.ts:259 also rejects formatVersion !== 1, so v2 manifests are not plumbed end-to-end. Introduced by bb52a11a (2026-08-18), which added the launch gate without updating this fixture. Options: plumb optional + formatVersion 2 through packaging (touches MANIFEST_SIGNING_FIELDS and the announce encoding), rewrite the fixture scenario, or relax the launch gate. Needs a product decision."
+    },
     "BUG-ELECTRON-BUILDER-VERSION": {
       "type": "bug",
       "requires": [],
@@ -308,6 +322,20 @@
       "completed": "2026-08-12",
       "evidence": ["apps/host-desktop/package.json", "package.json"],
       "notes": "d6e4d364 made the Electron binary download best-effort at postinstall, so on CI electron is not present in node_modules and electron-builder cannot resolve the ^43.3.0 range: 'Electron version ^43.3.0 is a range, not a fixed version'. Pin the exact version, which is what electron-builder needs to fetch platform binaries itself."
+    },
+    "BUG-HANDBOOK-RENDER-TIMEOUT": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run test:handbook",
+      "added": "2026-08-27",
+      "notes": "After the applet chapter mappings were fixed (abf9451c), test:handbook gets past the catalog check and fails at conformance/handbook/run.mjs:381: waitFor timeout waiting for 'TwistedPear Handbook', state=running, app log 'launched v0.2.0 | broker denied workspace.write'. The handbook manifest declares workspace and the harness grants every declared capability, and the broker registers workspace.write against the 'workspace' capability, so the denial is not explained by the grant set. No CHROME-R8 violation appears in this run, so it is distinct from BUG-CHROME-R8-HANDBOOK, and it fails on the first render rather than on a chapter. Observed locally on a memory-constrained machine against a 20s waitForTreeText budget, so an environmental timeout is not ruled out. miniapp-conformance has had no green run in the last 25 CI runs, so this step has likely not been reached in CI for some time; the CI run on 6098ad46 is the first that should get there."
+    },
+    "BUG-IOS-CHANNEL-ISOLATION": {
+      "type": "bug",
+      "requires": [],
+      "verify": "bash conformance/ios-sim/ci-required.sh",
+      "added": "2026-08-27",
+      "notes": "CI ios-sim reports 'applet apps-channel-isolation on ios: expected pass, got fail'. Green at 156ee3ed and abe1b18f, red at 0beb3bd0 and 6ebd4981, so it regressed in the TRACE-3-REPLAY merge. That change made AppChannelService take a per-host ConfirmationEffects built by createNodeConfirmationEffects(now) on the host clock instead of one process-wide instance on wall time. ConfirmationRateLimiter allows 3 per 10000ms and computes cutoff = now - windowMs, so a host whose now() is not wall-clock milliseconds never expires stamps and rate-limits permanently after three confirmations. Unconfirmed: the applet opens a channel to a non-running app, which should throw CHANNEL_PEER_NOT_RUNNING in requireRunningPeer before any confirmation, so the path to the limiter is not yet established. The applet reports fail for any error whose code is neither CHANNEL_PEER_NOT_RUNNING nor capability-denied, so the iOS bridge may also be dropping the code across serialization. Reproducing needs the iOS simulator suite."
     },
     "BUG-LXMF-COVERAGE": {
       "type": "bug",
@@ -354,6 +382,13 @@
         "packages/reticulum-ts/test/resource.test.ts"
       ],
       "notes": "split/segmentIndex/totalSegments were hardcoded false/1/1 in resource/layer-1.ts, so any payload past RNS MAX_EFFICIENT_SIZE (16777215) stopped at one segment. Sender now cuts and chains segments sharing one originalHash; receiver accumulates by originalHash and concludes on the last. Verified against the pinned Python RNS 0.9.5 echo peer at 20MB (2 segments) and 104857600 bytes (7 segments), the nightly resource-interop-100mb configuration."
+    },
+    "BUG-SITE-CHECKS-CHECKOUT": {
+      "type": "bug",
+      "requires": [],
+      "verify": "npm run actionlint",
+      "added": "2026-08-27",
+      "notes": "The reported-checks job in .github/workflows/site-checks.yml fails on every run: 'Can't find action.yml, action.yaml or Dockerfile under .github/actions/telemetry-start. Did you forget to run actions/checkout before running your local action?'. The job uses ./.github/actions/telemetry-start and ./.github/actions/telemetry-finish, both committed, but has no actions/checkout step, so the workspace is empty when the action is resolved. Observed on run 33078051886 at 6ebd4981. Broken since the telemetry actions landed 2026-08-26. Fix: add a SHA-pinned actions/checkout as the job's first step (the actions-pinned gate enforces pinning) and audit other jobs using these actions without a checkout. Note actionlint may not catch this, so the verify command is weaker than the failure it guards."
     },
     "BUG-WORKLET-BARE-PACK-HOST": {
       "type": "bug",
@@ -1745,6 +1780,13 @@
       "added": "2026-08-23",
       "notes": "Harden an install to uselessness, delete, reinstall, confirm usable; then confirm the reinstall cost matches what the preview claimed. Restoring a pre-seal backup must not shed the seal. P-R14."
     },
+    "QL-APPLET-CHAPTER-DERIVE": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run test:handbook",
+      "added": "2026-08-27",
+      "notes": "conformance/handbook/applet-chapters.mjs is a hand-maintained id -> chapter map that both the Node and browser handbook runners throw on when an applet is missing. It drifted twice: apps-channel-isolation (added 2026-08-17) and storage-sync (added 2026-08-25) were both unmapped and were only added in abf9451c. The file's own docstring already records that the two copies it replaced 'had to stay in step by hand — and did not'. The mapping is fully derivable: each chapter's markdown embeds its applet with a {{applet:NAME}} marker, which is how both missing entries were resolved. Generating the map from those markers at build time removes the class of failure rather than the instances."
+    },
     "QL-ASSURANCE-GAPS": {
       "type": "quality",
       "requires": [],
@@ -1800,6 +1842,20 @@
       "completed": "2026-08-14",
       "evidence": ["complexity-ratchet.json"],
       "notes": "Imported from complexity-ratchet.json: 6 baselined @typescript-eslint/ban-ts-comment entries across 6 files."
+    },
+    "QL-EVIDENCE-GENERATED-FILES": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run work:audit",
+      "added": "2026-08-27",
+      "notes": "work:audit compares each closed item's evidence file mtime against its close date. 10 of the 46 evidence-drift findings on 2026-08-27 pointed at files that churn for reasons unrelated to the behaviour they vouch for: package-lock.json and package.json (cited by BUG-REACT-DOM-MISMATCH and BUG-ELECTRON-BUILDER-VERSION), both worklet.bundle artifacts (BUG-WORKLET-BARE-PACK-HOST, GUIDA-WORKLET-COMPILER), capability-risk.gen.ts (APPR-RISK-CLASS) and work/metadata.json (WORK-UNATTENDED). A lockfile bump re-fires these forever, which dilutes the medium tier and trains readers to skim it. Two fixes worth considering: drop generated and incidental files from evidence lists in work/metadata.json, and teach the drift check to ignore a configurable set of generated paths. Note the check earns its keep otherwise — on the same run it correctly flagged app-channel.ts, apps.ts, freenet.ts and chrome-lexicon.ts, all four of which had real CI failures behind them."
+    },
+    "QL-GATE-PUBLISH-GAP": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npm run checks:status:import",
+      "added": "2026-08-27",
+      "notes": "checks:status:import folds CI-measured gate provenance into checks.json, but the published summary at results/raw/summary.json carries only 68 of the 71 registered gates. advisories, rust-coverage and web-cross-browser are absent, so they keep whatever commit they were last measured at locally and work:audit reports them as unverified-record forever, no matter how many times CI goes green. Confirmed at 6ebd4981: the CI run measured 'Gate — Advisory allowlist policy' and 'Gate — Rust coverage ratchet' green, yet after a successful import those two plus web-cross-browser still record abe1b18f. Either widen what the Pages build publishes to cover every registered gate, or teach the audit that these three are measured elsewhere."
     },
     "QL-HARNESS-MOBILE-TYPECHECK": {
       "type": "quality",
