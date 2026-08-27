@@ -159,7 +159,10 @@ function createHandle(host: MiniappHost, manifest: LaunchManifest): AppHandle {
   };
 }
 
-function findNodeIdByEvent(node: WidgetNode, event: string): string | null {
+export function findNodeIdByEvent(
+  node: WidgetNode,
+  event: string,
+): string | null {
   if (node.props?.event === event) return node.id;
   for (const child of node.children ?? []) {
     const found = findNodeIdByEvent(child, event);
@@ -168,7 +171,10 @@ function findNodeIdByEvent(node: WidgetNode, event: string): string | null {
   return null;
 }
 
-async function settleHost(host: MiniappHost, timeoutMs = 2_000): Promise<void> {
+export async function settleHost(
+  host: MiniappHost,
+  timeoutMs = 2_000,
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let last = JSON.stringify(host.snapshot().widgetTree);
   let stable = 0;

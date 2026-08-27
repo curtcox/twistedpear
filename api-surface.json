@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "total": 8364,
+  "total": 8382,
   "cap": 8364,
   "packages": 21,
   "entryPoints": 47,
   "unresolved": 0,
-  "violations": 0,
+  "violations": 3,
   "findings": [
     {
       "name": "protocol",
@@ -124,6 +124,13 @@
       "total": 39
     },
     {
+      "name": "miniapp-test",
+      "entryPoints": {
+        ".": 34
+      },
+      "total": 34
+    },
+    {
       "name": "cas-256t",
       "entryPoints": {
         ".": 33
@@ -151,13 +158,6 @@
         ".": 22
       },
       "total": 22
-    },
-    {
-      "name": "miniapp-test",
-      "entryPoints": {
-        ".": 16
-      },
-      "total": 16
     },
     {
       "name": "widget-renderer-headless",

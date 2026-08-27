@@ -13,6 +13,7 @@ export {
 } from "./app-commands.js";
 export { runGuida, runApp } from "./guida-commands.js";
 export { runTest } from "./test-commands.js";
+export { runTrace } from "./trace-commands.js";
 export { runInspect, runDoctor } from "./inspect-commands.js";
 export {
   runNode,

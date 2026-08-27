@@ -14,6 +14,7 @@ import {
   runTrust,
   runUpdate,
   runTest,
+  runTrace,
   runInspect,
   runDoctor,
   printHelp,
@@ -26,7 +27,7 @@ const [command, ...args] = process.argv.slice(2);
 if (command === undefined || command === "--help" || command === "-h") {
   console.log("tp — TwistedPear publish tooling");
   console.log(
-    "Commands: init, identity, create, guida, app, dev, pack, sign, publish, update, seed, node, trust, test, inspect, doctor",
+    "Commands: init, identity, create, guida, app, dev, pack, sign, publish, update, seed, node, trust, test, trace, inspect, doctor",
   );
   process.exit(0);
 }
@@ -46,6 +47,7 @@ const handlers: Record<string, (ctx: CommandContext) => Promise<number>> = {
   node: runNode,
   trust: runTrust,
   test: runTest,
+  trace: runTrace,
   inspect: runInspect,
   doctor: runDoctor,
 };

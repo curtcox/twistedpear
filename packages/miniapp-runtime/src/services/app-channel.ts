@@ -1,6 +1,7 @@
 import {
   requestHostConfirmation,
   type HostConfirmationChannel,
+  type ConfirmationEffects,
 } from "../confirm.js";
 import { createNodeConfirmationEffects } from "./confirmation-effects.js";
 import { addWatcher, notifyWatchers } from "./watchers.js";
@@ -51,7 +52,7 @@ export interface AppChannelHost {
   now(): number;
 }
 
-const confirmationEffects = createNodeConfirmationEffects();
+const defaultConfirmationEffects = createNodeConfirmationEffects();
 
 function identityKey(peer: AppChannelPeer): string {
   return `${peer.publisherPublicKey}\n${peer.appId}`;
@@ -128,6 +129,7 @@ export class AppChannelService {
   constructor(
     private readonly host: AppChannelHost,
     private readonly confirmationChannel: HostConfirmationChannel | undefined,
+    private readonly confirmationEffects: ConfirmationEffects = defaultConfirmationEffects,
   ) {}
 
   async open(
@@ -147,7 +149,7 @@ export class AppChannelService {
           note: "This app may send messages to the named mini-app. The other app must grant the same channel separately. Shared storage is not included.",
         },
       },
-      confirmationEffects,
+      this.confirmationEffects,
     );
     this.consents.set(consentKey(caller, destination), destination);
     return { destination };

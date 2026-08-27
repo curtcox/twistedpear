@@ -2,11 +2,12 @@ import { validateManifestCapabilities } from "../capabilities.js";
 import {
   requestHostConfirmation,
   type HostConfirmationChannel,
+  type ConfirmationEffects,
 } from "../confirm.js";
 import { createNodeConfirmationEffects } from "./confirmation-effects.js";
 import { validateWorkspacePath } from "./workspace.js";
 
-const confirmationEffects = createNodeConfirmationEffects();
+const defaultConfirmationEffects = createNodeConfirmationEffects();
 
 export interface AppManifestDraft {
   readonly name: string;
@@ -171,6 +172,7 @@ export class AppsService {
   constructor(
     private readonly backend: AppsBackend,
     private readonly confirmationChannel: HostConfirmationChannel | undefined,
+    private readonly confirmationEffects: ConfirmationEffects = defaultConfirmationEffects,
   ) {}
 
   async package(
@@ -192,7 +194,7 @@ export class AppsService {
           capabilities: manifest.capabilities.join(", ") || "(none)",
         },
       },
-      confirmationEffects,
+      this.confirmationEffects,
     );
     return this.backend.package(context.appId, { projectPrefix, manifest });
   }
@@ -219,7 +221,7 @@ export class AppsService {
           projectPrefix,
         },
       },
-      confirmationEffects,
+      this.confirmationEffects,
     );
     return this.backend.compile(context.appId, { projectPrefix });
   }
@@ -283,7 +285,7 @@ export class AppsService {
           note: "The app becomes visible to other users under this device's publisher identity.",
         },
       },
-      confirmationEffects,
+      this.confirmationEffects,
     );
     return this.backend.publish(context.appId, { t256 });
   }
@@ -304,7 +306,7 @@ export class AppsService {
           note: "The package is fetched, verified, and reviewed before anything runs.",
         },
       },
-      confirmationEffects,
+      this.confirmationEffects,
     );
     return this.backend.install(context.appId, { t256 });
   }
@@ -340,7 +342,7 @@ export class AppsService {
           grants: grants.join(", ") || "(none)",
         },
       },
-      confirmationEffects,
+      this.confirmationEffects,
     );
     return this.backend.preview(context.appId, {
       projectPrefix,

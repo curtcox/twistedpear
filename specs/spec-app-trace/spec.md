@@ -24,8 +24,10 @@ exchange the same document. Format 1 has three modes:
   encryption key). Identity stays public; the tape is ciphertext.
 
 Kernel-level protocol traces remain [SPEC-TRACE](../spec-trace/spec.md).
-Replay, shrinking, and host chrome are out of scope here; they remain later
-phases of the [record-and-replay plan](../../docs/miniapp-record-replay-plan.md).
+This document specifies the exchanged format only. Replay consumes it but adds
+nothing to it — see [mini-app record and replay](../../docs/miniapp-record-replay.md).
+Shrinking and host chrome remain later phases of the
+[record-and-replay plan](../../docs/miniapp-record-replay-plan.md).
 
 ## Document
 

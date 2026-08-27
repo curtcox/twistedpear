@@ -10,7 +10,8 @@ counterpart: docs/miniapp-record-replay.md
 **This document describes intended work, not current behaviour.** The shape-only
 session format, live recording, payload/redaction, and sealed envelopes that
 already ship are in [mini-app record and replay](miniapp-record-replay.md).
-What still does not exist is replay, shrinking, and host chrome. What already existed for debugging
+What still does not exist is shrinking and host chrome; replay and stepping
+now ship and are described there too. What already existed for debugging
 a mini-app is a console shim and a diagnostics ring, described in
 [Testing and debugging](../authors/11-testing-and-debugging.md) and
 [the mini-app runtime reference](miniapp-runtime.md); the deterministic kernel this plan
@@ -130,6 +131,8 @@ Replay is only useful if it is honest about its own limits. Known hazards:
 - **Wall-clock and entropy reached directly.** Inside the sandbox the app is ordinary
   JavaScript; `Date.now()` and `Math.random()` are reachable. The sandbox must shim both to
   recorded sources, and `tp trace replay` must report divergence rather than paper over it.
+  `new Date()` and `Date()` were the hole this found: they read the platform clock without
+  going through `Date.now`, and are now shimmed too.
 - **Real concurrency.** Broker dispatch is async. Recording must capture completion order,
   not just call order, or a replay reorders two in-flight calls and diverges.
 - **Watchdog and timing-dependent kills.** A watchdog kill depends on wall-clock latency the
@@ -161,26 +164,24 @@ Nothing in this plan is claimed until these run:
 
 ## 9. Sequencing
 
-| Phase | Deliverable                                                           | Gate                                                         |
-| ----- | --------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 3     | `tp trace replay` and `tp trace step` over `widget-renderer-headless` | Cookbook corpus replays identically                          |
-| 5     | `tp trace shrink` and `tp trace test`                                 | A found bug becomes a checked-in regression                  |
-| 6     | Desktop **Record session** chrome and the recording indicator         | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) |
+| Phase | Deliverable                                                   | Gate                                                         |
+| ----- | ------------------------------------------------------------- | ------------------------------------------------------------ |
+| 5     | `tp trace shrink` and `tp trace test`                         | A found bug becomes a checked-in regression                  |
+| 6     | Desktop **Record session** chrome and the recording indicator | Chrome rules per [SPEC-CHROME](../specs/spec-chrome/spec.md) |
 
-Phase 2 (recording) and phase 4 (payload, redaction, sealed traces) now live in
-[mini-app record and replay](miniapp-record-replay.md). Phase 3 remains useful
-on its own: shape-only traces already solve mishandled denials, render loops,
-and quota branches. Shrinking still waits for replay; host chrome waits for the
+Phase 2 (recording), phase 3 (replay and step), and phase 4 (payload, redaction,
+sealed traces) now live in
+[mini-app record and replay](miniapp-record-replay.md). Host chrome waits for the
 privacy boundary, which is now in the live document.
 
-The remaining phases are tracked as `TRACE-3-REPLAY`, `TRACE-5-SHRINK`, and
-`TRACE-6-CHROME` in the [software backlog](../STATUS-SOFTWARE.md).
+The remaining phases are tracked as `TRACE-5-SHRINK` and `TRACE-6-CHROME` in the
+[software backlog](../STATUS-SOFTWARE.md).
 
 ## 10. Open questions
 
-1. **Should replay run the real sandbox or a lighter harness?** The real sandbox is the
-   honest answer and matches the `sim-campaign` precedent of testing shipping code. A
-   lighter harness would replay faster and step more smoothly.
+1. ~~**Should replay run the real sandbox or a lighter harness?**~~ Settled: the real
+   sandbox, on a real `MiniappHost`, matching the `sim-campaign` precedent of testing
+   shipping code. Stepping is post-hoc over the recorded steps, so it stays smooth anyway.
 2. **Does a sealed trace need publisher-key infrastructure that does not exist?** Key
    rotation and revocation are already open, and a trace encrypted to a key the author later
    loses is a trace nobody can read.

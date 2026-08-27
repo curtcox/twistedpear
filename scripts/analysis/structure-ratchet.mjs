@@ -126,6 +126,7 @@ const allowed = {
     "miniapp-runtime",
     "reticulum-ts",
     "cas-256t",
+    "widget-renderer-headless",
   ],
   "host-core": [
     "app-registry",

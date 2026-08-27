@@ -1,6 +1,7 @@
 import {
   requestHostConfirmation,
   type HostConfirmationChannel,
+  type ConfirmationEffects,
 } from "../confirm.js";
 import { createNodeConfirmationEffects } from "./confirmation-effects.js";
 
@@ -33,7 +34,7 @@ export interface FreenetContractBackend {
   }): Promise<void>;
 }
 
-const confirmationEffects = createNodeConfirmationEffects();
+const defaultConfirmationEffects = createNodeConfirmationEffects();
 
 function requireHex(label: string, value: unknown): string {
   if (
@@ -56,6 +57,7 @@ export class FreenetBrokerService {
     private readonly backend: FreenetContractBackend,
     private readonly confirmationChannel: HostConfirmationChannel | undefined,
     private readonly readAllowlist: ReadonlySet<string> = new Set(),
+    private readonly confirmationEffects: ConfirmationEffects = defaultConfirmationEffects,
   ) {}
 
   async get(
@@ -87,7 +89,7 @@ export class FreenetBrokerService {
           note: "Updates are published to a global network and cannot be recalled.",
         },
       },
-      confirmationEffects,
+      this.confirmationEffects,
     );
     const result = await this.backend.put({ wasmHex, parametersHex, stateHex });
     this.keysFor(context.appId).add(result.keyHex);
@@ -114,7 +116,7 @@ export class FreenetBrokerService {
           note: "Updates are published to a global network and cannot be recalled.",
         },
       },
-      confirmationEffects,
+      this.confirmationEffects,
     );
     await this.backend.update({ keyHex, codeHashHex, stateHex });
     this.keysFor(context.appId).add(keyHex);

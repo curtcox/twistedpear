@@ -9,7 +9,7 @@
     },
     "miniapp-runtime.api.md": {
       "package": "packages/miniapp-runtime",
-      "sha256": "8349866ead3bd1c388254b36a4c57edcfc4b3a92b0422f81738510e35152be55"
+      "sha256": "e6eb84e652e6bd73298bbaafc0b375ba2b85a0c06891e8bd3fa89b8abae03ded"
     },
     "host-core.api.md": {
       "package": "packages/host-core",
@@ -79,6 +79,10 @@
       "package": "packages/cas-256t",
       "sha256": "4704dc6c1b1b422e10b3d46777f764b79aa1606c7dd0b114d648081df9d66eeb"
     },
+    "miniapp-test.api.md": {
+      "package": "packages/miniapp-test",
+      "sha256": "497f4cf21238caeeaff466ba36e70786acc1163bc4a283d5ed2d6eda79885470"
+    },
     "sim-adversaries.api.md": {
       "package": "packages/sim-adversaries",
       "sha256": "4316653285ffc34170cb8a152e6634c152d212c3a71e4f1370b37ab7dd3a27e5"
@@ -90,10 +94,6 @@
     "bridge-hyper-worklet.api.md": {
       "package": "packages/bridge-hyper",
       "sha256": "b1b27d52de7981b86fa4d5a6020310ebd8c75b7f4c20bb8e5327a7180934a43c"
-    },
-    "miniapp-test.api.md": {
-      "package": "packages/miniapp-test",
-      "sha256": "acb657c4a1957503a2be09cfc84f167110dd7c9b378d08603e07da56835f5db3"
     },
     "bridge-hyper-web.api.md": {
       "package": "packages/bridge-hyper",

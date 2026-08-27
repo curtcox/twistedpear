@@ -26,6 +26,8 @@ import {
   type LinkObservatoryBackend,
   type LxmfBackend,
 } from "../services/index.js";
+import { createNodeConfirmationEffects } from "../services/confirmation-effects.js";
+import type { ConfirmationEffects } from "../confirm.js";
 import { resolveChannelPeer } from "./running-apps.js";
 import type { ActiveApp, MiniappHostOptions } from "./shared.js";
 
@@ -154,10 +156,17 @@ function createAiService(options: MiniappHostOptions): AiService | null {
     : new AiService(options.aiBackend);
 }
 
-function createAppsService(options: MiniappHostOptions): AppsService | null {
+function createAppsService(
+  options: MiniappHostOptions,
+  confirmationEffects: ConfirmationEffects,
+): AppsService | null {
   return options.appsBackend === undefined
     ? null
-    : new AppsService(options.appsBackend, options.confirmationChannel);
+    : new AppsService(
+        options.appsBackend,
+        options.confirmationChannel,
+        confirmationEffects,
+      );
 }
 
 function createPeerService(
@@ -178,6 +187,7 @@ function createRelayService(
 
 function createFreenetService(
   options: MiniappHostOptions,
+  confirmationEffects: ConfirmationEffects,
 ): FreenetBrokerService | null {
   return options.freenetBackend === undefined
     ? null
@@ -187,6 +197,7 @@ function createFreenetService(
         new Set(
           (options.freenetReadAllowlist ?? []).map((key) => key.toLowerCase()),
         ),
+        confirmationEffects,
       );
 }
 
@@ -233,6 +244,10 @@ export function createHostLayer1Services(
   now: () => number,
   apps: () => ReadonlyMap<string, ActiveApp>,
 ): HostLayer1Services {
+  // One limiter per host, on the host's clock. A process-wide instance would
+  // let one host's confirmations throttle another's, and would rate-limit a
+  // virtual-clock host against wall time — which no replay can reproduce.
+  const confirmationEffects = createNodeConfirmationEffects(now);
   return {
     identityService: new AppIdentityService(createIdentityBackend(options)),
     lxmfService: new NamespacedLxmfService(
@@ -244,10 +259,10 @@ export function createHostLayer1Services(
     linkService: createLinkService(options, now),
     hostInfoService: createHostInfoService(options),
     aiService: createAiService(options),
-    appsService: createAppsService(options),
+    appsService: createAppsService(options, confirmationEffects),
     peerService: createPeerService(options),
     relayService: createRelayService(options),
-    freenetService: createFreenetService(options),
+    freenetService: createFreenetService(options, confirmationEffects),
     deviceService: createDeviceService(options),
     inboundMedia: createInboundMedia(options, now),
     channelService: new AppChannelService(
@@ -257,6 +272,7 @@ export function createHostLayer1Services(
         now,
       },
       options.confirmationChannel,
+      confirmationEffects,
     ),
     notifyService: new NotifyService(now),
     cryptoService: new CryptoService(options.cryptoEntropy),
