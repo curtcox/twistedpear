@@ -1,0 +1,4954 @@
+{
+  "schema": 1,
+  "runId": 33110295458,
+  "runNumber": 395,
+  "runAttempt": 1,
+  "workflow": "Pages",
+  "workflowSlug": "pages",
+  "workflowId": 317119956,
+  "workflowPath": ".github/workflows/pages.yml",
+  "event": "push",
+  "branch": "main",
+  "sha": "37be0c23fd5f11cd5d61a49a68d8f54148991a99",
+  "conclusion": "failure",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/33110295458",
+  "createdAt": "2026-08-27T19:49:25Z",
+  "startedAt": "2026-08-27T19:49:25Z",
+  "completedAt": "2026-08-27T20:22:20Z",
+  "wallMs": 1975000,
+  "queuedMs": 0,
+  "jobCount": 24,
+  "runnerMs": 3437000,
+  "weightedMs": 6722000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 20
+    },
+    "MACOS": {
+      "totalMs": 0,
+      "jobs": 4
+    }
+  },
+  "queuedJobMs": 863000,
+  "cpuSeconds": 6617.999999999999,
+  "peakMemPct": 98.73,
+  "telemetryJobCount": 21,
+  "collectedAt": "2026-08-27T20:22:36.917Z",
+  "jobs": [
+    {
+      "id": 98651041258,
+      "name": "static-analysis-plan",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101150",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:26Z",
+      "startedAt": "2026-08-27T19:49:28Z",
+      "completedAt": "2026-08-27T19:49:36Z",
+      "queuedMs": 2000,
+      "durationMs": 8000,
+      "billableMs": 0,
+      "weightedMs": 8000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:28Z",
+          "completedAt": "2026-08-27T19:49:29Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:29Z",
+          "completedAt": "2026-08-27T19:49:32Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:32Z",
+          "completedAt": "2026-08-27T19:49:33Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:33Z",
+          "completedAt": "2026-08-27T19:49:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run node scripts/checks/pages-plan.mjs >> \"$GITHUB_OUTPUT\"",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:33Z",
+          "completedAt": "2026-08-27T19:49:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:33Z",
+          "completedAt": "2026-08-27T19:49:34Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:34Z",
+          "completedAt": "2026-08-27T19:49:34Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:34Z",
+          "completedAt": "2026-08-27T19:49:35Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:35Z",
+          "completedAt": "2026-08-27T19:49:35Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-plan",
+        "startedAt": "2026-08-27T19:49:33.220Z",
+        "finishedAt": "2026-08-27T19:49:33.725Z",
+        "durationMs": 504,
+        "intervalMs": 5000,
+        "sampleCount": 2,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101150",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 2,
+          "mean": 56.89,
+          "p50": 100,
+          "p95": 100,
+          "max": 100,
+          "min": 13.78
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 2,
+          "mean": 0.18,
+          "p50": 0.18,
+          "p95": 0.18,
+          "max": 0.18,
+          "min": 0.18
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 2,
+          "mean": 1026777088,
+          "p50": 1028550656,
+          "p95": 1028550656,
+          "max": 1028550656,
+          "min": 1025003520
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 2,
+          "mean": 6.12,
+          "p50": 6.13,
+          "p95": 6.13,
+          "max": 6.13,
+          "min": 6.11
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 2,
+          "mean": 163,
+          "p50": 163,
+          "p95": 163,
+          "max": 163,
+          "min": 163
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 2,
+          "mean": 40.16,
+          "p50": 40.16,
+          "p95": 40.16,
+          "max": 40.16,
+          "min": 40.16
+        },
+        "runnerDiskGrowthBytes": 9777152,
+        "ioReadBytes": 1916928,
+        "ioWriteBytes": 9646080,
+        "netRxBytes": 24044,
+        "netTxBytes": 93896,
+        "cpuSeconds": 1.1
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091390,
+      "name": "Published metric — kotlin-tests",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101212",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:30Z",
+      "completedAt": "2026-08-27T19:53:54Z",
+      "queuedMs": 53000,
+      "durationMs": 204000,
+      "billableMs": 0,
+      "weightedMs": 204000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:31Z",
+          "completedAt": "2026-08-27T19:50:33Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:33Z",
+          "completedAt": "2026-08-27T19:50:40Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:40Z",
+          "completedAt": "2026-08-27T19:50:40Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:40Z",
+          "completedAt": "2026-08-27T19:50:41Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:41Z",
+          "completedAt": "2026-08-27T19:50:41Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:41Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 18000
+        },
+        {
+          "name": "Cache Gradle dependencies",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:59Z",
+          "completedAt": "2026-08-27T19:51:12Z",
+          "durationMs": 13000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:12Z",
+          "completedAt": "2026-08-27T19:51:46Z",
+          "durationMs": 34000
+        },
+        {
+          "name": "Install ktlint",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:46Z",
+          "completedAt": "2026-08-27T19:51:46Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:46Z",
+          "completedAt": "2026-08-27T19:53:50Z",
+          "durationMs": 124000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:53:50Z",
+          "completedAt": "2026-08-27T19:53:50Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:53:50Z",
+          "completedAt": "2026-08-27T19:53:50Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:53:50Z",
+          "completedAt": "2026-08-27T19:53:52Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Cache Gradle dependencies",
+          "number": 23,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:53:52Z",
+          "completedAt": "2026-08-27T19:53:52Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 24,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:53:52Z",
+          "completedAt": "2026-08-27T19:53:52Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:53:52Z",
+          "completedAt": "2026-08-27T19:53:52Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:53:52Z",
+          "completedAt": "2026-08-27T19:53:53Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:53:53Z",
+          "completedAt": "2026-08-27T19:53:53Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence-java",
+        "startedAt": "2026-08-27T19:50:41.088Z",
+        "finishedAt": "2026-08-27T19:53:50.970Z",
+        "durationMs": 189882,
+        "intervalMs": 5000,
+        "sampleCount": 39,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101212",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 39,
+          "mean": 59.17,
+          "p50": 61.5,
+          "p95": 96.63,
+          "max": 100,
+          "min": 20.47
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 39,
+          "mean": 2.73,
+          "p50": 2.88,
+          "p95": 3.72,
+          "max": 3.99,
+          "min": 1.25
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 39,
+          "mean": 3228057600,
+          "p50": 3014004736,
+          "p95": 4974645248,
+          "max": 5185798144,
+          "min": 1316294656
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 39,
+          "mean": 19.25,
+          "p50": 17.98,
+          "p95": 29.67,
+          "max": 30.93,
+          "min": 7.85
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 39,
+          "mean": 166.46,
+          "p50": 169,
+          "p95": 170,
+          "max": 173,
+          "min": 160
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 39,
+          "mean": 45.17,
+          "p50": 45.13,
+          "p95": 47.96,
+          "max": 47.96,
+          "min": 40.21
+        },
+        "runnerDiskGrowthBytes": 11994607616,
+        "ioReadBytes": 345821184,
+        "ioWriteBytes": 13702557696,
+        "netRxBytes": 8434482838,
+        "netTxBytes": 21482190,
+        "cpuSeconds": 449.4
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091393,
+      "name": "Published metric — formal",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101206",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:21Z",
+      "completedAt": "2026-08-27T19:51:23Z",
+      "queuedMs": 44000,
+      "durationMs": 62000,
+      "billableMs": 0,
+      "weightedMs": 62000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:22Z",
+          "completedAt": "2026-08-27T19:50:23Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:23Z",
+          "completedAt": "2026-08-27T19:50:38Z",
+          "durationMs": 15000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:38Z",
+          "completedAt": "2026-08-27T19:50:39Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:39Z",
+          "completedAt": "2026-08-27T19:50:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:39Z",
+          "completedAt": "2026-08-27T19:50:40Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:40Z",
+          "completedAt": "2026-08-27T19:50:40Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Cache Gradle dependencies",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:40Z",
+          "completedAt": "2026-08-27T19:50:40Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:40Z",
+          "completedAt": "2026-08-27T19:51:13Z",
+          "durationMs": 33000
+        },
+        {
+          "name": "Install ktlint",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:13Z",
+          "completedAt": "2026-08-27T19:51:13Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:13Z",
+          "completedAt": "2026-08-27T19:51:18Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:18Z",
+          "completedAt": "2026-08-27T19:51:18Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:18Z",
+          "completedAt": "2026-08-27T19:51:19Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:19Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 24,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence-java",
+        "startedAt": "2026-08-27T19:50:39.849Z",
+        "finishedAt": "2026-08-27T19:51:19.661Z",
+        "durationMs": 39812,
+        "intervalMs": 5000,
+        "sampleCount": 9,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "INTEL(R) XEON(R) PLATINUM 8573C",
+          "memTotalBytes": 16765374464,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101206",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 8,
+          "mean": 44.92,
+          "p50": 43.89,
+          "p95": 74.87,
+          "max": 74.87,
+          "min": 30.55
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 9,
+          "mean": 1.55,
+          "p50": 1.54,
+          "p95": 1.99,
+          "max": 1.99,
+          "min": 1.11
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 9,
+          "mean": 1769868401.78,
+          "p50": 1892216832,
+          "p95": 2096103424,
+          "max": 2096103424,
+          "min": 1304989696
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 9,
+          "mean": 10.56,
+          "p50": 11.29,
+          "p95": 12.5,
+          "max": 12.5,
+          "min": 7.78
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 9,
+          "mean": 157.33,
+          "p50": 157,
+          "p95": 161,
+          "max": 161,
+          "min": 156
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 9,
+          "mean": 41.06,
+          "p50": 40.98,
+          "p95": 41.94,
+          "max": 41.94,
+          "min": 40.21
+        },
+        "runnerDiskGrowthBytes": 2678132736,
+        "ioReadBytes": 116727808,
+        "ioWriteBytes": 3460435968,
+        "netRxBytes": 1181377052,
+        "netTxBytes": 4400974,
+        "cpuSeconds": 71.5
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091418,
+      "name": "Published metric — kotlin-coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101208",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:23Z",
+      "completedAt": "2026-08-27T19:54:12Z",
+      "queuedMs": 46000,
+      "durationMs": 229000,
+      "billableMs": 0,
+      "weightedMs": 229000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:24Z",
+          "completedAt": "2026-08-27T19:50:26Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:26Z",
+          "completedAt": "2026-08-27T19:50:33Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:33Z",
+          "completedAt": "2026-08-27T19:50:34Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:34Z",
+          "completedAt": "2026-08-27T19:50:35Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:35Z",
+          "completedAt": "2026-08-27T19:50:35Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:35Z",
+          "completedAt": "2026-08-27T19:50:52Z",
+          "durationMs": 17000
+        },
+        {
+          "name": "Cache Gradle dependencies",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:52Z",
+          "completedAt": "2026-08-27T19:51:11Z",
+          "durationMs": 19000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:11Z",
+          "completedAt": "2026-08-27T19:51:46Z",
+          "durationMs": 35000
+        },
+        {
+          "name": "Install ktlint",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:46Z",
+          "completedAt": "2026-08-27T19:51:46Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:46Z",
+          "completedAt": "2026-08-27T19:54:02Z",
+          "durationMs": 136000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:54:02Z",
+          "completedAt": "2026-08-27T19:54:02Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:54:02Z",
+          "completedAt": "2026-08-27T19:54:04Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:54:04Z",
+          "completedAt": "2026-08-27T19:54:07Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Post Cache Gradle dependencies",
+          "number": 23,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:54:07Z",
+          "completedAt": "2026-08-27T19:54:07Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 24,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:54:07Z",
+          "completedAt": "2026-08-27T19:54:08Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:54:08Z",
+          "completedAt": "2026-08-27T19:54:08Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:54:08Z",
+          "completedAt": "2026-08-27T19:54:08Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:54:08Z",
+          "completedAt": "2026-08-27T19:54:08Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence-java",
+        "startedAt": "2026-08-27T19:50:35.047Z",
+        "finishedAt": "2026-08-27T19:54:04.934Z",
+        "durationMs": 209887,
+        "intervalMs": 5000,
+        "sampleCount": 43,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101208",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 42,
+          "mean": 54.97,
+          "p50": 50.07,
+          "p95": 98.29,
+          "max": 98.64,
+          "min": 1.14
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 43,
+          "mean": 2.04,
+          "p50": 2.06,
+          "p95": 2.88,
+          "max": 3.46,
+          "min": 1.25
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 43,
+          "mean": 3089724820.84,
+          "p50": 2584141824,
+          "p95": 4739538944,
+          "max": 4979191808,
+          "min": 1211957248
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 43,
+          "mean": 18.43,
+          "p50": 15.41,
+          "p95": 28.27,
+          "max": 29.7,
+          "min": 7.23
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 43,
+          "mean": 166.51,
+          "p50": 168,
+          "p95": 169,
+          "max": 171,
+          "min": 161
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 43,
+          "mean": 45.2,
+          "p50": 45.13,
+          "p95": 47.95,
+          "max": 47.96,
+          "min": 40.21
+        },
+        "runnerDiskGrowthBytes": 11995054080,
+        "ioReadBytes": 366895104,
+        "ioWriteBytes": 13993120256,
+        "netRxBytes": 8368039716,
+        "netTxBytes": 16166468,
+        "cpuSeconds": 461.5
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091428,
+      "name": "Published metric — flake",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101196",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:49:50Z",
+      "completedAt": "2026-08-27T19:56:00Z",
+      "queuedMs": 13000,
+      "durationMs": 370000,
+      "billableMs": 0,
+      "weightedMs": 370000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:51Z",
+          "completedAt": "2026-08-27T19:49:52Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:52Z",
+          "completedAt": "2026-08-27T19:50:03Z",
+          "durationMs": 11000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:03Z",
+          "completedAt": "2026-08-27T19:50:05Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:05Z",
+          "completedAt": "2026-08-27T19:50:05Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:05Z",
+          "completedAt": "2026-08-27T19:50:39Z",
+          "durationMs": 34000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:39Z",
+          "completedAt": "2026-08-27T19:50:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:39Z",
+          "completedAt": "2026-08-27T19:50:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:39Z",
+          "completedAt": "2026-08-27T19:50:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:39Z",
+          "completedAt": "2026-08-27T19:50:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:39Z",
+          "completedAt": "2026-08-27T19:55:53Z",
+          "durationMs": 314000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:55:53Z",
+          "completedAt": "2026-08-27T19:55:53Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:55:53Z",
+          "completedAt": "2026-08-27T19:55:55Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:55:55Z",
+          "completedAt": "2026-08-27T19:55:57Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:55:57Z",
+          "completedAt": "2026-08-27T19:55:57Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:55:57Z",
+          "completedAt": "2026-08-27T19:55:58Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:55:58Z",
+          "completedAt": "2026-08-27T19:55:58Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:05.293Z",
+        "finishedAt": "2026-08-27T19:55:55.512Z",
+        "durationMs": 350218,
+        "intervalMs": 5000,
+        "sampleCount": 72,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101196",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 71,
+          "mean": 49.23,
+          "p50": 35.43,
+          "p95": 84.82,
+          "max": 87.95,
+          "min": 13.92
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 72,
+          "mean": 2.09,
+          "p50": 2.04,
+          "p95": 3.23,
+          "max": 3.37,
+          "min": 0.77
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 72,
+          "mean": 1832219192.89,
+          "p50": 1846513664,
+          "p95": 2318942208,
+          "max": 2415529984,
+          "min": 1026564096
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 72,
+          "mean": 10.93,
+          "p50": 11.01,
+          "p95": 13.83,
+          "max": 14.41,
+          "min": 6.12
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 72,
+          "mean": 166.9,
+          "p50": 170,
+          "p95": 173,
+          "max": 173,
+          "min": 157
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 72,
+          "mean": 41.82,
+          "p50": 41.94,
+          "p95": 41.94,
+          "max": 41.94,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 2690682880,
+        "ioReadBytes": 407605248,
+        "ioWriteBytes": 3154313216,
+        "netRxBytes": 1179907080,
+        "netTxBytes": 5522978,
+        "cpuSeconds": 689.6
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091433,
+      "name": "Published metric — link-benchmark",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101198",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:00Z",
+      "completedAt": "2026-08-27T19:51:04Z",
+      "queuedMs": 23000,
+      "durationMs": 64000,
+      "billableMs": 0,
+      "weightedMs": 64000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:01Z",
+          "completedAt": "2026-08-27T19:50:01Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:01Z",
+          "completedAt": "2026-08-27T19:50:09Z",
+          "durationMs": 8000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:09Z",
+          "completedAt": "2026-08-27T19:50:09Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:09Z",
+          "completedAt": "2026-08-27T19:50:10Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:10Z",
+          "completedAt": "2026-08-27T19:50:43Z",
+          "durationMs": 33000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:43Z",
+          "completedAt": "2026-08-27T19:50:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:43Z",
+          "completedAt": "2026-08-27T19:50:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:43Z",
+          "completedAt": "2026-08-27T19:50:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:43Z",
+          "completedAt": "2026-08-27T19:50:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:43Z",
+          "completedAt": "2026-08-27T19:51:00Z",
+          "durationMs": 17000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:00Z",
+          "completedAt": "2026-08-27T19:51:00Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:00Z",
+          "completedAt": "2026-08-27T19:51:01Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:01Z",
+          "completedAt": "2026-08-27T19:51:03Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:03Z",
+          "completedAt": "2026-08-27T19:51:03Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:03Z",
+          "completedAt": "2026-08-27T19:51:03Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:03Z",
+          "completedAt": "2026-08-27T19:51:03Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:10.040Z",
+        "finishedAt": "2026-08-27T19:51:01.623Z",
+        "durationMs": 51583,
+        "intervalMs": 5000,
+        "sampleCount": 12,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101198",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 11,
+          "mean": 39.61,
+          "p50": 44.6,
+          "p95": 60.49,
+          "max": 60.49,
+          "min": 7.75
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 12,
+          "mean": 1.31,
+          "p50": 1.34,
+          "p95": 1.49,
+          "max": 1.49,
+          "min": 1.17
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 12,
+          "mean": 1560479061.33,
+          "p50": 1607221248,
+          "p95": 1931755520,
+          "max": 1931755520,
+          "min": 1082974208
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 12,
+          "mean": 9.31,
+          "p50": 9.59,
+          "p95": 11.52,
+          "max": 11.52,
+          "min": 6.46
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 12,
+          "mean": 166.67,
+          "p50": 163,
+          "p95": 181,
+          "max": 181,
+          "min": 163
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 12,
+          "mean": 41.3,
+          "p50": 41.73,
+          "p95": 42.05,
+          "max": 42.05,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 2874150912,
+        "ioReadBytes": 211845120,
+        "ioWriteBytes": 3288416256,
+        "netRxBytes": 1281745715,
+        "netTxBytes": 4725432,
+        "cpuSeconds": 81.7
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091447,
+      "name": "Published metric — provenance",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101205",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:21Z",
+      "completedAt": "2026-08-27T19:51:35Z",
+      "queuedMs": 44000,
+      "durationMs": 74000,
+      "billableMs": 0,
+      "weightedMs": 74000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:22Z",
+          "completedAt": "2026-08-27T19:50:23Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:23Z",
+          "completedAt": "2026-08-27T19:50:30Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:30Z",
+          "completedAt": "2026-08-27T19:50:37Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:37Z",
+          "completedAt": "2026-08-27T19:50:37Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:37Z",
+          "completedAt": "2026-08-27T19:51:08Z",
+          "durationMs": 31000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:08Z",
+          "completedAt": "2026-08-27T19:51:08Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:08Z",
+          "completedAt": "2026-08-27T19:51:08Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:08Z",
+          "completedAt": "2026-08-27T19:51:08Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:08Z",
+          "completedAt": "2026-08-27T19:51:08Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:08Z",
+          "completedAt": "2026-08-27T19:51:30Z",
+          "durationMs": 22000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:30Z",
+          "completedAt": "2026-08-27T19:51:30Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:30Z",
+          "completedAt": "2026-08-27T19:51:31Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:31Z",
+          "completedAt": "2026-08-27T19:51:33Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:33Z",
+          "completedAt": "2026-08-27T19:51:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:33Z",
+          "completedAt": "2026-08-27T19:51:33Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:33Z",
+          "completedAt": "2026-08-27T19:51:33Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:37.297Z",
+        "finishedAt": "2026-08-27T19:51:31.631Z",
+        "durationMs": 54334,
+        "intervalMs": 5000,
+        "sampleCount": 12,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "INTEL(R) XEON(R) PLATINUM 8573C",
+          "memTotalBytes": 16765374464,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101205",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 11,
+          "mean": 37.6,
+          "p50": 37.99,
+          "p95": 58.1,
+          "max": 58.1,
+          "min": 14.67
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 12,
+          "mean": 0.95,
+          "p50": 1.08,
+          "p95": 1.37,
+          "max": 1.37,
+          "min": 0.47
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 12,
+          "mean": 1566172501.33,
+          "p50": 1622384640,
+          "p95": 1920905216,
+          "max": 1920905216,
+          "min": 1060077568
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 12,
+          "mean": 9.34,
+          "p50": 9.68,
+          "p95": 11.46,
+          "max": 11.46,
+          "min": 6.32
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 12,
+          "mean": 153.25,
+          "p50": 152,
+          "p95": 156,
+          "max": 156,
+          "min": 152
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 12,
+          "mean": 41.38,
+          "p50": 41.89,
+          "p95": 42.35,
+          "max": 42.35,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 3334516736,
+        "ioReadBytes": 77451264,
+        "ioWriteBytes": 3383042048,
+        "netRxBytes": 1418837578,
+        "netTxBytes": 7081140,
+        "cpuSeconds": 81.7
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091453,
+      "name": "Published metric — swift-coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000101197",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:49:50Z",
+      "completedAt": "2026-08-27T19:51:38Z",
+      "queuedMs": 13000,
+      "durationMs": 108000,
+      "billableMs": 0,
+      "weightedMs": 1080000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:51Z",
+          "completedAt": "2026-08-27T19:49:52Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:49:52Z",
+          "completedAt": "2026-08-27T19:50:05Z",
+          "durationMs": 13000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:05Z",
+          "completedAt": "2026-08-27T19:50:21Z",
+          "durationMs": 16000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:21Z",
+          "completedAt": "2026-08-27T19:50:22Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:22Z",
+          "completedAt": "2026-08-27T19:50:57Z",
+          "durationMs": 35000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:57Z",
+          "completedAt": "2026-08-27T19:50:57Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:57Z",
+          "completedAt": "2026-08-27T19:50:57Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:57Z",
+          "completedAt": "2026-08-27T19:50:57Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:57Z",
+          "completedAt": "2026-08-27T19:50:57Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:57Z",
+          "completedAt": "2026-08-27T19:51:29Z",
+          "durationMs": 32000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:29Z",
+          "completedAt": "2026-08-27T19:51:29Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:29Z",
+          "completedAt": "2026-08-27T19:51:31Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:31Z",
+          "completedAt": "2026-08-27T19:51:34Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:34Z",
+          "completedAt": "2026-08-27T19:51:34Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:34Z",
+          "completedAt": "2026-08-27T19:51:34Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:34Z",
+          "completedAt": "2026-08-27T19:51:35Z",
+          "durationMs": 1000
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:22.352Z",
+        "finishedAt": "2026-08-27T19:51:32.188Z",
+        "durationMs": 69834,
+        "intervalMs": 5000,
+        "sampleCount": 15,
+        "runner": {
+          "platform": "darwin",
+          "arch": "arm64",
+          "release": "24.6.0",
+          "cpuCount": 3,
+          "cpuModel": "Apple M1 (Virtual)",
+          "memTotalBytes": 7516192768,
+          "osLabel": "macOS",
+          "runnerName": "GitHub Actions 1000101197",
+          "imageOs": "macos15"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 14,
+          "mean": 63.51,
+          "p50": 72.21,
+          "p95": 94.47,
+          "max": 94.47,
+          "min": 32.15
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 15,
+          "mean": 12.13,
+          "p50": 12.33,
+          "p95": 17.07,
+          "max": 17.07,
+          "min": 7.59
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 15,
+          "mean": 6312370722.13,
+          "p50": 6283886592,
+          "p95": 7420985344,
+          "max": 7420985344,
+          "min": 4743069696
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 15,
+          "mean": 83.98,
+          "p50": 83.6,
+          "p95": 98.73,
+          "max": 98.73,
+          "min": 63.1
+        },
+        "procs": null,
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 15,
+          "mean": 86.55,
+          "p50": 86.73,
+          "p95": 86.79,
+          "max": 86.79,
+          "min": 86.14
+        },
+        "runnerDiskGrowthBytes": 2206449664,
+        "ioReadBytes": null,
+        "ioWriteBytes": null,
+        "netRxBytes": null,
+        "netTxBytes": null,
+        "cpuSeconds": 133.1
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091456,
+      "name": "Published metric — kotlin",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101215",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:35Z",
+      "completedAt": "2026-08-27T19:51:42Z",
+      "queuedMs": 58000,
+      "durationMs": 67000,
+      "billableMs": 0,
+      "weightedMs": 67000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:36Z",
+          "completedAt": "2026-08-27T19:50:38Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:38Z",
+          "completedAt": "2026-08-27T19:50:45Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:45Z",
+          "completedAt": "2026-08-27T19:50:50Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:50:50Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:50:50Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:50:50Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Cache Gradle dependencies",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:50:50Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:51:27Z",
+          "durationMs": 37000
+        },
+        {
+          "name": "Install ktlint",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:27Z",
+          "completedAt": "2026-08-27T19:51:28Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:28Z",
+          "completedAt": "2026-08-27T19:51:35Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:35Z",
+          "completedAt": "2026-08-27T19:51:35Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:35Z",
+          "completedAt": "2026-08-27T19:51:36Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:36Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Post Run actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
+          "number": 24,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence-java",
+        "startedAt": "2026-08-27T19:50:50.281Z",
+        "finishedAt": "2026-08-27T19:51:36.854Z",
+        "durationMs": 46573,
+        "intervalMs": 5000,
+        "sampleCount": 11,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766406656,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101215",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 10,
+          "mean": 36.57,
+          "p50": 35.43,
+          "p95": 57.2,
+          "max": 57.2,
+          "min": 8.77
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 11,
+          "mean": 1.41,
+          "p50": 1.38,
+          "p95": 1.6,
+          "max": 1.6,
+          "min": 1.15
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 11,
+          "mean": 1652681634.91,
+          "p50": 1771536384,
+          "p95": 1990275072,
+          "max": 1990275072,
+          "min": 1209987072
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 11,
+          "mean": 9.86,
+          "p50": 10.57,
+          "p95": 11.87,
+          "max": 11.87,
+          "min": 7.22
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 11,
+          "mean": 171.82,
+          "p50": 172,
+          "p95": 173,
+          "max": 173,
+          "min": 170
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 11,
+          "mean": 41.15,
+          "p50": 41.1,
+          "p95": 42.03,
+          "max": 42.03,
+          "min": 40.21
+        },
+        "runnerDiskGrowthBytes": 2815889408,
+        "ioReadBytes": 115703808,
+        "ioWriteBytes": 2927382528,
+        "netRxBytes": 1280161806,
+        "netTxBytes": 4613896,
+        "cpuSeconds": 68.1
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091470,
+      "name": "Published metric — swift-tests",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000101204",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:21Z",
+      "completedAt": "2026-08-27T19:52:18Z",
+      "queuedMs": 44000,
+      "durationMs": 117000,
+      "billableMs": 0,
+      "weightedMs": 1170000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:22Z",
+          "completedAt": "2026-08-27T19:50:23Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:23Z",
+          "completedAt": "2026-08-27T19:50:32Z",
+          "durationMs": 9000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:32Z",
+          "completedAt": "2026-08-27T19:50:50Z",
+          "durationMs": 18000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:50:50Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:51:26Z",
+          "durationMs": 36000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:26Z",
+          "completedAt": "2026-08-27T19:51:26Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:26Z",
+          "completedAt": "2026-08-27T19:51:26Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:26Z",
+          "completedAt": "2026-08-27T19:51:26Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:26Z",
+          "completedAt": "2026-08-27T19:51:26Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:26Z",
+          "completedAt": "2026-08-27T19:52:07Z",
+          "durationMs": 41000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:52:07Z",
+          "completedAt": "2026-08-27T19:52:07Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:52:07Z",
+          "completedAt": "2026-08-27T19:52:10Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:52:10Z",
+          "completedAt": "2026-08-27T19:52:13Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:52:13Z",
+          "completedAt": "2026-08-27T19:52:13Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:52:13Z",
+          "completedAt": "2026-08-27T19:52:14Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:52:14Z",
+          "completedAt": "2026-08-27T19:52:15Z",
+          "durationMs": 1000
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:50.556Z",
+        "finishedAt": "2026-08-27T19:52:10.588Z",
+        "durationMs": 80031,
+        "intervalMs": 5000,
+        "sampleCount": 17,
+        "runner": {
+          "platform": "darwin",
+          "arch": "arm64",
+          "release": "24.6.0",
+          "cpuCount": 3,
+          "cpuModel": "Apple M1 (Virtual)",
+          "memTotalBytes": 7516192768,
+          "osLabel": "macOS",
+          "runnerName": "GitHub Actions 1000101204",
+          "imageOs": "macos15"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 16,
+          "mean": 72.18,
+          "p50": 77.32,
+          "p95": 96.47,
+          "max": 96.47,
+          "min": 47.05
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 17,
+          "mean": 8.68,
+          "p50": 8.99,
+          "p95": 10.08,
+          "max": 10.08,
+          "min": 6.41
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 17,
+          "mean": 6255568293.65,
+          "p50": 5957287936,
+          "p95": 7339933696,
+          "max": 7339933696,
+          "min": 4563124224
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 17,
+          "mean": 83.23,
+          "p50": 79.26,
+          "p95": 97.65,
+          "max": 97.65,
+          "min": 60.71
+        },
+        "procs": null,
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 17,
+          "mean": 86.72,
+          "p50": 86.88,
+          "p95": 86.94,
+          "max": 86.94,
+          "min": 86.3
+        },
+        "runnerDiskGrowthBytes": 2210627584,
+        "ioReadBytes": null,
+        "ioWriteBytes": null,
+        "netRxBytes": null,
+        "netTxBytes": null,
+        "cpuSeconds": 173.3
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091472,
+      "name": "Published metric — codeql-alerts",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101199",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:11Z",
+      "completedAt": "2026-08-27T19:51:01Z",
+      "queuedMs": 34000,
+      "durationMs": 50000,
+      "billableMs": 0,
+      "weightedMs": 50000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:12Z",
+          "completedAt": "2026-08-27T19:50:13Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:13Z",
+          "completedAt": "2026-08-27T19:50:20Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:20Z",
+          "completedAt": "2026-08-27T19:50:22Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:22Z",
+          "completedAt": "2026-08-27T19:50:22Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:22Z",
+          "completedAt": "2026-08-27T19:50:54Z",
+          "durationMs": 32000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:54Z",
+          "completedAt": "2026-08-27T19:50:54Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:54Z",
+          "completedAt": "2026-08-27T19:50:54Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:54Z",
+          "completedAt": "2026-08-27T19:50:54Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:54Z",
+          "completedAt": "2026-08-27T19:50:54Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:54Z",
+          "completedAt": "2026-08-27T19:50:55Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:55Z",
+          "completedAt": "2026-08-27T19:50:55Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:55Z",
+          "completedAt": "2026-08-27T19:50:56Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:56Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:59Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:59Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:59Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:22.409Z",
+        "finishedAt": "2026-08-27T19:50:56.972Z",
+        "durationMs": 34563,
+        "intervalMs": 5000,
+        "sampleCount": 8,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101199",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 8,
+          "mean": 52.19,
+          "p50": 46,
+          "p95": 100,
+          "max": 100,
+          "min": 26.43
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 8,
+          "mean": 1.25,
+          "p50": 1.58,
+          "p95": 1.72,
+          "max": 1.72,
+          "min": 0.25
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 8,
+          "mean": 1651654656,
+          "p50": 1847013376,
+          "p95": 1983434752,
+          "max": 1983434752,
+          "min": 1082294272
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 8,
+          "mean": 9.85,
+          "p50": 11.02,
+          "p95": 11.83,
+          "max": 11.83,
+          "min": 6.46
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 8,
+          "mean": 161.13,
+          "p50": 161,
+          "p95": 162,
+          "max": 162,
+          "min": 161
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 8,
+          "mean": 40.96,
+          "p50": 41.04,
+          "p95": 41.92,
+          "max": 41.92,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 2672930816,
+        "ioReadBytes": 77221888,
+        "ioWriteBytes": 1680228352,
+        "netRxBytes": 1177091542,
+        "netTxBytes": 3855596,
+        "cpuSeconds": 72.2
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091485,
+      "name": "Published metric — visual-regression",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000101218",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:43Z",
+      "completedAt": "2026-08-27T19:51:50Z",
+      "queuedMs": 66000,
+      "durationMs": 67000,
+      "billableMs": 0,
+      "weightedMs": 670000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:44Z",
+          "completedAt": "2026-08-27T19:50:45Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:45Z",
+          "completedAt": "2026-08-27T19:50:52Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:53Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:59Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:59Z",
+          "completedAt": "2026-08-27T19:51:27Z",
+          "durationMs": 28000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:27Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 12000
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:44Z",
+          "durationMs": 5000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:44Z",
+          "completedAt": "2026-08-27T19:51:44Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:44Z",
+          "completedAt": "2026-08-27T19:51:45Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:45Z",
+          "completedAt": "2026-08-27T19:51:47Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:47Z",
+          "completedAt": "2026-08-27T19:51:47Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:47Z",
+          "completedAt": "2026-08-27T19:51:48Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:48Z",
+          "completedAt": "2026-08-27T19:51:49Z",
+          "durationMs": 1000
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:59.737Z",
+        "finishedAt": "2026-08-27T19:51:45.935Z",
+        "durationMs": 46197,
+        "intervalMs": 5000,
+        "sampleCount": 11,
+        "runner": {
+          "platform": "darwin",
+          "arch": "arm64",
+          "release": "24.6.0",
+          "cpuCount": 3,
+          "cpuModel": "Apple M1 (Virtual)",
+          "memTotalBytes": 7516192768,
+          "osLabel": "macOS",
+          "runnerName": "GitHub Actions 1000101218",
+          "imageOs": "macos15"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 10,
+          "mean": 75.22,
+          "p50": 78.82,
+          "p95": 95.81,
+          "max": 95.81,
+          "min": 44.89
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 11,
+          "mean": 4.42,
+          "p50": 4.13,
+          "p95": 5.84,
+          "max": 5.84,
+          "min": 3.03
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 11,
+          "mean": 5982997410.91,
+          "p50": 6486753280,
+          "p95": 7225671680,
+          "max": 7225671680,
+          "min": 4483727360
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 11,
+          "mean": 79.6,
+          "p50": 86.3,
+          "p95": 96.13,
+          "max": 96.13,
+          "min": 59.65
+        },
+        "procs": null,
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 11,
+          "mean": 86.67,
+          "p50": 86.77,
+          "p95": 87,
+          "max": 87,
+          "min": 86.25
+        },
+        "runnerDiskGrowthBytes": 2585231360,
+        "ioReadBytes": null,
+        "ioWriteBytes": null,
+        "netRxBytes": null,
+        "netTxBytes": null,
+        "cpuSeconds": 104.2
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091486,
+      "name": "Published metric — sbom",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101211",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:30Z",
+      "completedAt": "2026-08-27T19:51:27Z",
+      "queuedMs": 53000,
+      "durationMs": 57000,
+      "billableMs": 0,
+      "weightedMs": 57000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:31Z",
+          "completedAt": "2026-08-27T19:50:32Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:32Z",
+          "completedAt": "2026-08-27T19:50:40Z",
+          "durationMs": 8000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:40Z",
+          "completedAt": "2026-08-27T19:50:42Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:42Z",
+          "completedAt": "2026-08-27T19:50:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:42Z",
+          "completedAt": "2026-08-27T19:51:17Z",
+          "durationMs": 35000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:17Z",
+          "completedAt": "2026-08-27T19:51:17Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:17Z",
+          "completedAt": "2026-08-27T19:51:17Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:17Z",
+          "completedAt": "2026-08-27T19:51:17Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:17Z",
+          "completedAt": "2026-08-27T19:51:17Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:17Z",
+          "completedAt": "2026-08-27T19:51:19Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:19Z",
+          "completedAt": "2026-08-27T19:51:19Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:19Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:24Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:24Z",
+          "completedAt": "2026-08-27T19:51:24Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:24Z",
+          "completedAt": "2026-08-27T19:51:24Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:24Z",
+          "completedAt": "2026-08-27T19:51:24Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:42.166Z",
+        "finishedAt": "2026-08-27T19:51:21.975Z",
+        "durationMs": 39809,
+        "intervalMs": 5000,
+        "sampleCount": 9,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101211",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 8,
+          "mean": 39.16,
+          "p50": 37.89,
+          "p95": 60.02,
+          "max": 60.02,
+          "min": 24.63
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 9,
+          "mean": 1.19,
+          "p50": 1.19,
+          "p95": 1.36,
+          "max": 1.36,
+          "min": 1.06
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 9,
+          "mean": 1608470528,
+          "p50": 1764749312,
+          "p95": 1924767744,
+          "max": 1924767744,
+          "min": 1023352832
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 9,
+          "mean": 9.59,
+          "p50": 10.53,
+          "p95": 11.48,
+          "max": 11.48,
+          "min": 6.1
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 9,
+          "mean": 163,
+          "p50": 163,
+          "p95": 163,
+          "max": 163,
+          "min": 163
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 9,
+          "mean": 41.01,
+          "p50": 40.92,
+          "p95": 41.92,
+          "max": 41.92,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 2677837824,
+        "ioReadBytes": 77426688,
+        "ioWriteBytes": 2272034816,
+        "netRxBytes": 1179087531,
+        "netTxBytes": 4977578,
+        "cpuSeconds": 62.4
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091494,
+      "name": "Published metric — audit",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101210",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:26Z",
+      "completedAt": "2026-08-27T19:51:16Z",
+      "queuedMs": 49000,
+      "durationMs": 50000,
+      "billableMs": 0,
+      "weightedMs": 50000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:27Z",
+          "completedAt": "2026-08-27T19:50:27Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:27Z",
+          "completedAt": "2026-08-27T19:50:33Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:33Z",
+          "completedAt": "2026-08-27T19:50:42Z",
+          "durationMs": 9000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:42Z",
+          "completedAt": "2026-08-27T19:50:42Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:42Z",
+          "completedAt": "2026-08-27T19:51:10Z",
+          "durationMs": 28000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:10Z",
+          "completedAt": "2026-08-27T19:51:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:10Z",
+          "completedAt": "2026-08-27T19:51:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:10Z",
+          "completedAt": "2026-08-27T19:51:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:10Z",
+          "completedAt": "2026-08-27T19:51:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:10Z",
+          "completedAt": "2026-08-27T19:51:12Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:12Z",
+          "completedAt": "2026-08-27T19:51:12Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:12Z",
+          "completedAt": "2026-08-27T19:51:12Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:12Z",
+          "completedAt": "2026-08-27T19:51:14Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:14Z",
+          "completedAt": "2026-08-27T19:51:14Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:14Z",
+          "completedAt": "2026-08-27T19:51:14Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:14Z",
+          "completedAt": "2026-08-27T19:51:14Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:42.182Z",
+        "finishedAt": "2026-08-27T19:51:13.228Z",
+        "durationMs": 31045,
+        "intervalMs": 5000,
+        "sampleCount": 8,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101210",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 7,
+          "mean": 44.21,
+          "p50": 48.31,
+          "p95": 65.16,
+          "max": 65.16,
+          "min": 15.35
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 8,
+          "mean": 1.22,
+          "p50": 1.45,
+          "p95": 1.61,
+          "max": 1.61,
+          "min": 0.7
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 8,
+          "mean": 1732653056,
+          "p50": 1863430144,
+          "p95": 2058289152,
+          "max": 2058289152,
+          "min": 1262030848
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 8,
+          "mean": 10.33,
+          "p50": 11.11,
+          "p95": 12.28,
+          "max": 12.28,
+          "min": 7.53
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 8,
+          "mean": 161.5,
+          "p50": 161,
+          "p95": 165,
+          "max": 165,
+          "min": 161
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 8,
+          "mean": 41.02,
+          "p50": 41.12,
+          "p95": 41.92,
+          "max": 41.92,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 2672971776,
+        "ioReadBytes": 77316096,
+        "ioWriteBytes": 2869354496,
+        "netRxBytes": 1177318202,
+        "netTxBytes": 4148834,
+        "cpuSeconds": 54.9
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091514,
+      "name": "Published metric — rust-fuzz",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101203",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:18Z",
+      "completedAt": "2026-08-27T19:51:54Z",
+      "queuedMs": 41000,
+      "durationMs": 96000,
+      "billableMs": 0,
+      "weightedMs": 96000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:18Z",
+          "completedAt": "2026-08-27T19:50:19Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:19Z",
+          "completedAt": "2026-08-27T19:50:27Z",
+          "durationMs": 8000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:27Z",
+          "completedAt": "2026-08-27T19:50:29Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:29Z",
+          "completedAt": "2026-08-27T19:50:29Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:29Z",
+          "completedAt": "2026-08-27T19:50:49Z",
+          "durationMs": 20000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:49Z",
+          "completedAt": "2026-08-27T19:50:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:49Z",
+          "completedAt": "2026-08-27T19:50:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:50:49Z",
+          "completedAt": "2026-08-27T19:50:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:49Z",
+          "completedAt": "2026-08-27T19:51:15Z",
+          "durationMs": 26000
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:15Z",
+          "completedAt": "2026-08-27T19:51:48Z",
+          "durationMs": 33000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:48Z",
+          "completedAt": "2026-08-27T19:51:48Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:48Z",
+          "completedAt": "2026-08-27T19:51:49Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:49Z",
+          "completedAt": "2026-08-27T19:51:51Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:51Z",
+          "completedAt": "2026-08-27T19:51:51Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:51Z",
+          "completedAt": "2026-08-27T19:51:51Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:51Z",
+          "completedAt": "2026-08-27T19:51:51Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:29.233Z",
+        "finishedAt": "2026-08-27T19:51:49.625Z",
+        "durationMs": 80392,
+        "intervalMs": 5000,
+        "sampleCount": 18,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V45 96-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101203",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 17,
+          "mean": 59.73,
+          "p50": 54.83,
+          "p95": 97.57,
+          "max": 97.57,
+          "min": 7.19
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 18,
+          "mean": 1.57,
+          "p50": 1.79,
+          "p95": 2.54,
+          "max": 2.54,
+          "min": 0.36
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 18,
+          "mean": 1650028544,
+          "p50": 1666277376,
+          "p95": 2154770432,
+          "max": 2154770432,
+          "min": 1085181952
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 18,
+          "mean": 9.84,
+          "p50": 9.94,
+          "p95": 12.85,
+          "max": 12.85,
+          "min": 6.47
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 18,
+          "mean": 154.83,
+          "p50": 152,
+          "p95": 164,
+          "max": 164,
+          "min": 149
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 18,
+          "mean": 42.33,
+          "p50": 42.81,
+          "p95": 43.15,
+          "max": 43.15,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 4582666240,
+        "ioReadBytes": 550092800,
+        "ioWriteBytes": 4679266304,
+        "netRxBytes": 1733923382,
+        "netTxBytes": 6709562,
+        "cpuSeconds": 192.1
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091515,
+      "name": "Published metric — hotspots",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101219",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:44Z",
+      "completedAt": "2026-08-27T19:51:42Z",
+      "queuedMs": 67000,
+      "durationMs": 58000,
+      "billableMs": 0,
+      "weightedMs": 58000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:45Z",
+          "completedAt": "2026-08-27T19:50:45Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:45Z",
+          "completedAt": "2026-08-27T19:50:52Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:52Z",
+          "completedAt": "2026-08-27T19:50:53Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:53Z",
+          "completedAt": "2026-08-27T19:50:53Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:53Z",
+          "completedAt": "2026-08-27T19:51:24Z",
+          "durationMs": 31000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:24Z",
+          "completedAt": "2026-08-27T19:51:24Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:24Z",
+          "completedAt": "2026-08-27T19:51:24Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:24Z",
+          "completedAt": "2026-08-27T19:51:26Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:26Z",
+          "completedAt": "2026-08-27T19:51:26Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:26Z",
+          "completedAt": "2026-08-27T19:51:38Z",
+          "durationMs": 12000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:38Z",
+          "completedAt": "2026-08-27T19:51:38Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:38Z",
+          "completedAt": "2026-08-27T19:51:39Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:39Z",
+          "completedAt": "2026-08-27T19:51:40Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:40Z",
+          "completedAt": "2026-08-27T19:51:41Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:41Z",
+          "completedAt": "2026-08-27T19:51:41Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:41Z",
+          "completedAt": "2026-08-27T19:51:41Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:53.407Z",
+        "finishedAt": "2026-08-27T19:51:39.482Z",
+        "durationMs": 46075,
+        "intervalMs": 5000,
+        "sampleCount": 11,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766410752,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101219",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 11,
+          "mean": 45.12,
+          "p50": 45.58,
+          "p95": 100,
+          "max": 100,
+          "min": 22.66
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 11,
+          "mean": 1.65,
+          "p50": 1.67,
+          "p95": 1.77,
+          "max": 1.77,
+          "min": 1.52
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 11,
+          "mean": 1804693876.36,
+          "p50": 1719672832,
+          "p95": 2223222784,
+          "max": 2223222784,
+          "min": 1402699776
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 11,
+          "mean": 10.76,
+          "p50": 10.26,
+          "p95": 13.26,
+          "max": 13.26,
+          "min": 8.37
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 11,
+          "mean": 164.09,
+          "p50": 163,
+          "p95": 167,
+          "max": 167,
+          "min": 162
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 11,
+          "mean": 41.25,
+          "p50": 41.47,
+          "p95": 41.92,
+          "max": 41.92,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 2674905088,
+        "ioReadBytes": 132182016,
+        "ioWriteBytes": 2579079168,
+        "netRxBytes": 1177750584,
+        "netTxBytes": 4180208,
+        "cpuSeconds": 83.2
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091522,
+      "name": "Published metric — swift",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000101221",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:49Z",
+      "completedAt": "2026-08-27T19:52:02Z",
+      "queuedMs": 72000,
+      "durationMs": 73000,
+      "billableMs": 0,
+      "weightedMs": 730000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:50:51Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:51Z",
+          "completedAt": "2026-08-27T19:51:00Z",
+          "durationMs": 9000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:00Z",
+          "completedAt": "2026-08-27T19:51:16Z",
+          "durationMs": 16000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:16Z",
+          "completedAt": "2026-08-27T19:51:17Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:17Z",
+          "completedAt": "2026-08-27T19:51:44Z",
+          "durationMs": 27000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:44Z",
+          "completedAt": "2026-08-27T19:51:44Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:44Z",
+          "completedAt": "2026-08-27T19:51:51Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:51Z",
+          "completedAt": "2026-08-27T19:51:51Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:51Z",
+          "completedAt": "2026-08-27T19:51:51Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:51Z",
+          "completedAt": "2026-08-27T19:51:54Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:54Z",
+          "completedAt": "2026-08-27T19:51:54Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:54Z",
+          "completedAt": "2026-08-27T19:51:56Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:56Z",
+          "completedAt": "2026-08-27T19:51:58Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:58Z",
+          "completedAt": "2026-08-27T19:51:58Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:58Z",
+          "completedAt": "2026-08-27T19:51:59Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:59Z",
+          "completedAt": "2026-08-27T19:52:00Z",
+          "durationMs": 1000
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:51:17.170Z",
+        "finishedAt": "2026-08-27T19:51:56.395Z",
+        "durationMs": 39224,
+        "intervalMs": 5000,
+        "sampleCount": 9,
+        "runner": {
+          "platform": "darwin",
+          "arch": "arm64",
+          "release": "24.6.0",
+          "cpuCount": 3,
+          "cpuModel": "Apple M1 (Virtual)",
+          "memTotalBytes": 7516192768,
+          "osLabel": "macOS",
+          "runnerName": "GitHub Actions 1000101221",
+          "imageOs": "macos15"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 8,
+          "mean": 69.63,
+          "p50": 78.7,
+          "p95": 86.37,
+          "max": 86.37,
+          "min": 45.02
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 9,
+          "mean": 8.07,
+          "p50": 7.92,
+          "p95": 9.43,
+          "max": 9.43,
+          "min": 6.98
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 9,
+          "mean": 6314772252.44,
+          "p50": 7174733824,
+          "p95": 7327989760,
+          "max": 7327989760,
+          "min": 4567695360
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 9,
+          "mean": 84.02,
+          "p50": 95.46,
+          "p95": 97.5,
+          "max": 97.5,
+          "min": 60.77
+        },
+        "procs": null,
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 9,
+          "mean": 86.48,
+          "p50": 86.47,
+          "p95": 86.8,
+          "max": 86.8,
+          "min": 86.16
+        },
+        "runnerDiskGrowthBytes": 2182238208,
+        "ioReadBytes": null,
+        "ioWriteBytes": null,
+        "netRxBytes": null,
+        "netTxBytes": null,
+        "cpuSeconds": 81.9
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091523,
+      "name": "Published metric — miniapp-benchmark",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101222",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:48Z",
+      "completedAt": "2026-08-27T19:51:46Z",
+      "queuedMs": 71000,
+      "durationMs": 58000,
+      "billableMs": 0,
+      "weightedMs": 58000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:49Z",
+          "completedAt": "2026-08-27T19:50:50Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:50Z",
+          "completedAt": "2026-08-27T19:50:57Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:57Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:59Z",
+          "completedAt": "2026-08-27T19:50:59Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:59Z",
+          "completedAt": "2026-08-27T19:51:36Z",
+          "durationMs": 37000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:36Z",
+          "completedAt": "2026-08-27T19:51:36Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:36Z",
+          "completedAt": "2026-08-27T19:51:36Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:36Z",
+          "completedAt": "2026-08-27T19:51:36Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:36Z",
+          "completedAt": "2026-08-27T19:51:36Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:36Z",
+          "completedAt": "2026-08-27T19:51:40Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:40Z",
+          "completedAt": "2026-08-27T19:51:40Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:40Z",
+          "completedAt": "2026-08-27T19:51:41Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:41Z",
+          "completedAt": "2026-08-27T19:51:43Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:43Z",
+          "completedAt": "2026-08-27T19:51:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:43Z",
+          "completedAt": "2026-08-27T19:51:44Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:44Z",
+          "completedAt": "2026-08-27T19:51:44Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:59.124Z",
+        "finishedAt": "2026-08-27T19:51:41.951Z",
+        "durationMs": 42827,
+        "intervalMs": 5000,
+        "sampleCount": 10,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101222",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 10,
+          "mean": 36.77,
+          "p50": 37.41,
+          "p95": 62.49,
+          "max": 62.49,
+          "min": 0
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 10,
+          "mean": 0.61,
+          "p50": 0.71,
+          "p95": 0.94,
+          "max": 0.94,
+          "min": 0.15
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 10,
+          "mean": 1617168793.6,
+          "p50": 1857859584,
+          "p95": 1944793088,
+          "max": 1944793088,
+          "min": 1118167040
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 10,
+          "mean": 9.64,
+          "p50": 11.08,
+          "p95": 11.6,
+          "max": 11.6,
+          "min": 6.67
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 10,
+          "mean": 153.6,
+          "p50": 153,
+          "p95": 156,
+          "max": 156,
+          "min": 153
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 10,
+          "mean": 41.07,
+          "p50": 41.14,
+          "p95": 41.93,
+          "max": 41.93,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 2690908160,
+        "ioReadBytes": 77250560,
+        "ioWriteBytes": 1869774848,
+        "netRxBytes": 1178545344,
+        "netTxBytes": 3987696,
+        "cpuSeconds": 63
+      },
+      "matrix": null
+    },
+    {
+      "id": 98651091532,
+      "name": "Published metric — benchmark",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101217",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:49:37Z",
+      "startedAt": "2026-08-27T19:50:40Z",
+      "completedAt": "2026-08-27T19:51:33Z",
+      "queuedMs": 63000,
+      "durationMs": 53000,
+      "billableMs": 0,
+      "weightedMs": 53000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:41Z",
+          "completedAt": "2026-08-27T19:50:42Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:42Z",
+          "completedAt": "2026-08-27T19:50:48Z",
+          "durationMs": 6000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:48Z",
+          "completedAt": "2026-08-27T19:50:49Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:49Z",
+          "completedAt": "2026-08-27T19:50:49Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:50:49Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 32000
+        },
+        {
+          "name": "Install Chromium",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install SwiftLint",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install lizard",
+          "number": 8,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Install the fuzzing toolchain",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:21Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run metric-producing gate",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:21Z",
+          "completedAt": "2026-08-27T19:51:29Z",
+          "durationMs": 8000
+        },
+        {
+          "name": "Stage metric evidence with repository-relative paths",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:29Z",
+          "completedAt": "2026-08-27T19:51:29Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:29Z",
+          "completedAt": "2026-08-27T19:51:30Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:30Z",
+          "completedAt": "2026-08-27T19:51:31Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 25,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:31Z",
+          "completedAt": "2026-08-27T19:51:31Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 26,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:31Z",
+          "completedAt": "2026-08-27T19:51:32Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 27,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:51:32Z",
+          "completedAt": "2026-08-27T19:51:32Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "static-analysis-evidence",
+        "startedAt": "2026-08-27T19:50:49.701Z",
+        "finishedAt": "2026-08-27T19:51:30.518Z",
+        "durationMs": 40817,
+        "intervalMs": 5000,
+        "sampleCount": 10,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101217",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 9,
+          "mean": 43.9,
+          "p50": 45.39,
+          "p95": 64.25,
+          "max": 64.25,
+          "min": 14.24
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 10,
+          "mean": 0.87,
+          "p50": 0.87,
+          "p95": 1.44,
+          "max": 1.44,
+          "min": 0.35
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 10,
+          "mean": 1573994086.4,
+          "p50": 1796050944,
+          "p95": 1989980160,
+          "max": 1989980160,
+          "min": 1063915520
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 10,
+          "mean": 9.39,
+          "p50": 10.71,
+          "p95": 11.87,
+          "max": 11.87,
+          "min": 6.35
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 10,
+          "mean": 162.5,
+          "p50": 162,
+          "p95": 166,
+          "max": 166,
+          "min": 162
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 10,
+          "mean": 41.18,
+          "p50": 41.49,
+          "p95": 41.93,
+          "max": 41.93,
+          "min": 40.19
+        },
+        "runnerDiskGrowthBytes": 2690609152,
+        "ioReadBytes": 77230080,
+        "ioWriteBytes": 1895731200,
+        "netRxBytes": 1176385850,
+        "netTxBytes": 3920334,
+        "cpuSeconds": 71.7
+      },
+      "matrix": null
+    },
+    {
+      "id": 98652902435,
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101280",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T19:56:00Z",
+      "startedAt": "2026-08-27T19:56:03Z",
+      "completedAt": "2026-08-27T20:21:55Z",
+      "queuedMs": 3000,
+      "durationMs": 1552000,
+      "billableMs": 0,
+      "weightedMs": 1552000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:56:04Z",
+          "completedAt": "2026-08-27T19:56:06Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:56:06Z",
+          "completedAt": "2026-08-27T19:56:13Z",
+          "durationMs": 7000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:56:13Z",
+          "completedAt": "2026-08-27T19:56:14Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:56:14Z",
+          "completedAt": "2026-08-27T19:56:14Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run npm ci",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:56:14Z",
+          "completedAt": "2026-08-27T19:56:50Z",
+          "durationMs": 36000
+        },
+        {
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:56:50Z",
+          "completedAt": "2026-08-27T19:56:51Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Install static-analysis tools",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:56:51Z",
+          "completedAt": "2026-08-27T19:59:36Z",
+          "durationMs": 165000
+        },
+        {
+          "name": "Resolve gates deferred off the publish path",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:59:36Z",
+          "completedAt": "2026-08-27T19:59:37Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run checks and capture reports",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T19:59:37Z",
+          "completedAt": "2026-08-27T20:20:14Z",
+          "durationMs": 1237000
+        },
+        {
+          "name": "Fetch the CI telemetry history",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:20:14Z",
+          "completedAt": "2026-08-27T20:20:18Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Build documentation site",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:20:18Z",
+          "completedAt": "2026-08-27T20:21:43Z",
+          "durationMs": 85000
+        },
+        {
+          "name": "Verify the generated site, including screenshots",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:21:43Z",
+          "completedAt": "2026-08-27T20:21:44Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:21:44Z",
+          "completedAt": "2026-08-27T20:21:48Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "number": 14,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:21:48Z",
+          "completedAt": "2026-08-27T20:21:50Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 15,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:21:50Z",
+          "completedAt": "2026-08-27T20:21:52Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 29,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:21:52Z",
+          "completedAt": "2026-08-27T20:21:52Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 30,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:21:52Z",
+          "completedAt": "2026-08-27T20:21:53Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 31,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:21:53Z",
+          "completedAt": "2026-08-27T20:21:53Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "build",
+        "startedAt": "2026-08-27T19:56:14.407Z",
+        "finishedAt": "2026-08-27T20:21:50.761Z",
+        "durationMs": 1536354,
+        "intervalMs": 5000,
+        "sampleCount": 309,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766406656,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101280",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 309,
+          "mean": 58.8,
+          "p50": 58.96,
+          "p95": 95.91,
+          "max": 100,
+          "min": 0.4
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 309,
+          "mean": 2.68,
+          "p50": 2.74,
+          "p95": 3.99,
+          "max": 4.31,
+          "min": 0.54
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 309,
+          "mean": 1897609858.9,
+          "p50": 1866792960,
+          "p95": 2823843840,
+          "max": 4612395008,
+          "min": 1169838080
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 309,
+          "mean": 11.32,
+          "p50": 11.13,
+          "p95": 16.84,
+          "max": 27.51,
+          "min": 6.98
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 309,
+          "mean": 167.26,
+          "p50": 167,
+          "p95": 175,
+          "max": 179,
+          "min": 148
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 309,
+          "mean": 43.34,
+          "p50": 43.19,
+          "p95": 44.85,
+          "max": 45.09,
+          "min": 40.2
+        },
+        "runnerDiskGrowthBytes": 7575085056,
+        "ioReadBytes": 1205124096,
+        "ioWriteBytes": 10873041408,
+        "netRxBytes": 2716335564,
+        "netTxBytes": 82201867,
+        "cpuSeconds": 3613.5
+      },
+      "matrix": null
+    },
+    {
+      "id": 98660244727,
+      "name": "freshness",
+      "status": "completed",
+      "conclusion": "failure",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101395",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T20:21:55Z",
+      "startedAt": "2026-08-27T20:21:57Z",
+      "completedAt": "2026-08-27T20:22:02Z",
+      "queuedMs": 2000,
+      "durationMs": 5000,
+      "billableMs": 0,
+      "weightedMs": 5000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:21:58Z",
+          "completedAt": "2026-08-27T20:21:59Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Refuse to deploy a superseded main build",
+          "number": 2,
+          "conclusion": "failure",
+          "startedAt": "2026-08-27T20:21:59Z",
+          "completedAt": "2026-08-27T20:22:00Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:00Z",
+          "completedAt": "2026-08-27T20:22:00Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 98660278097,
+      "name": "record-gate-results",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000101396",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T20:22:02Z",
+      "startedAt": "2026-08-27T20:22:04Z",
+      "completedAt": "2026-08-27T20:22:19Z",
+      "queuedMs": 2000,
+      "durationMs": 15000,
+      "billableMs": 0,
+      "weightedMs": 15000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:05Z",
+          "completedAt": "2026-08-27T20:22:07Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:07Z",
+          "completedAt": "2026-08-27T20:22:10Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:10Z",
+          "completedAt": "2026-08-27T20:22:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:10Z",
+          "completedAt": "2026-08-27T20:22:11Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:11Z",
+          "completedAt": "2026-08-27T20:22:12Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Note that the build measured nothing",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-27T20:22:12Z",
+          "completedAt": "2026-08-27T20:22:12Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Record what CI measured in checks.json",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:12Z",
+          "completedAt": "2026-08-27T20:22:12Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Commit the record when it changed",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:12Z",
+          "completedAt": "2026-08-27T20:22:14Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:14Z",
+          "completedAt": "2026-08-27T20:22:16Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 17,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:16Z",
+          "completedAt": "2026-08-27T20:22:16Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 18,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:16Z",
+          "completedAt": "2026-08-27T20:22:17Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 19,
+          "conclusion": "success",
+          "startedAt": "2026-08-27T20:22:17Z",
+          "completedAt": "2026-08-27T20:22:17Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "record-gate-results",
+        "startedAt": "2026-08-27T20:22:11.018Z",
+        "finishedAt": "2026-08-27T20:22:14.530Z",
+        "durationMs": 3511,
+        "intervalMs": 5000,
+        "sampleCount": 2,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000101396",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 2,
+          "mean": 55.99,
+          "p50": 100,
+          "p95": 100,
+          "max": 100,
+          "min": 11.97
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 2,
+          "mean": 0.27,
+          "p50": 0.27,
+          "p95": 0.27,
+          "max": 0.27,
+          "min": 0.27
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 2,
+          "mean": 1058076672,
+          "p50": 1069293568,
+          "p95": 1069293568,
+          "max": 1069293568,
+          "min": 1046859776
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 2,
+          "mean": 6.31,
+          "p50": 6.38,
+          "p95": 6.38,
+          "max": 6.38,
+          "min": 6.24
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 2,
+          "mean": 159.5,
+          "p50": 160,
+          "p95": 160,
+          "max": 160,
+          "min": 159
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 2,
+          "mean": 40.17,
+          "p50": 40.18,
+          "p95": 40.18,
+          "max": 40.18,
+          "min": 40.16
+        },
+        "runnerDiskGrowthBytes": 37302272,
+        "ioReadBytes": 2023424,
+        "ioWriteBytes": 9691136,
+        "netRxBytes": 8732058,
+        "netTxBytes": 262624,
+        "cpuSeconds": 7.9
+      },
+      "matrix": null
+    },
+    {
+      "id": 98660278909,
+      "name": "deploy",
+      "status": "completed",
+      "conclusion": "skipped",
+      "runnerOs": "UBUNTU",
+      "runnerName": null,
+      "runnerGroup": null,
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T20:22:02Z",
+      "startedAt": "2026-08-27T20:22:02Z",
+      "completedAt": "2026-08-27T20:22:02Z",
+      "queuedMs": 0,
+      "durationMs": 0,
+      "billableMs": 0,
+      "weightedMs": 0,
+      "attempt": 1,
+      "steps": [],
+      "resources": null,
+      "matrix": null
+    },
+    {
+      "id": 98660279568,
+      "name": "verify-deployment",
+      "status": "completed",
+      "conclusion": "skipped",
+      "runnerOs": "UBUNTU",
+      "runnerName": null,
+      "runnerGroup": null,
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-27T20:22:02Z",
+      "startedAt": "2026-08-27T20:22:02Z",
+      "completedAt": "2026-08-27T20:22:02Z",
+      "queuedMs": 0,
+      "durationMs": 0,
+      "billableMs": 0,
+      "weightedMs": 0,
+      "attempt": 1,
+      "steps": [],
+      "resources": null,
+      "matrix": null
+    }
+  ]
+}
