@@ -29,6 +29,11 @@ import {
   textNode,
   widgetButton,
 } from "../src/runtime-render.js";
+import {
+  SEED_BROKER_BATCH_SIZE,
+  SEED_BROKER_PAUSE_MS,
+  writeSeedsWithinBrokerBudget,
+} from "../src/runtime-seeds.js";
 
 /**
  * `CATALOG` is injected above the runtime in the generated bundle, so on its
@@ -118,6 +123,41 @@ describe("chapterMatchesSearch", () => {
     expect(chapterMatchesSearch({ id: "intro", title: "Intro" }, "intro")).toBe(
       true,
     );
+  });
+});
+
+describe("Handbook workspace seeding", () => {
+  it("paces generated writes below the broker's per-second message budget", async () => {
+    const seeds = Array.from(
+      { length: SEED_BROKER_BATCH_SIZE * 2 + 13 },
+      (_, index) => ({ path: `seed-${index}`, content: String(index) }),
+    );
+    const batches = [];
+    const writes = [];
+    let writesSincePause = 0;
+
+    await writeSeedsWithinBrokerBudget(
+      seeds,
+      async (path, content) => {
+        writes.push([path, content]);
+        writesSincePause += 1;
+      },
+      async (delayMs) => {
+        batches.push({ delayMs, writes: writesSincePause });
+        writesSincePause = 0;
+      },
+    );
+
+    expect(batches).toEqual([
+      { delayMs: SEED_BROKER_PAUSE_MS, writes: SEED_BROKER_BATCH_SIZE },
+      { delayMs: SEED_BROKER_PAUSE_MS, writes: SEED_BROKER_BATCH_SIZE },
+    ]);
+    expect(writesSincePause).toBe(13);
+    expect(writes).toHaveLength(seeds.length);
+    expect(writes.at(-1)).toEqual([
+      `seed-${seeds.length - 1}`,
+      String(seeds.length - 1),
+    ]);
   });
 });
 

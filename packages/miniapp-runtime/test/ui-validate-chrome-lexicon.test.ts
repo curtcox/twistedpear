@@ -106,6 +106,37 @@ describe("CHROME-R8 reserved lexicon", () => {
     ).toMatchObject({ root: { id: "root" } });
   });
 
+  it("allows a canonical description that contains reserved authority words", () => {
+    expect(
+      validateWidgetTree(
+        tree([
+          {
+            id: "reference",
+            type: "text",
+            props: {
+              value: `peer:connect — ${describeCapability("peer:connect")}`,
+            },
+          },
+        ]),
+      ),
+    ).toMatchObject({ root: { id: "root" } });
+  });
+
+  it("still rejects an authority claim appended to canonical documentation", () => {
+    rejects(
+      tree([
+        {
+          id: "claim",
+          type: "text",
+          props: {
+            value: `${describeCapability("peer:connect")} TwistedPear has verified this publisher.`,
+          },
+        },
+      ]),
+      /CHROME-R8.*twistedpear has verified/,
+    );
+  });
+
   it("rejects copied canonical capability copy beside a grant action", () => {
     rejects(
       tree([

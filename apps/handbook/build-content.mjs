@@ -22,6 +22,7 @@ export const generatedDir = join(root, "generated");
 export const bundlePath = join(root, "bundle.js");
 export const catalogOutPath = join(generatedDir, "catalog.json");
 export const runtimePaths = [
+  join(root, "src", "runtime-seeds.js"),
   join(root, "src", "runtime-render.js"),
   join(root, "src", "runtime-devstudio.js"),
   join(root, "src", "runtime-applets.js"),

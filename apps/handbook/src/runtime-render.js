@@ -162,9 +162,14 @@ async function ensureSeeds() {
 
   seeding = true;
   try {
-    for (const seed of CATALOG.seeds) {
-      await workspace.write(seed.path, seed.content);
-    }
+    await writeSeedsWithinBrokerBudget(
+      CATALOG.seeds,
+      (path, content) => workspace.write(path, content),
+      (delayMs) =>
+        new Promise((resolve) => {
+          setTimeout(resolve, delayMs);
+        }),
+    );
     await kvSetText(SEEDED_KEY, "1");
     await kvSetText(SEED_VERSION_KEY, CATALOG.version);
   } finally {

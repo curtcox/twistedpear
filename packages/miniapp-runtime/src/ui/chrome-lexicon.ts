@@ -89,7 +89,10 @@ function visitChrome(node: WidgetNode): string | null {
     if (secret !== null) {
       return `CHROME-R9 secret solicitation: ${secret}`;
     }
-    const claim = matchAny(text, AUTHORITY_CLAIMS);
+    const claim = matchAny(
+      withoutCanonicalCapabilityDescriptions(text),
+      AUTHORITY_CLAIMS,
+    );
     if (claim !== null) {
       return `CHROME-R8 reserved lexicon: ${claim}`;
     }
@@ -102,6 +105,14 @@ function visitChrome(node: WidgetNode): string | null {
     if (nested !== null) return nested;
   }
   return null;
+}
+
+function withoutCanonicalCapabilityDescriptions(text: string): string {
+  let remainder = text;
+  for (const description of capabilityDescriptions()) {
+    remainder = remainder.replaceAll(description, " ");
+  }
+  return normalize(remainder);
 }
 
 function containsCanonicalCapabilityDescription(node: WidgetNode): boolean {

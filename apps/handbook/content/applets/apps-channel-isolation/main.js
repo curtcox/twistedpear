@@ -49,7 +49,10 @@ export async function run(sdk, report) {
     return;
   }
 
-  if (code === "CHANNEL_PEER_NOT_RUNNING") {
+  if (
+    code === "CHANNEL_PEER_NOT_RUNNING" ||
+    /^Mini-app \"[^\"]+\" is not running\.$/.test(err.message)
+  ) {
     report({
       status: "pass",
       details: "Missing destination was rejected before confirmation.",

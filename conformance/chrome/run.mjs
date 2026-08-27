@@ -293,7 +293,9 @@ try {
     root: {
       id: "reference",
       type: "text",
-      props: { value: describeCapability("lxmf:send") },
+      props: {
+        value: `peer:connect — ${describeCapability("peer:connect")}`,
+      },
     },
   });
   check("CHROME-R8", "capability reference copy is allowed", true);
