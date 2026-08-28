@@ -1,0 +1,14 @@
+Resource sampling: 89/93 workflow jobs instrumented.
+  waived  ci-telemetry.yml#collect — The collector. Measuring the measurement would add a run to the store on every run of the store's own writer.
+  waived  ci.yml#simulation-replay-compare — Consumes artifacts from simulation-replay and never checks out the repository, so the sampler is not on disk.
+  waived  pages.yml#deploy — Calls actions/deploy-pages and nothing else; there is no checkout and no workload to sample.
+  waived  pages.yml#freshness — A single github-script call comparing SHAs; no checkout, and nothing to measure.
+
+ RUN  v4.1.11 /Users/curt/me/twistedpear
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  08:51:59
+   Duration  226ms (transform 10ms, setup 0ms, import 15ms, tests 133ms, environment 0ms)
+

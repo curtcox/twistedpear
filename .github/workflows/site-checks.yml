@@ -18,6 +18,11 @@ jobs:
   reported-checks:
     runs-on: ubuntu-latest
     steps:
+      # The telemetry actions below are local (`./.github/actions/...`), and a
+      # local action cannot be resolved in an empty workspace: without this the
+      # job failed on every run with "Can't find action.yml ... Did you forget
+      # to run actions/checkout".
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - id: fetch
         continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8

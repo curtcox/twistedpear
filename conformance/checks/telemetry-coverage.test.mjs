@@ -40,6 +40,18 @@ describe("CI telemetry coverage", () => {
     ).toEqual([]);
   });
 
+  it("refuses a job that resolves a local action with no workspace", () => {
+    // site-checks.yml#reported-checks carried both telemetry steps and no
+    // checkout, so it counted as instrumented here and failed on every run for
+    // two weeks with "Can't find action.yml". A waiver excuses a job from being
+    // sampled; nothing excuses an action that cannot resolve.
+    const { unresolvable } = coverage();
+    expect(
+      unresolvable.map((row) => row.key),
+      "add a SHA-pinned actions/checkout as the first step of these jobs",
+    ).toEqual([]);
+  });
+
   it("keeps a reason against every waiver", () => {
     for (const [key, reason] of Object.entries(waivers.jobs ?? {})) {
       expect(reason, `${key} is waived without a reason`).toBeTruthy();

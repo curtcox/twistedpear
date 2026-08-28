@@ -414,8 +414,13 @@
     "BUG-SITE-CHECKS-CHECKOUT": {
       "type": "bug",
       "requires": [],
-      "verify": "npm run actionlint",
+      "verify": "npm run ci:telemetry-coverage -- --check && npm run actionlint && npx vitest run conformance/checks/telemetry-coverage.test.mjs",
       "added": "2026-08-27",
+      "completed": "2026-08-28",
+      "evidence": [
+        ".github/workflows/site-checks.yml",
+        "conformance/checks/telemetry-coverage.test.mjs"
+      ],
       "notes": "The reported-checks job in .github/workflows/site-checks.yml fails on every run: 'Can't find action.yml, action.yaml or Dockerfile under .github/actions/telemetry-start. Did you forget to run actions/checkout before running your local action?'. The job uses ./.github/actions/telemetry-start and ./.github/actions/telemetry-finish, both committed, but has no actions/checkout step, so the workspace is empty when the action is resolved. Observed on run 33078051886 at 6ebd4981. Broken since the telemetry actions landed 2026-08-26. Fix: add a SHA-pinned actions/checkout as the job's first step (the actions-pinned gate enforces pinning). Scope is settled: a scan of every job in .github/workflows for a local ./.github/actions/* use with no actions/checkout step returns reported-checks alone, so this job is the only one to change. Note actionlint may not catch this, so the verify command is weaker than the failure it guards."
     },
     "BUG-WORKLET-BARE-PACK-HOST": {

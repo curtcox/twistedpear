@@ -11,7 +11,10 @@
  * report quietly stops describing the workflow it claims to describe.
  *
  * `--check` exits non-zero when a job outside `telemetry-waivers.json` is
- * missing either half.
+ * missing either half, and when a job uses a local `./.github/actions/*` with
+ * no `actions/checkout` step. The second case is why `reported-checks` failed
+ * on every run for two weeks while counting as instrumented here: it had both
+ * halves of the pair and no workspace to resolve them from.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -21,6 +24,8 @@ const WORKFLOWS = path.join(ROOT, ".github", "workflows");
 const WAIVERS = path.join(ROOT, "telemetry-waivers.json");
 const START = "./.github/actions/telemetry-start";
 const FINISH = "./.github/actions/telemetry-finish";
+/** Any local action, not only the telemetry pair — all of them need a workspace. */
+const LOCAL_ACTION = /uses:\s*\.\/\.github\/actions\//;
 
 const args = new Set(
   process.argv.slice(2).map((arg) => arg.replace(/^--/, "")),
@@ -80,6 +85,7 @@ function inspect() {
         start: job.body.includes(START),
         finish: job.body.includes(FINISH),
         checkout: hasCheckout,
+        localAction: LOCAL_ACTION.test(job.body),
         waived: waived[key] ?? null,
       });
     }
@@ -93,11 +99,14 @@ function main() {
   const missing = rows.filter(
     (row) => !(row.start && row.finish) && !row.waived,
   );
+  // Not a measurement gap but a job that cannot run at all. A waiver excuses a
+  // job from being sampled; nothing excuses an unresolvable local action.
+  const unresolvable = rows.filter((row) => row.localAction && !row.checkout);
 
   if (args.has("json")) {
     console.log(
       JSON.stringify(
-        { rows, instrumented: instrumented.length, missing },
+        { rows, instrumented: instrumented.length, missing, unresolvable },
         null,
         2,
       ),
@@ -115,12 +124,24 @@ function main() {
         : " (no checkout step, so the sampler is unavailable)";
       console.log(`  MISSING ${row.key}${why}`);
     }
+    for (const row of unresolvable) {
+      console.log(
+        `  BROKEN  ${row.key} — uses a local ./.github/actions/* with no actions/checkout step`,
+      );
+    }
   }
 
   if (args.has("check") && missing.length > 0) {
     console.error(
       `\n${missing.length} job(s) would run unmeasured. Add the telemetry action pair, or ` +
         `record why not in telemetry-waivers.json.`,
+    );
+    process.exit(1);
+  }
+  if (args.has("check") && unresolvable.length > 0) {
+    console.error(
+      `\n${unresolvable.length} job(s) resolve a local action with no checked-out workspace ` +
+        `and fail on every run. Add a SHA-pinned actions/checkout as the job's first step.`,
     );
     process.exit(1);
   }
