@@ -74,18 +74,10 @@ good enough to set budgets from — which is the first piece of work below.
 
 No tier is moved before its cost is recorded properly. Two stores, one report.
 
-**Local runs.** `scripts/checks/run.mjs` keeps writing the latest-value artifacts it
-writes today, and additionally appends a bounded per-run history:
-
-```text
-artifacts/check-runs/<run-id>/manifest.json    run-level: commit, tree digest, tier, selection and why,
-                                               sandbox/network mode, host, start, finish, resumed-from
-artifacts/check-runs/<run-id>/<gate>.json      per gate: duration, exit, retry/refusal/skip/reuse,
-                                               peak RSS, rival heaps, longest quiet interval
-```
-
-Bounded the way the CI store is bounded: prune detail beyond the most recent runs, keep
-the run-level line.
+**Local runs** are recorded — the store, its fields and its pruning are described in
+[CI cost telemetry](ci-telemetry.md#local-gate-runs). Two fields remain outstanding, peak
+RSS per gate and the longest interval with no child output, because both need the runner
+to stream rather than buffer; they arrive with the unattended-runner work below.
 
 **CI runs.** The `ci-metrics` orphan branch already carries per-job duration, queue wait,
 conclusion and resource samples. Because the PR tier expands to one named job per gate,
@@ -252,7 +244,6 @@ to guesses.
 
 | ID                         | Does                                                                                                   |
 | -------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `QL-CHECK-RUN-HISTORY`     | Bounded per-run local gate history: duration, retries, refusals, peak RSS, quiet intervals             |
 | `QL-CHECK-OUTCOMES`        | Per-gate outcome history, backfilled from `ci-metrics`, classified real / flake / infrastructure       |
 | `QL-CHECK-COST-REPORT`     | `checks:cost` — the joined report, its JSON, and the published page                                    |
 | `QL-CHECK-TIERS`           | `daily` / `weekly` / `monthly` tiers in the registry, with their schedules expanded from it            |

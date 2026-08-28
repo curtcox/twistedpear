@@ -6,6 +6,16 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { gates } from "./registry.mjs";
 import { requirementAvailable } from "../tools/requirements.mjs";
+import { treeFingerprint } from "../release/fingerprint.mjs";
+import { probeLocalhostBind } from "./localhost-bind.mjs";
+import {
+  finishRun,
+  gateOutcome,
+  pruneRuns,
+  recordGateRun,
+  runIdFor,
+  startRun,
+} from "./history.mjs";
 import {
   formatRefusal,
   gateCost,
@@ -81,9 +91,33 @@ if (matrix) {
   process.exit(0);
 }
 
+/**
+ * Recording history must never fail a gate run: a bug in the bookkeeping is not
+ * a gate result. Same rule the CI sampler follows.
+ * @param {() => unknown} action
+ */
+function withoutFailing(action) {
+  try {
+    return action();
+  } catch (error) {
+    console.warn(`check-run history: ${error.message}`);
+    return undefined;
+  }
+}
+
 function writeGateResult(
   gate,
-  { startedAt, exitCode, ok, stdout, stderr, headroom },
+  {
+    startedAt,
+    exitCode,
+    ok,
+    stdout,
+    stderr,
+    headroom,
+    skipped,
+    refused,
+    detail,
+  },
 ) {
   const artifact = {
     id: gate.id,
@@ -119,6 +153,23 @@ function writeGateResult(
       stderr ? `\n--- stderr ---\n${stderr}` : "",
     ].join("\n"),
   );
+  // The artifact above is the latest value for this gate; this is the series.
+  withoutFailing(() =>
+    recordGateRun(ROOT, runId, {
+      id: gate.id,
+      title: gate.title,
+      tier: gate.tier,
+      requires: gate.requires,
+      command: artifact.command,
+      outcome: gateOutcome({ ok, skipped, refused }),
+      exitCode,
+      startedAt,
+      finishedAt: artifact.finishedAt,
+      durationMs: Date.parse(artifact.finishedAt) - Date.parse(startedAt),
+      ...(detail ? { detail } : {}),
+      ...(headroom ? { headroom } : {}),
+    }),
+  );
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
@@ -126,6 +177,38 @@ function writeGateResult(
     );
   }
 }
+
+const runStartedAt = new Date().toISOString();
+const runId = runIdFor(runStartedAt, checkoutCommit);
+// Recorded, not enforced: a run whose gates bind sockets in an environment that
+// forbids it is still allowed to try, but the record says which environment
+// measured the result. Refusing on this probe is the streaming runner's job.
+const localhostBind = await probeLocalhostBind().catch(() => undefined);
+withoutFailing(() =>
+  startRun(ROOT, {
+    runId,
+    startedAt: runStartedAt,
+    commit: checkoutCommit,
+    branchSha,
+    treeDigest: withoutFailing(() => treeFingerprint(ROOT)) ?? "",
+    tier,
+    selection: selected.map((gate) => gate.id),
+    selectedBecause: {
+      ...(only ? { only } : {}),
+      ...(requiredFilter ? { requires: requiredFilter } : {}),
+      ...(hasRequires ? { hasRequires } : {}),
+      ...(lacksRequires ? { lacksRequires } : {}),
+      ...(keepGoing ? { keepGoing } : {}),
+      ...(forceHeadroom ? { forceHeadroom } : {}),
+    },
+    host: `${os.platform()}-${os.arch()}`,
+    cpuCount: os.cpus().length,
+    ci: Boolean(process.env.CI),
+    localhostBind: localhostBind?.ok
+      ? "available"
+      : `unavailable: ${localhostBind?.protocol} ${localhostBind?.message}`,
+  }),
+);
 
 // One gate at a time. Preflight host headroom before each spawn, and stop on
 // the first failure unless --keep-going. Continuing past a failed coverage
@@ -155,6 +238,8 @@ for (const gate of selected) {
       ok: !inCi,
       stdout: "",
       stderr: message,
+      skipped: !inCi,
+      detail: message,
     });
     continue;
   }
@@ -178,6 +263,8 @@ for (const gate of selected) {
       stdout: "",
       stderr: message,
       headroom: hostDiagnostics(headroom.snapshot),
+      refused: true,
+      detail: message.split("\n")[0],
     });
     failed += 1;
     refused += 1;
@@ -218,7 +305,14 @@ for (const gate of selected) {
   }
 }
 
+const exitCode = failed > 0 ? (refused === failed ? 2 : 1) : 0;
+withoutFailing(() =>
+  finishRun(ROOT, runId, { finishedAt: new Date().toISOString(), exitCode }),
+);
+withoutFailing(() => pruneRuns(ROOT));
+
 console.log(
   `\nStatic-analysis gates: ${selected.length - failed}/${selected.length} passed.`,
 );
-if (failed > 0) process.exit(refused === failed ? 2 : 1);
+console.log(`Run history: ${path.join("artifacts", "check-runs", runId)}`);
+if (exitCode !== 0) process.exit(exitCode);

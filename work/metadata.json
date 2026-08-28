@@ -1866,6 +1866,11 @@
       "requires": [],
       "verify": "npx vitest run conformance/checks/run-history.test.mjs",
       "added": "2026-08-28",
+      "completed": "2026-08-28",
+      "evidence": [
+        "scripts/checks/history.mjs",
+        "conformance/checks/run-history.test.mjs"
+      ],
       "notes": "artifacts/check-runs/<run-id>/ beside the existing latest-value artifacts/checks records; pruned like the ci-metrics store."
     },
     "QL-CHECK-SERIAL-LANES": {

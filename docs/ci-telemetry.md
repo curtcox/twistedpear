@@ -94,6 +94,42 @@ Per-run detail is pruned to the most recent 400 runs per workflow; the index
 line survives pruning, so trends stay complete where the drill-down no longer
 resolves.
 
+## Local gate runs
+
+The same question about the local runner — what did this run cost, and what did
+it refuse — had the same answer as CI did before any of this existed: nothing
+kept the series. `artifacts/checks/<gate>.json` is a latest-value record that
+the next run overwrites. `scripts/checks/run.mjs` therefore also appends one
+directory per run:
+
+```
+artifacts/check-runs/<run-id>/manifest.json   commit, tree digest, tier, what was selected and why,
+                                              host, CPU count, localhost-bind mode, start, finish,
+                                              exit code, and the run's folded summary
+artifacts/check-runs/<run-id>/<gate>.json     per gate: outcome, exit code, start, finish, duration,
+                                              refusal or skip detail, host diagnostics on a refusal
+```
+
+The run id is `<start>-<commit>`, so the directory listing sorts by time and
+names the commit. Runs are pruned to the most recent 40, the way the per-run
+detail above is pruned.
+
+Four outcomes are kept apart — `passed`, `failed`, `skipped`, `refused` —
+because a headroom refusal on the validation host is not a gate finding and a
+gate skipped for a missing toolchain is not a pass. The manifest is written
+before the first gate starts, so a run interrupted by a kernel panic still says
+what it was measuring, on which tree, in which execution environment; the
+localhost-bind probe is recorded rather than enforced, so a result measured
+where sockets cannot bind is identifiable afterwards.
+
+Two fields the plan asks for are deliberately missing rather than recorded as
+zeroes: peak RSS per gate and the longest interval with no child output. Both
+need the runner to stream instead of buffering one `spawnSync`, and arrive with
+that change.
+
+Recording cannot fail a run. Every call is wrapped, and a bug in the bookkeeping
+prints a warning and leaves the gate result alone.
+
 ## How it gets there
 
 `.github/workflows/ci-telemetry.yml` runs on `workflow_run: completed` for every
