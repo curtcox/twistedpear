@@ -1829,6 +1829,63 @@
       ],
       "notes": "Implements the 2026-08-16 code-quality audit recommendations as separate reviewable commits; platform/tool-specific gates carry their own registry verification."
     },
+    "QL-CHECK-COST-REPORT": {
+      "type": "quality",
+      "requires": ["QL-CHECK-RUN-HISTORY", "QL-CHECK-OUTCOMES"],
+      "verify": "npx vitest run conformance/checks/cost-report.test.mjs",
+      "added": "2026-08-28"
+    },
+    "QL-CHECK-COVERAGE-REUSE": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npx vitest run conformance/checks/coverage-evidence.test.mjs",
+      "added": "2026-08-28",
+      "notes": "Either treat a coverage run as unit evidence or scope coverage to changed packages; largest single measured cost in the merge tier."
+    },
+    "QL-CHECK-OUTCOMES": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npx vitest run conformance/checks/gate-outcomes.test.mjs",
+      "added": "2026-08-28",
+      "notes": "The PR tier is one named job per gate, so per-gate yield is recoverable from ci-metrics job conclusions rather than starting cold."
+    },
+    "QL-CHECK-PLACEMENT-AUDIT": {
+      "type": "quality",
+      "requires": ["QL-CHECK-COST-REPORT", "QL-CHECK-TIERS"],
+      "verify": "npx vitest run conformance/checks/placement-audit.test.mjs",
+      "added": "2026-08-28"
+    },
+    "QL-CHECK-REVIEW-LOOP": {
+      "type": "quality",
+      "requires": ["QL-CHECK-PLACEMENT-AUDIT"],
+      "verify": "runbook:docs/check-efficiency-plan.md#monthly",
+      "added": "2026-08-28"
+    },
+    "QL-CHECK-RUN-HISTORY": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npx vitest run conformance/checks/run-history.test.mjs",
+      "added": "2026-08-28",
+      "notes": "artifacts/check-runs/<run-id>/ beside the existing latest-value artifacts/checks records; pruned like the ci-metrics store."
+    },
+    "QL-CHECK-SERIAL-LANES": {
+      "type": "quality",
+      "requires": ["QL-CHECK-COST-REPORT"],
+      "verify": "npx vitest run conformance/checks/lane-packing.test.mjs",
+      "added": "2026-08-28"
+    },
+    "QL-CHECK-TIERS": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npx vitest run conformance/checks/gate-tiers.test.mjs",
+      "added": "2026-08-28"
+    },
+    "QL-CHECK-UNATTENDED": {
+      "type": "quality",
+      "requires": [],
+      "verify": "npx vitest run conformance/checks/unattended-runner.test.mjs",
+      "added": "2026-08-28"
+    },
     "QL-CI-HEADROOM": {
       "type": "quality",
       "requires": [],

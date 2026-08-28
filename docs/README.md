@@ -42,6 +42,7 @@ When they disagree, the `live` document wins — including against its own plan.
 | Observability / drop census       | [observability.md](observability.md)                                                                                   | _(executed — [archived plan](../archive/design/observability-plan.md))_                                                       |
 | Guida authoring                   | [guida-ui.md](guida-ui.md)                                                                                             | _(executed — [archived plan](../archive/design/guida-ui-plan.md))_                                                            |
 | Mini-app data export and restore  | [app-data-portability.md](app-data-portability.md)                                                                     | [app-data-portability-plan.md](app-data-portability-plan.md)                                                                  |
+| Cost and quality of the checks    | [ci-telemetry.md](ci-telemetry.md)                                                                                     | [check-efficiency-plan.md](check-efficiency-plan.md)                                                                          |
 
 The rule is enforced by `npm run test:doc-audit`: a missing or invalid `tp-doc` header, a
 `historical` document outside `archive/`, a non-historical document inside it, or a
@@ -204,6 +205,7 @@ Protocol implementation details live in the
 | Mutation score floors and what they cover                  | [Mutation testing](mutation-testing.md)                                                                                         |
 | Gaps the other analysis gates do not cover                 | [Analysis gaps](analysis-gaps.md)                                                                                               |
 | What CI itself costs, per job, step, and resource          | [CI cost telemetry](ci-telemetry.md)                                                                                            |
+| Keeping the gates fast, cheap, and worth running           | [Check efficiency and quality](check-efficiency-plan.md)                                                                        |
 
 Additional focused runbooks are indexed from the
 [conformance overview](../conformance/README.md).

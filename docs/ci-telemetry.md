@@ -2,15 +2,18 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-08-26
+audited: 2026-08-28
 register: none
+counterpart: docs/check-efficiency-plan.md
 -->
 
 **This document describes what is measured, where it is stored, and how to read
 it.** It exists because the workflows that run on every change to `main` are
 slow, and no one could say which part of them was slow. Nothing here speeds
 anything up; it is the measurement that a decision to speed something up should
-be made from.
+be made from. What is done with these numbers — the frequency tiers, the budgets,
+and the review that moves checks between them — is
+[Check efficiency and quality](check-efficiency-plan.md).
 
 The report is published at
 [/results/ci](https://curtcox.github.io/twistedpear/results/ci), with a page per
