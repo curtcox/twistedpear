@@ -1,0 +1,245 @@
+{
+  "schema": 1,
+  "runId": 33178692368,
+  "runNumber": 249,
+  "runAttempt": 1,
+  "workflow": "Site checks",
+  "workflowSlug": "site-checks",
+  "workflowId": 328850456,
+  "workflowPath": ".github/workflows/site-checks.yml",
+  "event": "workflow_run",
+  "branch": "main",
+  "sha": "bc164bbebf5c22f36c1e1b4741ecae1564e4f9a6",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/33178692368",
+  "createdAt": "2026-08-28T14:08:34Z",
+  "startedAt": "2026-08-28T14:08:34Z",
+  "completedAt": "2026-08-28T14:08:47Z",
+  "wallMs": 13000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 10000,
+  "weightedMs": 10000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 2000,
+  "cpuSeconds": 0.2,
+  "peakMemPct": 8.48,
+  "telemetryJobCount": 1,
+  "collectedAt": "2026-08-28T14:09:10.251Z",
+  "jobs": [
+    {
+      "id": 98873961613,
+      "name": "reported-checks",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000102401",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-28T14:08:35Z",
+      "startedAt": "2026-08-28T14:08:37Z",
+      "completedAt": "2026-08-28T14:08:47Z",
+      "queuedMs": 2000,
+      "durationMs": 10000,
+      "billableMs": 0,
+      "weightedMs": 10000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:38Z",
+          "completedAt": "2026-08-28T14:08:39Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:39Z",
+          "completedAt": "2026-08-28T14:08:42Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:42Z",
+          "completedAt": "2026-08-28T14:08:43Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Wait after a transient artifact download failure",
+          "number": 4,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-28T14:08:43Z",
+          "completedAt": "2026-08-28T14:08:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 5,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-28T14:08:43Z",
+          "completedAt": "2026-08-28T14:08:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Note that the build produced no report",
+          "number": 6,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-28T14:08:43Z",
+          "completedAt": "2026-08-28T14:08:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 7,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:43Z",
+          "completedAt": "2026-08-28T14:08:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:43Z",
+          "completedAt": "2026-08-28T14:08:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Fail if reported checks failed",
+          "number": 9,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:43Z",
+          "completedAt": "2026-08-28T14:08:43Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:43Z",
+          "completedAt": "2026-08-28T14:08:45Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 19,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:45Z",
+          "completedAt": "2026-08-28T14:08:45Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 20,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:45Z",
+          "completedAt": "2026-08-28T14:08:45Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 21,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T14:08:45Z",
+          "completedAt": "2026-08-28T14:08:45Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "reported-checks",
+        "startedAt": "2026-08-28T14:08:43.795Z",
+        "finishedAt": "2026-08-28T14:08:44.299Z",
+        "durationMs": 504,
+        "intervalMs": 5000,
+        "sampleCount": 2,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000102401",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 2,
+          "mean": 8.15,
+          "p50": 16.29,
+          "p95": 16.29,
+          "max": 16.29,
+          "min": 0
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 2,
+          "mean": 1.19,
+          "p50": 1.19,
+          "p95": 1.19,
+          "max": 1.19,
+          "min": 1.19
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 2,
+          "mean": 1420800000,
+          "p50": 1422307328,
+          "p95": 1422307328,
+          "max": 1422307328,
+          "min": 1419292672
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 2,
+          "mean": 8.48,
+          "p50": 8.48,
+          "p95": 8.48,
+          "max": 8.48,
+          "min": 8.47
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 2,
+          "mean": 163,
+          "p50": 163,
+          "p95": 163,
+          "max": 163,
+          "min": 163
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 2,
+          "mean": 40.19,
+          "p50": 40.19,
+          "p95": 40.19,
+          "max": 40.19,
+          "min": 40.18
+        },
+        "runnerDiskGrowthBytes": 9773056,
+        "ioReadBytes": 2158592,
+        "ioWriteBytes": 206151680,
+        "netRxBytes": 3466,
+        "netTxBytes": 24866,
+        "cpuSeconds": 0.2
+      },
+      "matrix": null
+    }
+  ]
+}
