@@ -15,6 +15,24 @@ import { join } from "node:path";
 
 import { runGradleWithRetry, transientReason } from "../android-native/run.mjs";
 
+function capturedOutput() {
+  const output = { stdout: "", stderr: "", warnings: [] };
+  return {
+    output,
+    sink: {
+      stdout: (value) => {
+        output.stdout += value;
+      },
+      stderr: (value) => {
+        output.stderr += value;
+      },
+      warn: (value) => {
+        output.warnings.push(value);
+      },
+    },
+  };
+}
+
 /** Verbatim from the run that turned kotlin-tests red at 45ffba32. */
 const FOOJAY_FAILURE = `
 Plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0'] was not found in any of the following sources:
@@ -88,31 +106,38 @@ describe("transientReason", () => {
 describe("runGradleWithRetry", () => {
   it("reports one attempt when the build passes first time", () => {
     const { script, directory } = scriptedCommand(FOOJAY_FAILURE, 0);
-    expect(runGradleWithRetry("node", [script], directory)).toEqual({
+    const { output, sink } = capturedOutput();
+    expect(runGradleWithRetry("node", [script], directory, 3, sink)).toEqual({
       attemptsUsed: 1,
     });
+    expect(output.stdout).toContain("BUILD SUCCESSFUL");
   });
 
   it("retries a transient resolution failure and records the attempt count", () => {
     const { script, directory } = scriptedCommand(FOOJAY_FAILURE, 1);
-    expect(runGradleWithRetry("node", [script], directory)).toEqual({
+    const { output, sink } = capturedOutput();
+    expect(runGradleWithRetry("node", [script], directory, 3, sink)).toEqual({
       attemptsUsed: 2,
     });
+    expect(output.stderr).toContain("foojay-resolver-convention");
+    expect(output.warnings).toHaveLength(1);
   });
 
   it("gives up rather than retrying forever", () => {
     const { script, directory } = scriptedCommand(FOOJAY_FAILURE, 99);
-    expect(() => runGradleWithRetry("node", [script], directory)).toThrow(
-      /still failing after 3 attempts/,
-    );
+    const { sink } = capturedOutput();
+    expect(() =>
+      runGradleWithRetry("node", [script], directory, 3, sink),
+    ).toThrow(/still failing after 3 attempts/);
   });
 
   it("never retries a genuine test failure", () => {
     const { script, directory } = scriptedCommand(REAL_TEST_FAILURE, 1);
+    const { sink } = capturedOutput();
     // Scripted to succeed on the second run: if this returned instead of
     // throwing, the retry would be masking a red suite.
-    expect(() => runGradleWithRetry("node", [script], directory)).toThrow(
-      /failed with status 1/,
-    );
+    expect(() =>
+      runGradleWithRetry("node", [script], directory, 3, sink),
+    ).toThrow(/failed with status 1/);
   });
 });

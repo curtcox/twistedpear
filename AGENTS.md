@@ -197,6 +197,9 @@ Ignored local outputs include `dist/`, `.tmp/`, `site/src/`, `site/public/`,
 ## Test prerequisites and side effects
 
 - `npm test` and focused Vitest files: Node only.
+- `test:unit`, `check:ci-base`, and `checks:status`: Node plus TCP/UDP localhost
+  binding. The broad unit-gate wrapper preflights both and refuses immediately when the
+  execution environment blocks them, rather than waiting through socket-test timeouts.
 - `test:interop`, `*-interop`, I2P, and some gateway suites: Docker.
 - `test:web-*`: Playwright Chromium; some also need Docker.
 - `test:desktop*`: builds/runs Electron and may create local host stores.

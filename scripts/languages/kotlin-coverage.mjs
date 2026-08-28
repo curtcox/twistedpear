@@ -33,7 +33,10 @@ if (!fs.existsSync(ANDROID)) {
 const gradlew = process.platform === "win32" ? "gradlew.bat" : "./gradlew";
 runGradleWithRetry(
   gradlew,
-  MODULES.map(([project]) => `:${project}:jacocoTestReport`),
+  [
+    "--no-daemon",
+    ...MODULES.map(([project]) => `:${project}:jacocoTestReport`),
+  ],
   ANDROID,
 );
 

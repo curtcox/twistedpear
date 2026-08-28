@@ -9,6 +9,10 @@ import { createServer } from "node:http";
 import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import {
+  assertWebHandbookDone,
+  WEB_HANDBOOK_TERMINAL_STATUSES,
+} from "./status.mjs";
 
 const handbookRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(handbookRoot, "../..");
@@ -120,8 +124,9 @@ async function runPlaywright(pageUrl) {
     await page.goto(pageUrl, { waitUntil: "load", timeout: 60_000 });
     try {
       await page.waitForFunction(
-        () => globalThis.__WEB_HANDBOOK__?.status === "done",
-        undefined,
+        (terminalStatuses) =>
+          terminalStatuses.includes(globalThis.__WEB_HANDBOOK__?.status),
+        WEB_HANDBOOK_TERMINAL_STATUSES,
         {
           timeout: 300_000,
         },
@@ -137,9 +142,7 @@ async function runPlaywright(pageUrl) {
     }
 
     const result = await page.evaluate(() => globalThis.__WEB_HANDBOOK__);
-    if (result?.status !== "done") {
-      throw new Error(`web handbook incomplete: ${JSON.stringify(result)}`);
-    }
+    assertWebHandbookDone(result);
 
     if (
       !Array.isArray(result.passedApplets) ||

@@ -33,15 +33,15 @@ duration totals below are therefore lower bounds, not estimates of the entire se
 
 ## Measured elapsed time
 
-| Activity | Duration | Result or cost |
-| --- | ---: | --- |
-| Final full PR-gate run through Kotlin | about 18.7 min | Reached Kotlin after the earlier repair cycles, then refused Kotlin coverage on host headroom |
-| Web-handbook verification | more than 5 min | The page entered `status: "error"`, but the runner waited for the 300-second timeout |
-| Sandboxed `check:ci-base` | 908.56 s (15.14 min) | 27 socket tests failed or timed out after localhost `listen`/`bind` returned `EPERM` |
-| Successful unrestricted `check:ci-base` | 853 s (14.22 min) | 37 of 37 selected gates passed |
-| Focused Kotlin coverage | 14 s | Passed after the Gradle daemon was stopped |
-| Advisory gate | 6 s | Passed when run separately from the PR tier |
-| Periodic work audit | 4.5 s | Returned 60 findings that require human judgment |
+| Activity                                |             Duration | Result or cost                                                                                |
+| --------------------------------------- | -------------------: | --------------------------------------------------------------------------------------------- |
+| Final full PR-gate run through Kotlin   |       about 18.7 min | Reached Kotlin after the earlier repair cycles, then refused Kotlin coverage on host headroom |
+| Web-handbook verification               |      more than 5 min | The page entered `status: "error"`, but the runner waited for the 300-second timeout          |
+| Sandboxed `check:ci-base`               | 908.56 s (15.14 min) | 27 socket tests failed or timed out after localhost `listen`/`bind` returned `EPERM`          |
+| Successful unrestricted `check:ci-base` |    853 s (14.22 min) | 37 of 37 selected gates passed                                                                |
+| Focused Kotlin coverage                 |                 14 s | Passed after the Gradle daemon was stopped                                                    |
+| Advisory gate                           |                  6 s | Passed when run separately from the PR tier                                                   |
+| Periodic work audit                     |                4.5 s | Returned 60 findings that require human judgment                                              |
 
 These visible commands account for roughly 53 minutes of validation wait. That excludes
 editing, diagnosis, the initial queue/import work, and early gate runs whose artifacts were
@@ -149,7 +149,7 @@ until its 300-second timeout before reading that snapshot.
 The predicate should stop on either terminal state:
 
 ```js
-status === "done" || status === "error"
+status === "done" || status === "error";
 ```
 
 The runner should then throw immediately for `error`. This saves up to five minutes on
@@ -230,7 +230,7 @@ the exit-zero claim was removed from the work item before committing this docume
 All shell orchestration should return and inspect at least:
 
 ```json
-{"exit_code": 1, "output": "..."}
+{ "exit_code": 1, "output": "..." }
 ```
 
 A shared helper should make a nonzero nested exit visibly fail by default. Call sites that
@@ -264,20 +264,20 @@ The existing per-gate files can remain latest-result pointers.
 
 ## Recommended implementation order
 
-| Priority | Change | Expected effect |
-| --- | --- | --- |
-| P0 | Preserve nested shell exit codes in agent/tool wrappers | Prevents false passes and inaccurate work records |
-| P0 | Stop web-handbook on `status: "error"` | Saves up to five minutes per early failure |
-| P0 | Preflight localhost binding and declare socket requirements | Avoids the measured 15-minute sandbox timeout run |
-| P0 | Stream gate output and emit quiet-command heartbeats | Removes most of the 50-plus supervision polls |
-| P1 | Treat coverage as unit evidence or select coverage by changed package | Attacks the 73.2% unit/coverage share of base-check time |
-| P1 | Use gate-owned non-daemon Gradle execution and cleanup | Removes headroom refusal/retry cycles |
-| P1 | Add run IDs, resume points, and multi-gate selection | Avoids rerunning green prefixes after sequential repairs |
-| P1 | Preserve the gate-run exit through `checks:status` recording | Makes command success trustworthy |
-| P1 | Align PR/release provenance and fix the pending-gate commit message | Removes misleading `GATE-UNVERIFIED` work |
-| P2 | Capture synthetic Android retry output in tests | Reduces diagnostic noise |
-| P2 | Separate focused work verification from integration traversal | Prevents unrelated late failures from blocking resolved items |
-| P2 | Keep bounded per-run performance history | Makes future retrospectives quantitative rather than lower-bound |
+| Priority | Change                                                                | Expected effect                                                  |
+| -------- | --------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| P0       | Preserve nested shell exit codes in agent/tool wrappers               | Prevents false passes and inaccurate work records                |
+| P0       | Stop web-handbook on `status: "error"`                                | Saves up to five minutes per early failure                       |
+| P0       | Preflight localhost binding and declare socket requirements           | Avoids the measured 15-minute sandbox timeout run                |
+| P0       | Stream gate output and emit quiet-command heartbeats                  | Removes most of the 50-plus supervision polls                    |
+| P1       | Treat coverage as unit evidence or select coverage by changed package | Attacks the 73.2% unit/coverage share of base-check time         |
+| P1       | Use gate-owned non-daemon Gradle execution and cleanup                | Removes headroom refusal/retry cycles                            |
+| P1       | Add run IDs, resume points, and multi-gate selection                  | Avoids rerunning green prefixes after sequential repairs         |
+| P1       | Preserve the gate-run exit through `checks:status` recording          | Makes command success trustworthy                                |
+| P1       | Align PR/release provenance and fix the pending-gate commit message   | Removes misleading `GATE-UNVERIFIED` work                        |
+| P2       | Capture synthetic Android retry output in tests                       | Reduces diagnostic noise                                         |
+| P2       | Separate focused work verification from integration traversal         | Prevents unrelated late failures from blocking resolved items    |
+| P2       | Keep bounded per-run performance history                              | Makes future retrospectives quantitative rather than lower-bound |
 
 The two simplest duration fixes in this case—correct sandbox selection and fail-fast
 web-handbook error handling—would have saved about 20 minutes. Streaming would have

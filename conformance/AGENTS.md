@@ -26,7 +26,9 @@ detailed phase-by-phase reference; `docs/ci-policy.md` records CI and nightly co
 
 ## Prerequisite classes
 
-- **Node-only:** Vitest, most package tests, doc audit, hostile apps, SDK/examples.
+- **Node-only:** focused Vitest, most package tests, doc audit, hostile apps,
+  SDK/examples. The broad `test:unit` gate additionally needs TCP/UDP localhost binding
+  and preflights it before starting Vitest.
 - **Docker:** Python RNS/LXMF interop, I2P, compose, and some gateway suites.
 - **Browser:** `test:web-*` generally needs Playwright Chromium; some also need Docker.
 - **Desktop:** Electron suites build the desktop host and create temporary/local stores.

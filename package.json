@@ -36,7 +36,7 @@
     "check:ci-base": "node scripts/checks/run.mjs --tier=pr --requires=node",
     "check:all": "node scripts/checks/run.mjs",
     "checks:matrix": "node scripts/checks/run.mjs --matrix",
-    "checks:status": "node scripts/checks/run.mjs --tier=pr; node scripts/checks/status.mjs --write",
+    "checks:status": "node scripts/checks/run-and-record.mjs",
     "checks:status:record": "node scripts/checks/status.mjs --write",
     "checks:status:import": "node scripts/checks/import.mjs",
     "checks:red": "node scripts/checks/status.mjs",

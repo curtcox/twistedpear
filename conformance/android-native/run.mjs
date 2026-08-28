@@ -79,10 +79,22 @@ function run(command, args, cwd, env = {}) {
  * Run Gradle, retrying only transient dependency-resolution failures.
  *
  * Output is captured rather than inherited so the retry decision can be made on
- * what Gradle actually said; it is echoed either way, so the log reads the same
- * as before.
+ * what Gradle actually said. The default sink echoes it; tests inject a capture
+ * sink so synthetic failure fixtures do not resemble live gate failures.
  */
-export function runGradleWithRetry(command, args, cwd, maxAttempts = 3) {
+const LIVE_GRADLE_OUTPUT = {
+  stdout: (output) => process.stdout.write(output),
+  stderr: (output) => process.stderr.write(output),
+  warn: (output) => console.warn(output),
+};
+
+export function runGradleWithRetry(
+  command,
+  args,
+  cwd,
+  maxAttempts = 3,
+  outputSink = LIVE_GRADLE_OUTPUT,
+) {
   let lastFailure = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -94,8 +106,8 @@ export function runGradleWithRetry(command, args, cwd, maxAttempts = 3) {
     });
 
     const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
-    process.stdout.write(result.stdout ?? "");
-    process.stderr.write(result.stderr ?? "");
+    outputSink.stdout(result.stdout ?? "");
+    outputSink.stderr(result.stderr ?? "");
 
     if (result.status === 0) {
       return { attemptsUsed: attempt };
@@ -111,7 +123,7 @@ export function runGradleWithRetry(command, args, cwd, maxAttempts = 3) {
     }
 
     if (attempt < maxAttempts) {
-      console.warn(
+      outputSink.warn(
         `[android-native] transient dependency resolution failure on attempt ${attempt}/${maxAttempts} (matched /${reason}/); retrying`,
       );
     }
@@ -142,7 +154,7 @@ function main() {
   console.log("[android-native] running JVM unit tests");
   const { attemptsUsed } = runGradleWithRetry(
     gradlew,
-    NATIVE_TEST_TASKS,
+    ["--no-daemon", ...NATIVE_TEST_TASKS],
     androidDir,
   );
   console.log(
