@@ -319,6 +319,13 @@
       "requires": [],
       "verify": "npm run test:web-handbook && npm run test:chrome",
       "added": "2026-08-27",
+      "completed": "2026-08-28",
+      "evidence": [
+        "conformance/chrome/run.mjs",
+        "conformance/web-handbook/entry.mjs",
+        "apps/handbook/app.manifest.json",
+        "apps/handbook/src/runtime-render.js"
+      ],
       "notes": "On 2026-08-27, web-handbook rendered chapter:ref-capabilities successfully, then failed apps-publish-install because apps.packageProject became the third confirmation and apps.publish exceeded the 3-per-10s limit. The CHROME conformance runner likewise reports CHROME-R2 apps.preview and CHROME-R6 preview failures after package/publish/install consume the window. Pace multi-confirmation fixtures on the intentional host budget."
     },
     "BUG-DEVSTUDIO-SUBSET-GRANT": {

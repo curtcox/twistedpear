@@ -16,9 +16,34 @@ import {
 } from "../handbook/expectations.mjs";
 
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
+const CONFIRMATION_RATE_MAX = 3;
+const CONFIRMATION_RATE_WINDOW_MS = 10_000;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createConfirmationPacer() {
+  let stamps = [];
+  return async () => {
+    const requestedAt = Date.now();
+    const cutoff = requestedAt - CONFIRMATION_RATE_WINDOW_MS;
+    stamps = stamps.filter((stamp) => stamp > cutoff);
+    stamps.push(requestedAt);
+    if (stamps.length < CONFIRMATION_RATE_MAX) {
+      return;
+    }
+
+    // Hold the third response until every prompt in this batch has expired.
+    // The next broker call then starts with an empty host-side limiter window,
+    // even when the batch straddles two applets.
+    const remaining =
+      stamps.at(-1) + CONFIRMATION_RATE_WINDOW_MS + 25 - Date.now();
+    if (remaining > 0) {
+      await sleep(remaining);
+    }
+    stamps = [];
+  };
 }
 
 function encodeMessage(message) {
@@ -308,6 +333,7 @@ async function main() {
   const worker = new Worker("./web-core.worker.js", { type: "module" });
   let buffer = "";
   let latestRuntime = null;
+  const paceConfirmation = createConfirmationPacer();
   const relay = createSandboxRelay((message) => {
     worker.postMessage({ channel: "host-ipc", data: encodeMessage(message) });
   });
@@ -360,13 +386,15 @@ async function main() {
       }
 
       if (message.type === "confirm-request") {
-        worker.postMessage({
-          channel: "host-ipc",
-          data: encodeMessage({
-            type: "confirm-response",
-            token: message.token,
-            approved: true,
-          }),
+        void paceConfirmation().then(() => {
+          worker.postMessage({
+            channel: "host-ipc",
+            data: encodeMessage({
+              type: "confirm-response",
+              token: message.token,
+              approved: true,
+            }),
+          });
         });
         continue;
       }
@@ -434,6 +462,15 @@ async function main() {
     grantedCapabilities: HANDBOOK_FIXTURE.capabilities,
   });
   await sleep(150);
+
+  send({
+    type: "grant-egress-offer",
+    appId: HANDBOOK_FIXTURE.appId,
+    capability: "lxmf:send",
+    targetKind: "peer",
+    targetId: HANDBOOK_FIXTURE.appId,
+  });
+  await sleep(100);
 
   send({
     type: "seed-miniapp-kv",

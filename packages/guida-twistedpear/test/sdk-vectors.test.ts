@@ -1,9 +1,8 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { buildGuidaApp } from "../src/build.js";
+import { compileGuidaWorkspace } from "../src/compile-workspace.js";
 import {
   createVectorHost,
   expandDirectives,
@@ -208,31 +207,34 @@ const guidaAvailable = await import("guida")
 
 describe.skipIf(!guidaAvailable)("Guida SPEC-SDK vector replay", () => {
   it("replays every vector through generated bindings and the shim", async () => {
-    const cwd = mkdtempSync(join(tmpdir(), "tp-guida-vectors-"));
-    try {
-      cpSync(harnessDir, cwd, { recursive: true });
-      const built = await buildGuidaApp({ appDir: cwd });
-      const failures: string[] = [];
-      for (const vector of vectors.vectors) {
-        const vectorApp = vector.app ?? vectors.defaultApp;
-        const { host, ready, close } = createVectorHost(
-          vector.host ?? "standard",
-          "reference",
+    const built = await compileGuidaWorkspace([
+      {
+        path: "elm.json",
+        content: readFileSync(join(harnessDir, "elm.json"), "utf8"),
+      },
+      {
+        path: "src/Main.elm",
+        content: readFileSync(join(harnessDir, "src/Main.elm"), "utf8"),
+      },
+    ]);
+    const failures: string[] = [];
+    for (const vector of vectors.vectors) {
+      const vectorApp = vector.app ?? vectors.defaultApp;
+      const { host, ready, close } = createVectorHost(
+        vector.host ?? "standard",
+        "reference",
+      );
+      await ready;
+      try {
+        await configureVectorHost(host, vectorApp, vector);
+        failures.push(
+          ...(await replayVector(built.bundle, host, vectorApp, vector)),
         );
-        await ready;
-        try {
-          await configureVectorHost(host, vectorApp, vector);
-          failures.push(
-            ...(await replayVector(built.bundle, host, vectorApp, vector)),
-          );
-        } finally {
-          await close();
-        }
+      } finally {
+        await close();
       }
-      expect(failures).toEqual([]);
-    } finally {
-      rmSync(cwd, { recursive: true, force: true });
     }
+    expect(failures).toEqual([]);
   }, 180_000);
 });
 

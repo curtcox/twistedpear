@@ -28,6 +28,8 @@ const MANIFEST_DRAFT = {
   capabilities: ["identity", "lxmf:send"],
 };
 const T256 = "A".repeat(94);
+const CONFIRMATION_RATE_MAX = 3;
+const CONFIRMATION_RATE_WINDOW_MS = 10_000;
 
 let failed = false;
 function check(rule, name, ok, detail = "") {
@@ -53,7 +55,7 @@ function spyAppsBackend() {
   };
 }
 
-function makeHost({ channel, appsBackend }) {
+function makeHost({ channel, appsBackend, now }) {
   const binding = createLoopbackBinding();
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),
@@ -61,8 +63,27 @@ function makeHost({ channel, appsBackend }) {
     ...binding,
     ...(appsBackend === undefined ? {} : { appsBackend }),
     ...(channel === undefined ? {} : { confirmationChannel: channel }),
+    ...(now === undefined ? {} : { now }),
   });
   return host;
+}
+
+function approvedPacedChannel(confirmations) {
+  let confirmationCount = 0;
+  let now = 0;
+  return {
+    now: () => now,
+    channel: {
+      confirm: async (request) => {
+        confirmations.push(request);
+        confirmationCount += 1;
+        if (confirmationCount % CONFIRMATION_RATE_MAX === 0) {
+          now += CONFIRMATION_RATE_WINDOW_MS + 1;
+        }
+        return { approved: true };
+      },
+    },
+  };
 }
 
 let requestId = 0;
@@ -107,13 +128,8 @@ const APPS_CALLS = [
 {
   const backend = spyAppsBackend();
   const confirmations = [];
-  const channel = {
-    confirm: async (request) => {
-      confirmations.push(request);
-      return { approved: true };
-    },
-  };
-  const host = makeHost({ channel, appsBackend: backend });
+  const { channel, now } = approvedPacedChannel(confirmations);
+  const host = makeHost({ channel, appsBackend: backend, now });
   await host.setGrants(APP.name, APP.publisherPublicKey, CAPS, CAPS);
   for (const [method, capability, payload] of APPS_CALLS) {
     const before = confirmations.length;
@@ -217,13 +233,12 @@ const APPS_CALLS = [
 // --- CHROME-R6: confirmations carry the material the user must review.
 {
   const confirmations = [];
-  const channel = {
-    confirm: async (request) => {
-      confirmations.push(request);
-      return { approved: true };
-    },
-  };
-  const host = makeHost({ channel, appsBackend: spyAppsBackend() });
+  const { channel, now } = approvedPacedChannel(confirmations);
+  const host = makeHost({
+    channel,
+    appsBackend: spyAppsBackend(),
+    now,
+  });
   await host.setGrants(APP.name, APP.publisherPublicKey, CAPS, CAPS);
   for (const [method, capability, payload] of APPS_CALLS) {
     await dispatch(host, "apps", method, capability, payload);

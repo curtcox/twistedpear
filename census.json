@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-27T23:05:55.442Z",
+  "generatedAt": "2026-08-28T04:13:28.657Z",
   "members": {
     "gates": [
       "accessibility tier=pr run=a11y:check",
@@ -553,7 +553,7 @@
     "test-files:apps/harness-mobile": 4,
     "test-files:apps/host-desktop": 4,
     "test-files:conformance/android-emulator": 1,
-    "test-files:conformance/checks": 33,
+    "test-files:conformance/checks": 36,
     "test-files:conformance/cookbook": 1,
     "test-files:conformance/cross-device-dev": 2,
     "test-files:conformance/desktop": 1,
@@ -589,12 +589,12 @@
     "test-files:packages/widget-renderer-headless": 5,
     "test-files:packages/widget-renderer-rn": 2,
     "test-files:packages/worklet-core": 14,
-    "test-files:total": 489,
+    "test-files:total": 492,
     "tests:apps/handbook": 36,
     "tests:apps/harness-mobile": 19,
     "tests:apps/host-desktop": 27,
     "tests:conformance/android-emulator": 3,
-    "tests:conformance/checks": 289,
+    "tests:conformance/checks": 299,
     "tests:conformance/cookbook": 85,
     "tests:conformance/cross-device-dev": 5,
     "tests:conformance/desktop": 4,
@@ -615,7 +615,7 @@
     "tests:packages/cas-256t": 29,
     "tests:packages/cli": 51,
     "tests:packages/effects": 91,
-    "tests:packages/guida-twistedpear": 22,
+    "tests:packages/guida-twistedpear": 52,
     "tests:packages/host-core": 172,
     "tests:packages/lxmf-ts": 37,
     "tests:packages/miniapp-runtime": 467,
@@ -630,7 +630,7 @@
     "tests:packages/widget-renderer-headless": 90,
     "tests:packages/widget-renderer-rn": 51,
     "tests:packages/worklet-core": 138,
-    "tests:total": 3617,
+    "tests:total": 3657,
     "waivers:live": 1
   },
   "delta": {

@@ -11,6 +11,7 @@
     "lxmf:receive",
     "storage:kv",
     "storage:hyperbee",
+    "storage:sync",
     "resource:fetch",
     "workspace",
     "ai:chat",

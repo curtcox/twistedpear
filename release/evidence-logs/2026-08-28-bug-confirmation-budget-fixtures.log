@@ -1,0 +1,322 @@
+
+> twistedpear@0.0.0 test:web-handbook
+> npm run build && node conformance/web-handbook/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/miniapp-runtime@0.1.14 build
+> tsc -b
+
+
+> @twistedpear/host-core@0.1.9 build
+> tsc -b
+
+
+> @twistedpear/reticulum-ts@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/app-registry@0.1.4 build
+> tsc -b
+
+
+> @twistedpear/cas-256t@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/cli@0.2.0 build
+> tsc -b
+
+assembled worklet entry.mjs and web-entry.mjs from parts
+
+> @twistedpear/reticulum-ts@0.0.0 build
+> tsc -b
+
+
+> @twistedpear/lxmf-ts@0.2.0 build
+> tsc -b
+
+
+> @twistedpear/host-core@0.1.9 build
+> tsc -b
+
+
+> @twistedpear/miniapp-runtime@0.1.14 build
+> tsc -b
+
+
+> @twistedpear/app-registry@0.1.4 build
+> tsc -b
+
+
+> @twistedpear/cas-256t@0.1.0 build
+> tsc -b
+
+
+> @twistedpear/reticulum-interfaces@0.2.0 build
+> tsc -b
+
+
+> @twistedpear/bridge-hyper@0.1.0 build
+> tsc -b
+
+web-hyper-fetch bundle written to /Users/curtcox/me/twistedpear/apps/harness-mobile/public/web-hyper-fetch.js
+web-core worker bundle written to /Users/curtcox/me/twistedpear/apps/harness-mobile/public/web-core.worker.js
+handbook build: 39 chapter(s), 26 applet(s), 129 seed file(s) → bundle.js; 5 part package(s) → generated/part-packages/
+Publisher identity: 4c46c5d9a9a4a616d2dd639d0ca94a8376ac9831308a99bd09f2e11fdc014f31dde6e76243b22d4b6930bdfe147c65134926056fcc43f3845ece0fd4705b871e
+Wrote handbook.tpkg (a82407af8a3ea8f1ae0037b7dbb2da91626492e45877f78a1d5675bf779a2619)
+web-handbook: packed handbook (426680 bytes)
+web-handbook bundle written
+browser:log: worker:Web core worker ready (Phase W4 WebSerial RNode + Hyperdrive-over-relay install)
+browser:log: worker:Gateway configured (ws://127.0.0.1:9480); enable WS gateway to connect
+browser:log: worker:Created web identity a9c4ce990bf17fbe2f035613ab1b4607
+browser:log: worker:Installed handbook v0.2.0 (426680 bytes)
+browser:log: worker:Saved grants for handbook
+browser:log: worker:Granted egress offer egress-1 for handbook
+browser:log: worker:Seeded mini-app KV key miniapp-resource:handbook:probe
+browser:log: miniapp:launched v0.2.0
+browser:log: worker:Launched mini-app handbook
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 115 patch(es)
+browser:log: miniapp:ui 42 patch(es)
+browser:log: miniapp:ui 42 patch(es)
+browser:log: miniapp:ui 73 patch(es)
+browser:log: miniapp:ui 73 patch(es)
+browser:log: miniapp:ui 72 patch(es)
+browser:log: miniapp:ui 72 patch(es)
+browser:log: miniapp:ui 76 patch(es)
+browser:log: miniapp:ui 76 patch(es)
+browser:log: miniapp:ui 92 patch(es)
+browser:log: miniapp:ui 92 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 86 patch(es)
+browser:log: miniapp:ui 86 patch(es)
+browser:log: miniapp:ui 78 patch(es)
+browser:log: miniapp:ui 78 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 92 patch(es)
+browser:log: miniapp:ui 92 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 87 patch(es)
+browser:log: miniapp:ui 87 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 114 patch(es)
+browser:log: miniapp:ui 114 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 85 patch(es)
+browser:log: miniapp:ui 85 patch(es)
+browser:log: miniapp:ui 74 patch(es)
+browser:log: miniapp:ui 74 patch(es)
+browser:log: miniapp:ui 84 patch(es)
+browser:log: miniapp:ui 84 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 91 patch(es)
+browser:log: miniapp:ui 91 patch(es)
+browser:log: miniapp:ui 113 patch(es)
+browser:log: miniapp:ui 113 patch(es)
+browser:log: miniapp:ui 123 patch(es)
+browser:log: miniapp:ui 123 patch(es)
+browser:log: miniapp:ui 104 patch(es)
+browser:log: miniapp:ui 104 patch(es)
+browser:log: miniapp:ui 90 patch(es)
+browser:log: miniapp:ui 90 patch(es)
+browser:log: miniapp:ui 67 patch(es)
+browser:log: miniapp:ui 67 patch(es)
+browser:log: miniapp:ui 78 patch(es)
+browser:log: miniapp:ui 78 patch(es)
+browser:log: miniapp:ui 79 patch(es)
+browser:log: miniapp:ui 79 patch(es)
+browser:log: miniapp:ui 94 patch(es)
+browser:log: miniapp:ui 94 patch(es)
+browser:log: miniapp:ui 76 patch(es)
+browser:log: miniapp:ui 76 patch(es)
+browser:log: miniapp:ui 187 patch(es)
+browser:log: miniapp:ui 187 patch(es)
+browser:log: miniapp:ui 84 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 85 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 83 patch(es)
+browser:log: miniapp:ui 114 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:broker call apps.channel.open failed: Mini-app "handbook-no-such-app" is not running.
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 115 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:launched v0.0.1
+browser:log: miniapp:stopped (preview-stopped)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 83 patch(es)
+browser:log: miniapp:ui 85 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 86 patch(es)
+browser:log: miniapp:ui 113 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 4 patch(es)
+browser:log: miniapp:ui 115 patch(es)
+browser:log: miniapp:ui 114 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 4 patch(es)
+browser:log: miniapp:ui 116 patch(es)
+browser:log: miniapp:ui 115 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 116 patch(es)
+browser:log: miniapp:ui 114 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:broker call freenet.get failed: Freenet contract access is not configured on this host
+browser:log: miniapp:ui 4 patch(es)
+browser:log: miniapp:ui 116 patch(es)
+browser:log: miniapp:ui 92 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 93 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 83 patch(es)
+browser:log: miniapp:ui 87 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 88 patch(es)
+browser:log: miniapp:ui 115 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 4 patch(es)
+browser:log: miniapp:ui 117 patch(es)
+browser:log: miniapp:ui 115 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 116 patch(es)
+browser:log: miniapp:ui 115 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:broker call peers.info failed: Unknown peer handle
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 116 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 83 patch(es)
+browser:log: miniapp:ui 92 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:broker call relay.status failed: Relay/interface management is not configured on this host
+browser:log: miniapp:ui 4 patch(es)
+browser:log: miniapp:ui 94 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 116 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 4 patch(es)
+browser:log: miniapp:ui 118 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 82 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 80 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+browser:log: miniapp:ui 81 patch(es)
+browser:log: miniapp:ui 96 patch(es)
+browser:log: miniapp:ui 1 patch(es)
+browser:log: miniapp:ui 3 patch(es)
+web-handbook: {"chapters":39,"applets":26,"reportId":"AAAAAChp6XXz","steps":71}
+web-handbook: passed
+
+> twistedpear@0.0.0 test:chrome
+> npm run build && node conformance/chrome/run.mjs
+
+
+> twistedpear@0.0.0 build
+> tsc -b
+
+PASS CHROME-R2 apps.package confirmed then executed
+PASS CHROME-R2 apps.package confirmation precedes backend execution
+PASS CHROME-R2 apps.publish confirmed then executed
+PASS CHROME-R2 apps.publish confirmation precedes backend execution
+PASS CHROME-R2 apps.install confirmed then executed
+PASS CHROME-R2 apps.install confirmation precedes backend execution
+PASS CHROME-R2 apps.preview confirmed then executed
+PASS CHROME-R2 apps.preview confirmation precedes backend execution
+PASS CHROME-R4 host.confirm is not reachable
+PASS CHROME-R4 host.acknowledge is not reachable
+PASS CHROME-R4 apps.confirm is not reachable
+PASS CHROME-R4 apps.approve is not reachable
+PASS CHROME-R4 ui.confirm is not reachable
+PASS CHROME-R4 confirm.approve is not reachable
+PASS CHROME-R4 confirmation still pending after app-side attempts
+PASS CHROME-R4 only the chrome channel resolves the confirmation (denied)
+PASS CHROME-R5 headless apps.package refused with CONFIRMATION_UNAVAILABLE
+PASS CHROME-R5 headless apps.publish refused with CONFIRMATION_UNAVAILABLE
+PASS CHROME-R5 headless apps.install refused with CONFIRMATION_UNAVAILABLE
+PASS CHROME-R5 headless apps.preview refused with CONFIRMATION_UNAVAILABLE
+PASS CHROME-R5 backend never invoked without confirmation
+PASS CHROME-R6 package confirmation lists the declared capabilities
+PASS CHROME-R6 preview confirmation lists the requested grants
+PASS CHROME-R6 install confirmation identifies the package and the review step
+PASS CHROME-R6 every confirmation carries an unguessable token
+PASS CHROME-R1 confirmation copy uses the capability registry wording
+PASS CHROME-R1 app tree cannot carry the confirmation title
+PASS CHROME-R3 confirmation is a host layer above the app surface
+PASS CHROME-R3 full-bleed app boxes stay inside the app surface
+PASS CHROME-R3 widget styles cannot raise z-index over chrome
+PASS CHROME-R8 grant-screen imitation is rejected
+PASS CHROME-R8 capability reference copy is allowed
+PASS CHROME-R8 capability copy with a grant action is rejected
+PASS CHROME-R9 recovery-phrase solicitation is rejected
+PASS CHROME-R7 only the foreground app has a drawing surface
