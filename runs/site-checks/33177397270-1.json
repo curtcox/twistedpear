@@ -1,0 +1,237 @@
+{
+  "schema": 1,
+  "runId": 33177397270,
+  "runNumber": 248,
+  "runAttempt": 1,
+  "workflow": "Site checks",
+  "workflowSlug": "site-checks",
+  "workflowId": 328850456,
+  "workflowPath": ".github/workflows/site-checks.yml",
+  "event": "workflow_run",
+  "branch": "main",
+  "sha": "bc164bbebf5c22f36c1e1b4741ecae1564e4f9a6",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/33177397270",
+  "createdAt": "2026-08-28T13:52:20Z",
+  "startedAt": "2026-08-28T13:52:20Z",
+  "completedAt": "2026-08-28T13:53:15Z",
+  "wallMs": 55000,
+  "queuedMs": 0,
+  "jobCount": 1,
+  "runnerMs": 40000,
+  "weightedMs": 40000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 14000,
+  "cpuSeconds": 0.6,
+  "peakMemPct": 6.19,
+  "telemetryJobCount": 1,
+  "collectedAt": "2026-08-28T13:53:32.044Z",
+  "jobs": [
+    {
+      "id": 98869465087,
+      "name": "reported-checks",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000102321",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-08-28T13:52:20Z",
+      "startedAt": "2026-08-28T13:52:34Z",
+      "completedAt": "2026-08-28T13:53:14Z",
+      "queuedMs": 14000,
+      "durationMs": 40000,
+      "billableMs": 0,
+      "weightedMs": 40000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:52:35Z",
+          "completedAt": "2026-08-28T13:52:37Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:52:37Z",
+          "completedAt": "2026-08-28T13:52:38Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:52:38Z",
+          "completedAt": "2026-08-28T13:52:39Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Wait after a transient artifact download failure",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:52:39Z",
+          "completedAt": "2026-08-28T13:53:09Z",
+          "durationMs": 30000
+        },
+        {
+          "name": "Run actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:53:09Z",
+          "completedAt": "2026-08-28T13:53:09Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Note that the build produced no report",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:53:09Z",
+          "completedAt": "2026-08-28T13:53:10Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "number": 7,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-28T13:53:10Z",
+          "completedAt": "2026-08-28T13:53:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 8,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:53:10Z",
+          "completedAt": "2026-08-28T13:53:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Fail if reported checks failed",
+          "number": 9,
+          "conclusion": "skipped",
+          "startedAt": "2026-08-28T13:53:10Z",
+          "completedAt": "2026-08-28T13:53:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:53:10Z",
+          "completedAt": "2026-08-28T13:53:12Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 20,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:53:12Z",
+          "completedAt": "2026-08-28T13:53:12Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 21,
+          "conclusion": "success",
+          "startedAt": "2026-08-28T13:53:12Z",
+          "completedAt": "2026-08-28T13:53:12Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "reported-checks",
+        "startedAt": "2026-08-28T13:53:10.243Z",
+        "finishedAt": "2026-08-28T13:53:10.498Z",
+        "durationMs": 255,
+        "intervalMs": 5000,
+        "sampleCount": 2,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz",
+          "memTotalBytes": 16765378560,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000102321",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 2,
+          "mean": 56.5,
+          "p50": 100,
+          "p95": 100,
+          "max": 100,
+          "min": 13
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 2,
+          "mean": 0.07,
+          "p50": 0.07,
+          "p95": 0.07,
+          "max": 0.07,
+          "min": 0.07
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 2,
+          "mean": 1031815168,
+          "p50": 1037225984,
+          "p95": 1037225984,
+          "max": 1037225984,
+          "min": 1026404352
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 2,
+          "mean": 6.16,
+          "p50": 6.19,
+          "p95": 6.19,
+          "max": 6.19,
+          "min": 6.12
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 2,
+          "mean": 163,
+          "p50": 164,
+          "p95": 164,
+          "max": 164,
+          "min": 162
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 2,
+          "mean": 40.77,
+          "p50": 40.77,
+          "p95": 40.77,
+          "max": 40.77,
+          "min": 40.76
+        },
+        "runnerDiskGrowthBytes": 9744384,
+        "ioReadBytes": 1929216,
+        "ioWriteBytes": 9646080,
+        "netRxBytes": 2334,
+        "netTxBytes": 1578,
+        "cpuSeconds": 0.6
+      },
+      "matrix": null
+    }
+  ]
+}
