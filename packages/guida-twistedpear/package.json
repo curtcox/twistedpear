@@ -21,6 +21,6 @@
   },
   "dependencies": {
     "guida": "1.0.0-beta.2",
-    "terser": "^5.50.0"
+    "terser": "^5.51.0"
   }
 }

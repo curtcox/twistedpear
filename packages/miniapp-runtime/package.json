@@ -30,7 +30,7 @@
     "@twistedpear/effects": "*",
     "@twistedpear/peer-discovery": "*",
     "@twistedpear/protocol": "0.0.9",
-    "corestore": "^7.12.0",
+    "corestore": "^7.12.2",
     "hyperbee": "^2.27.3"
   },
   "scripts": {

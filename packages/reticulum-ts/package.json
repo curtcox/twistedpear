@@ -30,7 +30,7 @@
     "@noble/hashes": "^2.3.0",
     "@twistedpear/protocol": "0.0.9",
     "bare-dgram": "^1.0.1",
-    "bare-fs": "^4.8.0",
+    "bare-fs": "^4.8.1",
     "bare-tcp": "^2.5.4",
     "seek-bzip": "^2.0.0",
     "sodium-native": "^5.1.0"
