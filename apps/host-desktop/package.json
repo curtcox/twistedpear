@@ -16,11 +16,11 @@
     "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
-    "bare": "^1.31.2",
-    "bare-pack": "^2.2.1",
-    "electron": "43.4.1",
-    "electron-builder": "^26.15.7",
+    "@types/node": "^26.5.1",
+    "bare": "^1.32.0",
+    "bare-pack": "^2.2.2",
+    "electron": "44.3.0",
+    "electron-builder": "^26.16.1",
     "typescript": "^7.0.2"
   },
   "build": {
