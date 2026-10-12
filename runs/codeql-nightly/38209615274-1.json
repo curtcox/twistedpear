@@ -1,0 +1,953 @@
+{
+  "schema": 1,
+  "runId": 38209615274,
+  "runNumber": 11,
+  "runAttempt": 1,
+  "workflow": "CodeQL nightly",
+  "workflowSlug": "codeql-nightly",
+  "workflowId": 325797362,
+  "workflowPath": ".github/workflows/codeql-nightly.yml",
+  "event": "schedule",
+  "branch": "main",
+  "sha": "4b679e44d660541d2320969209daa215fb7580f8",
+  "conclusion": "failure",
+  "htmlUrl": "https://github.com/curtcox/twistedpear/actions/runs/38209615274",
+  "createdAt": "2026-10-12T05:49:12Z",
+  "startedAt": "2026-10-12T05:49:12Z",
+  "completedAt": "2026-10-12T05:59:09Z",
+  "wallMs": 597000,
+  "queuedMs": 0,
+  "jobCount": 5,
+  "runnerMs": 1026000,
+  "weightedMs": 6327000,
+  "billableMs": 0,
+  "billable": {
+    "UBUNTU": {
+      "totalMs": 0,
+      "jobs": 4
+    },
+    "MACOS": {
+      "totalMs": 0,
+      "jobs": 1
+    }
+  },
+  "queuedJobMs": 12000,
+  "cpuSeconds": 2277,
+  "peakMemPct": 99.58,
+  "telemetryJobCount": 5,
+  "collectedAt": "2026-10-12T05:59:30.379Z",
+  "jobs": [
+    {
+      "id": 114680629917,
+      "name": "analyze (javascript-typescript, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000107739",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-10-12T05:49:13Z",
+      "startedAt": "2026-10-12T05:49:15Z",
+      "completedAt": "2026-10-12T05:53:21Z",
+      "queuedMs": 2000,
+      "durationMs": 246000,
+      "billableMs": 0,
+      "weightedMs": 246000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:15Z",
+          "completedAt": "2026-10-12T05:49:17Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:17Z",
+          "completedAt": "2026-10-12T05:49:19Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:19Z",
+          "completedAt": "2026-10-12T05:49:19Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:19Z",
+          "completedAt": "2026-10-12T05:49:31Z",
+          "durationMs": 12000
+        },
+        {
+          "name": "Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:31Z",
+          "completedAt": "2026-10-12T05:53:14Z",
+          "durationMs": 223000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:53:14Z",
+          "completedAt": "2026-10-12T05:53:16Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:53:16Z",
+          "completedAt": "2026-10-12T05:53:17Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:53:17Z",
+          "completedAt": "2026-10-12T05:53:18Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:53:18Z",
+          "completedAt": "2026-10-12T05:53:18Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:53:18Z",
+          "completedAt": "2026-10-12T05:53:18Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "analyze",
+        "startedAt": "2026-10-12T05:49:19.402Z",
+        "finishedAt": "2026-10-12T05:53:15.097Z",
+        "durationMs": 235694,
+        "intervalMs": 5000,
+        "sampleCount": 49,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000107739",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 49,
+          "mean": 61.37,
+          "p50": 62.56,
+          "p95": 98.35,
+          "max": 100,
+          "min": 0.4
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 49,
+          "mean": 2.95,
+          "p50": 3.08,
+          "p95": 4.68,
+          "max": 4.88,
+          "min": 0.17
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 49,
+          "mean": 4777330896.98,
+          "p50": 1835290624,
+          "p95": 12046008320,
+          "max": 12054360064,
+          "min": 968941568
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 49,
+          "mean": 28.49,
+          "p50": 10.95,
+          "p95": 71.85,
+          "max": 71.9,
+          "min": 5.78
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 49,
+          "mean": 168.22,
+          "p50": 168,
+          "p95": 171,
+          "max": 171,
+          "min": 165
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 49,
+          "mean": 41.73,
+          "p50": 41.71,
+          "p95": 42.24,
+          "max": 42.24,
+          "min": 40.45
+        },
+        "runnerDiskGrowthBytes": 2113871872,
+        "ioReadBytes": 11464704,
+        "ioWriteBytes": 4280217600,
+        "netRxBytes": 1148026690,
+        "netTxBytes": 1248032520,
+        "cpuSeconds": 578.6
+      },
+      "matrix": null
+    },
+    {
+      "id": 114680630028,
+      "name": "analyze (python, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000107738",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-10-12T05:49:13Z",
+      "startedAt": "2026-10-12T05:49:14Z",
+      "completedAt": "2026-10-12T05:50:11Z",
+      "queuedMs": 1000,
+      "durationMs": 57000,
+      "billableMs": 0,
+      "weightedMs": 57000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:15Z",
+          "completedAt": "2026-10-12T05:49:16Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:16Z",
+          "completedAt": "2026-10-12T05:49:19Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:19Z",
+          "completedAt": "2026-10-12T05:49:19Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:19Z",
+          "completedAt": "2026-10-12T05:49:31Z",
+          "durationMs": 12000
+        },
+        {
+          "name": "Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:31Z",
+          "completedAt": "2026-10-12T05:50:08Z",
+          "durationMs": 37000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:08Z",
+          "completedAt": "2026-10-12T05:50:09Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:09Z",
+          "completedAt": "2026-10-12T05:50:09Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:09Z",
+          "completedAt": "2026-10-12T05:50:10Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:10Z",
+          "completedAt": "2026-10-12T05:50:10Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:10Z",
+          "completedAt": "2026-10-12T05:50:10Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "analyze",
+        "startedAt": "2026-10-12T05:49:19.680Z",
+        "finishedAt": "2026-10-12T05:50:08.274Z",
+        "durationMs": 48594,
+        "intervalMs": 5000,
+        "sampleCount": 11,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000107738",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 11,
+          "mean": 47.35,
+          "p50": 50.03,
+          "p95": 80.43,
+          "max": 80.43,
+          "min": 0
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 11,
+          "mean": 0.92,
+          "p50": 1.06,
+          "p95": 1.35,
+          "max": 1.35,
+          "min": 0.31
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 11,
+          "mean": 1665070173.09,
+          "p50": 1498755072,
+          "p95": 2999705600,
+          "max": 2999705600,
+          "min": 1061527552
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 11,
+          "mean": 9.93,
+          "p50": 8.94,
+          "p95": 17.89,
+          "max": 17.89,
+          "min": 6.33
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 11,
+          "mean": 167.91,
+          "p50": 168,
+          "p95": 175,
+          "max": 175,
+          "min": 164
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 11,
+          "mean": 41.3,
+          "p50": 41.37,
+          "p95": 41.4,
+          "max": 41.4,
+          "min": 40.45
+        },
+        "runnerDiskGrowthBytes": 1468674048,
+        "ioReadBytes": 3252224,
+        "ioWriteBytes": 3486531584,
+        "netRxBytes": 1144881800,
+        "netTxBytes": 19601796,
+        "cpuSeconds": 92
+      },
+      "matrix": null
+    },
+    {
+      "id": 114680630042,
+      "name": "analyze (actions, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000107741",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-10-12T05:49:13Z",
+      "startedAt": "2026-10-12T05:49:14Z",
+      "completedAt": "2026-10-12T05:50:03Z",
+      "queuedMs": 1000,
+      "durationMs": 49000,
+      "billableMs": 0,
+      "weightedMs": 49000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:15Z",
+          "completedAt": "2026-10-12T05:49:16Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:16Z",
+          "completedAt": "2026-10-12T05:49:19Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:19Z",
+          "completedAt": "2026-10-12T05:49:19Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:19Z",
+          "completedAt": "2026-10-12T05:49:32Z",
+          "durationMs": 13000
+        },
+        {
+          "name": "Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:32Z",
+          "completedAt": "2026-10-12T05:49:59Z",
+          "durationMs": 27000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:59Z",
+          "completedAt": "2026-10-12T05:50:00Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:00Z",
+          "completedAt": "2026-10-12T05:50:01Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:01Z",
+          "completedAt": "2026-10-12T05:50:01Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:01Z",
+          "completedAt": "2026-10-12T05:50:02Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:02Z",
+          "completedAt": "2026-10-12T05:50:02Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "analyze",
+        "startedAt": "2026-10-12T05:49:19.404Z",
+        "finishedAt": "2026-10-12T05:49:59.739Z",
+        "durationMs": 40335,
+        "intervalMs": 5000,
+        "sampleCount": 10,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 7763 64-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000107741",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 9,
+          "mean": 48.01,
+          "p50": 50.03,
+          "p95": 86.55,
+          "max": 86.55,
+          "min": 0.3
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 10,
+          "mean": 0.7,
+          "p50": 0.72,
+          "p95": 1.23,
+          "max": 1.23,
+          "min": 0.22
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 10,
+          "mean": 1289625190.4,
+          "p50": 1314545664,
+          "p95": 1691369472,
+          "max": 1691369472,
+          "min": 959254528
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 10,
+          "mean": 7.69,
+          "p50": 7.84,
+          "p95": 10.09,
+          "max": 10.09,
+          "min": 5.72
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 10,
+          "mean": 164.2,
+          "p50": 165,
+          "p95": 166,
+          "max": 166,
+          "min": 162
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 10,
+          "mean": 41.27,
+          "p50": 41.37,
+          "p95": 41.38,
+          "max": 41.38,
+          "min": 40.45
+        },
+        "runnerDiskGrowthBytes": 1447440384,
+        "ioReadBytes": 3018752,
+        "ioWriteBytes": 1541525504,
+        "netRxBytes": 1144877996,
+        "netTxBytes": 2408920,
+        "cpuSeconds": 77.5
+      },
+      "matrix": null
+    },
+    {
+      "id": 114680630046,
+      "name": "analyze (swift, macos-15, autobuild)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerOs": "MACOS",
+      "runnerName": "GitHub Actions 1000107742",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "macos-15"
+      ],
+      "createdAt": "2026-10-12T05:49:13Z",
+      "startedAt": "2026-10-12T05:49:20Z",
+      "completedAt": "2026-10-12T05:59:09Z",
+      "queuedMs": 7000,
+      "durationMs": 589000,
+      "billableMs": 0,
+      "weightedMs": 5890000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:21Z",
+          "completedAt": "2026-10-12T05:49:23Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:23Z",
+          "completedAt": "2026-10-12T05:49:27Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:27Z",
+          "completedAt": "2026-10-12T05:49:28Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:28Z",
+          "completedAt": "2026-10-12T05:49:57Z",
+          "durationMs": 29000
+        },
+        {
+          "name": "Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 5,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:57Z",
+          "completedAt": "2026-10-12T05:58:58Z",
+          "durationMs": 541000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:58:58Z",
+          "completedAt": "2026-10-12T05:59:02Z",
+          "durationMs": 4000
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:59:02Z",
+          "completedAt": "2026-10-12T05:59:02Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:59:02Z",
+          "completedAt": "2026-10-12T05:59:03Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:59:03Z",
+          "completedAt": "2026-10-12T05:59:04Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:59:04Z",
+          "completedAt": "2026-10-12T05:59:07Z",
+          "durationMs": 3000
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "analyze",
+        "startedAt": "2026-10-12T05:49:28.579Z",
+        "finishedAt": "2026-10-12T05:59:00.367Z",
+        "durationMs": 571780,
+        "intervalMs": 5000,
+        "sampleCount": 116,
+        "runner": {
+          "platform": "darwin",
+          "arch": "arm64",
+          "release": "24.6.0",
+          "cpuCount": 3,
+          "cpuModel": "Apple M1 (Virtual)",
+          "memTotalBytes": 7516192768,
+          "osLabel": "macOS",
+          "runnerName": "GitHub Actions 1000107742",
+          "imageOs": "macos15"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 116,
+          "mean": 80.62,
+          "p50": 83.2,
+          "p95": 99.2,
+          "max": 100,
+          "min": 39.51
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 116,
+          "mean": 12.07,
+          "p50": 12.07,
+          "p95": 17.01,
+          "max": 18.41,
+          "min": 6.52
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 116,
+          "mean": 6470294280.83,
+          "p50": 6898302976,
+          "p95": 7436075008,
+          "max": 7484522496,
+          "min": 4439801856
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 116,
+          "mean": 86.09,
+          "p50": 91.78,
+          "p95": 98.93,
+          "max": 99.58,
+          "min": 59.07
+        },
+        "procs": null,
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 116,
+          "mean": 88.15,
+          "p50": 88.16,
+          "p95": 88.79,
+          "max": 88.85,
+          "min": 86.52
+        },
+        "runnerDiskGrowthBytes": 5641142272,
+        "ioReadBytes": null,
+        "ioWriteBytes": null,
+        "netRxBytes": null,
+        "netTxBytes": null,
+        "cpuSeconds": 1382.9
+      },
+      "matrix": null
+    },
+    {
+      "id": 114680630084,
+      "name": "analyze (java-kotlin, ubuntu-latest, none)",
+      "status": "completed",
+      "conclusion": "failure",
+      "runnerOs": "UBUNTU",
+      "runnerName": "GitHub Actions 1000107740",
+      "runnerGroup": "GitHub Actions",
+      "selfHosted": false,
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "createdAt": "2026-10-12T05:49:13Z",
+      "startedAt": "2026-10-12T05:49:14Z",
+      "completedAt": "2026-10-12T05:50:39Z",
+      "queuedMs": 1000,
+      "durationMs": 85000,
+      "billableMs": 0,
+      "weightedMs": 85000,
+      "attempt": 1,
+      "steps": [
+        {
+          "name": "Set up job",
+          "number": 1,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:15Z",
+          "completedAt": "2026-10-12T05:49:16Z",
+          "durationMs": 1000
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:16Z",
+          "completedAt": "2026-10-12T05:49:19Z",
+          "durationMs": 3000
+        },
+        {
+          "name": "Start job telemetry",
+          "number": 3,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:19Z",
+          "completedAt": "2026-10-12T05:49:19Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 4,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:49:19Z",
+          "completedAt": "2026-10-12T05:49:29Z",
+          "durationMs": 10000
+        },
+        {
+          "name": "Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 5,
+          "conclusion": "failure",
+          "startedAt": "2026-10-12T05:49:29Z",
+          "completedAt": "2026-10-12T05:50:27Z",
+          "durationMs": 58000
+        },
+        {
+          "name": "Finish job telemetry",
+          "number": 6,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:27Z",
+          "completedAt": "2026-10-12T05:50:29Z",
+          "durationMs": 2000
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 10,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:29Z",
+          "completedAt": "2026-10-12T05:50:29Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Post Run github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd",
+          "number": 11,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:29Z",
+          "completedAt": "2026-10-12T05:50:37Z",
+          "durationMs": 8000
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 12,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:37Z",
+          "completedAt": "2026-10-12T05:50:37Z",
+          "durationMs": 0
+        },
+        {
+          "name": "Complete job",
+          "number": 13,
+          "conclusion": "success",
+          "startedAt": "2026-10-12T05:50:37Z",
+          "completedAt": "2026-10-12T05:50:37Z",
+          "durationMs": 0
+        }
+      ],
+      "resources": {
+        "schema": 1,
+        "label": "analyze",
+        "startedAt": "2026-10-12T05:49:19.913Z",
+        "finishedAt": "2026-10-12T05:50:28.040Z",
+        "durationMs": 68127,
+        "intervalMs": 5000,
+        "sampleCount": 15,
+        "runner": {
+          "platform": "linux",
+          "arch": "x64",
+          "release": "6.17.0-1022-azure",
+          "cpuCount": 4,
+          "cpuModel": "AMD EPYC 9V45 96-Core Processor",
+          "memTotalBytes": 16766414848,
+          "osLabel": "Linux",
+          "runnerName": "GitHub Actions 1000107740",
+          "imageOs": "ubuntu24"
+        },
+        "cpuPct": {
+          "key": "cpuPct",
+          "samples": 14,
+          "mean": 53.56,
+          "p50": 59.61,
+          "p95": 78.17,
+          "max": 78.17,
+          "min": 7.13
+        },
+        "loadOne": {
+          "key": "loadOne",
+          "samples": 15,
+          "mean": 2.26,
+          "p50": 2.38,
+          "p95": 2.6,
+          "max": 2.6,
+          "min": 1.7
+        },
+        "memUsedBytes": {
+          "key": "memUsedBytes",
+          "samples": 15,
+          "mean": 1794972603.73,
+          "p50": 1860743168,
+          "p95": 2032656384,
+          "max": 2032656384,
+          "min": 1232416768
+        },
+        "memUsedPct": {
+          "key": "memUsedPct",
+          "samples": 15,
+          "mean": 10.71,
+          "p50": 11.1,
+          "p95": 12.12,
+          "max": 12.12,
+          "min": 7.35
+        },
+        "procs": {
+          "key": "procs",
+          "samples": 15,
+          "mean": 158.87,
+          "p50": 160,
+          "p95": 160,
+          "max": 160,
+          "min": 155
+        },
+        "diskWorkspacePct": {
+          "key": "diskWorkspacePct",
+          "samples": 15,
+          "mean": 41.37,
+          "p50": 41.48,
+          "p95": 41.5,
+          "max": 41.5,
+          "min": 40.45
+        },
+        "runnerDiskGrowthBytes": 1622474752,
+        "ioReadBytes": 105771008,
+        "ioWriteBytes": 4413407232,
+        "netRxBytes": 1456220208,
+        "netTxBytes": 2493116,
+        "cpuSeconds": 146
+      },
+      "matrix": null
+    }
+  ]
+}
